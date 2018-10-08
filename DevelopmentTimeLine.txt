@@ -2,12 +2,30 @@ Key dates for development of Fourier-fit (or whatever it becomes):
 
 today: 8th October
 
+Key features to add to the code:
+  - Split the code into Fourier functions and the X-ray processing script [before 26th November].
+  - Polynomial background described as fourier series. [before 26th November].
+  - Write output/input scripts for X-ray data processing [before 26th november].
+      - Output script should write:
+          - A fit file for each diffraction pattern. This conatins the fitted parameters for each peak that includes: the fitting boundaries (i.e. max and min d), fitted parameters and their errors. 
+          - A file in the multifit format to be used by multifit for the stress/strain fitting.
+          - 
+      - Input script: Required files:
+          - List of all diffraction patterns to fit.
+          - One of: (a) last fit as initial guess, or (b) default input file containing limits and orders of the fits only.
 
+  - GUI front end for X-ray data. [not required by 26th November but if have working version by 10th Dec can be included in talk.]
+  - Lorentz peak functions (again described by Fourier series and with a weighting between Gauss and Lorentx peak shapes, also a Fourier) [not required before 26th November].
+  - Read calibrations for GSAS-II, Dioptas, Dawn. [only GSAS-II required by 26th November].
+  
+  
 
-
-
-26th November -- 'Final' version of the code for the Fall meeting. Leaving Simon with 2 weeks to analyse all the data and write his talk. 
+26th November -- 'Final' version of the code for the Fall meeting. Leaving Simon with 2 weeks to analyse all enough data to write his talk. 
 (presentation -2 weeks)
 
-
+*****
 10th December, 16:15, Monday -- Conference Presentation: Fall AGU meeting, Washington DC. Oral presentation.
+*****
+
+2019: Write paper describing the software's application to X-ray diffraction data for Journal of Applied Crystallography. Authors: S.A.Hunt and D.M.Fenech.
+2019: Write paper describing the software's application to Radio astronomy data for 'Journal of Applied Radio Astronomy'. Authors: D.M.Fenech and S.A.Hunt (and others?).

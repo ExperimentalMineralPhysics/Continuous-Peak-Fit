@@ -14,6 +14,7 @@ Key features to add to the code:
           - List of all diffraction patterns to fit.
           - One of: (a) last fit as initial guess, or (b) default input file containing limits and orders of the fits only.
 
+  - Implement the fitting of multiple peaks in the same window. Each peak should have independent 'h' and 'd'. It is usual in this sort of fitting to allow 'w' to be the same for all peaks -- we should probably have an option to do this. [not required but would be much better if it was implemented - also it might be easier to implement it sooner so that we dont have to rework lots of code].
   - GUI front end for X-ray data. [not required by 26th November but if have working version by 10th Dec can be included in talk.]
   - Lorentz peak functions (again described by Fourier series and with a weighting between Gauss and Lorentx peak shapes, also a Fourier) [not required before 26th November].
   - Read calibrations for GSAS-II, Dioptas, Dawn. [only GSAS-II required by 26th November].

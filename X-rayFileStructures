@@ -1,0 +1,82 @@
+File format and data structure for X-ray files.
+
+Files needed:
+  1. Generic input file (ascii).
+  2. Fit-save file (either as a ascii file but probably better as the data structure passed around in the scripts.)
+  3. Multifit/polydefix data file.
+  4. Possibly other output formats depending what post-processing software is required/requested.
+
+
+Generic input file.
+Should be an ascii file so that can be edited without a GUI.
+Needs to contain:
+  - Calibration type (e.g. GSAS-II, Fit2D etc...) and file location/name
+      - Any additional information that is not recorded in the Calibration file. (e.g. pixel size of detector).
+  - Mask type and file location/name
+  - File listing XRD patterns to process -- location/name
+    - For each window/sub-pattern:
+        - extent min and max
+        - Background description:
+              degree of the polynomial Background
+              Number of Fourier terms
+        - number of peaks
+          - For each peak the order of the fourier series in: (later this could incorporate a range/machine learning switch)
+              d-spacing,
+              height,
+              width,
+              Peak Shape (ratio of Gauss or Lorentz)
+
+
+
+Fit-save File.
+I guess the fit-save file just contains the same information as the generic input file but is populated with fitted parameters.
+It does not need to be ASCII formatted.
+
+
+
+
+Multifit/polydefix data file:
+This file format is taken from https://github.com/smerkel/multifit
+
+The bits that seem to write the output files from multifit are:
+multifit/fitPatternObject.pro -- function fitPatternObject::saveToAscii (line 207)
+multifit/subPatternModel.pro -- function SubPatternModel::saveToAscii (line 143)
+multifit/fitSubPatternObject.pro -- function fitSubPatternObject::saveToAscii (line 483)
+
+The file has the following structure [numbers/arrays in brackets are mutable and change with the data]:
+---
+
+Fit pattern file
+# File version
+1
+# Peak profile (0: gauss, 1: pseudo-voigt, 2: lorentz)
+      [1]
+# Number of sub-patterns
+      [n]
+# Sub-patterns        [0]                                --- repeat from here for the number of sub-patterns in the data file.
+# Number of peaks
+      [1]
+# Peak profile
+      [1]
+# Width factor
+    [0.000000]
+# Range in azimuth: nvalues, and values
+    [number of azimuth slices]
+    [azimuth1
+    ...
+    azimuth last]
+# background positions, in 2 theta (left/right)
+     [bg1left      bg1right
+     ... These are the minimum and maximum extent of the background in 2 theta
+     BGlastLeft    BGlastRight]
+# background coefficients
+     [bg1intensity      bg1slope
+     ... These are the intensity at the min 2 theta and slope the background against 2 theta      ]
+     BGlastIntensity    BGlastSlope]                                                              ]
+# Peak positions (2 theta), intensity, half-width, weight Gauss/Lorentz (for pseudo-voigt),
+# peak number        [0]                                          ]
+     [position1     Intensity1  HW1            Weight1            ]  repeat for the
+     ...                                                          ]  number of peaks in
+     positionLast  IntensityLast  HWLast      WeightLast]         ]  subpattern
+
+-------

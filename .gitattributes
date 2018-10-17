@@ -177,3 +177,4 @@ pip-selfcheck.json
 
 
 * text=auto
+*.py eol=lf

@@ -1,5 +1,8 @@
 # /usr/bin/python
 
+#import sys
+#sys.path.append('/Users/simon/g2conda/GSASII/')
+
 import numpy as np
 import numpy.ma as ma
 import copy, os, sys
@@ -11,7 +14,23 @@ import matplotlib.path as mlp
 from scipy.optimize import curve_fit
 np.set_printoptions(threshold='nan')
 
+
+#import GSASIIIO as GsIO
+
 # ------- above here is the intro stuff that I dont know if it is needed. 
+
+
+def ImportImage(ImageName):
+
+
+    #Im = GsIO.GetImageData([], ImageName)
+
+
+    im = Image.open(ImageName) ##always tiff?- no
+    #print type(im)
+    #im = im.transpose(Image.FLIP_TOP_BOTTOM)
+    #print type(im)
+    return im
 
 def CreateGSASIIMask(MSKfile, ImInts, ImageSize, ImTTH, ImAzi, Imy,Imx):
 

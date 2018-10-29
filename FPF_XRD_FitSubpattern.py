@@ -27,7 +27,7 @@ import FPF_PeakFourierFunctions as ff
 def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, params=None):
 
 
-    print np.shape(TwoThetaAndDspacings)[0]
+    #print np.shape(TwoThetaAndDspacings)[0]
 
 
     # sort inputs
@@ -97,37 +97,42 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, params=None)
     newWallErr=[]
     newBGall=[]
     newBGallErr=[]
+    newAziChunks=[]
 
     for j in range(len(chunks)):
 
 
         # print '\nFitting azimuth chunk....\n'
 
-        # print intens.flatten()[chunks[j]].dtype
-        hguess_I=intens.flatten()[chunks[j]].argmax()
-        #print hguess_I
-        hguess=intens.flatten()[chunks[j]][hguess_I]-backg[0]
-        #print hguess
-        dguess=dspace.flatten()[chunks[j]][hguess_I]
-        bgguess = backg
-        wguess = 0.005
-        print hguess_I,hguess,dguess,backg,'hguess'
-        po,pc= ff.singleFit(intens.flatten()[chunks[j]],twotheta.flatten()[chunks[j]],azichunks[j],dspace.flatten()[chunks[j]],d0s=dguess,heights=hguess,widths=wguess,wavelength=wavelength,bg=bgguess)
-        #print po
-        AllErr = np.sqrt(np.abs(np.diag(pc)))
-        #print AllErr
+        #only compute the fit and save it if there are 'enough' data
+        if np.sum(~intens.flatten()[chunks[j]].mask) >= 20: #FIX ME: this switch is.a crude way of finding if there are less than 20 data in the bin. It should also be a variable. 
+            #print (intens.flatten()[chunks[j]].mask)
+            hguess_I=intens.flatten()[chunks[j]].argmax()
+            #print hguess_I
+            hguess=(intens.flatten()[chunks[j]][hguess_I]-backg[0])*0.8
+            #print hguess
+            dguess=dspace.flatten()[chunks[j]][hguess_I]
+            dguess= (np.max(dspace.flatten()[chunks[j]]) + np.min(dspace.flatten()[chunks[j]]))/2
+            bgguess = backg
+            wguess = (np.max(dspace.flatten()[chunks[j]]) + np.min(dspace.flatten()[chunks[j]]))/100
+            #print wguess
+            #print hguess_I,hguess,dguess,bgguess,'hguess'
+            po,pc= ff.singleFit(intens.flatten()[chunks[j]],twotheta.flatten()[chunks[j]],azichunks[j],dspace.flatten()[chunks[j]],d0s=dguess,heights=hguess,widths=wguess,wavelength=wavelength,bg=bgguess)
+            #print po
+            AllErr = np.sqrt(np.abs(np.diag(pc)))
+            #print AllErr
 
-        #print newd0Err,'newd0Err'
-        newd0.append(po[0])
-        newd0Err.append(AllErr[0])
-        newHall.append(po[1])
-        newHallErr.append(AllErr[1])
-        newWall.append(po[2])
-        newWallErr.append(AllErr[2])
-        newBGall.append(po[3])
-        newBGallErr.append(AllErr[3])
+            #print newd0Err,'newd0Err'
+            newd0.append(po[0])
+            newd0Err.append(AllErr[0])
+            newHall.append(po[1])
+            newHallErr.append(AllErr[1])
+            newWall.append(po[2])
+            newWallErr.append(AllErr[2])
+            newBGall.append(po[3])
+            newBGallErr.append(AllErr[3])
 
-        print po, 'p0'
+            newAziChunks.append(azichunks[j])
 
         '''
         newd0.append(po[0])
@@ -140,20 +145,21 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, params=None)
         newBGallErr.append(np.sqrt(pc[3,3]))
         '''
 
-        # #plot the fits.
-        # asdf_ord = np.argsort(twotheta.flatten()[chunks[j]])
-        # asdf1 = twotheta.flatten()[chunks[j]][asdf_ord]
-        # asdf2 = intens.flatten()[chunks[j]][asdf_ord]
-        # asdf3 = singleInt(asdf1,tuple(po))
-        # #asdf3 = singleInt(asdf1,po[0],po[1],po[2],po[3])
+        #plot the fits.
+        if 0:
+            asdf_ord = np.argsort(twotheta.flatten()[chunks[j]])
+            asdf1 = twotheta.flatten()[chunks[j]][asdf_ord]
+            asdf2 = intens.flatten()[chunks[j]][asdf_ord]
+            asdf3 = ff.singleInt((asdf1,wavelength),tuple(po))
+            asdf3 = ff.singleInt((asdf1,wavelength),po[0],po[1],po[2],po[3])
 
 
-        # plt.plot(asdf1, asdf2,'.')
-        # plt.plot(asdf1, asdf3, '-')
-        # plt.show()
+            plt.plot(asdf1, asdf2,'.')
+            plt.plot(asdf1, asdf3, '-')
+            plt.show()
 
 
-
+    #print newd0
 
     ### Feed each d_0,h,w into fourier expansion function to get fit for fourier component
     ### parameters as output.
@@ -161,11 +167,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, params=None)
     # print '\n Doing d0 fourier fit...', d0_order
 
     #print 'newd0Err', newd0Err
-
-    dfour = ff.Fourier_fit(np.array(azichunks),np.array(newd0),terms=d0_order, errs=np.array(newd0Err))
+    dfour = ff.Fourier_fit(np.array(newAziChunks),np.array(newd0),terms=d0_order, errs=np.array(newd0Err))
     # print '\n Doing h fourier fit...'
-    hfour = ff.Fourier_fit(np.array(azichunks),np.array(newHall),terms=h_order, errs=np.array(newHallErr))
-    wfour = ff.Fourier_fit(np.array(azichunks),np.array(newWall),terms=w_order, errs=np.array(newWallErr))
+    hfour = ff.Fourier_fit(np.array(newAziChunks),np.array(newHall),terms=h_order, errs=np.array(newHallErr))
+    wfour = ff.Fourier_fit(np.array(newAziChunks),np.array(newWall),terms=w_order, errs=np.array(newWallErr))
 
     '''
     print 'shapes'
@@ -179,29 +184,29 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, params=None)
     '''
 
     #plot output of fourier fits....
+    if 0:
+        fig = plt.figure()
+        ax = fig.add_subplot(3,1,1)
+        plt.subplot(311)
+        plt.plot(newAziChunks,newd0, 'bo')
+        plt.title('D-spacing')
+        # print len(azichunks), 'len azichunks'
+        #print dfour[0]
+        #testout = ff.Fourier_expand(np.array(azichunks), dfour[0])
+        #print testout, 'testout'
+        #print stop
+        plt.plot(newAziChunks,ff.Fourier_expand(np.array(newAziChunks), dfour[0]), 'r-')
+        plt.subplot(312)
+        plt.plot(newAziChunks,newHall, 'bo')
+        plt.title('height')
+        plt.plot(newAziChunks,ff.Fourier_expand(np.array(newAziChunks), hfour[0]), 'r-')
+        plt.subplot(313)
+        plt.plot(newAziChunks,newWall, 'bo')
+        plt.title('width')
+        plt.plot(newAziChunks,ff.Fourier_expand(np.array(newAziChunks), np.array(wfour[0])), 'r-')
+        plt.show()
 
-    # fig = plt.figure()
-    # ax = fig.add_subplot(3,1,1)
-    # plt.subplot(311)
-    # plt.plot(azichunks,newd0, 'bo')
-    # plt.title('D-spacing')
-    # # print len(azichunks), 'len azichunks'
-    # print dfour[0]
-    # testout = Fourier_expand(np.array(azichunks), dfour[0])
-    # print testout, 'testout'
-    # #print stop
-    # plt.plot(azichunks,Fourier_expand(np.array(azichunks), dfour[0]), 'r-')
-    # plt.subplot(312)
-    # plt.plot(azichunks,newHall, 'bo')
-    # plt.title('height')
-    # plt.plot(azichunks,Fourier_expand(np.array(azichunks), hfour[0]), 'r-')
-    # plt.subplot(313)
-    # plt.plot(azichunks,newWall, 'bo')
-    # plt.title('width')
-    # plt.plot(azichunks,Fourier_expand(np.array(azichunks), np.array(wfour[0])), 'r-')
-    # plt.show()
-
-    # plt.close()
+        plt.close()
 
     # print stop
 
@@ -290,14 +295,22 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, params=None)
     # #print oldshape
     fullfit_intens = fit_intens #np.reshape(fullfit_intens,(oldshape[0],oldshape[1]))
 
-    ValMax1 = np.max(intens.flatten())
-    ValMax2 = np.max(fullfit_intens.flatten())
-    ValMax3 = np.max((intens.flatten()-fullfit_intens.flatten()))
-    ValMax  = 40#np.max([ValMax1, ValMax2, ValMax3])
+
+    # Set the maximum to the n+1th value in the array
+    # FIX ME: the max find is not necessarily efficient. A quicker way should be found if it exists.
+    max_pos = 5
+
+    ValMax1 = -np.sort(-intens.flatten())[max_pos]#np.max(intens.flatten())
+    ValMax2 = -np.sort(-fullfit_intens.flatten())[max_pos]#np.max(fullfit_intens.flatten())
+    ValMax3 = -np.sort(-(intens.flatten()-fullfit_intens.flatten()))[max_pos]#np.max((intens.flatten()-fullfit_intens.flatten()))
+    ValMax  = np.max([ValMax1, ValMax2])
     ValMin1 = np.min(intens.flatten())
     ValMin2 = np.min(fullfit_intens.flatten())
     ValMin3 = np.min((intens.flatten()-fullfit_intens.flatten()))
-    ValMin  = -3#np.min([ValMin1, ValMin2, ValMin3])
+    ValMin  = np.min([ValMin1, ValMin2])
+
+
+    
 
     #print fullfit_intens.shape
     #print twotheta.shape
@@ -307,7 +320,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, params=None)
     #print twotheta[0,]
     #print np.where((twotheta[0]>=tthRange[0])&(twotheta[0]<=tthRange[1]))
 
-    if 1:
+    if 0:
         fig = plt.figure()
         ax = fig.add_subplot(1,3,1)
         plt.subplot(131)
@@ -319,11 +332,49 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, params=None)
         plt.colorbar()
         plt.subplot(133)
         #plt.scatter(twotheta, azimu, s=1, c=np.log(intens-fullfit_intens), edgecolors='none', cmap=plt.cm.jet)
-        plt.scatter(dspace.flatten(), azimu.flatten(), s=4, c=(intens.flatten()-fullfit_intens.flatten()), edgecolors='none', cmap=plt.cm.jet)
+        plt.scatter(dspace.flatten(), azimu.flatten(), s=4, c=(intens.flatten()-fullfit_intens.flatten()), edgecolors='none', cmap=plt.cm.jet, vmin=ValMin3, vmax=ValMax3)
         plt.colorbar()
         plt.show()
 
         plt.close()
+
+
+    collated = {"d-space":    fin_d,
+                "height":     fin_h,
+                "width":      fin_w,
+                "background": backg
+    }
+
+    return collated
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

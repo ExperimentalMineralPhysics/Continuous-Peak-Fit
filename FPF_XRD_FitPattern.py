@@ -13,6 +13,7 @@ np.set_printoptions(threshold='nan')
 
 from FPF_XRD_FitSubpattern import FitSubpattern
 import FPF_PeakFourierFunctions as ff
+import FPF_WriteMultiFit as wr
 
 # load as det (detector) so that can readilt replace the GSASII functions with e.g. diaoptas without confusing names in this script
 import FPF_GSASIIFunctions as det
@@ -41,7 +42,7 @@ if opt==1:
     d0_order = 0 ##  probably limited to 2 -- generalisation might work better for radio data.
 
 elif opt==2:
-    diff_files = ['/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/BCC1_2GPa_10s_001_00001.tif','/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/BCC1_2GPa_10s_001_00002.tif']
+    diff_files = ['/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/BCC1_2GPa_10s_001_00001.tif','/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/BCC1_2GPa_10s_001_00001.tif']
     mask_file = '/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/Diffraction.immask'
     tthRange = [[11.7, 12.08], [16.6,17.1], [20.4, 20.9]]
 
@@ -223,6 +224,18 @@ for j in range(n_diff_files):
         orders = [d0_order, h_order, w_order, bg_order, total]
 
         #fit the subpattern
-        returned_stuff = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict['wavelength']], azimu_sub, intens_sub, orders, params)
+        Fitted_param = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict['wavelength']], azimu_sub, intens_sub, orders, params)
+
+        print Fitted_param
+
+
+
+    #write output files
+
+
+    wr.WriteMultiFit(diff_files[j], Fitted_param)
+
+
+
 
 

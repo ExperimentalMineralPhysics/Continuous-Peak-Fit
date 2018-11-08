@@ -339,11 +339,22 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, params=None)
         plt.close()
 
 
+    '''
     collated = {"d-space":    fin_d,
                 "height":     fin_h,
                 "width":      fin_w,
                 "background": backg
     }
+    '''
+    
+    peaks = []
+    peaks.append({"d-space":    fin_d,
+                "height":     fin_h,
+                "width":      fin_w,
+                "profile":      0
+    })
+    collated = {"background": backg, "peak":peaks}
+
 
     return collated
     

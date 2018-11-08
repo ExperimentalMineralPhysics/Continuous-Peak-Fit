@@ -25,7 +25,9 @@ def WriteMultiFit(base_file_name, data_to_write):
     
     #number of subpatterns
     # FIX ME: I dont know how the data will be input here.
-    num_subpatterns = 2
+    # num_subpatterns = 2
+
+    num_subpatterns = len(data_to_write)
 
     text_file.write("# Number of sub-patterns\n" )
     text_file.write("      %i\n" % num_subpatterns)
@@ -74,6 +76,8 @@ def WriteMultiFit(base_file_name, data_to_write):
 
         # write the peak properties for each azimuth slice. and each peak.
         num_peaks = 1
+
+        num_peaks = len(data_to_write[j]['peak'])
         for k in range(num_peaks):
             text_file.write("        # peak number        %i\n" % k)
             #[position1     Intensity1  HW1            Weight1            ]  repeat for the

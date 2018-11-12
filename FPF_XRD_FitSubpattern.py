@@ -347,13 +347,20 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, params=None)
     }
     '''
     
+    tth_min = twotheta.min()
+    tth_max = twotheta.max()
+    d_min = dspace.min()
+    d_max = dspace.max()
+    extent = [[tth_min, tth_max],[d_min, d_max]]
+
+
     peaks = []
     peaks.append({"d-space":    fin_d,
                 "height":     fin_h,
                 "width":      fin_w,
                 "profile":      0
     })
-    collated = {"background": backg, "peak":peaks}
+    collated = {"background": backg, "range": extent, "peak":peaks}
 
 
     return collated

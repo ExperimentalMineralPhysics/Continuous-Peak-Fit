@@ -22,10 +22,10 @@ import FPF_GSASIIFunctions as det
 ### Inputs ###
 # and setup
 
-#calib_file = '/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/CeO2_Pil207_E30_2Nov2016_001.imctrl'
-#calib_file = '/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/Calibration2018Oct.imctrl'
-calib_file = '/local/shunt/CeO2_Pil207_E30_2Nov2016_001.imctrl'
-calib_file = '/local/shunt/test.imctrl'
+calib_file = '/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/CeO2_Pil207_E30_2Nov2016_001.imctrl'
+calib_file = '/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/Calibration2018Oct.imctrl'
+#calib_file = '/local/shunt/CeO2_Pil207_E30_2Nov2016_001.imctrl'
+#calib_file = '/local/shunt/test.imctrl'
 pix = 172 #microns ##SAH: edit 172 microns not 17.2
 
 opt = 2
@@ -44,10 +44,10 @@ if opt==1:
     d0_order = 0 ##  probably limited to 2 -- generalisation might work better for radio data.
 
 elif opt==2:
-    # diff_files = ['/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/BCC1_2GPa_10s_001_00001.tif','/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/BCC1_2GPa_10s_001_00001.tif']
-    # mask_file = '/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/Diffraction.immask'
-    diff_files = ['/local/shunt/BCC1_2GPa_10s_001_00001.tif','/local/shunt/BCC1_2GPa_10s_001_00001.tif']
-    mask_file = '/local/shunt/Diffraction.immask'
+    diff_files = ['/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/BCC1_2GPa_10s_001_00001.tif','/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/BCC1_2GPa_10s_001_00001.tif']
+    mask_file = '/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/Diffraction.immask'
+    #diff_files = ['/local/shunt/BCC1_2GPa_10s_001_00001.tif','/local/shunt/BCC1_2GPa_10s_001_00001.tif']
+    #mask_file = '/local/shunt/Diffraction.immask'
     tthRange = [[11.7, 12.08], [16.6,17.1], [20.4, 20.9]]
 
     total = 72

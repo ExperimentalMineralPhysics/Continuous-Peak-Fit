@@ -48,8 +48,8 @@ def Fourier_expand(azimu, *param):
     # print out, 'out'
     else:
         fout = np.ones(azimu.shape)
-        fout[:] = out
-        out = fout
+        #fout[:] = out
+        out = fout*param
 
     #print stop
     return out

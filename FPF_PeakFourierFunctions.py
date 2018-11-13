@@ -47,6 +47,7 @@ def Fourier_expand(azimu, *param):
             out = out + param[(2*i)-1]*np.sin(np.deg2rad(azimu))**i + param[2*i]*np.cos(np.deg2rad(azimu))**i #single col array
     # print out, 'out'
     else:
+        azimu = np.array(azimu)
         fout = np.ones(azimu.shape)
         #fout[:] = out
         out = fout*param
@@ -79,7 +80,7 @@ def Fourier_fit(azimu,ydata,terms,param=None,errs=1):
     #    errs = errs
     # else:
     #    errs
-    #print param.shape
+    print len(param)
     #print stop
     popt,pcurv = curve_fit(Fourier_expand,azimu,ydata,p0=param,sigma=errs)
 

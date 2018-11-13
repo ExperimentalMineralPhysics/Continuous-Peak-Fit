@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 import FPF_PeakFourierFunctions as ff
+import json
 
 
 def WriteMultiFit(base_file_name, data_to_write, Num_Azi):
@@ -107,10 +108,10 @@ def WriteMultiFit(base_file_name, data_to_write, Num_Azi):
             #positionLast  IntensityLast  HWLast      WeightLast]         ]  subpattern
             for l in range(int(Num_Azi)):
                 az = l/Num_Azi*360
-                peak_d = ff.Fourier_expand(np.array(az), data_to_write[j]['peak'][k]['d-space']) #FIX ME - needs to be in two theta not d-spacing
-                peak_i = ff.Fourier_expand(np.array(az), data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
-                peak_w = ff.Fourier_expand(np.array(az), data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
-                peak_p = ff.Fourier_expand(np.array(az), data_to_write[j]['peak'][k]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
+                peak_d = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['d-space']) #FIX ME - needs to be in two theta not d-spacing
+                peak_i = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
+                peak_w = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
+                peak_p = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
 
                 text_file.write("%13.4f %13.4f %13.4f %13.4f\n" % (peak_d, peak_i, peak_w, peak_p))
 
@@ -120,7 +121,7 @@ def WriteMultiFit(base_file_name, data_to_write, Num_Azi):
     text_file.close()
 
 
-'''
+
 
 #test cases for wirting files
 test = 1
@@ -128,9 +129,9 @@ test = 1
 if test==1:
     Fouriers_to_write = [{'peak': [{
     'profile': 0, 
-    'width': np.array([ 0.03296637]), 
-    'd-space': np.array([  1.45521770e+02,   3.15812130e-03,   3.63949255e-03,   -1.43496474e+02,  -1.43500658e+02]), 
-    'height': np.array([ -1.61854953e+08,  -7.90551608e+01,  -1.86863466e+02,
+    'width': [ 0.03296637], 
+    'd-space': [  1.45521770e+02,   3.15812130e-03,   3.63949255e-03,   -1.43496474e+02,  -1.43500658e+02], 
+    'height': [ -1.61854953e+08,  -7.90551608e+01,  -1.86863466e+02,
      1.84245125e+08,  -5.01600833e+05,   8.75674029e+02,
      3.71825217e+03,  -5.17425137e+06,   3.65458422e+08,
     -3.90556882e+03,  -2.25773282e+04,   1.86844720e+08,
@@ -138,14 +139,14 @@ if test==1:
     -3.07040812e+08,   9.14094789e+06,  -8.05594617e+03,
     -6.26194032e+04,   1.24648536e+08,  -5.65124620e+06,
      2.94882628e+03,   2.51878566e+04,  -2.16682847e+07,
-     2.17678521e+07])}], 
+     2.17678521e+07]}], 
     'background': [4.0],
     'range': [[11.700006, 12.079979], [1.9937644, 2.0582786]]}, 
     {'peak': [{
     'profile': 0, 
-    'width': np.array([ 0.06473334]), 
-    'd-space': np.array([ -1.48371656e+02,   1.32237912e-03,   1.75463473e-03,   1.49805560e+02,   1.49801480e+02]), 
-    'height': np.array([  2.05724056e+07,  -9.25144706e+00,  -5.38376022e+00,
+    'width': [ 0.06473334], 
+    'd-space': [ -1.48371656e+02,   1.32237912e-03,   1.75463473e-03,   1.49805560e+02,   1.49801480e+02], 
+    'height': [  2.05724056e+07,  -9.25144706e+00,  -5.38376022e+00,
     -2.10599065e+07,  -6.44172806e+06,   1.50563973e+02,
      9.46366683e+01,  -6.81122757e+05,  -3.99125724e+07,
     -7.06638114e+02,  -4.55423181e+02,  -6.71592503e+06,
@@ -153,14 +154,14 @@ if test==1:
     -1.63116330e+06,   3.30713638e+06,  -1.04632954e+03,
     -9.05402148e+02,   1.44412561e+07,  -1.51098537e+07,
      2.97575768e+02,   3.39659190e+02,  -4.92552756e+06,
-     4.92459547e+06])}], 
+     4.92459547e+06]}], 
     'background': [4.0],
     'range': [[16.600002, 17.099998], [1.4110823, 1.4532731]]}, 
      {'peak': [{
      'profile': 0, 
-     'width': np.array([ 0.05999371]), 
-     'd-space': np.array([ -1.38852649e+02,   8.75848195e-04,   1.30742495e-03,  1.40024571e+02,   1.40021371e+02]), 
-     'height': np.array([ -2.94680617e+05,  -7.51087348e+00,  -5.01955745e-01,
+     'width': [ 0.05999371], 
+     'd-space': [ -1.38852649e+02,   8.75848195e-04,   1.30742495e-03,  1.40024571e+02,   1.40021371e+02], 
+     'height': [ -2.94680617e+05,  -7.51087348e+00,  -5.01955745e-01,
      1.71972262e+05,   3.01886458e+06,   1.47013354e+02,
     -3.97875774e+01,   1.00812116e+06,   1.31668009e+06,
     -8.64958125e+02,   4.82478179e+02,  -3.80495454e+07,
@@ -168,7 +169,7 @@ if test==1:
      9.43916850e+07,  -4.37268233e+07,  -2.05402403e+03,
      2.45598540e+03,  -8.07779850e+07,   6.04951412e+07,
      7.38560951e+02,  -1.13116306e+03,   2.35504567e+07,
-    -2.35403011e+07])}], 
+    -2.35403011e+07]}], 
      'background': [4.0],
      'range': [[20.400015, 20.89999], [1.1566441, 1.1846806]]}]
 
@@ -177,4 +178,15 @@ if test==1:
     Azimuths = 360.
 
     WriteMultiFit(file_name, Fouriers_to_write, Azimuths)
-'''
+
+
+    #Write the fits to a temporary file
+    TempFilename = open("Fit_previous_JSON.dat", "w")
+
+    # Write a JSON string into the file.
+    json_string = json.dumps(Fouriers_to_write, TempFilename, sort_keys=True, indent=4, separators=(',', ': '))
+    TempFilename.write(json_string)
+
+    
+
+

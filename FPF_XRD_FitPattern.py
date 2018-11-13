@@ -3,6 +3,7 @@
 import numpy as np
 import numpy.ma as ma
 import copy, os, sys
+import json
 from PIL import Image
 import math
 import matplotlib.cm as cm
@@ -17,6 +18,59 @@ import FPF_WriteMultiFit as wr
 
 # load as det (detector) so that can readilt replace the GSASII functions with e.g. diaoptas without confusing names in this script
 import FPF_GSASIIFunctions as det
+
+# copied from https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array#24375113
+# on 13th November 2018
+def json_numpy_serialzer(o):
+    """ Serialize numpy types for json
+
+    Parameters:
+        o (object): any python object which fails to be serialized by json
+
+    Example:
+
+        >>> import json
+        >>> a = np.array([1, 2, 3])
+        >>> json.dumps(a, default=json_numpy_serializer)
+
+    """
+    numpy_types = (
+        np.bool_,
+        # np.bytes_, -- python `bytes` class is not json serializable     
+        # np.complex64,  -- python `complex` class is not json serializable  
+        # np.complex128,  -- python `complex` class is not json serializable
+        # np.complex256,  -- special handling below
+        # np.datetime64,  -- python `datetime.datetime` class is not json serializable
+        np.float16,
+        np.float32,
+        np.float64,
+        # np.float128,  -- special handling below
+        np.int8,
+        np.int16,
+        np.int32,
+        np.int64,
+        # np.object_  -- should already be evaluated as python native
+        np.str_,
+        np.timedelta64,
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.uint64,
+        np.void,
+    )
+
+    if isinstance(o, np.ndarray):
+        return o.tolist()
+    elif isinstance(o, numpy_types):        
+        return o.item()
+    elif isinstance(o, np.float128):
+        return o.astype(np.float64).item()
+    # elif isinstance(o, np.complex256): -- no python native for np.complex256
+    #     return o.astype(np.complex128).item() -- python `complex` class is not json serializable 
+    else:
+        raise TypeError("{} of type {} is not JSON serializable".format(repr(o), type(o)))
+
+
 
 
 ### Inputs ###
@@ -49,14 +103,17 @@ elif opt==2:
     #diff_files = ['/local/shunt/BCC1_2GPa_10s_001_00001.tif','/local/shunt/BCC1_2GPa_10s_001_00001.tif']
     #mask_file = '/local/shunt/Diffraction.immask'
     tthRange = [[11.7, 12.08], [16.6,17.1], [20.4, 20.9]]
+    #tthRange = [[16.6,17.1] ]
 
-    total = 72
+    total = 25
     backg = [4.] #have to make sure this number is the right size for the bg order.
 
-    h_order  = 12  ##  no formal limit
+    h_order  = 6  ##  no formal limit
     w_order  = 0   ## no formal limit
     d0_order = 2 ##  probably limited to 2 -- generalisation might work better for radio data.
     bg_order = 0 ## no limit.
+
+    NumAziWrite = 90
 
 # GUI needed to set inputs? ###
 # SAH: A GUI would be good for the initial inputs -- most geoscientist types find it is easier to select areas with a mouse than the keyboard.
@@ -66,7 +123,7 @@ elif opt==2:
 
 
 #### Main code ####
-
+temporary_data_file = 'PreviousFit_JSON.dat'
 
 
 ## Load files ##
@@ -86,6 +143,25 @@ parms_dict = det.load_inputs_file(parms_file)
 n_diff_files = len(diff_files)
 
 for j in range(n_diff_files):
+
+
+
+    # #see if a temporary fit exists and then call it.
+    # if j != 1:
+    #     if os.path.isfile(temporary_data_file):
+    #         previous = open(temporary_data_file,'rb')
+    #         #print previous
+    #         previous.seek(4)
+    #         print previous.tell()
+    #         previous_fit = previous.read(12)
+    #         print previous_fit#.read(14)
+    #         print previous.tell()
+
+    #         print previous_fit
+    #         previous_fit = json.loads(previous_fit)
+
+
+    # print previous_fit
 
 
     im = det.ImportImage(diff_files[j])
@@ -238,9 +314,15 @@ for j in range(n_diff_files):
     #write output files
 
 
-    wr.WriteMultiFit(diff_files[j], Fitted_param)
+    wr.WriteMultiFit(diff_files[j], Fitted_param, NumAziWrite)
 
 
+    #Write the fits to a temporary file
+    TempFilename = open(temporary_data_file, "w")
+    # Write a JSON string into the file.
+    json_string = json.dumps(Fitted_param, TempFilename, sort_keys=True, indent=4, default=json_numpy_serialzer)
+    #json_string = json.dumps(Fitted_param, TempFilename, sort_keys=True, indent=4, separators=(',', ': '))
+    TempFilename.write(json_string)
 
 
 

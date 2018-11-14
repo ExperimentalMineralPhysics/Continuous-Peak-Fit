@@ -60,7 +60,7 @@ def Fourier_fit(azimu,ydata,terms,param=None,errs=1):
     else:
         param = [0 for i in range((2*terms+1))]
     param=tuple(param)
-    popt,pcurv = curve_fit(Fourier_expand,azimu,ydata,p0=param)#,sigma=errs)
+    popt,pcurv = curve_fit(Fourier_expand,azimu,ydata,p0=param,sigma=errs)
 
     return popt,pcurv
 

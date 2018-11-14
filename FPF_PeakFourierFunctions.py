@@ -22,11 +22,7 @@ np.set_printoptions(threshold='nan')
 # fourier expansion function
 def Fourier_expand(azimu, *param):
 
-    # print type(param)
-    # print param
     param=np.array(param)
-    # print param.shape
-    # print np.any(np.array(param.shape)>1)
     if (len(param.shape) > 1):
         if np.any(np.array(param.shape) > 1) :
             param = np.squeeze(param)
@@ -35,33 +31,25 @@ def Fourier_expand(azimu, *param):
             param = np.squeeze(param)
             param = np.array([param],float)
             # print param, '2'
-    # print len(param.shape)
 
     param=tuple(param)
-    # print param, 'param'
-    out = param[0] #make to size of azimu
+    #print param
+    out = np.ones(azimu.shape)
+    out[:] = param[0]
     # essentially d_0, h_0 or w_0
 
     if len(param)>1:
         for i in xrange(1, ((len(param)-1)/2)+1): # len(param)-1 should never be odd because of initial a_0 parameter
             out = out + param[(2*i)-1]*np.sin(np.deg2rad(azimu))**i + param[2*i]*np.cos(np.deg2rad(azimu))**i #single col array
-    # print out, 'out'
-    else:
-        fout = np.ones(azimu.shape)
-        fout[:] = out
-        out = fout
+    #else:
+      #  azimu = np.array(azimu)
+       # fout = np.ones(azimu.shape)
+        #fout[:] = out
+        #out = fout*param
 
-    #print stop
     return out
 
-    # if len(param)>1:
-    #     for i in xrange(1, ((len(param)-1)/2)+1): # len(param)-1 should never be odd because of initial a_0 parameter
-    #         out = out + param[(2*i)-1]*np.sin(azimu)**i + param[2*i]*np.cos(azimu)**i #single col array
-    # # print out, 'out'
-    # #print stop
 
-    # #print out.shape
-    # return out
 
 def Fourier_fit(azimu,ydata,terms,param=None,errs=1):
 
@@ -72,139 +60,38 @@ def Fourier_fit(azimu,ydata,terms,param=None,errs=1):
     else:
         param = [0 for i in range((2*terms+1))]
     param=tuple(param)
-    # print 'fourier_fit', param
-    #print errs, 'errs'
-
-    #if errs:
-    #    errs = errs
-    # else:
-    #    errs
-    #print param.shape
-    #print stop
     popt,pcurv = curve_fit(Fourier_expand,azimu,ydata,p0=param,sigma=errs)
-
-    #print 'popt'
-    #print popt
-    #print 'pcurv'
-    #print pcurv
 
     return popt,pcurv
 
 
 ##warning about number of free parms e.g. if n is num. chunks/2
 
-'''
-def singleInt_old(twotheta,d0s,heights,widths,backg):
-
-
-    ##fit d,w,h as single number with no Fourier terms
-    # print d0s
-    d_0=d0s
-    H_all=heights
-    W_all=widths
-    #print wavelength
-    tth0 = 2.*np.degrees(np.arcsin(wavelength/2/d_0))
-
-    # bg either single num. or size of azimu array
-    #print tth0
-    # print d_0,H_all,W_all,tth0,bg
-    # print type(d_0),type(H_all),type(W_all),type(tth0),type(bg),type(twotheta),type(wavelength)
-    #print d_0.dtype,H_all.dtype,W_all.dtype,tth0.dtype,twotheta.dtype
-    Int = (H_all*np.exp((-(twotheta-tth0)**2)/(2*W_all**2))) + backg
-
-    return Int
 
 
 
-def singleInt_test(twotheta,*sparms):
 
+# fourier expansion function
+def Fourier_backgrnd(azimutheta, param):
 
-    ##fit d,w,h as single number with no Fourier terms
-
-    sparms=np.array(sparms)
-    #print params.shape
-    if (len(sparms.shape) > 1):
-        if np.any(np.array(sparms.shape) > 1) :
-            sparms = np.squeeze(sparms)
-            #print params,'1'
-        elif np.all(np.array(sparms.shape) == 1):
-            sparms = np.squeeze(sparms)
-            sparms = np.array([sparms],float)
-            #print params, '2'
-
-    sparms=tuple(sparms)
-
-
-    d_0=sparms[0]
-    H_all=sparms[1]
-    W_all=sparms[2]
-    backg = sparms[3]
-    #'
-    # d_0=d0s
-    # H_all=heights
-    # W_all=widths
-    #''
-    #print wavelength
-    #tth0 = 2.*np.degrees(np.arcsin(wavelength/2/d_0))
-
-    # bg either single num. or size of azimu array
-    #print tth0
-    # print d_0,H_all,W_all,tth0,bg
-    # print type(d_0),type(H_all),type(W_all),type(tth0),type(bg),type(twotheta),type(wavelength)
-    #print d_0.dtype,H_all.dtype,W_all.dtype,tth0.dtype,twotheta.dtype
-    #Int = (H_all*np.exp((-(twotheta-tth0)**2)/(2*W_all**2))) + backg
-
-    #return Int
-
-
-
-def singleInt_old_inV8(twotheta,*sparms):
-
+    azimu,twotheta = azimutheta
+    twothetaprime = twotheta-twotheta.min()
+    backg=param
+    bg_all = np.zeros(twotheta.shape)
     
-    sparms=np.array(sparms)
-    #print params.shape
-    if (len(sparms.shape) > 1):
-        if np.any(np.array(sparms.shape) > 1) :
-            sparms = np.squeeze(sparms)
-            #print params,'1'
-        elif np.all(np.array(sparms.shape) == 1):
-            sparms = np.squeeze(sparms)
-            sparms = np.array([sparms],float)
-            #print params, '2'
-    sparms=tuple(sparms)
+    for i in xrange(len(backg)):
+        nterms = len(backg[i])
+        out = backg[i][0]
+        for j in xrange(1, ((nterms-1)/2)+1): 
+            out = out + backg[i][(2*j)-1]*np.sin(np.deg2rad(azimu))**j + backg[i][2*j]*np.cos(np.deg2rad(azimu))**j
+            # print j, 'j'
+        bg_all = bg_all + (out*(twothetaprime**float(i)))
 
-    ##fit d,w,h as single number with no Fourier terms
-    #print params, 'params'
-    d_0=sparms[0]
-    H_all=sparms[1]
-    W_all=sparms[2]
-    backg = np.array(sparms[3:])
-    # backg = sparms[3]
-    # print d0s
-    # print d_0,H_all,W_all,backg, 'd_0,H_all,W_all,backg'
-    wavelength = []
-    tth0 = 2.*np.degrees(np.arcsin(wavelength/2/d_0))
-    #print twotheta.shape[0]
-    #print type(backg)
+    return bg_all
 
-    if isinstance(backg, (list, tuple, np.ndarray)):
-        bg_all = backg[0]
-        bg_out = np.ones(twotheta.shape)
-        bg_out[:] = bg_all
-        bg_all = bg_out
-        if len(backg)>1:
-            for i in xrange(1,len(backg)):
-                bg_all = bg_all + (backg[i]*(twotheta**float(i)))
-    else:
-        bg_all = np.ones(twotheta.shape)
-        bg_all[:] = backg
 
-    # bg either single num. or size of azimu array
-    # print bg_all, 'bg_all'
-    Int = (H_all*np.exp((-(twotheta-tth0)**2)/(2*W_all**2))) + bg_all
 
-    return Int
-'''
+
 
 
 def singleInt(twothetaWL,*sparms):
@@ -212,11 +99,13 @@ def singleInt(twothetaWL,*sparms):
     #global wavelength
 
     #split two theta and wavelength (if present)
-    if len(twothetaWL) == 2:
-        twotheta = twothetaWL[0]
-        wavelength = twothetaWL[1]
+    if len(twothetaWL) == 4:
+        twotheta,azimu,lenbg,wavelength = twothetaWL
+        # twotheta = twothetaWL[0]
+        # wavelength = twothetaWL[1]
     else:
-        twotheta = twothetaWL
+        twotheta,azimu,lenbg = twothetaWL
+        # twotheta = twothetaWL
 
     sparms=np.array(sparms)
     #print params.shape
@@ -235,25 +124,19 @@ def singleInt(twothetaWL,*sparms):
     d_0=sparms[0]
     H_all=sparms[1]
     W_all=sparms[2]
-    backg = np.array(sparms[3:])
-    # backg = sparms[3]
-    # print d0s
-    # print d_0,H_all,W_all,backg, 'd_0,H_all,W_all,backg'
+    tmpbackg = np.array(sparms[3:])
+    backg = []
+    for b in xrange(len(lenbg)):
+        if b == 0:
+            start = 0
+            end = lenbg[b]
+        else: 
+            start = lenbg[b-1]
+            end = lenbg[b]+start 
+        backg.append(tmpbackg[start:end])
     tth0 = 2.*np.degrees(np.arcsin(wavelength/2/d_0))
-    #print twotheta.shape[0]
-    #print type(backg)
 
-    if isinstance(backg, (list, tuple, np.ndarray)):
-        bg_all = backg[0]
-        bg_out = np.ones(twotheta.shape)
-        bg_out[:] = bg_all
-        bg_all = bg_out
-        if len(backg)>1:
-            for i in xrange(1,len(backg)):
-                bg_all = bg_all + (backg[i]*(twotheta**float(i)))
-    else:
-        bg_all = np.ones(twotheta.shape)
-        bg_all[:] = backg
+    bg_all = Fourier_backgrnd((azimu,twotheta),backg)
 
     # bg either single num. or size of azimu array
     # print bg_all, 'bg_all'
@@ -274,47 +157,79 @@ def singleFit(intens,twotheta,azimu,dspace,d0s,heights,widths,wavelength,bg=None
         bg = backg
     intens=np.array(intens,dtype='float64')
     twotheta=np.array(twotheta,dtype='float64')
-    allparms = np.concatenate((d0s,heights,widths,bg), axis=None)
+    azimu = np.array(azimu,dtype='float64')
+    allparms = np.concatenate((d0s,heights,widths,[item for sublist in bg for item in sublist]), axis=None)
     # print allparms
-    popt,pcurv = curve_fit(singleInt, (twotheta, wavelength), intens, p0=allparms,maxfev=8000)
+    lenbg=[]
+    for val in bg:
+        lenbg.append(len(val))
+    lenbg=np.array(lenbg)
+    popt,pcurv = curve_fit(singleInt, (twotheta, azimu,lenbg,wavelength), intens, p0=allparms,maxfev=8000)
+
+    return popt,pcurv
+
+
+
+
+
+
+def bgfit(intens,twotheta,azimu,dspace,d0s,heights,widths,wavelength,bg=None):
+
+
+    def back_change(fullarray,*bgparms):
+
+        '''
+        Change background only
+        '''
+
+        twothet,azi,lenbg,d_0,H_all,W_all = fullarray
+        bgparms=np.array(bgparms)
+        if (len(bgparms.shape) > 1):
+            if np.any(np.array(bgparms.shape) > 1) :
+                bgparms = np.squeeze(bgparms)
+            elif np.all(np.array(bgparms.shape) == 1):
+                bgparms = np.squeeze(bgparms)
+                bgparms = np.array([bgparms],float)   
+        bgparms=tuple(bgparms)
+
+        tmpbackg = bgparms
+        backg = []
+        for b in xrange(len(lenbg)):
+            if b == 0:
+                start = 0
+                end = lenbg[b]
+            else: 
+                start = lenbg[b-1]
+                end = lenbg[b]+start 
+            backg.append(tmpbackg[start:end])
+
+        tth0 = 2.*np.degrees(np.arcsin(wavelength/2/d_0))
+
+        bg_all = Fourier_backgrnd((azi,twothet),backg)
+
+        Int = (H_all*np.exp((-(twothet-tth0)**2)/(2*W_all**2))) + bg_all
+        
+        return Int
+
+
+    heights=heights
+    if not bg:
+        bg = backg
+    allparms = np.concatenate(([item for sublist in bg for item in sublist]), axis=None)
+    lenbg=[]
+    for val in bg:
+        lenbg.append(len(val))
+    lenbg=np.array(lenbg)
+    intens=np.array(intens,dtype='float64')
+    twotheta=np.array(twotheta,dtype='float64')
+    azimu = np.array(azimu,dtype='float64')
+    popt,pcurv = curve_fit(back_change,(twotheta,azimu,lenbg,d0s,heights,widths),intens,p0=allparms)
     #popt,pcurv = curve_fit(testInt, twotheta,intens, p0=[d0s,heights,widths])
     return popt,pcurv
 
 
-# def singleFit_test(intens,twotheta,azimu,dspace,d0s,heights,widths,wavelength,bg=None):
-
-#     '''
-#     All expansion parameters fitted
-#     '''
-#     #check for bg here, won't work if try to pass to fit
-#     if not bg:
-#         bg = backg
-#     # print type(d0s),d0s, intens.dtype
-#     intens=np.array(intens,dtype='float64')
-#     twotheta=np.array(twotheta,dtype='float64')
-#     sparms = np.concatenate((d0s,heights,widths,bg), axis=None)
-#     # print type(d0s),d0s, intens.dtype
-#     popt,pcurv = curve_fit(singleInt, twotheta,intens,p0=sparms,maxfev=8000)
-#     #popt,pcurv = curve_fit(testInt, twotheta,intens, p0=[d0s,heights,widths])
-#     return popt,pcurv
 
 
-
-# def singleFit_old(intens,twotheta,azimu,dspace,d0s,heights,widths,wavelength,bg=None):
-
-#     '''
-#     All expansion parameters fitted
-#     '''
-#     #check for bg here, won't work if try to pass to fit
-#     if not bg:
-#         bg = backg
-#     # print type(d0s),d0s, intens.dtype
-#     intens=np.array(intens,dtype='float64')
-#     twotheta=np.array(twotheta,dtype='float64')
-#     # print type(d0s),d0s, intens.dtype
-#     popt,pcurv = curve_fit(singleInt, twotheta,intens,p0=[d0s,heights,widths, bg],maxfev=8000)
-#     #popt,pcurv = curve_fit(testInt, twotheta,intens, p0=[d0s,heights,widths])
-#     return popt,pcurv
 
 
 
@@ -328,16 +243,36 @@ def dfit(intens,twotheta,azimu,dspace,d0s,heights,widths,wavelength,bg=None):
         Only d0s changing
         '''
         #d0s = list(d0s)
-        twothet,azi = fullarray
-        # print dparms, 'd0s 2'
+        twothet,azi,lenbg,tmpbackg = fullarray
+        dparms=np.array(dparms)
+        #print params.shape
+        if (len(dparms.shape) > 1):
+            if np.any(np.array(dparms.shape) > 1) :
+                dparms = np.squeeze(dparms)
+            elif np.all(np.array(dparms.shape) == 1):
+                dparms = np.squeeze(dparms)
+                dparms = np.array([dparms],float)   
+        dparms=tuple(dparms)
         d_0 = Fourier_expand(azi, dparms)
         # print d_0
         H_all=heights
         W_all=widths
         #print wavelength
         tth0 = 2.*np.degrees(np.arcsin(wavelength/2/d_0))
+
+        backg = []
+        for b in xrange(len(lenbg)):
+            if b == 0:
+                start = 0
+                end = lenbg[b]
+            else: 
+                start = lenbg[b-1]
+                end = lenbg[b]+start 
+            backg.append(tmpbackg[start:end])
+        
+        bg_all = Fourier_backgrnd((azi,twothet),backg)
         # print stop
-        Int = (H_all*np.exp((-(twothet-tth0)**2)/(2*W_all**2))) + bg
+        Int = (H_all*np.exp((-(twothet-tth0)**2)/(2*W_all**2))) + bg_all
 
         return Int
 
@@ -350,10 +285,15 @@ def dfit(intens,twotheta,azimu,dspace,d0s,heights,widths,wavelength,bg=None):
     #check for bg here, won't work if try to pass to fit
     if not bg:
         bg = backg
+    flatbg = np.array(np.concatenate(([item for sublist in bg for item in sublist]), axis=None))
+    lenbg=[]
+    for val in bg:
+        lenbg.append(len(val))
+    lenbg=np.array(lenbg)
     intens=np.array(intens,dtype='float64')
     twotheta=np.array(twotheta,dtype='float64')
     azimu = np.array(azimu,dtype='float64')
-    popt,pcurv = curve_fit(dchange,(twotheta,azimu),intens,p0=d0s)
+    popt,pcurv = curve_fit(dchange,(twotheta,azimu,lenbg,flatbg),intens,p0=d0s)
     #popt,pcurv = curve_fit(testInt, twotheta,intens, p0=[d0s,heights,widths])
     return popt,pcurv
 
@@ -370,15 +310,35 @@ def hfit(intens,twotheta,azimu,newd0s,widths,hparms,wavelength,bg=None):
         Only h changing
         '''
         #d0s = list(d0s)
-        twothet,azi = fullarray
-        # print dparms, 'd0s 2'
+        twothet,azi,lenbg,tmpbackg = fullarray
+
+        hparms=np.array(hparms)
+        if (len(hparms.shape) > 1):
+            if np.any(np.array(hparms.shape) > 1) :
+                hparms = np.squeeze(hparms)
+            elif np.all(np.array(hparms.shape) == 1):
+                hparms = np.squeeze(hparms)
+                hparms = np.array([hparms],float)   
+        hparms=tuple(hparms)
         d_0 = newd0s
         H_all = Fourier_expand(azi, hparms)
         W_all = widths
         #print wavelength
         tth0 = 2.*np.degrees(np.arcsin(wavelength/2/d_0))
+
+        backg = []
+        for b in xrange(len(lenbg)):
+            if b == 0:
+                start = 0
+                end = lenbg[b]
+            else: 
+                start = lenbg[b-1]
+                end = lenbg[b]+start 
+            backg.append(tmpbackg[start:end])
+
+        bg_all = Fourier_backgrnd((azi,twothet),backg)
         # print stop
-        Int = (H_all*np.exp((-(twothet-tth0)**2)/(2*W_all**2))) + bg
+        Int = (H_all*np.exp((-(twothet-tth0)**2)/(2*W_all**2))) + bg_all
 
         return Int
     '''
@@ -389,11 +349,16 @@ def hfit(intens,twotheta,azimu,newd0s,widths,hparms,wavelength,bg=None):
     #check for bg here, won't work if try to pass to fit
     if not bg:
         bg = backg
+    flatbg = np.array(np.concatenate(([item for sublist in bg for item in sublist]), axis=None))
+    lenbg=[]
+    for val in bg:
+        lenbg.append(len(val))
+    lenbg=np.array(lenbg)
     intens=np.array(intens,dtype='float64')
     twotheta=np.array(twotheta,dtype='float64')
     azimu = np.array(azimu,dtype='float64')
-    popt,pcurv = curve_fit(hchange,(twotheta,azimu),intens,p0=hparms)
-    #popt,pcurv = curve_fit(testInt, twotheta,intens, p0=[d0s,heights,widths])
+    popt,pcurv = curve_fit(hchange,(twotheta,azimu,lenbg,flatbg),intens,p0=hparms)
+
     return popt,pcurv
 
 
@@ -410,15 +375,35 @@ def wfit(intens,twotheta,azimu,newd0s,newheights,wparms,wavelength,bg=None):
         Only w changing
         '''
         #d0s = list(d0s)
-        twothet,azi = fullarray
-        # print dparms, 'd0s 2'
+        twothet,azi,lenbg,tmpbackg = fullarray
+        wparms=np.array(wparms)
+        if (len(wparms.shape) > 1):
+            if np.any(np.array(wparms.shape) > 1) :
+                wparms = np.squeeze(wparms)
+            elif np.all(np.array(wparms.shape) == 1):
+                wparms = np.squeeze(wparms)
+                wparms = np.array([wparms],float)   
+        wparms=tuple(wparms)
+
         d_0 = newd0s
         H_all = newheights
         W_all = Fourier_expand(azi, wparms)
         #print wavelength
         tth0 = 2.*np.degrees(np.arcsin(wavelength/2/d_0))
+
+        backg = []
+        for b in xrange(len(lenbg)):
+            if b == 0:
+                start = 0
+                end = lenbg[b]
+            else: 
+                start = lenbg[b-1]
+                end = lenbg[b]+start 
+            backg.append(tmpbackg[start:end])
+
+        bg_all = Fourier_backgrnd((azi,twothet),backg)
         # print stop
-        Int = (H_all*np.exp((-(twothet-tth0)**2)/(2*W_all**2))) + bg
+        Int = (H_all*np.exp((-(twothet-tth0)**2)/(2*W_all**2))) + bg_all
 
         return Int
     '''
@@ -429,11 +414,16 @@ def wfit(intens,twotheta,azimu,newd0s,newheights,wparms,wavelength,bg=None):
     #check for bg here, won't work if try to pass to fit
     if not bg:
         bg = backg
+    flatbg = np.array(np.concatenate(([item for sublist in bg for item in sublist]), axis=None))
+    lenbg=[]
+    for val in bg:
+        lenbg.append(len(val))
+    lenbg=np.array(lenbg)
     intens=np.array(intens,dtype='float64')
     twotheta=np.array(twotheta,dtype='float64')
     azimu = np.array(azimu,dtype='float64')
-    popt,pcurv = curve_fit(wchange,(twotheta,azimu),intens,p0=wparms)
-    #popt,pcurv = curve_fit(testInt, twotheta,intens, p0=[d0s,heights,widths])
+    popt,pcurv = curve_fit(wchange,(twotheta,azimu,lenbg,flatbg),intens,p0=wparms)
+
     return popt,pcurv
 
 
@@ -442,9 +432,15 @@ def Allchange(fullarray,*allparms):
 
     ##fit d,w,h as single number with no Fourier terms
 
-    twothet,azi,parmnums,wavelength,bg = fullarray
+    twothet,azi,lenbg,parmnums,wavelength = fullarray
     # print twothet.shape,azi.shape,parmnums.shape
     allparms=np.array(allparms)
+    if (len(allparms.shape) > 1):
+        if np.any(np.array(allparms.shape) > 1) :
+            allparms = np.squeeze(allparms)
+        elif np.all(np.array(allparms.shape) == 1):
+            allparms = np.squeeze(allparms)
+            allparms = np.array([allparms],float)  
     start = 0
     starth = parmnums[0]
     startw = parmnums[0:2].sum()
@@ -452,15 +448,26 @@ def Allchange(fullarray,*allparms):
     d0s = allparms[0:starth]
     heights = allparms[starth:startw]
     widths = allparms[startw:end]
+    tmpbackg = allparms[end:]
+    backg = []
+    for b in xrange(len(lenbg)):
+        if b == 0:
+            startbg = 0
+            endbg = lenbg[b]
+        else: 
+            startbg = lenbg[b-1]
+            endbg = lenbg[b]+startbg
+        backg.append(tmpbackg[startbg:endbg])
+
     # print d0s,heights,widths
     d_0 = Fourier_expand(azi, d0s)
     H_all = Fourier_expand(azi, heights)
     W_all = Fourier_expand(azi, widths)
     tth0 = 2.*np.degrees(np.arcsin(wavelength/2/d_0))
-
+    bg_all = Fourier_backgrnd((azi,twothet),backg)
     # print d_0,H_all,W_all,tth0,bg
 
-    newall =  (H_all*np.exp((-(twothet-tth0)**2)/(2*W_all**2))) + bg
+    newall =  (H_all*np.exp((-(twothet-tth0)**2)/(2*W_all**2))) + bg_all
 
     #print newall.shape
 
@@ -476,18 +483,34 @@ def Allfit(intens,twotheta,azimu,d0s,heights,widths,wavelength,bg=None):
 
     parmnums = np.array([len(d0s),len(heights),len(widths)])
     # print 'parmnums', parmnums
-    #print d0s.shape,heights.shape,widths.shape
-    allparms = np.concatenate((d0s,heights,widths), axis=None)
-    #print parmnums,d0s,heights,widths
-    # print allparms
 
     #check for bg here, won't work if try to pass to fit
     if not bg:
         bg = backg
+    allparms = np.concatenate((d0s,heights,widths,[item for sublist in bg for item in sublist]), axis=None)
+    lenbg=[]
+    for val in bg:
+        lenbg.append(len(val))
+    lenbg=np.array(lenbg)
     intens=np.array(intens,dtype='float64')
     twotheta=np.array(twotheta,dtype='float64')
     azimu = np.array(azimu,dtype='float64')
-    popt,pcurv = curve_fit(Allchange,(twotheta,azimu,parmnums,wavelength,bg),intens,p0=allparms)
+    popt,pcurv = curve_fit(Allchange,(twotheta,azimu,lenbg,parmnums,wavelength),intens,p0=allparms)
     #popt,pcurv = curve_fit(testInt, twotheta,intens, p0=[d0s,heights,widths])
     return popt,pcurv
 
+
+
+
+def update_backgrnd(params,lenbg,lenparams):
+
+    backg = []
+    for b in xrange(len(lenbg)):
+        if b == 0:
+            startbg = lenparams
+            endbg = startbg+lenbg[b]
+        else: 
+            startbg = lenparams+lenbg[b-1]
+            endbg = lenbg[b]+startbg 
+        backg.append(list(params[startbg:endbg]))
+    return backg

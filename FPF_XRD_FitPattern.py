@@ -3,6 +3,7 @@
 import numpy as np
 import numpy.ma as ma
 import copy, os, sys
+import json
 from PIL import Image
 import math
 import matplotlib.cm as cm
@@ -18,23 +19,77 @@ import FPF_WriteMultiFit as wr
 # load as det (detector) so that can readilt replace the GSASII functions with e.g. diaoptas without confusing names in this script
 import FPF_GSASIIFunctions as det
 
+# copied from https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array#24375113
+# on 13th November 2018
+def json_numpy_serialzer(o):
+    """ Serialize numpy types for json
+
+    Parameters:
+        o (object): any python object which fails to be serialized by json
+
+    Example:
+
+        >>> import json
+        >>> a = np.array([1, 2, 3])
+        >>> json.dumps(a, default=json_numpy_serializer)
+
+    """
+    numpy_types = (
+        np.bool_,
+        # np.bytes_, -- python `bytes` class is not json serializable     
+        # np.complex64,  -- python `complex` class is not json serializable  
+        # np.complex128,  -- python `complex` class is not json serializable
+        # np.complex256,  -- special handling below
+        # np.datetime64,  -- python `datetime.datetime` class is not json serializable
+        np.float16,
+        np.float32,
+        np.float64,
+        # np.float128,  -- special handling below
+        np.int8,
+        np.int16,
+        np.int32,
+        np.int64,
+        # np.object_  -- should already be evaluated as python native
+        np.str_,
+        np.timedelta64,
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.uint64,
+        np.void,
+    )
+
+    if isinstance(o, np.ndarray):
+        return o.tolist()
+    elif isinstance(o, numpy_types):        
+        return o.item()
+    elif isinstance(o, np.float128):
+        return o.astype(np.float64).item()
+    # elif isinstance(o, np.complex256): -- no python native for np.complex256
+    #     return o.astype(np.complex128).item() -- python `complex` class is not json serializable 
+    else:
+        raise TypeError("{} of type {} is not JSON serializable".format(repr(o), type(o)))
+
+
+
 
 ### Inputs ###
 # and setup
 
-calib_file = '/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/CeO2_Pil207_E30_2Nov2016_001.imctrl'
-calib_file = '/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/Calibration2018Oct.imctrl'
+calib_file = './Example1-Fe/CeO2_Pil207_E30_2Nov2016_001.imctrl'
+calib_file = './Example1-Fe/Calibration2018Oct.imctrl'
 pix = 172 #microns ##SAH: edit 172 microns not 17.2
 
 opt = 2
 
 if opt==1:
-    diff_files = '/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/CeO2_Pil207_E30_2Nov2016_001.tif'
-    mask_file = '/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/Diffraction.immask'
+    diff_files = './Example1-Fe/CeO2_Pil207_E30_2Nov2016_001.tif'
+    mask_file = './Example1-Fe/Diffraction.immask'
     tthRange = [7.6,7.8]
 
     total = 25
-
+    
+    backg_type = 'flat'
     backg = 10.
 
     h_order = 0  ##  no formal limit
@@ -42,17 +97,21 @@ if opt==1:
     d0_order = 0 ##  probably limited to 2 -- generalisation might work better for radio data.
 
 elif opt==2:
-    diff_files = ['/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/BCC1_2GPa_10s_001_00001.tif','/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/BCC1_2GPa_10s_001_00001.tif']
-    mask_file = '/Users/simon/Documents/WORK/Experiment_Analysis/DebyeFitting/python/Diffraction.immask'
+    diff_files = ['./Example1-Fe/BCC1_2GPa_10s_001_00001.tif','./Example1-Fe/BCC1_2GPa_10s_001_00002.tif']
+    mask_file = './Example1-Fe/Diffraction.immask'
     tthRange = [[11.7, 12.08], [16.6,17.1], [20.4, 20.9]]
+    #tthRange = [[16.6,17.1] ]
 
-    total = 72
+    total = 25
+    backg_type = 'coeffs'
     backg = [4.] #have to make sure this number is the right size for the bg order.
 
-    h_order  = 12  ##  no formal limit
+    h_order  = 6  ##  no formal limit
     w_order  = 0   ## no formal limit
     d0_order = 2 ##  probably limited to 2 -- generalisation might work better for radio data.
     bg_order = 0 ## no limit.
+
+    NumAziWrite = 90
 
 # GUI needed to set inputs? ###
 # SAH: A GUI would be good for the initial inputs -- most geoscientist types find it is easier to select areas with a mouse than the keyboard.
@@ -62,7 +121,7 @@ elif opt==2:
 
 
 #### Main code ####
-
+temporary_data_file = 'PreviousFit_JSON.dat'
 
 
 ## Load files ##
@@ -76,12 +135,85 @@ parms_dict = det.load_inputs_file(parms_file)
 ## SAH: I will generate you a mask file and send it to you.
 
 
+
+
+### Sort background out ####
+
+
+if backg_type == 'coeffs':
+    ## coefficients provided, figure out height using values
+    tempbackg = []
+    bg_order = []
+    if isinstance(backg, list):
+        for val in backg:
+            if not isinstance(val, list):
+                tempbackg.append([val])
+                bg_order.append(0)
+            else:
+                tempbackg.append(val)
+                bg_order.append((len(val)-1)/2)
+    else: 
+        tempbackg = [[backg]]
+    backg = tempbackg
+            
+elif backg_type == 'order':
+    ## orderes requested, figure out height using best guess
+    print 'TBD'
+    tempbackg = []
+    bg_order = []
+    if isinstance(backg, list):
+        if len(backg) == 2:
+            nfourier = backg[0]
+            npoly = backg[1]
+        else:
+            nfourier = backg[0]
+            npoly = 0
+    else:
+        nfourier = backg
+        npoly = 0
+    for i in xrange(npoly+1):
+        tempbackg_f =  [1 for j in xrange(nfourier+1)]
+        tempbackg.append(tempbackgf)
+        bg_order.append(nfourier)
+    backg = tempbackg
+
+elif backg_type == 'flat':
+    backg = [[backg]]
+
+
+
+
+
+
+
+
+
+
 # diffraction pattern #
 
 
 n_diff_files = len(diff_files)
 
 for j in range(n_diff_files):
+
+
+
+    # #see if a temporary fit exists and then call it.
+    # if j != 1:
+    #     if os.path.isfile(temporary_data_file):
+    #         previous = open(temporary_data_file,'rb')
+    #         #print previous
+    #         previous.seek(4)
+    #         print previous.tell()
+    #         previous_fit = previous.read(12)
+    #         print previous_fit#.read(14)
+    #         print previous.tell()
+
+    #         print previous_fit
+    #         previous_fit = json.loads(previous_fit)
+
+
+    # print previous_fit
 
 
     im = det.ImportImage(diff_files[j])
@@ -131,37 +263,18 @@ for j in range(n_diff_files):
 
 
 
-
-    # print twotheta.shape,azimu.shape,dspace.shape,intens.shape
-
-    #checks#
+    ## checks via prints and plots #
     # print twotheta.shape,azimu.shape,dspace.shape,twotheta[0]
-    colors = ("red", "green", "blue")
-    #plt.scatter(twotheta, azimu, s=1, c=np.log(intens), edgecolors='none', cmap=plt.cm.jet)
+    # colors = ("red", "green", "blue")
+    # plt.scatter(twotheta, azimu, s=1, c=np.log(intens), edgecolors='none', cmap=plt.cm.jet)
     # plt.scatter(twotheta, azimu, s=1, c=intens, edgecolors='none', cmap=plt.cm.jet)
     # plt.colorbar()
     # plt.show()
-
-
     # plt.close()
 
 
     ## selected limits via gui - 2theta_min, 2theta_max, n_peaks (each peak 2theta min+max)
     ## for each peak....
-
-
-    ## Example introduction of mask via intensity cut. Mask created
-    ## for intens array then applied to all arrays.
-    # intens = ma.asarray(intens) 
-    # intens = ma.masked_less(intens,0)
-    # #print azimu[~intens.mask]
-    # #print intens.shape
-    # #newazimu = ma.asarray(azimu)
-    # azimu = ma.array(azimu, mask=intens.mask)
-    # #print azimu.shape
-    # twotheta = ma.array(twotheta,mask=intens.mask)
-    # dspace = ma.array(dspace,mask=intens.mask)
-
 
 
     # create mask from GSAS-II mask file.
@@ -175,21 +288,18 @@ for j in range(n_diff_files):
 
 
 
-    # plot input file
-
+    ## plot input file
 
     # fig = plt.figure()
     # plt.scatter(twotheta, azimu, s=4, c=np.log(intens), edgecolors='none', cmap=plt.cm.jet)
     # #plt.scatter(dspace.flatten()[tthchunk],azimu.flatten()[tthchunk], s=4, c=(intens.flatten()[tthchunk]), edgecolors='none', cmap=plt.cm.jet, vmin=ValMin, vmax=ValMax)
-
     # plt.colorbar()
     # plt.show()
-
     # plt.close()
 
 
 
-    # Pass each subpatern to FPF_Fit_Subpattern for fitting in turn.
+    ## Pass each subpatern to FPF_Fit_Subpattern for fitting in turn.
 
     ##set up things to be fed to subpattern fit.
     #if 0:
@@ -197,13 +307,15 @@ for j in range(n_diff_files):
     #elif:
         #something here
 
+    '''
     print np.size(tthRange,0)
     print np.size(tthRange,1)
     print tthRange
     print type(tthRange)
+    '''
 
     n_subpats = np.size(tthRange,0)
-
+    Fitted_param = []
 
     for i in range(n_subpats):
 
@@ -218,13 +330,14 @@ for j in range(n_diff_files):
         #get previous fit (if exists)
         params = []
         if backg:
-            params = {'background': backg}
+            params = {'background': backg, 'backgrnd_type': backg_type}
 
         #get fourier order (if required). The last parameter is the number of bins to use in initial fitting 
         orders = [d0_order, h_order, w_order, bg_order, total]
 
         #fit the subpattern
-        Fitted_param = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict['wavelength']], azimu_sub, intens_sub, orders, params)
+
+        Fitted_param.append(FitSubpattern([twotheta_sub, dspacing_sub, parms_dict['wavelength']], azimu_sub, intens_sub, orders, params))
 
         print Fitted_param
 
@@ -233,9 +346,15 @@ for j in range(n_diff_files):
     #write output files
 
 
-    wr.WriteMultiFit(diff_files[j], Fitted_param)
+    wr.WriteMultiFit(diff_files[j], Fitted_param, NumAziWrite)
 
 
+    #Write the fits to a temporary file
+    TempFilename = open(temporary_data_file, "w")
+    # Write a JSON string into the file.
+    json_string = json.dumps(Fitted_param, TempFilename, sort_keys=True, indent=4, default=json_numpy_serialzer)
+    #json_string = json.dumps(Fitted_param, TempFilename, sort_keys=True, indent=4, separators=(',', ': '))
+    TempFilename.write(json_string)
 
 
 

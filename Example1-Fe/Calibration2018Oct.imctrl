@@ -1,0 +1,30 @@
+type:PWDR
+wavelength:0.419578023863
+calibrant:CeO2  SRM674b
+distance:201.06029566
+center:[80.734714531181496, 90.896908547814689]
+Oblique:[0.5, False]
+tilt:-0.0725549956383
+rotation:188.381824312
+azmthOff:0.0
+fullIntegrate:False
+LRazimuth:[0.0, 180.0]
+setdist:100.0
+IOtth:[2.0, 5.0]
+outChannels:2500
+outAzimuths:1
+invert_x:False
+invert_y:True
+DetDepth:-0.268698562427
+calibskip:0
+pixLimit:1
+cutoff:1.0
+calibdmin:1.0
+Flat Bkg:0.0
+varyList:{'phi': True, 'dist': True, 'dep': True, 'tilt': True, 'wave': True, 'det-Y': True, 'det-X': True}
+binType:2-theta
+SampleShape:Cylinder
+PolaVal:[0.99, False]
+SampleAbs:[0.0, False]
+dark image:['', -1.0]
+background image:['', -1.0]

@@ -190,7 +190,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, params=None)
 
 
     #plot output of fourier fits....
-    if 0:
+    if 1:
         fig = plt.figure()
         ax = fig.add_subplot(3,1,1)
         plt.subplot(411)
@@ -208,7 +208,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, params=None)
         plt.subplot(414)
         plt.plot(newAziChunks,newBGall, 'bo')
         plt.title('Background')
-        plt.plot(azichunks,Fourier_expand(np.array(newAziChunks), np.array(bgfour[0])), 'r-')
+        plt.plot(newAziChunks,ff.Fourier_expand(np.array(newAziChunks), np.array(bgfour[0])), 'r-')
         plt.show()
         plt.close()
 
@@ -272,7 +272,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, params=None)
     fin_h = Finalparms[0][starth:startw]
     fin_w = Finalparms[0][startw:end]
     # reconstruct background coeffs list
-    backg = ff.update_backgrnd(Finalparms,lenbg,end)
+    backg = ff.update_backgrnd(Finalparms[0],lenbg,end)
 
     #print len(fin_d)
 

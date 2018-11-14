@@ -106,8 +106,9 @@ def WriteMultiFit(base_file_name, data_to_write, Num_Azi):
             #[position1     Intensity1  HW1            Weight1            ]  repeat for the
             #...                                                          ]  number of peaks in
             #positionLast  IntensityLast  HWLast      WeightLast]         ]  subpattern
+            #print data_to_write[j]['peak'][k]['d-space']
             for l in range(int(Num_Azi)):
-                az = l/Num_Azi*360
+                az = np.array([l/Num_Azi*360])
                 peak_d = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['d-space']) #FIX ME - needs to be in two theta not d-spacing
                 peak_i = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
                 peak_w = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?

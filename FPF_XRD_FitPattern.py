@@ -88,7 +88,8 @@ if opt==1:
     tthRange = [7.6,7.8]
 
     total = 25
-
+    
+    backg_type = 'flat'
     backg = 10.
 
     h_order = 0  ##  no formal limit
@@ -102,6 +103,7 @@ elif opt==2:
     #tthRange = [[16.6,17.1] ]
 
     total = 25
+    backg_type = 'coeffs'
     backg = [4.] #have to make sure this number is the right size for the bg order.
 
     h_order  = 6  ##  no formal limit
@@ -131,6 +133,60 @@ parms_dict = det.load_inputs_file(parms_file)
 ## may be a mask file?
 ## SAH: yes mask files -- they will either be a list of regions (x,y) or a binary image.
 ## SAH: I will generate you a mask file and send it to you.
+
+
+
+
+### Sort background out ####
+
+
+if backg_type == 'coeffs':
+    ## coefficients provided, figure out height using values
+    tempbackg = []
+    bg_order = []
+    if isinstance(backg, list):
+        for val in backg:
+            if not isinstance(val, list):
+                tempbackg.append([val])
+                bg_order.append(0)
+            else:
+                tempbackg.append(val)
+                bg_order.append((len(val)-1)/2)
+    else: 
+        tempbackg = [[backg]]
+    backg = tempbackg
+            
+elif backg_type == 'order':
+    ## orderes requested, figure out height using best guess
+    print 'TBD'
+    tempbackg = []
+    bg_order = []
+    if isinstance(backg, list):
+        if len(backg) == 2:
+            nfourier = backg[0]
+            npoly = backg[1]
+        else:
+            nfourier = backg[0]
+            npoly = 0
+    else:
+        nfourier = backg
+        npoly = 0
+    for i in xrange(npoly+1):
+        tempbackg_f =  [1 for j in xrange(nfourier+1)]
+        tempbackg.append(tempbackgf)
+        bg_order.append(nfourier)
+    backg = tempbackg
+
+elif backg_type == 'flat':
+    backg = [[backg]]
+
+
+
+
+
+
+
+
 
 
 # diffraction pattern #
@@ -207,37 +263,18 @@ for j in range(n_diff_files):
 
 
 
-
-    # print twotheta.shape,azimu.shape,dspace.shape,intens.shape
-
-    #checks#
+    ## checks via prints and plots #
     # print twotheta.shape,azimu.shape,dspace.shape,twotheta[0]
-    colors = ("red", "green", "blue")
-    #plt.scatter(twotheta, azimu, s=1, c=np.log(intens), edgecolors='none', cmap=plt.cm.jet)
+    # colors = ("red", "green", "blue")
+    # plt.scatter(twotheta, azimu, s=1, c=np.log(intens), edgecolors='none', cmap=plt.cm.jet)
     # plt.scatter(twotheta, azimu, s=1, c=intens, edgecolors='none', cmap=plt.cm.jet)
     # plt.colorbar()
     # plt.show()
-
-
     # plt.close()
 
 
     ## selected limits via gui - 2theta_min, 2theta_max, n_peaks (each peak 2theta min+max)
     ## for each peak....
-
-
-    ## Example introduction of mask via intensity cut. Mask created
-    ## for intens array then applied to all arrays.
-    # intens = ma.asarray(intens) 
-    # intens = ma.masked_less(intens,0)
-    # #print azimu[~intens.mask]
-    # #print intens.shape
-    # #newazimu = ma.asarray(azimu)
-    # azimu = ma.array(azimu, mask=intens.mask)
-    # #print azimu.shape
-    # twotheta = ma.array(twotheta,mask=intens.mask)
-    # dspace = ma.array(dspace,mask=intens.mask)
-
 
 
     # create mask from GSAS-II mask file.
@@ -251,21 +288,18 @@ for j in range(n_diff_files):
 
 
 
-    # plot input file
-
+    ## plot input file
 
     # fig = plt.figure()
     # plt.scatter(twotheta, azimu, s=4, c=np.log(intens), edgecolors='none', cmap=plt.cm.jet)
     # #plt.scatter(dspace.flatten()[tthchunk],azimu.flatten()[tthchunk], s=4, c=(intens.flatten()[tthchunk]), edgecolors='none', cmap=plt.cm.jet, vmin=ValMin, vmax=ValMax)
-
     # plt.colorbar()
     # plt.show()
-
     # plt.close()
 
 
 
-    # Pass each subpatern to FPF_Fit_Subpattern for fitting in turn.
+    ## Pass each subpatern to FPF_Fit_Subpattern for fitting in turn.
 
     ##set up things to be fed to subpattern fit.
     #if 0:
@@ -273,10 +307,12 @@ for j in range(n_diff_files):
     #elif:
         #something here
 
+    '''
     print np.size(tthRange,0)
     print np.size(tthRange,1)
     print tthRange
     print type(tthRange)
+    '''
 
     n_subpats = np.size(tthRange,0)
     Fitted_param = []
@@ -294,7 +330,7 @@ for j in range(n_diff_files):
         #get previous fit (if exists)
         params = []
         if backg:
-            params = {'background': backg}
+            params = {'background': backg, 'backgrnd_type': backg_type}
 
         #get fourier order (if required). The last parameter is the number of bins to use in initial fitting 
         orders = [d0_order, h_order, w_order, bg_order, total]

@@ -114,7 +114,7 @@ def CreateGSASIIMask(MSKfile, ImInts, ImageSize, ImTTH, ImAzi, Imy,Imx):
     # This should be checked though.
 
     FrmLms = msks['Frames']
-    print FrmLms
+    # print FrmLms
     #for frame in FrmLms:
     #print frame
     if FrmLms:

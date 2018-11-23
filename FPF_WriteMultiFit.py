@@ -6,7 +6,7 @@ import FPF_PeakFourierFunctions as ff
 import json
 
 
-def WriteMultiFit(base_file_name, data_to_write, Num_Azi):
+def WriteMultiFit(base_file_name, data_to_write, Num_Azi, wavelength):
 # writes *.fit files required by polydefix.
 
     # force Num_Azi to be a float
@@ -120,12 +120,13 @@ def WriteMultiFit(base_file_name, data_to_write, Num_Azi):
             #print data_to_write[j]['peak'][k]['d-space']
             for l in range(int(Num_Azi)):
                 az = np.array([l/Num_Azi*360])
-                peak_d = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['d-space']) #FIX ME - needs to be in two theta not d-spacing
+                peak_d = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['d-space'])
+                peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
                 peak_i = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
                 peak_w = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
                 peak_p = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
 
-                text_file.write("%13.4f %13.4f %13.4f %13.4f\n" % (peak_d, peak_i, peak_w, peak_p))
+                text_file.write("%13.4f %13.4f %13.4f %13.4f\n" % (peak_tth, peak_i, peak_w, peak_p))
 
 
 

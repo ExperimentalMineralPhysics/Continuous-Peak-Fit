@@ -19,6 +19,8 @@ import FPF_WriteMultiFit as wr
 # load as det (detector) so that can readilt replace the GSASII functions with e.g. diaoptas without confusing names in this script
 import FPF_GSASIIFunctions as det
 
+
+
 # copied from https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array#24375113
 # on 13th November 2018
 def json_numpy_serialzer(o):
@@ -75,43 +77,137 @@ def json_numpy_serialzer(o):
 
 ### Inputs ###
 # and setup
+sys.path.append(os.getcwd())
+print '  '
+print "This is the name of the settings file is: ", sys.argv[1]
+FitSettings = __import__(sys.argv[1])
+#from BCC1_input import *
+FitParameters = dir(FitSettings)
 
-calib_file = './Example1-Fe/CeO2_Pil207_E30_2Nov2016_001.imctrl'
-calib_file = './Example1-Fe/Calibration2018Oct.imctrl'
-pix = 172 #microns ##SAH: edit 172 microns not 17.2
+#list all the required parameters..
+# NOTE: No doubt this will change hence denoted as a list that is worked over. 
+# 1. Have option to have list of files rather than sequence. This list needs to be called diff_files.
+RequiredList = ['AziBins',
+                'Calib_file', 
+                'Calib_mask', 
+                'Calib_pixels', 
+                'Calib_type', 
+                'Output_NumAziWrite', 
+                'Output_directory', 
+                'Output_type', 
+                'datafile_Basename', 
+                'datafile_Ending', 
+                'datafile_EndNum', 
+                'datafile_NumDigit', 
+                'datafile_StartNum', 
+                'datafile_directory', 
+                'fit_orders']
 
-opt = 2
 
-if opt==1:
-    diff_files = './Example1-Fe/CeO2_Pil207_E30_2Nov2016_001.tif'
-    mask_file = './Example1-Fe/Diffraction.immask'
-    tthRange = [7.6,7.8]
+#check all the required values are present.
+all_present = 1
+# properties of the data files.
+for x in range(len(RequiredList)):
+    if RequiredList[x] in FitParameters:
+        print 'Got: ', RequiredList[x]
+    else:
+        print 'The settings file requires a parameter called  \'',RequiredList[x],'\''
+        all_present = 0
 
-    total = 25
+# exit if all parameters are not present
+if all_present == 0:
+    sys.exit('The highlighed Settings are missing from the input file. Fitting cannot proceed until they are all present.')
+
+
+
+# define locally required names.
+temporary_data_file = 'PreviousFit_JSON.dat'
+
+backg_type = 'flat'
+backg = [[4.,1.,1.]]
+
+
+
+#for now redfine previously used parameters from input file.
+pix = FitSettings.Calib_pixels
+mask_file = FitSettings.Calib_mask
+# tthRange -- is now defined in 'fit_orders' 
+
+
+
+# calib_file = './Example1-Fe/CeO2_Pil207_E30_2Nov2016_001.imctrl'
+# calib_file = './Example1-Fe/Calibration2018Oct.imctrl'
+# pix = 172 #microns ##SAH: edit 172 microns not 17.2
+
+# opt = 2
+
+# if opt==1:
+#     diff_files = './Example1-Fe/CeO2_Pil207_E30_2Nov2016_001.tif'
+#     mask_file = './Example1-Fe/Diffraction.immask'
+#     tthRange = [7.6,7.8]
+
+#     total = 25
     
-    backg_type = 'flat'
-    backg = 10.
+#     backg_type = 'flat'
+#     backg = 10.
 
-    h_order = 0  ##  no formal limit
-    w_order = 5  ## no formal limit
-    d0_order = 0 ##  probably limited to 2 -- generalisation might work better for radio data.
+#     h_order = 0  ##  no formal limit
+#     w_order = 5  ## no formal limit
+#     d0_order = 0 ##  probably limited to 2 -- generalisation might work better for radio data.
 
-elif opt==2:
-    diff_files = ['./Example1-Fe/BCC1_2GPa_10s_001_00001.tif','./Example1-Fe/BCC1_2GPa_10s_001_00002.tif']
-    mask_file = './Example1-Fe/Diffraction.immask'
-    tthRange = [[11.7, 12.08], [16.6,17.1], [20.4, 20.9]]
-    #tthRange = [[16.6,17.1] ]
+# elif opt==2:
+#     diff_files = ['./Example1-Fe/BCC1_2GPa_10s_001_00001.tif','./Example1-Fe/BCC1_2GPa_10s_001_00002.tif']
+#     mask_file = './Example1-Fe/Diffraction.immask'
+#     tthRange = [[11.7, 12.03], [16.6,17.1], [20.4, 20.9]]
+#     #tthRange = [[16.6,17.1] ]
 
-    total = 25
-    backg_type = 'coeffs'
-    backg = [4.] #have to make sure this number is the right size for the bg order.
+#     AziBins = 45
+#     backg_type = 'coeffs'
+#     backg = [[4.,1.,1.]] #have to make sure this number is the right size for the bg order.
 
-    h_order  = 6  ##  no formal limit
-    w_order  = 0   ## no formal limit
-    d0_order = 2 ##  probably limited to 2 -- generalisation might work better for radio data.
-    bg_order = 0 ## no limit.
+#     h_order  = 12  ##  no formal limit
+#     w_order  = 1   ## no formal limit
+#     d0_order = 2 ##  probably limited to 2 -- generalisation might work better for radio data.
+#     bg_order = 0 ## no limit.
 
-    NumAziWrite = 90
+#     NumAziWrite = 180
+
+
+#     fit_orders = [
+#           {
+#             "background": [1], 
+#             "peak": [{
+#                 "d-space": 6, 
+#                 "height": 20, 
+#                 "profile": 0, 
+#                 "width": 8
+#               }], 
+#             "range": [[11.70, 12.03]]
+#           }, 
+#           {
+#             "background": [1], 
+#             "peak": [{
+#                 "d-space": 2, 
+#                 "height": 12, 
+#                 "profile": 0, 
+#                 "width": 1
+#               }], 
+#             "range": [[16.6,17.1]]
+#           },  
+#           {
+#             "background": [1], 
+#             "peak": [{
+#                 "d-space": 2, 
+#                 "height": 12, 
+#                 "profile": 0, 
+#                 "width": 1
+#               }], 
+#             "range": [[20.4, 20.9]]
+#           }, 
+#         ]
+
+
+
 
 # GUI needed to set inputs? ###
 # SAH: A GUI would be good for the initial inputs -- most geoscientist types find it is easier to select areas with a mouse than the keyboard.
@@ -119,15 +215,13 @@ elif opt==2:
 
 
 
-
 #### Main code ####
-temporary_data_file = 'PreviousFit_JSON.dat'
 
 
 ## Load files ##
 
 # calibration parameter file #
-parms_file = open(calib_file,'rb')
+parms_file = open(FitSettings.Calib_file,'rb')
 parms_dict = det.load_inputs_file(parms_file)
 #print parms_dict
 ## may be a mask file?
@@ -138,7 +232,6 @@ parms_dict = det.load_inputs_file(parms_file)
 
 
 ### Sort background out ####
-
 
 if backg_type == 'coeffs':
     ## coefficients provided, figure out height using values
@@ -184,38 +277,31 @@ elif backg_type == 'flat':
 
 
 
-
-
-
-
-
 # diffraction pattern #
 
+if not 'diff_files' in locals():
 
-n_diff_files = len(diff_files)
+    n_diff_files = FitSettings.datafile_EndNum - FitSettings.datafile_StartNum + 1
+    diff_files = []
+    for j in range(n_diff_files):
+        # make list of diffraction pattern names
+
+        #make number of pattern
+        n = str(j+1).zfill(FitSettings.datafile_NumDigit)
+
+        #append diffraction pattern name and directory
+        diff_files.append(FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n + FitSettings.datafile_Ending)
+
+else:
+    n_diff_files = len(diff_files)
+
+
+
+# Process the diffraction patterns #
 
 for j in range(n_diff_files):
 
-
-
-    # #see if a temporary fit exists and then call it.
-    # if j != 1:
-    #     if os.path.isfile(temporary_data_file):
-    #         previous = open(temporary_data_file,'rb')
-    #         #print previous
-    #         previous.seek(4)
-    #         print previous.tell()
-    #         previous_fit = previous.read(12)
-    #         print previous_fit#.read(14)
-    #         print previous.tell()
-
-    #         print previous_fit
-    #         previous_fit = json.loads(previous_fit)
-
-
-    # print previous_fit
-
-
+    print diff_files[j]
     im = det.ImportImage(diff_files[j])
 
 
@@ -261,12 +347,13 @@ for j in range(n_diff_files):
     dspace   = det.GetDsp(x,y,parms_dict)
     intens   = imarray
 
+    #azimu = (azimu + 180) % 360
 
 
-    ## checks via prints and plots #
-    # print twotheta.shape,azimu.shape,dspace.shape,twotheta[0]
-    # colors = ("red", "green", "blue")
-    # plt.scatter(twotheta, azimu, s=1, c=np.log(intens), edgecolors='none', cmap=plt.cm.jet)
+    # checks via prints and plots #
+    #print twotheta.shape,azimu.shape,dspace.shape,twotheta[0]
+    colors = ("red", "green", "blue")
+    #plt.scatter(twotheta, azimu, s=1, c=np.log(intens), edgecolors='none', cmap=plt.cm.jet)
     # plt.scatter(twotheta, azimu, s=1, c=intens, edgecolors='none', cmap=plt.cm.jet)
     # plt.colorbar()
     # plt.show()
@@ -314,47 +401,75 @@ for j in range(n_diff_files):
     print type(tthRange)
     '''
 
-    n_subpats = np.size(tthRange,0)
+    #get previous fit (if exists)
+    # load temporary fit file - if it exists. 
+    if os.path.isfile(temporary_data_file):
+
+        # Read JSON data from file
+        with open(temporary_data_file) as json_data:
+            previous_fit = json.load(json_data)
+        #print previous_fits
+        #print previous_fits[0]['peak'][0]['profile']
+
+
+    #n_subpats = np.size(tthRange,0)
+    n_subpats = len(FitSettings.fit_orders)
     Fitted_param = []
 
     for i in range(n_subpats):
 
+        tthRange = FitSettings.fit_orders[i]['range'][0]
+        print tthRange
+
         # get subsections of data to pass
         temptth = twotheta.flatten()
-        subpat       = np.where((twotheta>=tthRange[i][0])&(twotheta<=tthRange[i][1]))
+        #subpat       = np.where((twotheta>=tthRange[i][0])&(twotheta<=tthRange[i][1]))
+        subpat       = np.where((twotheta>=tthRange[0])&(twotheta<=tthRange[1]))
         twotheta_sub =  twotheta[subpat]
         dspacing_sub =  dspace[subpat]
         azimu_sub    =  azimu[subpat]
         intens_sub   =  intens[subpat]
 
-        #get previous fit (if exists)
-        params = []
-        if backg:
-            params = {'background': backg, 'backgrnd_type': backg_type}
+        if 'previous_fit' in locals():
+            params = previous_fit[i]
+        else:
+            params = []
+
+
+        if FitSettings.fit_orders:
+            orders = FitSettings.fit_orders[i]
+            orders['AziBins'] = FitSettings.AziBins
+
+        print orders
+        #params = []
+        #if backg:
+        #    params = {'background': backg, 'backgrnd_type': backg_type}
 
         #get fourier order (if required). The last parameter is the number of bins to use in initial fitting 
-        orders = [d0_order, h_order, w_order, bg_order, total]
+        #orders = [d0_order, h_order, w_order, bg_order, total]
 
         #fit the subpattern
 
         Fitted_param.append(FitSubpattern([twotheta_sub, dspacing_sub, parms_dict['wavelength']], azimu_sub, intens_sub, orders, params))
 
-        print Fitted_param
+        #print Fitted_param
 
 
 
     #write output files
 
 
-    wr.WriteMultiFit(diff_files[j], Fitted_param, NumAziWrite)
+    wr.WriteMultiFit(diff_files[j], Fitted_param, FitSettings.Output_NumAziWrite, parms_dict['wavelength'])
 
+    # #Write the fits to a temporary file
+    # TempFilename = open(temporary_data_file, 'w')
+    # # Write a JSON string into the file.
+    # json_string = json.dumps(Fitted_param, TempFilename, sort_keys=True, indent=4, default=json_numpy_serialzer)
+    # #json_string = json.dumps(Fitted_param, TempFilename, sort_keys=True, indent=4, separators=(',', ': '))
+    # TempFilename.write(json_string)
 
-    #Write the fits to a temporary file
-    TempFilename = open(temporary_data_file, "w")
-    # Write a JSON string into the file.
-    json_string = json.dumps(Fitted_param, TempFilename, sort_keys=True, indent=4, default=json_numpy_serialzer)
-    #json_string = json.dumps(Fitted_param, TempFilename, sort_keys=True, indent=4, separators=(',', ': '))
-    TempFilename.write(json_string)
+    #print json_string
+    with open(temporary_data_file, 'w') as TempFile:
 
-
-
+        # Write a JSON string into the file.
+        json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)

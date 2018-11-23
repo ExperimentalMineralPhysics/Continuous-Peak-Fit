@@ -40,7 +40,7 @@ def Fourier_expand(azimu, *param):
 
     if len(param)>1:
         for i in xrange(1, ((len(param)-1)/2)+1): # len(param)-1 should never be odd because of initial a_0 parameter
-            out = out + param[(2*i)-1]*np.sin(np.deg2rad(azimu))**i + param[2*i]*np.cos(np.deg2rad(azimu))**i #single col array
+            out = out + param[(2*i)-1]*np.sin(np.deg2rad(azimu)*i) + param[2*i]*np.cos(np.deg2rad(azimu)*i) #single col array
     #else:
       #  azimu = np.array(azimu)
        # fout = np.ones(azimu.shape)
@@ -83,7 +83,7 @@ def Fourier_backgrnd(azimutheta, param):
         nterms = len(backg[i])
         out = backg[i][0]
         for j in xrange(1, ((nterms-1)/2)+1): 
-            out = out + backg[i][(2*j)-1]*np.sin(np.deg2rad(azimu))**j + backg[i][2*j]*np.cos(np.deg2rad(azimu))**j
+            out = out + backg[i][(2*j)-1]*np.sin(np.deg2rad(azimu)*j) + backg[i][2*j]*np.cos(np.deg2rad(azimu)*j)
             # print j, 'j'
         bg_all = bg_all + (out*(twothetaprime**float(i)))
 

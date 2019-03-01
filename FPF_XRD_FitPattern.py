@@ -4,7 +4,7 @@ import numpy as np
 import numpy.ma as ma
 import copy, os, sys
 import json
-from PIL import Image
+#from PIL import Image
 import math
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
@@ -124,7 +124,7 @@ if all_present == 0:
 temporary_data_file = 'PreviousFit_JSON.dat'
 
 backg_type = 'flat'
-backg = [[4.,1.,1.]]
+backg = [[4]]
 
 
 
@@ -320,12 +320,12 @@ for j in range(n_diff_files):
 
     gd = np.mgrid[0:imarray.shape[0],0:imarray.shape[1]]       ##SAH: edit
     #print gd.shape
-    y = gd[0,:,:]       ##SAH: edit
-    x = gd[1,:,:]       ##SAH: edit
+    y = gd[0,:,:]+1       ##SAH: edit
+    x = gd[1,:,:]+1       ##SAH: edit
     #print y.shape, x.shape
     #print x[2]
-    y = y * pix / 1e3   ##SAH: edit
-    x = x * pix / 1e3   ##SAH: edit
+    y = (y) * pix / 1e3   ##SAH: edit
+    x = (x) * pix / 1e3   ##SAH: edit
     #print x             ##SAH: edit
     #print y             ##SAH: edit
     '''
@@ -376,15 +376,15 @@ for j in range(n_diff_files):
 
 
     ## plot input file
+    if 0:
+        fig = plt.figure()
+        plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 300)
+        #plt.scatter(dspace.flatten()[tthchunk],azimu.flatten()[tthchunk], s=4, c=(intens.flatten()[tthchunk]), edgecolors='none', cmap=plt.cm.jet, vmin=ValMin, vmax=ValMax)
+        plt.colorbar()
+        plt.show()
+        plt.close()
 
-    # fig = plt.figure()
-    # plt.scatter(twotheta, azimu, s=4, c=np.log(intens), edgecolors='none', cmap=plt.cm.jet)
-    # #plt.scatter(dspace.flatten()[tthchunk],azimu.flatten()[tthchunk], s=4, c=(intens.flatten()[tthchunk]), edgecolors='none', cmap=plt.cm.jet, vmin=ValMin, vmax=ValMax)
-    # plt.colorbar()
-    # plt.show()
-    # plt.close()
-
-
+        quit()
 
     ## Pass each subpatern to FPF_Fit_Subpattern for fitting in turn.
 

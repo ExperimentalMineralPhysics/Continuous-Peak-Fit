@@ -118,13 +118,17 @@ def WriteMultiFit(base_file_name, data_to_write, Num_Azi, wavelength):
             #...                                                          ]  number of peaks in
             #positionLast  IntensityLast  HWLast      WeightLast]         ]  subpattern
             #print data_to_write[j]['peak'][k]['d-space']
+            if 'symmetry' in data_to_write[j]['peak'][k]:
+                sym = data_to_write[j]['peak'][k]['symmetry']
+            else:
+                sym = 1
             for l in range(int(Num_Azi)):
                 az = np.array([l/Num_Azi*360])
                 peak_d = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['d-space'])
                 peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
-                peak_i = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
-                peak_w = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
-                peak_p = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
+                peak_i = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
+                peak_w = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
+                peak_p = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
 
                 text_file.write("%13.4f %13.4f %13.4f %13.4f\n" % (peak_tth, peak_i, peak_w, peak_p))
 

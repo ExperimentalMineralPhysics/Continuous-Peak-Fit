@@ -15,7 +15,7 @@ from scipy.optimize import curve_fit
 np.set_printoptions(threshold='nan')
 
 
-#import GSASIIIO as GsIO
+#import Plot85 as GsIO
 
 # ------- above here is the intro stuff that I dont know if it is needed. 
 
@@ -24,6 +24,31 @@ def ImportImage(ImageName):
 
 
     #Im = GsIO.GetImageData([], ImageName)
+
+
+
+    File = open(ImageName,'r')
+    save = {}
+    #oldThreshold = data['Thresholds'][0]
+    S = File.readline()
+    while S:
+        # if the row is 10 numbers then keep otherise not data.
+        if S == 'DATA:':
+            S = File.readline()
+            continue
+        [key,val] = S[:-1].split(':')
+        if key in ['Points','Rings','Arcs','Polygons','Frames','Thresholds']:
+            #if key == 'Thresholds':
+            #    S = File.readline()
+            #    continue
+            save[key] = eval(val)
+            #if key == 'Thresholds':
+            #    save[key][0] = oldThreshold
+            #    save[key][1][1] = min(oldThreshold[1],save[key][1][1])
+        S = File.readline()
+    File.close()
+
+
 
 
     im = Image.open(ImageName) ##always tiff?- no

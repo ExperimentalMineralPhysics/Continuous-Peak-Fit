@@ -44,13 +44,24 @@ def PseudoVoigtPeak(twotheta, tth0, W_all, H_all, LGratio):
 
     if np.any(LGratio<0) or np.any(LGratio>1):
         print 'The ratio is out of range'
-        stop
+        #stop
 
     PVpeak = LGratio*GaussianPeak(twotheta, tth0, W_all, H_all) + (1-LGratio)*LorentzianPeak(twotheta, tth0, W_all, H_all)
     return PVpeak
 
 
+def Fourier_order(params):
+    # Given list of Fourier coefficients retrun order (n) of the Fourier series.
+    
+    if isinstance(params,(list,)):
+        order = (len(params)-1)/2
+    elif isinstance(params,(float,)):
+        order = (np.size(params)-1)/2
+    else:
+        print 'Unknown type'
+        stop
 
+    return order
 
 
 # fourier expansion function
@@ -97,6 +108,7 @@ def Fourier_fit(azimu,ydata,terms,param=None,errs=1):
         param = [0 for i in range((2*terms+1))]
     param=tuple(param)
     popt,pcurv = curve_fit(Fourier_expand,azimu,ydata,p0=param,sigma=errs)
+
 
     return popt,pcurv
 
@@ -146,7 +158,7 @@ def FitPenaltyFunction(Azimuths, FourierValues, valid_range,Weight=1000000):
     if np.max(Vals) > valid_range[1]:
         Penalise = np.max(Vals) - valid_range[0]
 
-    Penalise = Penalise*Weight + 1
+    Penalise = Penalise**4*Weight + 1
     return Penalise
 
 
@@ -372,7 +384,7 @@ def ParamFit(param_change,param_fit,intens,twotheta,azimu,dspace,d0s,heights,wid
         # print d_0
 
         #Copy expanded values back into the correct place.
-        print param_change
+        #print param_change
         if param_change == 'd-space':
             D_all=np.array(fit_all)
         elif param_change == 'height':
@@ -638,8 +650,7 @@ def Allchange(fullarray,*allparms):
 
     ##fit d,w,h as single number with no Fourier terms
 
-    twothet,azi,lenbg,parmnums,wavelength,symm = fullarray
-    # print twothet.shape,azi.shape,parmnums.shape
+    #sortout allparms
     allparms=np.array(allparms)
     if (len(allparms.shape) > 1):
         if np.any(np.array(allparms.shape) > 1) :
@@ -647,15 +658,33 @@ def Allchange(fullarray,*allparms):
         elif np.all(np.array(allparms.shape) == 1):
             allparms = np.squeeze(allparms)
             allparms = np.array([allparms],float)  
+
+    #determine if profile is beting fitted for and organise the fitted numbers
+    if len(fullarray) == 6: #profile is a fitted parameter
+        twothet,azi,lenbg,parmnums,wavelength,symm = fullarray
+    elif len(fullarray) == 7: 
+        twothet,azi,lenbg,parmnums,wavelength,symm,profiles = fullarray
+
+    # print twothet.shape,azi.shape,parmnums.shape
     start = 0
     starth = parmnums[0]
     startw = parmnums[0:2].sum()
-    startp = parmnums[0:3].sum()
+    if len(fullarray) == 6:
+        startp = parmnums[0:3].sum()
     endp = parmnums.sum()
+
     d0s = allparms[0:starth]
     heights = allparms[starth:startw]
-    widths = allparms[startw:startp]
-    profiles = allparms[startp:endp]
+    if len(fullarray) == 6:
+        widths = allparms[startw:startp]
+        profiles = allparms[startp:endp]
+    else:
+        widths = allparms[startw:endp]
+
+
+    print profiles
+    
+
     tmpbackg = allparms[endp:]
     backg = []
     for b in xrange(len(lenbg)):
@@ -691,27 +720,47 @@ def Allfit(intens,twotheta,azimu,d0s,heights,widths,profiles,wavelength,bg=None,
     '''
     All expansion parameters fitted
     '''
-    
-
-    parmnums = np.array([len(d0s),len(heights),len(widths),len(profiles)])
-    # print 'parmnums', parmnums
 
     #check for bg here, won't work if try to pass to fit
     if not bg:
         bg = backg
-    allparms = np.concatenate((d0s,heights,widths,profiles,[item for sublist in bg for item in sublist]), axis=None)
+    #allparms = np.concatenate((d0s,heights,widths,profiles,[item for sublist in bg for item in sublist]), axis=None)
     lenbg=[]
     for val in bg:
         lenbg.append(len(val))
     lenbg=np.array(lenbg)
+    print 'profile', profiles
+    inp = []
+    if fix == None: #if profile not fixed fit for profile otherwise it is a constant.
+        parmnums = np.array([len(d0s),len(heights),len(widths),len(profiles)])
+        inp      = (twotheta,azimu,lenbg,parmnums,wavelength,symm)
+        allparms = np.concatenate((d0s,heights,widths,profiles,[item for sublist in bg for item in sublist]), axis=None)
+    else:
+        parmnums = np.array([len(d0s),len(heights),len(widths)])
+        inp      = (twotheta,azimu,lenbg,parmnums,wavelength,symm,profiles)
+        allparms = np.concatenate((d0s,heights,widths,[item for sublist in bg for item in sublist]), axis=None)
+    
+    # print 'parmnums', parmnums
+
+    # #check for bg here, won't work if try to pass to fit
+    # if not bg:
+    #     bg = backg
+    # allparms = np.concatenate((d0s,heights,widths,profiles,[item for sublist in bg for item in sublist]), axis=None)
+    # lenbg=[]
+    # for val in bg:
+    #     lenbg.append(len(val))
+    # lenbg=np.array(lenbg)
+
     intens=np.array(intens,dtype='float64')
     twotheta=np.array(twotheta,dtype='float64')
     azimu = np.array(azimu,dtype='float64')
-    popt,pcurv = curve_fit(Allchange,(twotheta,azimu,lenbg,parmnums,wavelength,symm),intens,p0=allparms, maxfev = 12000)
+
+    popt,pcurv = curve_fit(Allchange,inp,intens,p0=allparms, maxfev = 12000)
+    #popt,pcurv = curve_fit(Allchange,(twotheta,azimu,lenbg,parmnums,wavelength,symm),intens,p0=allparms, maxfev = 12000)
     #popt,pcurv = curve_fit(testInt, twotheta,intens, p0=[d0s,heights,widths])
     return popt,pcurv
 
-
+'''
 def CalculatePeaks(Params, twothet, azi, wavelength):
 
     #calcuate the background.
@@ -856,40 +905,41 @@ def LineariseParams(dict):
     print stop
 
 
-def AllfitNew(intens,twotheta,azimu,ParamDict,wavelength,bg=None):
+# def AllfitNew(intens,twotheta,azimu,ParamDict,wavelength,bg=None):
 
 
-    '''
-    All expansion parameters fitted
-    '''
-    print ParamDict['peak']
-    print len(ParamDict['peak'][0]['d-space'])
-    print len(ParamDict['peak'][0]['height'])
-    print len(ParamDict['peak'][0]['width'])
+#     # '''
+#     # All expansion parameters fitted
+#     # '''
+    
+#     print ParamDict['peak']
+#     print len(ParamDict['peak'][0]['d-space'])
+#     print len(ParamDict['peak'][0]['height'])
+#     print len(ParamDict['peak'][0]['width'])
 
-    #parmnums = np.array([len(d0s),len(heights),len(widths)])
-    # print 'parmnums', parmnums
+#     #parmnums = np.array([len(d0s),len(heights),len(widths)])
+#     # print 'parmnums', parmnums
 
-    #check for bg here, won't work if try to pass to fit
-    # if not bg:
-    #     bg = backg
-    # allparms = np.concatenate((d0s,heights,widths,[item for sublist in bg for item in sublist]), axis=None)
-    # lenbg=[]
-    # for val in bg:
-    #     lenbg.append(len(val))
-    # lenbg=np.array(lenbg)
-    intens=np.array(intens,dtype='float64')
-    twotheta=np.array(twotheta,dtype='float64')
-    azimu = np.array(azimu,dtype='float64')
-    pd = np.array(ParamDict)
-    print 'this is pd', pd
+#     #check for bg here, won't work if try to pass to fit
+#     # if not bg:
+#     #     bg = backg
+#     # allparms = np.concatenate((d0s,heights,widths,[item for sublist in bg for item in sublist]), axis=None)
+#     # lenbg=[]
+#     # for val in bg:
+#     #     lenbg.append(len(val))
+#     # lenbg=np.array(lenbg)
+#     intens=np.array(intens,dtype='float64')
+#     twotheta=np.array(twotheta,dtype='float64')
+#     azimu = np.array(azimu,dtype='float64')
+#     pd = np.array(ParamDict)
+#     print 'this is pd', pd
 
-    print 'this is paramdict', ParamDict['peak']
+#     print 'this is paramdict', ParamDict['peak']
 
-    popt,pcurv = curve_fit(AllchangeNEW,(twotheta,azimu,ParamDict,wavelength),intens,p0=ParamDict)
-    #popt,pcurv = curve_fit(Allchange,(twotheta,azimu,lenbg,parmnums,wavelength),intens,p0=allparms)
-    #popt,pcurv = curve_fit(testInt, twotheta,intens, p0=[d0s,heights,widths])
-    return popt,pcurv
+#     popt,pcurv = curve_fit(AllchangeNEW,(twotheta,azimu,ParamDict,wavelength),intens,p0=ParamDict)
+#     #popt,pcurv = curve_fit(Allchange,(twotheta,azimu,lenbg,parmnums,wavelength),intens,p0=allparms)
+#     #popt,pcurv = curve_fit(testInt, twotheta,intens, p0=[d0s,heights,widths])
+#     return popt,pcurv
 
 
 

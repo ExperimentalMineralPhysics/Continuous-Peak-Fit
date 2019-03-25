@@ -4,8 +4,6 @@
 # Script fits subset of the data with peaks of pre-defined Fourier order
 
 # The script should not need to know what the limits are - it should only see the data that it needs to fit. 
-# The two theta 
-
 import numpy as np
 import numpy.ma as ma
 import copy, os, sys
@@ -16,18 +14,11 @@ import matplotlib.pyplot as plt
 import matplotlib.path as mlp
 from scipy.optimize import curve_fit
 np.set_printoptions(threshold='nan')
-
 import FPF_PeakFourierFunctions as ff
-
-# load as det (detector) so that can readilt replace the GSASII functions with e.g. diaoptas without confusing names in this script
-#import FPF_GSASIIFunctions as det
 
 
 
 def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousParams=None):
-
-    #print np.shape(TwoThetaAndDspacings)[0]
-
 
     # sort inputs
 
@@ -39,7 +30,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         wavelength = TwoThetaAndDspacings[2]
     else:
         twotheta = TwoThetaAndDspacings
-        #dspacing = twotheta
 
     # if no parameters
     #     get orders of arrays
@@ -49,7 +39,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
     #     change the size of the parameter arrays to match orders
 
     if orders:
-        print orders
+        #print orders
         total = orders['AziBins']
         backg_type = 'order'
         bg_order = orders['background']
@@ -59,7 +49,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         else:
             symmetry = 1
 
-        print bg_order
+        #print bg_order
         backg=[]
         for j in xrange(len(bg_order)):
             backg.append(np.zeros(len(bg_order)*2+1))
@@ -67,15 +57,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
     if PreviousParams and orders:
         #need to check sizes of both arrays here.
         #orders takes presidence over PreviousParams so we add or remove coefficients as necessary
-
-        # print 'orders'
-        # print orders
-        # print 'Previous Fit'
-        # print PreviousParams
-        # print ff.Fourier_order(PreviousParams['peak'][0]['d-space'])
-        # print ff.Fourier_order(PreviousParams['peak'][0]['height'])
-        # print ff.Fourier_order(PreviousParams['peak'][0]['profile'])
-
 
         peeks = 1 #FIX ME: replace with loop over length of peaks.
         for y in range(peeks):
@@ -154,17 +135,23 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
     singlelenbg=np.array(singlelenbg)
 
 
-    # if orders:
-    #     d0_order, h_order, w_order, bg_order, total = orders
 
-
-    ## Split data into chunks in azimuth, replace azimuths with avg.
-    ## doesn't have to be 100
-
+    ## If there is not previous fit -- Fit data in azimuthal chunks.
     if not PreviousParams:
-
-        print '\nGroup fitting in azimuth...\n'
-
+        
+        #        if not orders['PeakPositionSelection']:
+        #
+        print '\nNo previous fits or selections. Group fitting in azimuth...\n'
+        #            
+        #        else:
+        #            
+        #            print '\nUsing manual selections for initial guesses...\n'
+        #            
+        #            numpeaks = len(np.unique(np.array(orders['PeakPositionSelection'])[:,0]))
+        #            
+        #            
+        #            print numpeaks
+        #            stop
 
         azmax = azimu.max()
         azmin = azimu.min()
@@ -174,14 +161,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         for i in xrange(total):
             end = (i+1)*binsize
             start = i*binsize
-            #temptth = twotheta.flatten()
-            #tthchunk = np.where((temptth>=tthRange[0])&(temptth<=tthRange[1]))
             tempazi = azimu.flatten()
             azichunk = np.where((tempazi>start)&(tempazi<=end))
-            #chunkels = np.intersect1d(tthchunk,azichunk)
 
             azichunks.append(((end-start)/2)+start)
-            #chunks.append(chunkels)
             chunks.append(azichunk)
 
 
@@ -206,7 +189,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             # print '\nFitting azimuth chunk....\n'
 
             #only compute the fit and save it if there are 'enough' data
-            if np.sum(~intens.flatten()[chunks[j]].mask) >= 20: #FIX ME: this switch is.a crude way of finding if there are less than 20 data in the bin. It should also be a variable. 
+            if np.sum(~intens.flatten()[chunks[j]].mask) >= 20: #FIX ME: this switch is.a crude way of finding if there are less than 20 data in the bin. It should be a variable. 
 
                 ## background estimates ##
                 if backg_type == 'coeffs':
@@ -222,11 +205,11 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 elif backg_type == 'flat':
                     backg_base = backg[0][0]
                 hguess_I=intens.flatten()[chunks[j]].argmax()
-                hguess=intens.flatten()[chunks[j]][hguess_I]-backg_base
-                # hguess=(intens.flatten()[chunks[j]][hguess_I]-backg[0])*0.8
+                hguess=intens.flatten()[chunks[j]][hguess_I]-backg_base  #FIX ME: This is very crude. Need a better way to do it. 
+                # hguess=(intens.flatten()[chunks[j]][hguess_I]-backg[0])*0.8  
                 dguess=dspace.flatten()[chunks[j]][hguess_I]
                 #dguess= (np.max(dspace.flatten()[chunks[j]]) + np.min(dspace.flatten()[chunks[j]]))/2
-                wguess = (np.max(dspace.flatten()[chunks[j]]) + np.min(dspace.flatten()[chunks[j]]))/40
+                wguess = (np.max(dspace.flatten()[chunks[j]]) + np.min(dspace.flatten()[chunks[j]]))/40  #FIX ME: This is very crude. Need a better way to do it. 
 
                 #if profile_fixed exists then set pguess to fixed value
                 #then set pfixed, 1 if fixed else 0
@@ -236,20 +219,13 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     pguess = orders['peak'][0]['profile_fixed'][0]   #FIX ME: this should be a Fourier expansion because it is fixed....
                     pfixed = 1
 
-                #print hguess_I,hguess,dguess,bgguess,'hguess'
-                #print wguess
-                #bgguess = backg
                 singleBackg = [[] for i in range(len(backg))]
                 for i in xrange(len(backg)):
                     singleBackg[i] = [backg[i][0]]
                 bgguess = singleBackg
-                #print 'bgguess ', bgguess
                 po,pc= ff.singleFit(intens.flatten()[chunks[j]],twotheta.flatten()[chunks[j]],azichunks[j],dspace.flatten()[chunks[j]],d0s=dguess,heights=hguess,widths=wguess, profile=pguess,fixed=pfixed,wavelength=wavelength,bg=bgguess)
-                #print po
                 AllErr = np.sqrt(np.abs(np.diag(pc)))
-                #print AllErr
 
-                #print newd0Err,'newd0Err'
                 newd0.append(po[0])
                 newd0Err.append(AllErr[0])
                 newHall.append(po[1])
@@ -267,9 +243,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     newProfileAll.append(po[-1])
                     newProfileAllErr.append(AllErr[-1])
 
-                #print 'newWall ',newWall
                 newAziChunks.append(azichunks[j])
-                #print 'newBGall ',newBGall
 
             #plot the fits.
             if 0:
@@ -290,7 +264,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 plt.plot(asdf1, asdf3, '-')
                 plt.show()
 
-
+            
 
         ### Feed each d_0,h,w into fourier expansion function to get fit for fourier component
         ### parameters as output.
@@ -314,9 +288,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         newBGallErr = np.array(newBGallErr)
         bgfour=[]
         for i in xrange(len(lenbg)):
-            #print bg_order[i]
-            #print np.array(newBGall[:,i])
-            #print np.array(newBGallErr[:,i])
             tempbg,tempbgc = ff.Fourier_fit(np.array(newAziChunks),np.array(newBGall[:,i]),terms=bg_order[i], errs=np.array(newBGallErr[:,i]))
             bgfour.append(tempbg)
 
@@ -361,7 +332,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         NewParams = []
         NewParams = {"background": bgfour[0], "peak":peaks}
 
-        print NewParams
+        #print NewParams
         ### Feed each d,h,w into versions of main equation to fit only or one at a time
         ### including the new paramters from the Fourier fits above as initial inputs
         ## Slice arrays for twothetarange
@@ -372,7 +343,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
             #set peek for a loop over peaks that doesn't yet exist.
             peek = 0
-
 
             d0s        = ff.Fourier_expand(azimu.flatten(),NewParams['peak'][peek]['d-space'])
             heights    = ff.Fourier_expand(azimu.flatten()*symmetry,NewParams['peak'][peek]['height'])
@@ -452,60 +422,18 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
 
             print  NewParams['peak'][peek]['profile']
-            #print NewParams
+ 
 
-            '''
-            #newdfour = ff.dfit(intens.flatten(),twotheta.flatten(),azimu.flatten(),dspace.flatten(),dfour[0],heights,widths,wavelength,bg=backg)
-            newdfour = ff.dfit(intens.flatten(),twotheta.flatten(),azimu.flatten(),dspace.flatten(),dfour[0],heights,widths,wavelength,bg=bgexp)
-            print 'Old d coefficients: ', dfour[0]
-            print 'New d coefficients: ', newdfour[0]
+    elif orders['PeakPositionSelection']:
 
-            ## Fit for h with new d and existing w
-
-            newd0s = ff.Fourier_expand(azimu.flatten(),newdfour[0])
-            # widths = ff.Fourier_expand(azimu.flatten(),wfour[0])
-            #print hfour[0]
-            #newhfour = ff.hfit(intens.flatten(),twotheta.flatten(),azimu.flatten(),newd0s,widths,hfour[0],wavelength,bg=backg)
-            newhfour = ff.hfit(intens.flatten(),twotheta.flatten(),azimu.flatten(),newd0s,widths,hfour[0],wavelength,bg=bgexp)
-            print 'Old h coefficients: ', hfour[0]
-            print 'New h coefficients: ', newhfour[0]
-
-            ## Fit for w with new d and h
-
-            # newd0s     = ff.Fourier_expand(azimu.flatten(),newdfour[0])
-            newheights = ff.Fourier_expand(azimu.flatten(),newhfour[0])
-            #print wfour[0]
-            #newwfour   = ff.wfit(intens.flatten(),twotheta.flatten(),azimu.flatten(),newd0s,newheights,wfour[0],wavelength,bg=backg)
-            newwfour   = ff.wfit(intens.flatten(),twotheta.flatten(),azimu.flatten(),newd0s,newheights,wfour[0],wavelength,bg=bgexp)
-            print 'Old w coefficients: ', wfour[0]
-            print 'New w coefficients: ', newwfour[0]
-            newwfour = wfour
+        print '\nUse position selections for initial guess...\n'
             
-            newbgfit = ff.bgfit(intens.flatten(),twotheta.flatten(),azimu.flatten(),dspace.flatten(),d0s,heights,widths,wavelength,bg=bgexp)
-            newbg = ff.update_backgrnd(newbgfit[0],lenbg,0)
-            print 'Old bg coefficients: ', bgfour[0]
-            print 'New bg coefficients: ', newbg
-
-            backg = newbg
-            '''
-        # else:
-        #     newdfour = dfour
-        #     newhfour = hfour
-        #     newwfour = wfour
-        #     backg = bgfour
+        stop
+        
 
     else:
         NewParams = PreviousParams
-
-        # newdfour = []
-        # newdfour.append(NewParams['peak'][0]['d-space'])
-        # newhfour = []
-        # newhfour.append(NewParams['peak'][0]['height'])
-        # newwfour = []
-        # newwfour.append(NewParams['peak'][0]['width'])
-
-        # backg = ff.update_backgrnd(NewParams['background'],lenbg,0)
-
+        
 
     ### Refit through full equation with all data for d,h,w,bg independently
 
@@ -622,6 +550,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         ValMin3 = np.min((intens.flatten()-fullfit_intens.flatten()))
         ValMin  = np.min([ValMin1, ValMin2])
 
+
+        y_lims = np.array([np.min(azimu.flatten()), np.max(azimu.flatten())])
+        y_lims = np.around(y_lims/180)*180
+        
         dot_size = 16
 
         fig = plt.figure()
@@ -633,7 +565,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         ax1.set_xlabel('2 Theta (deg)')
         ax1.set_ylabel('Azimuth (deg)')
         ax1.set_xlim([np.min(twotheta.flatten()),np.max(twotheta.flatten())])
-        ax1.set_ylim([0,360])
+        ax1.set_ylim(y_lims)
         locs, labels = plt.xticks()
         plt.setp(labels, rotation=90)
         plt.colorbar()
@@ -645,7 +577,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         ax2.set_xlabel('2 Theta (deg)')
         ax2.set_ylabel('Azimuth (deg)')
         ax2.set_xlim([np.min(twotheta.flatten()),np.max(twotheta.flatten())])
-        ax2.set_ylim([0,360])
+        ax2.set_ylim(y_lims)
         locs, labels = plt.xticks()
         plt.setp(labels, rotation=90)
         ax3 = plt.subplot(133)
@@ -655,7 +587,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         ax3.set_xlabel('2 Theta (deg)')
         ax3.set_ylabel('Azimuth (deg)')
         ax3.set_xlim([np.min(twotheta.flatten()),np.max(twotheta.flatten())])
-        ax3.set_ylim([0,360])
+        ax3.set_ylim(y_lims)
         locs, labels = plt.xticks()
         plt.setp(labels, rotation=90)
         plt.colorbar()
@@ -679,7 +611,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
     tth_max = twotheta.max()
     d_min = dspace.min()
     d_max = dspace.max()
-    extent = [[tth_min, tth_max],[d_min, d_max]]
+    extent = [[tth_min, tth_max],[d_min, d_max]] #FIX ME: Tis is taking the maximum and hte minimum of the data not the 'range' itself.
 
 
     peaks = []

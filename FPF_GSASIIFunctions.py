@@ -7,6 +7,7 @@ import numpy as np
 import numpy.ma as ma
 import copy, os, sys
 from PIL import Image
+from PIL.ExifTags import TAGS
 import math
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
@@ -31,9 +32,20 @@ def ImportImage(ImageName):
     #im = im.transpose(Image.FLIP_TOP_BOTTOM)
     #im = im.transpose(Image.FLIP_LEFT_RIGHT)
     #print type(im)
+    
+    #inf = im._getexif()
+    
     return im
+    
+    
 
-def CreateGSASIIMask(MSKfile, ImInts, ImageSize, ImTTH, ImAzi, Imy,Imx):
+
+
+def GetMask(MSKfile, ImInts, ImTTH, ImAzi, file_name, pix):
+    
+    
+    Imx,Imy = GetImSizeArr(file_name, pix)    
+    
 
     #GSAS-II lisence problems later.
     #As it stands we may have to get people to copy a GSAS-II file from their repository so that it does not
@@ -214,13 +226,12 @@ def LoadMask(mskfilename):
     return save
 
 
-def load_inputs_file(filenam):
+def GetCalibration(filenam):
+    'Parse inputs file, create type specific inputs.'
 
-    '''
-    Parse inputs file, create type specific inputs.
-    '''
+    parms_file = open(filenam,'rb')
 
-    filelines = filenam.readlines()
+    filelines = parms_file.readlines()
     parms_dict = {}
 
     for item in filelines:
@@ -277,6 +288,9 @@ def load_inputs_file(filenam):
                 else:
                     parms_dict[newparms[0]] = str(parm)
 
+    # force all dictionary labels to be lower case -- makes s
+    parms_dict =  {k.lower(): v for k, v in parms_dict.items()}
+
 
     return parms_dict
 
@@ -330,9 +344,9 @@ def GetTthAzmDsp(x,y,data): #expensive
     dist = data['distance']/cosd(tilt)
     x0 = data['distance']*tand(tilt)
     phi = data['rotation']
-    dep = data['DetDepth']
-    LRazim = data['LRazimuth']
-    azmthoff = data['azmthOff']
+    dep = data['detdepth']
+    LRazim = data['lrazimuth']
+    azmthoff = data['azmthoff']
     dx = np.array(x-cent[0],dtype=np.float32)
     dy = np.array(y-cent[1],dtype=np.float32)
     D = ((dx-x0)**2+dy**2+data['distance']**2)      #sample to pixel distance
@@ -356,21 +370,58 @@ def peneCorr(tth,dep,tilt=0.,azm=0.):
     return dep*(1.-npcosd(tth))         #best one
 
 
+def GetImSizeArr(image_name, pix):
+
+    print image_name
+    im = ImportImage(image_name)
+
+    imarray = np.array(im)
+
+    gd = np.mgrid[0:imarray.shape[0],0:imarray.shape[1]]       ##SAH: edit
+    #print gd.shape
+    y = gd[0,:,:]+1       ##SAH: edit
+    x = gd[1,:,:]+1       ##SAH: edit
+    #print y.shape, x.shape
+    #print x[2]
+    y = (y) * pix / 1e3   ##SAH: edit
+    x = (x) * pix / 1e3   ##SAH: edit
+    #print x             ##SAH: edit
+    #print y             ##SAH: edit
+    '''
+    ## SAH: would linspace+meshgrid be a better way of making the arrays?
+    ## DMF: Could do it this way...
+    xn = np.linspace(0, imarray.shape[0],num=imarray.shape[0],endpoint=False,dtype=int)#nx)
+    yn = np.linspace(0, imarray.shape[1],num=imarray.shape[1],endpoint=False,dtype=int)#ny)
+    xv, yv = np.meshgrid(xn, yn)
+
+    #print xv.shape,yv.shape,xv[1],yv[1]
+
+    '''
+    return x, y
+
+
 #related calls#
-def GetTth(x,y,data):
+def GetTth(calib_file, data, pix):
     'Give 2-theta value for detector x,y position; calibration info in data'
+    x,y = GetImSizeArr(calib_file, pix)    
     return GetTthAzmDsp(x,y,data)[0]
 
-def GetTthAzm(x,y,data):
+
+def GetTthAzm(calib_file, data, pix):
     'Give 2-theta, azimuth values for detector x,y position; calibration info in data'
+    x,y = GetImSizeArr(calib_file, pix)
     return GetTthAzmDsp(x,y,data)[0:2]
 
-def GetDsp(x,y,data):
+
+def GetDsp(calib_file, data, pix):
     'Give d-spacing value for detector x,y position; calibration info in data'
+    x,y = GetImSizeArr(calib_file, pix)
     return GetTthAzmDsp(x,y,data)[3]
 
-def GetAzm(x,y,data):
+
+def GetAzm(calib_file, data, pix):
     'Give azimuth value for detector x,y position; calibration info in data'
+    x,y = GetImSizeArr(calib_file, pix)
     return GetTthAzmDsp(x,y,data)[1]
 
 

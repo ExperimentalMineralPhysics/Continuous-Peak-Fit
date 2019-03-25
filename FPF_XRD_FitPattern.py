@@ -17,7 +17,9 @@ import FPF_PeakFourierFunctions as ff
 import FPF_WriteMultiFit as wr
 
 # load as det (detector) so that can readilt replace the GSASII functions with e.g. diaoptas without confusing names in this script
-import FPF_GSASIIFunctions as det
+#calib_mod = 'FPF_DioptasFunctions'
+#det = __import__(calib_mod)
+#import calib_mod as det
 
 
 
@@ -79,7 +81,7 @@ def json_numpy_serialzer(o):
 # and setup
 sys.path.append(os.getcwd())
 print '  '
-print "This is the name of the settings file is: ", sys.argv[1]
+print "The name of the settings file is: ", sys.argv[1]
 FitSettings = __import__(sys.argv[1])
 #from BCC1_input import *
 FitParameters = dir(FitSettings)
@@ -88,10 +90,11 @@ FitParameters = dir(FitSettings)
 # NOTE: No doubt this will change hence denoted as a list that is worked over. 
 # 1. Have option to have list of files rather than sequence. This list needs to be called diff_files.
 RequiredList = ['AziBins',
-                'Calib_file', 
-                'Calib_mask', 
-                'Calib_pixels', 
                 'Calib_type', 
+                'Calib_data', 
+                'Calib_param', 
+                'Calib_pixels',   #this is only needed for GSAS-II and should be read from image file.
+                #'Calib_mask',    #a mask file is not stricktly required.
                 'Output_NumAziWrite', 
                 'Output_directory', 
                 'Output_type', 
@@ -120,6 +123,15 @@ if all_present == 0:
 
 
 
+
+# load the detetor functions here. 
+calib_mod = 'FPF_' + FitSettings.Calib_type + 'Functions'
+det = __import__(calib_mod)
+#import calib_mod as det
+
+
+
+
 # define locally required names.
 temporary_data_file = 'PreviousFit_JSON.dat'
 
@@ -128,9 +140,6 @@ backg = [[4]]
 
 
 
-#for now redfine previously used parameters from input file.
-pix = FitSettings.Calib_pixels
-mask_file = FitSettings.Calib_mask
 # tthRange -- is now defined in 'fit_orders' 
 
 
@@ -221,9 +230,11 @@ mask_file = FitSettings.Calib_mask
 ## Load files ##
 
 # calibration parameter file #
-parms_file = open(FitSettings.Calib_file,'rb')
-parms_dict = det.load_inputs_file(parms_file)
-#print parms_dict
+parms_dict = det.GetCalibration(FitSettings.Calib_param)
+
+#parms_file = open(FitSettings.Calib_param,'rb')
+#parms_dict = det.GetCalibration(parms_file)
+
 ## may be a mask file?
 ## SAH: yes mask files -- they will either be a list of regions (x,y) or a binary image.
 ## SAH: I will generate you a mask file and send it to you.
@@ -296,20 +307,68 @@ else:
     n_diff_files = len(diff_files)
 
 
+#for now redfine previously used parameters from input file.
+pix = FitSettings.Calib_pixels
+
+
+#get calibration for image set.
+#get array for two theta and d-space the same size as the image.
+azimu    = det.GetAzm(FitSettings.Calib_data, parms_dict, pix)
+twotheta = det.GetTth(FitSettings.Calib_data, parms_dict, pix)
+dspace   = det.GetDsp(FitSettings.Calib_data, parms_dict, pix)
+
+# load calibration data/image -- to get intensities for mask.
+im     = det.ImportImage(FitSettings.Calib_data)
+intens = ma.array(im)
+
+# create mask from mask file if present.
+# if not make all values valid
+if 'Calib_mask' in FitParameters:
+    
+    #for now redfine previously used parameters from input file.
+    mask_file = FitSettings.Calib_mask
+
+    intens = det.GetMask(mask_file, intens, twotheta, azimu, FitSettings.Calib_data, pix)
+else:
+    
+#    #intens = ma.masked_array(intens, mask=np.zeros(intens.shape))
+    intens = ma.masked_outside(intens,0,np.inf)
+    
+    
+#apply mask to arrays
+azimu    = ma.array(azimu, mask=intens.mask)
+twotheta = ma.array(twotheta,mask=azimu.mask)
+dspace   = ma.array(dspace,mask=azimu.mask)
+
+
+
 
 # Process the diffraction patterns #
 
 for j in range(n_diff_files):
 
-    print diff_files[j]
+    print 'Process ',diff_files[j]
+    
     im = det.ImportImage(diff_files[j])
+    
+    #get intensity array and mask it
+    intens    = ma.array(im, mask=azimu.mask)
 
 
+
+    #mask negative intensities
+    #intens = ma.masked_outside(intens,int(0),np.inf)
+    #intens   = ma.array(intens, mask=(intens.mask*azimu.mask))
+    #azimu    = ma.array(azimu, mask=intens.mask)
+    #twotheta = ma.array(twotheta,mask=intens.mask)
+    #dspace   = ma.array(dspace,mask=intens.mask)
+    
+    
     #im = Image.open(diff_file) ##always tiff?
     ## SAH: No. could be propreity formats. Possible formats for GSAS-II diffracion import are: tif, ADSC, cbf, png, edf, ge, hdf5, mar, rigaku, sfrm, 'gsas-ii image file' and guess.
     ## SAH: GSAS-II import files are located at https://subversion.xray.aps.anl.gov/pyGSAS/trunk/imports/ with the file names 'G2img_*.py'.
     # im.show()
-    imarray = np.array(im)
+    #imarray = np.array(im)
     #print imarray.shape,imarray.max()
 
     ## Convert data ##
@@ -318,16 +377,18 @@ for j in range(n_diff_files):
     #x = np.arange(imarray.shape[1])
     #y = np.arange(imarray.shape[0])[0:imarray.shape[1]]
 
-    gd = np.mgrid[0:imarray.shape[0],0:imarray.shape[1]]       ##SAH: edit
+    #gd = np.mgrid[0:imarray.shape[0],0:imarray.shape[1]]       ##SAH: edit
     #print gd.shape
-    y = gd[0,:,:]+1       ##SAH: edit
-    x = gd[1,:,:]+1       ##SAH: edit
+    #y = gd[0,:,:]+1       ##SAH: edit
+    #x = gd[1,:,:]+1       ##SAH: edit
     #print y.shape, x.shape
     #print x[2]
-    y = (y) * pix / 1e3   ##SAH: edit
-    x = (x) * pix / 1e3   ##SAH: edit
+    #y = (y) * pix / 1e3   ##SAH: edit
+    #x = (x) * pix / 1e3   ##SAH: edit
     #print x             ##SAH: edit
     #print y             ##SAH: edit
+    
+    
     '''
     ## SAH: would linspace+meshgrid be a better way of making the arrays?
     ## DMF: Could do it this way...
@@ -339,20 +400,19 @@ for j in range(n_diff_files):
 
     '''
 
-
+    
     ## Convert to twotheta and azimuth arrays ##
-
-    twotheta = det.GetTth(x,y,parms_dict)
-    azimu    = det.GetAzm(x,y,parms_dict)
-    dspace   = det.GetDsp(x,y,parms_dict)
-    intens   = imarray
-
+    #twotheta = det.GetTth(x,y,parms_dict)
+    #azimu    = det.GetAzm(x,y,parms_dict)
+    #dspace   = det.GetDsp(x,y,parms_dict)
+    #intens   = imarray
+    
     #azimu = (azimu + 180) % 360
 
 
     # checks via prints and plots #
     #print twotheta.shape,azimu.shape,dspace.shape,twotheta[0]
-    colors = ("red", "green", "blue")
+    #colors = ("red", "green", "blue")
     #plt.scatter(twotheta, azimu, s=1, c=np.log(intens), edgecolors='none', cmap=plt.cm.jet)
     # plt.scatter(twotheta, azimu, s=1, c=intens, edgecolors='none', cmap=plt.cm.jet)
     # plt.colorbar()
@@ -362,17 +422,35 @@ for j in range(n_diff_files):
 
     ## selected limits via gui - 2theta_min, 2theta_max, n_peaks (each peak 2theta min+max)
     ## for each peak....
+    
 
-
-    # create mask from GSAS-II mask file.
-    intens = det.CreateGSASIIMask(mask_file, intens, gd.shape, twotheta, azimu, y, x)
-
+    # create mask from mask file if present.
+    # if not make all values valid
+    
+    #apply mask here incase there is an intensity threshold in the mask.
+    #if 'Calib_mask' in FitParameters:
+    #            
+    #    #for now redfine previously used parameters from input file.
+    #    #pix = FitSettings.Calib_pixels
+    #    mask_file = FitSettings.Calib_mask
+    #
+    #    intens = det.GetMask(mask_file, intens, twotheta, azimu, FitSettings.Calib_file, pix)
+    #else:
+    #intens = ma.masked_array(intens, mask=np.zeros(intens.shape))
+    #intens = ma.masked_outside(intens,int(0),np.inf)
+    
+    #make sure there are no 0 or negative pixels.   
+    
+    
+        
     #apply mask to other arrays
-    azimu    = ma.array(azimu, mask=intens.mask)
-    twotheta = ma.array(twotheta,mask=intens.mask)
-    dspace   = ma.array(dspace,mask=intens.mask)
-
-
+    
+    intens   = ma.array(intens, mask=(azimu.mask))
+    #azimu    = ma.array(azimu, mask=intens.mask)
+    #twotheta = ma.array(twotheta,mask=intens.mask)
+    #dspace   = ma.array(dspace,mask=intens.mask)
+    
+    
 
 
     ## plot input file
@@ -419,7 +497,7 @@ for j in range(n_diff_files):
     for i in range(n_subpats):
 
         tthRange = FitSettings.fit_orders[i]['range'][0]
-        print tthRange
+        #print tthRange
 
         # get subsections of data to pass
         temptth = twotheta.flatten()
@@ -440,7 +518,7 @@ for j in range(n_diff_files):
             orders = FitSettings.fit_orders[i]
             orders['AziBins'] = FitSettings.AziBins
 
-        print orders
+        #print orders
         #params = []
         #if backg:
         #    params = {'background': backg, 'backgrnd_type': backg_type}
@@ -450,11 +528,12 @@ for j in range(n_diff_files):
 
         #fit the subpattern
 
+        #print parms_dict
         Fitted_param.append(FitSubpattern([twotheta_sub, dspacing_sub, parms_dict['wavelength']], azimu_sub, intens_sub, orders, params))
 
         #print Fitted_param
 
-
+    stop
 
     #write output files
 

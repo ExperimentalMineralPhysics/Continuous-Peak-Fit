@@ -80,7 +80,6 @@ print "The name of the settings file is: ", sys.argv[1]
 FitSettings = __import__(sys.argv[1])
 FitParameters = dir(FitSettings)
 
-
 # List all the required parameters.
 # NOTE: No doubt this will change hence denoted as a list that is worked over. 
 # 1. Have option to have list of files rather than sequence. This list needs to be called diff_files.
@@ -116,12 +115,20 @@ if all_present == 0:
 
 
 
-
 # load the detector functions here.
 calib_mod = 'FPF_' + FitSettings.Calib_type + 'Functions'
 det = __import__(calib_mod)
 
 
+# Detector check.
+# Check if the detector is required and if so if it is present and recognised.
+if 'Calib_detector' in FitParameters:
+    det_name = FitSettings.Calib_detector
+else:
+    det_name = None
+FitSettings.Calib_detector = det.DetectorCheck(FitSettings.Calib_data, det_name)
+
+    
 
 # define locally required names.
 temporary_data_file = 'PreviousFit_JSON.dat'
@@ -193,37 +200,42 @@ if not 'diff_files' in locals():
         # make list of diffraction pattern names
 
         #make number of pattern
-        n = str(j+1).zfill(FitSettings.datafile_NumDigit)
-
+        n = str(j+FitSettings.datafile_StartNum).zfill(FitSettings.datafile_NumDigit)
+        
         #append diffraction pattern name and directory
         diff_files.append(FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n + FitSettings.datafile_Ending)
 else:
     n_diff_files = len(diff_files)
 
 
-#for now redfine previously used parameters from input file.
-pix = FitSettings.Calib_pixels
-
+  
 
 #get calibration for image set.
 #get array for azimuth, two theta and d-space the same size as the image.
-azimu    = det.GetAzm(FitSettings.Calib_data, parms_dict, pix)
-twotheta = det.GetTth(FitSettings.Calib_data, parms_dict, pix)
-dspace   = det.GetDsp(FitSettings.Calib_data, parms_dict, pix)
+azimu    = det.GetAzm(FitSettings.Calib_data, parms_dict, FitSettings.Calib_pixels, FitSettings.Calib_detector)
+twotheta = det.GetTth(FitSettings.Calib_data, parms_dict, FitSettings.Calib_pixels, FitSettings.Calib_detector)
+dspace   = det.GetDsp(FitSettings.Calib_data, parms_dict, FitSettings.Calib_pixels, FitSettings.Calib_detector)
 #FIX ME: Should be able to send diffraction patter, mask and calibration parameters to a function and get back three masked arrays.
 
 # load calibration data/image -- to get intensities for mask.
 im     = det.ImportImage(FitSettings.Calib_data)
 intens = ma.array(im)
 
+    
 # create mask from mask file if present.
 # if not make all values valid
 if 'Calib_mask' in FitParameters:
     mask_file = FitSettings.Calib_mask
-    intens = det.GetMask(mask_file, intens, twotheta, azimu, FitSettings.Calib_data, pix)
+    intens = det.GetMask(mask_file, intens, twotheta, azimu, FitSettings.Calib_data, FitSettings.Calib_pixels)
 else:
+    #print np.shape(intens), type(intens)
+    #print np.shape(intens.mask), type(intens)
+    ImMask = np.zeros_like(intens)
+    intens = ma.array(intens, mask=ImMask)
     intens = ma.masked_outside(intens,0,np.inf)
-    
+    #print np.shape(intens), type(intens)
+    #print np.shape(intens.mask), type(intens)
+    #stop
     
 #apply mask to arrays
 azimu    = ma.array(azimu, mask=intens.mask)
@@ -232,6 +244,17 @@ dspace   = ma.array(dspace,mask=azimu.mask)
 
 
 
+## plot calibration file
+if 1:
+    fig = plt.figure()
+    #plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #FIX ME: need variable for vmax.
+    plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #FIX ME: need variable for vmax.
+    plt.colorbar()
+    plt.show()
+    plt.close()
+    
+    quit()
+    
 
 # Process the diffraction patterns #
 
@@ -244,17 +267,17 @@ for j in range(n_diff_files):
     
     #get intensity array and mask it
     intens    = ma.array(im, mask=azimu.mask)
-
+    
     ## plot input file
     if 0:
         fig = plt.figure()
-        plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 300)  #FIX ME: need variable for vmax.
+        plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 4000)  #FIX ME: need variable for vmax.
         plt.colorbar()
         plt.show()
         plt.close()
-
+        
         quit()
-
+        
 
     #get previous fit (if exists)
     # load temporary fit file - if it exists. 
@@ -292,14 +315,24 @@ for j in range(n_diff_files):
         #print orders
 
         #fit the subpattern
-        Fitted_param.append(FitSubpattern([twotheta_sub, dspacing_sub, parms_dict['wavelength']], azimu_sub, intens_sub, orders, params))
+        Fitted_param.append(FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, DetFuncs=calib_mod))
+        #Fitted_param.append(FitSubpattern([twotheta_sub, dspacing_sub, parms_dict['conversion_constant']], azimu_sub, intens_sub, orders, params))
 
-        stop
     #stop
 
     #write output files
+    
+    # store all the fit information as a JSON file. 
+    #filename, file_extension = os.path.splitext(diff_files[j])
+    filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
+    filename = filename+'.json'
+    print filename
+    with open(filename, 'w') as TempFile:
+        # Write a JSON string into the file.
+        json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
+    
     # FIX ME: Need to add optins for choice of output.
-    wr.WriteMultiFit(diff_files[j], Fitted_param, FitSettings.Output_NumAziWrite, parms_dict['wavelength'])
+    wr.WriteMultiFit(diff_files[j], Fitted_param, FitSettings.Output_NumAziWrite, parms_dict['conversion_constant'])
 
     # #Write the fits to a temporary file
     # TempFilename = open(temporary_data_file, 'w')

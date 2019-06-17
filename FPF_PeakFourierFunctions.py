@@ -9,6 +9,7 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import matplotlib.path as mlp
 from scipy.optimize import curve_fit
+from scipy.optimize import minimize
 np.set_printoptions(threshold='nan')
 
 
@@ -19,10 +20,30 @@ np.set_printoptions(threshold='nan')
 # Known limitations/bugs
 # FIX ME: need hard limits to gauss - lorentz peak profile ratios
 
+def ParamFitArr(numP, LenBG, val=None, p=None, b=None):
+    #Makes array which represents all the fourier series in the fit.
+    # Arr{0} is a list of 4 element lists - one 4 element list for each peak.
+    # Arr[0] is the background representative.
+    
+    if not val==None:
+        v = val
+    else:
+        v = 0
+        
+    if p==None:
+        p = [v,v,v,v]
+        
+        
+    Arr = [[],[]]
+    for y in range(numP):
+        Arr[0].append(p)
+    for y in range(LenBG):
+        Arr[1].extend([v])
+    return Arr
 
 
 #Gausian shape
-def GaussianPeak(twotheta, tth0, W_all, H_all):
+def GaussianPeak(twotheta, tth0, W_all, H_all):    
     W_all = W_all/np.sqrt(np.log(4))
     GaussPeak = H_all*np.exp((-(twotheta-tth0)**2)/(2*W_all**2))
     return GaussPeak
@@ -42,13 +63,281 @@ def PseudoVoigtPeak(twotheta, tth0, W_all, H_all, LGratio):
     # How do I do this?
     #
     # I have defined a new variable called profile_fixed which fixes the value if present
-
-    if np.any(LGratio<0) or np.any(LGratio>1):
-        print 'The ratio is out of range'
+    #if np.any(LGratio<0) or np.any(LGratio>1):
+        #print 'The ratio is out of range'
         #stop
 
     PVpeak = LGratio*GaussianPeak(twotheta, tth0, W_all, H_all) + (1-LGratio)*LorentzianPeak(twotheta, tth0, W_all, H_all)
     return PVpeak
+
+
+
+def PeaksModel(twotheta, azi, d0s, Hs, Ws, Ps, bg, Conv=None, symm=None, PenCalc=None):
+    
+    # Full model of intensities at twotheat and azi given parameters.    
+    
+    
+    #make backgorund fourier from array (either original or fitted array)
+    #FIX ME: why is this not done outside this fitting routine? 
+#    backg = []
+#    for b in xrange(len(lenbg)):
+#        if b == 0:
+#            start = 0
+#            end = lenbg[b]
+#        else: 
+#            start = lenbg[b-1]
+#            end = lenbg[b]+start 
+#        backg.append(tmpbackg[start:end])
+    
+    I = Fourier_backgrnd((azi,twotheta),bg)
+    
+    if not PenCalc==None:
+        #Penatly Function for background
+        POut = FitPenaltyFunction(azi, I, [0, np.inf])
+    
+    #loop over the number of peaks
+    Ipeak = []
+    
+    #symmety 
+    if not symm==None:
+        azi = azi*symm
+        
+    for a in range(len(d0s)):
+        
+        
+        print azi
+        print 'd', d0s[a]
+        print 'h', Hs[a]
+        Dall = Fourier_expand(azi, d0s[a])
+        Hall = Fourier_expand(azi, Hs[a])
+        Wall = Fourier_expand(azi, Ws[a])
+        Pall = Fourier_expand(azi, Ps[a])
+  
+        #conversion
+        TTHall = CentroidConversion(Conv, Dall, azi)
+        Ipeak.append(PseudoVoigtPeak(twotheta, TTHall, Wall, Hall, Pall))
+        I = I + Ipeak[a]       
+       
+        if not PenCalc==None:
+            #Penatly Function
+            #apply penatly function to constrain the Fourier series
+            # FIX ME: this should probably be replaced with a np.minimize function rather than the curve_fit call.
+            dpen  = FitPenaltyFunction(azi, TTHall,    [np.min(twotheta), np.max(twotheta)])
+            hpen  = FitPenaltyFunction(azi, Hall,   [0, np.max(Hall)*1.1])
+            wpen  = FitPenaltyFunction(azi, Wall,   [0, (np.max(twotheta)-np.min(twotheta))])
+            ppen  = FitPenaltyFunction(azi, Pall, [0, 1], Weight=5)
+            #print 'bgpen', POut
+#            print 'dpen', dpen
+#            print 'hpen', hpen
+#            print 'wpen', wpen
+#            print 'ppen', ppen
+            POut = POut * dpen * hpen * wpen * ppen
+            #print 'POut', POut
+    if PenCalc==None:
+        POut = Ipeak
+        
+    return I,POut
+
+
+
+def ChangeParams(constants, *fitparam):
+    
+    twotheta    = constants[0]
+    azi         = constants[1]
+    ChangeArray = constants[2]
+    dspc        = constants[3]
+    Hits        = constants[4]
+    Wets        = constants[5]
+    Profs       = constants[6]
+    bg          = constants[7]
+    Conv        = constants[8]
+    symm        = constants[9]
+    fixed       = constants[10]
+    
+    print 'dspc in', dspc
+    print 'Hits in', Hits
+    
+    dspc, Hits, Wets, Profs, bg = GuessApply(ChangeArray, dspc, Hits, Wets, Profs, bg, fitparam)
+        
+    print 'dspc', dspc
+    print 'Hits', Hits
+    
+    I,pen = PeaksModel(twotheta, azi, dspc, Hits, Wets, Profs, bg, Conv, symm, PenCalc=1)
+    #print pen
+    return I#*pen
+
+
+
+def FitModel(Intfit, twotheta, azimu, ChangeArray, d0sF, HsF, WsF, PsF, bgF, Conv=None, symm=None, fixed=None, method=None):
+    
+    p0array = GuessGet(ChangeArray, d0sF, HsF, WsF, PsF, bgF)
+
+    #flatten bg
+    if not bgF:
+        bgF = backg
+    flatbg = np.array(np.concatenate(([item for sublist in bgF for item in sublist]), axis=None))
+    lenbg=[]
+    for val in bgF:
+        lenbg.append(len(val))
+    lenbg=np.array(lenbg)
+    
+    Intfit=np.array(Intfit,dtype='float64')
+    twotheta=np.array(twotheta,dtype='float64')
+    azimu = np.array(azimu,dtype='float64')
+    
+    if not (method=='minimize'):
+        
+#        import pdb; pdb.set_trace()
+
+        popt,pcurv = curve_fit(ChangeParams,(twotheta,azimu,ChangeArray,d0sF,HsF,WsF,PsF,bgF,Conv,symm,fixed),Intfit,p0=p0array, ftol=2e-12, maxfev = 30000, method='lm')    
+        
+    else:
+        #FIX ME: should curve fit be replaces with minimise? -- so that we can force the constraints.
+
+        #Compose constraints array.
+        cons = ({'type': 'ineq', 'fun': lambda x:  x[0] - 2 * x[1] + 2},
+                {'type': 'ineq', 'fun': lambda x: -x[0] - 2 * x[1] + 6},
+                {'type': 'ineq', 'fun': lambda x: -x[0] + 2 * x[1] + 2})
+
+        prm = minimize(MinimiseParams, p0array, args=(Intfit,twotheta,azimu,ChangeArray,d0sF[:],HsF[:],WsF[:],PsF[:],bgF[:],Conv,symm,fixed), tol=1E-10 )
+        popt = prm.x
+        print 'prm.x', prm.x
+        pcurv=0
+
+    #print d0sF, 'Before apply'
+    
+    d0sF, HsF, WsF, PsF, bgF = GuessApply(ChangeArray, d0sF, HsF, WsF, PsF, bgF, popt)
+    d0sFerr, HsFerr, WsFerr, PsFerr, bgFerr = GuessApply(ChangeArray, np.zeros(np.shape(d0sF)).tolist(), np.zeros(np.shape(HsF)).tolist(), np.zeros(np.shape(WsF)).tolist(), np.zeros(np.shape(PsF)).tolist(), np.zeros(np.shape(bgF)).tolist(), np.sqrt(np.abs(np.diag(pcurv))))
+
+#    print d0sF, 'After application', type(d0sF)
+#    print d0sFerr, 'After application', type(d0sFerr)
+
+    return d0sF, HsF, WsF, PsF, bgF, d0sFerr, HsFerr, WsFerr, PsFerr, bgFerr, popt, pcurv
+
+
+
+
+def MinimiseParams(p0, intens,twotheta,azimu,ChangeArray,d0s,Hs,Ws,Ps,bg,Conv,symm,fixed):
+    
+    d0s, Hs, Ws, Ps, bg = GuessApply(ChangeArray, d0s, Hs, Ws, Ps, bg, p0)
+    
+    I,pen = PeaksModel(twotheta, azimu, d0s, Hs, Ws, Ps, bg, Conv, symm)
+
+    SSD = np.sum(((intens-I)**2).flatten())
+    
+    return SSD
+        
+    
+
+def GuessGet(ChangeArray, d0s, Hs, Ws, Ps, bg):
+    
+    if isinstance(d0s,list):
+        ran = len(d0s)
+    else:
+        ran = d0s.size
+        
+    Guess = []
+    for a in range(ran):
+        if not ChangeArray[0][a][0] == 0:  #d0
+            if isinstance(d0s, list):
+                e = d0s[a][0:ChangeArray[0][a][0]]
+            elif ran>1:
+                e = d0s[a]#[0:ChangeArray[0][a][0]]
+                stop
+            else:
+                e = d0s
+                stop
+            Guess.extend(e[:])
+        if not ChangeArray[0][a][1] == 0:  #H
+            e = Hs[a][0:ChangeArray[0][a][1]]
+            Guess.extend(e[:])
+        if not ChangeArray[0][a][2] == 0:  #W
+            e = Ws[a][0:ChangeArray[0][a][2]]
+            Guess.extend(e[:])
+        if not ChangeArray[0][a][3] == 0:  #P
+            e = Ps[a][0:ChangeArray[0][a][3]]
+            Guess.extend(e[:])
+    for a in range(len(bg)):
+        if not ChangeArray[1][a] == 0:  #background
+            e = bg[a][0:ChangeArray[1][a]]
+            Guess.extend(e[:])
+                    
+    return Guess
+    
+
+
+def GuessApply(ChangeArray, d0s, Hs, Ws, Ps, bg_, values):
+    
+    
+    #print type(values)
+    if isinstance(values, (tuple,)) or isinstance(values, (np.ndarray, np.generic) ):
+        values = list(values)
+        #print 'changed values to tuple'
+        
+    #print values, type(values)
+    #print d0s, type(d0s)
+
+    UsedP = 0
+    for a in range(len(d0s)):
+        if not ChangeArray[0][a][0] == 0:  #d0
+            d0s[a] = values[UsedP:UsedP+ChangeArray[0][a][0]]
+            UsedP = UsedP + ChangeArray[0][a][0]
+        if not ChangeArray[0][a][1] == 0:  #H
+            Hs[a] = values[UsedP:UsedP+ChangeArray[0][a][1]]
+            UsedP = UsedP + ChangeArray[0][a][1]
+        if not ChangeArray[0][a][2] == 0:  #W
+            Ws[a] = values[UsedP:UsedP+ChangeArray[0][a][2]]
+            UsedP = UsedP + ChangeArray[0][a][2]
+        if not ChangeArray[0][a][3] == 0:  #P
+            Ps[a] = values[UsedP:UsedP+ChangeArray[0][a][3]]
+            UsedP = UsedP + ChangeArray[0][a][3]
+    for a in range(len(bg_)):
+        if not ChangeArray[1][a] == 0: #background
+            bg_[a] = values[UsedP:UsedP+ChangeArray[1][a]]
+            UsedP = UsedP + ChangeArray[1][a]
+    #print d0s, type(d0s), 'Guess Get'
+    return d0s, Hs, Ws, Ps, bg_
+
+
+def CentroidConversion(Conv, args_in, azi):
+    #Conv['DispersionType'] is the conversion type
+    #Conv[...] are the vlaues required for the conversion
+    #FIX ME: these functions should be a sub function of the detector types. but need to work out how to do it.
+    
+    # Commented out until add Energy dispersive diffraction.
+    # When do this need to change wavelength parameter to 'Conversion' array with type and constant(s) in it.
+    #print 'Conv', type(Conv), Conv
+    if Conv['DispersionType'] == None or Conv==0:
+        args_out = args_in
+        
+    elif Conv['DispersionType'] == 'AngleDispersive':
+        #args_in are d-spacing
+        #args_outis two thetas
+        #wavelength = Conv[1]
+        #wavelength = Conv['conversion_constant']
+        args_out = 2*np.degrees(np.arcsin(Conv['conversion_constant']/2/args_in)) #FIX ME: check this is correct!!! 
+        
+    elif Conv['DispersionType'] == 'EnergyDispersive':
+        
+        args_out = []
+        #for x in range(len(azi)):
+        for x in range(azi.size):
+            #determine which detector is being used
+            #a=np.asscalar(np.where(Conv['azimuths'] == azi[x])[0])
+            
+            if azi.size == 1:
+                a = np.array(np.where(Conv['azimuths'] == azi)[0][0])
+                #a= np.asscalar(np.where(Conv['azimuths'] == azi)[0][0])
+                args_out.append(12.398/(2*args_in*np.sin(np.radians(Conv['calibs'].mcas[a].calibration.two_theta/2))))
+            else:
+                a=(np.where(Conv['azimuths'] == azi[x])[0][0])
+                args_out.append(12.398/(2*args_in[x]*np.sin(np.radians(Conv['calibs'].mcas[a].calibration.two_theta/2))))
+
+        
+    else:
+        sys.exit('Unrecognised conversion type')
+        
+    return args_out
 
 
 def Fourier_order(params):
@@ -68,19 +357,25 @@ def Fourier_order(params):
 # fourier expansion function
 def Fourier_expand(azimu, *param):
 
+    #FIX ME: Need to check the fourier is a licit length
+    
     param=np.array(param)
     if (len(param.shape) > 1):
         if np.any(np.array(param.shape) > 1) :
             param = np.squeeze(param)
-            # print param,'1'
+            #print param,'1'
         elif np.all(np.array(param.shape) == 1):
             param = np.squeeze(param)
             param = np.array([param],float)
-            # print param, '2'
+            #print param, '2'
 
     param=tuple(param)
     out = np.ones(azimu.shape)
-    out[:] = param[0]
+    if azimu.size == 1: #this line of required to catch error when out is single number.
+        out = param[0]
+    else:
+        out[:] = param[0]
+        
     # essentially d_0, h_0 or w_0
 
     if len(param)>1:
@@ -96,7 +391,7 @@ def Fourier_expand(azimu, *param):
 
 
 
-def Fourier_fit(azimu,ydata,terms,param=None,errs=1):
+def Fourier_fit(azimu,ydata,terms,param=None,errs=None):
 
     #print type(terms)
     if(type(terms)==list):
@@ -108,6 +403,11 @@ def Fourier_fit(azimu,ydata,terms,param=None,errs=1):
     else:
         param = [0 for i in range((2*terms+1))]
     param=tuple(param)
+#    print ydata.shape
+#    print errs.shape
+#    print azimu.shape
+#    print azimu
+#    print errs
     popt,pcurv = curve_fit(Fourier_expand,azimu,ydata,p0=param,sigma=errs)
 
 
@@ -124,7 +424,10 @@ def Fourier_backgrnd(azimutheta, param):
     bg_all = np.zeros(twotheta.shape)
     
     for i in xrange(len(backg)):
-        nterms = len(backg[i])
+        try:
+            nterms = len(backg[i])
+        except:
+            nterms = backg[i].size
         out = backg[i][0]
         for j in xrange(1, ((nterms-1)/2)+1): 
             out = out + backg[i][(2*j)-1]*np.sin(np.deg2rad(azimu)*j) + backg[i][2*j]*np.cos(np.deg2rad(azimu)*j)
@@ -134,18 +437,17 @@ def Fourier_backgrnd(azimutheta, param):
     return bg_all
 
 
-def FitPenaltyFunction(Azimuths, FourierValues, valid_range,Weight=1000000):
+def FitPenaltyFunction(Azimuths, FourierValues, valid_range, Weight=None, FV=None, Power=None):
 
-    # print Azimuths
-    # print FourierValues
-    # print valid_range
-
-    # print np.size(FourierValues)
-    if np.size(FourierValues) > 1:
+    if Weight==None:
+        Weight = 10#0000
+    if Power==None:
+        Power = 1
+    
+    if not np.array(Azimuths).shape==np.array(FourierValues).shape or not FV==None:
         Vals = Fourier_expand(Azimuths, FourierValues)
     else:
         Vals = FourierValues
-
 
     Penalise = 0
     if np.min(Vals) < valid_range[0]:
@@ -154,21 +456,38 @@ def FitPenaltyFunction(Azimuths, FourierValues, valid_range,Weight=1000000):
     if np.max(Vals) > valid_range[1]:
         Penalise = np.max(Vals) - valid_range[0]
 
-    Penalise = Penalise**4*Weight + 1
+    Penalise = Penalise**Power*Weight + 1
     return Penalise
+
+
+
+
+
 
 
 def singleInt(twothetaWL,*sparms):
 
     #global wavelength
-
+    
+    if len(sparms)==1:
+        print 'oh dear!!!!'
+        print sparms[0], type(sparms[0])
+        sparms = sparms[0]
+        
     #split two theta and wavelength (if present)
     if len(twothetaWL) == 5:
         twotheta,azimu,lenbg,wavelength,profile = twothetaWL
+        
+        Num_Peaks = np.int((len(sparms)-lenbg)/3)
+        #profile = np.repeat(np.array(profile), Num_Peaks)
+        
     elif len(twothetaWL) == 4:
         twotheta,azimu,lenbg,wavelength = twothetaWL
+        
+        Num_Peaks = np.int((len(sparms)-lenbg)/4)
         # twotheta = twothetaWL[0]
         # wavelength = twothetaWL[1]
+        
     else:
         twotheta,azimu,lenbg = twothetaWL
         # twotheta = twothetaWL
@@ -186,10 +505,13 @@ def singleInt(twothetaWL,*sparms):
     sparms=tuple(sparms)
 
     ##fit d,w,h as single number with no Fourier terms
-    #print 'sparams', sparms
-    d_0=sparms[0]
-    H_all=sparms[1]
-    W_all=sparms[2]
+    d_0  =np.array(sparms[0:(Num_Peaks)])
+    H_all=np.array(sparms[(Num_Peaks)*1:(Num_Peaks)*2])
+    W_all=np.array(sparms[(Num_Peaks)*2:(Num_Peaks)*3])
+    if len(sparms) == lenbg+4*Num_Peaks:
+        profile = np.array(sparms[lenbg[0]+3*Num_Peaks:])
+    
+    
     tmpbackg = np.array(sparms[3:3+lenbg[0]])
     backg = []
     for b in xrange(len(lenbg)):
@@ -200,21 +522,26 @@ def singleInt(twothetaWL,*sparms):
             start = lenbg[b-1]
             end = lenbg[b]+start 
         backg.append(tmpbackg[start:end])
-    if len(sparms) == lenbg+4:
-        profile = sparms[lenbg[0]+3]
-    tth0 = 2.*np.degrees(np.arcsin(wavelength/2/d_0))
+    
+    tth0 = CentroidConversion(wavelength, d_0)
+    #tth1 = 2.*np.degrees(np.arcsin(wavelength/2/d_0))
 
     bg_all = Fourier_backgrnd((azimu,twotheta),backg)
     #print bg_all
     #print backg
     # bg either single num. or size of azimu array
     # print bg_all, 'bg_all'
-    Int = PseudoVoigtPeak(twotheta, tth0, W_all, H_all, profile) + bg_all
+    
+    #Int = PseudoVoigtPeak(twotheta, tth0, W_all, H_all, profile) + bg_all
+    Int = bg_all
+    for b in range(Num_Peaks):
+        Int = Int + PseudoVoigtPeak(twotheta, tth0[b], W_all[b], H_all[b], profile[b])
 
-    dpen  = FitPenaltyFunction(azimu, tth0, [np.min(twotheta), np.max(twotheta)])
-    hpen  = FitPenaltyFunction(azimu, H_all, [0, np.max(H_all)])
-    wpen  = FitPenaltyFunction(azimu, W_all, [0, (np.max(twotheta)-np.min(twotheta))])
+    dpen  = FitPenaltyFunction(azimu, tth0,    [np.min(twotheta), np.max(twotheta)])
+    hpen  = FitPenaltyFunction(azimu, H_all,   [0, np.max(H_all)*1.1])
+    wpen  = FitPenaltyFunction(azimu, W_all,   [0, (np.max(twotheta)-np.min(twotheta))])
     ppen  = FitPenaltyFunction(azimu, profile, [0, 1])
+    
     bgpen = FitPenaltyFunction(azimu, backg, [0, np.inf])
 
 
@@ -231,6 +558,7 @@ def singleFit(intens,twotheta,azimu,dspace,d0s,heights,widths,profile,fixed,wave
     '''
     All expansion parameters fitted
     '''
+    
     #check for bg here, won't work if try to pass to fit
     if not bg:
         bg = backg
@@ -242,8 +570,8 @@ def singleFit(intens,twotheta,azimu,dspace,d0s,heights,widths,profile,fixed,wave
     for val in bg:
         lenbg.append(len(val))
     lenbg=np.array(lenbg)
-
-    if fixed == 0:
+    
+    if fixed == 0:  #profile is not fixed.
         allparms = np.concatenate((d0s,heights,widths,[item for sublist in bg for item in sublist], profile), axis=None)
         #allparms.append(profile)
         #print allparms.size
@@ -255,7 +583,7 @@ def singleFit(intens,twotheta,azimu,dspace,d0s,heights,widths,profile,fixed,wave
         param_bounds[0][2] = 0   #force min height to be greater than zero
         param_bounds[0][3] = 0   #force min width to be greater than zero
 
-    else:
+    else: # profile shape is fixed.
         allparms = np.concatenate((d0s,heights,widths,[item for sublist in bg for item in sublist]), axis=None)
         dataForFit = (twotheta, azimu,lenbg,wavelength,profile)
         param_bounds=(-np.inf*np.ones(allparms.shape),np.inf*np.ones(allparms.shape))
@@ -340,10 +668,10 @@ def ParamFit(param_change,param_fit,intens,twotheta,azimu,dspace,d0s,heights,wid
                 start = lenbg[b-1]
                 end = lenbg[b]+start 
             backg.append(tmpbackg[start:end])
-        
+        print backg, lenbg
         bg_all = Fourier_backgrnd((azi,twothet),backg)
 
-        #print wavelength
+        print wavelength
         tth_all = 2.*np.degrees(np.arcsin(wavelength/2/D_all))
 
         # print stop
@@ -513,3 +841,13 @@ def update_backgrnd(params,lenbg,lenparams):
             endbg = lenbg[b]+startbg 
         backg.append(list(params[startbg:endbg]))
     return backg
+
+
+
+
+
+
+
+    
+    
+

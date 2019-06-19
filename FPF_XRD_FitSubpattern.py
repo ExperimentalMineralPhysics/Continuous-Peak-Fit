@@ -432,14 +432,22 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         pfour = []
         for j in range(peeks):
             
+            #symmety 
+            if 'symmetry' in orders['peak'][j].keys():
+                symm = orders['peak'][j]['symmetry']
+                print "blah"
+            else:
+                symm = 1
+                print 'bummer'
+            
             d0_order = orders['peak'][j]['d-space']
             h_order  = orders['peak'][j]['height']
             w_order  = orders['peak'][j]['width']
             p_order  = orders['peak'][j]['profile']
-            dfour.append( ff.Fourier_fit(np.array(newAziChunks),         np.array(newd0[j]),  terms=d0_order, errs=np.array(newd0Err[j])))            
-            hfour.append( ff.Fourier_fit(np.array(newAziChunks)*symmetry,np.array(newHall[j]),terms=h_order,  errs=np.array(newHallErr[j])))
-            wfour.append( ff.Fourier_fit(np.array(newAziChunks)*symmetry,np.array(newWall[j]),terms=w_order,  errs=np.array(newWallErr[j])*np.array(newWallErr[j])))
-            pfour.append( ff.Fourier_fit(np.array(newAziChunks)*symmetry,np.array(newPall[j]),terms=p_order,  errs=np.array(newPallErr[j])*np.array(newPallErr[j])))
+            dfour.append( ff.Fourier_fit(np.array(newAziChunks),      np.array(newd0[j]),  terms=d0_order, errs=np.array(newd0Err[j])))            
+            hfour.append( ff.Fourier_fit(np.array(newAziChunks)*symm, np.array(newHall[j]),terms=h_order,  errs=np.array(newHallErr[j])))
+            wfour.append( ff.Fourier_fit(np.array(newAziChunks)*symm, np.array(newWall[j]),terms=w_order,  errs=np.array(newWallErr[j])*np.array(newWallErr[j])))
+            pfour.append( ff.Fourier_fit(np.array(newAziChunks)*symm, np.array(newPall[j]),terms=p_order,  errs=np.array(newPallErr[j])*np.array(newPallErr[j])))
         
 #        
 #        dfour = ff.Fourier_fit(np.array(newAziChunks),np.array(newd0),terms=d0_order, errs=np.array(newd0Err))
@@ -480,20 +488,38 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             plt.subplot(512)
             plt.title('height')
             for j in range(peeks):
+                if 'symmetry' in orders['peak'][j].keys():
+                    symm = orders['peak'][j]['symmetry']
+                    print "blah"
+                else:
+                    symm = 1
+                    print 'bummer'
                 plt.scatter(newAziChunks,newHall[j], s=20, facecolors='none', edgecolors='b')
-                plt.plot(AziPlot,ff.Fourier_expand(np.array(AziPlot)*symmetry, hfour[j][0]), 'r-')
+                plt.plot(AziPlot,ff.Fourier_expand(np.array(AziPlot)*symm, hfour[j][0]), 'r-')
             
             plt.subplot(513)
             plt.title('width')
             for j in range(peeks):
+                if 'symmetry' in orders['peak'][j].keys():
+                    symm = orders['peak'][j]['symmetry']
+                    print "blah"
+                else:
+                    symm = 1
+                    print 'bummer'
                 plt.scatter(newAziChunks,newWall[j], s=20, facecolors='none', edgecolors='b')
-                plt.plot(AziPlot,ff.Fourier_expand(np.array(AziPlot)*symmetry, np.array(wfour[j][0])), 'r-')
+                plt.plot(AziPlot,ff.Fourier_expand(np.array(AziPlot)*symm, np.array(wfour[j][0])), 'r-')
             
             plt.subplot(514)
             plt.title('Profile')
             for j in range(peeks):
+                if 'symmetry' in orders['peak'][j].keys():
+                    symm = orders['peak'][j]['symmetry']
+                    print "blah"
+                else:
+                    symm = 1
+                    print 'bummer'
                 plt.scatter(newAziChunks,newPall[j], s=20, facecolors='none', edgecolors='b')
-                plt.plot(AziPlot,ff.Fourier_expand(np.array(AziPlot)*symmetry, np.array(pfour[j][0])), 'r-')
+                plt.plot(AziPlot,ff.Fourier_expand(np.array(AziPlot)*symm, np.array(pfour[j][0])), 'r-')
             
             for k in range(len(lenbg)):
                 x_plt = len(lenbg)
@@ -514,16 +540,23 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         #FIXME This will not work for a sloping background. i thnk.
         peaks = []
         for j in range(peeks):
-            peaks.append({"d-space":    dfour[j][0].tolist(),
-                            "height":   hfour[j][0].tolist(),
-                            "width":    wfour[j][0].tolist(),
-                            "profile":  pfour[j][0].tolist()})
+            if 'symmetry' in orders['peak'][j]: #FIX ME: this is a horrible way of doing this.
+                peaks.append({"d-space":    dfour[j][0].tolist(),
+                                "height":   hfour[j][0].tolist(),
+                                "width":    wfour[j][0].tolist(),
+                                "profile":  pfour[j][0].tolist(),
+                                "symmetry": orders['peak'][j]['symmetry']})
+            else:
+                peaks.append({"d-space":    dfour[j][0].tolist(),
+                                "height":   hfour[j][0].tolist(),
+                                "width":    wfour[j][0].tolist(),
+                                "profile":  pfour[j][0].tolist()})
         NewParams = []
         NewParams = {"background": bgfour, "peak":peaks}
         ### Feed each d,h,w into versions of main equation to fit only or one at a time
         ### including the new paramters from the Fourier fits above as initial inputs
         ## Slice arrays for twothetarange
-
+        
         refine = 1
         iterations = 1
         if refine:

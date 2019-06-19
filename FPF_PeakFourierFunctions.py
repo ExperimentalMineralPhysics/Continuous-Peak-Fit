@@ -146,13 +146,15 @@ def PeaksModel2(twotheta, azi, Shapes, Conv=None, symm=None, PenCalc=None):
     #loop over the number of peaks
     Ipeak = []
     
-    #symmety 
-    if symm==None:
-        symm = 1
-        
+
+            
     for a in range(len(Shapes['peak'])):
         
-        if symm
+        #symmety 
+        if 'symmetry' in Shapes['peak'][a].keys():
+            symm = Shapes['peak'][a]['symmetry']
+        else:
+            symm = 1
         
         Dall = Fourier_expand(azi, Shapes['peak'][a]['d-space'])
         Hall = Fourier_expand(azi*symm, Shapes['peak'][a]['height'])

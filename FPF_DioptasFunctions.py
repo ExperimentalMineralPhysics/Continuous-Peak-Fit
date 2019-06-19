@@ -69,12 +69,12 @@ def DetectorCheck(ImageName, detector=None):
     return detector
 
 
-def Conversion(tth_in, wavelength, reverse=0):
+def Conversion(tth_in, conv, reverse=0):
     #convert two theta values into d-spacing.
     
     #convert wavelength into angstroms.
     # this is not longer required because it is done in the GetCalibration stage. 
-    wavelength = wavelength
+    wavelength = conv['conversion_constant']
     
     if not reverse:
         #convert tth to d-spacing
@@ -184,7 +184,7 @@ def GetCalibration(filenam):
                     parms_dict[newparms[0]] = str(parm)
 
     #get wavelengths in Angstrom
-    parms_dict['Conversion_constant'] = parms_dict['Wavelength']*1E10
+    parms_dict['conversion_constant'] = parms_dict['Wavelength']*1E10
     
     # force all dictionary labels to be lower case -- makes s
     parms_dict =  {k.lower(): v for k, v in parms_dict.items()}

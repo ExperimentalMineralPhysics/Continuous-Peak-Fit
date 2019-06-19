@@ -43,9 +43,9 @@ def ParamFitArr(numP, LenBG, val=None, p=None, b=None, orda=None):
         
     Arr = [[],[]]
     for y in range(numP):
-        Arr[0].append(p)
+        Arr[0].append(p[:])
     for y in range(LenBG):
-        Arr[1].extend([v])
+        Arr[1].extend([v][:])
     return Arr
 
 def ParamFitArr2(orda, *args):
@@ -84,9 +84,9 @@ def ParamFitArr2(orda, *args):
         
     Arr = [[],[]]
     for y in range(numP):
-        Arr[0].append(p)
+        Arr[0].append(p[:])
     for y in range(LenBG):
-        Arr[1].extend([v])
+        Arr[1].extend([v][:])
     return Arr
 
 
@@ -151,7 +151,9 @@ def PeaksModel2(twotheta, azi, Shapes, Conv=None, symm=None, PenCalc=None):
         symm = 1
         
     for a in range(len(Shapes['peak'])):
-        #print 'HERE BE DRAGONS!', Shapes,
+        
+        if symm
+        
         Dall = Fourier_expand(azi, Shapes['peak'][a]['d-space'])
         Hall = Fourier_expand(azi*symm, Shapes['peak'][a]['height'])
         Wall = Fourier_expand(azi*symm, Shapes['peak'][a]['width'])
@@ -418,7 +420,7 @@ def GuessGet2(ChangeArray, Guesses):
     for a in range(len(Guesses['peak'])):
         if not ChangeArray[0][a][0] == 0:  #d0
             e = Guesses['peak'][a]['d-space']
-            Guess.extend([e])
+            Guess.extend([e][:])
 #            if isinstance(d0s, list):
 #                e = d0s[a][0:ChangeArray[0][a][0]]
 #            elif ran>1:
@@ -430,23 +432,23 @@ def GuessGet2(ChangeArray, Guesses):
             #Guess.extend(e[:])
         if not ChangeArray[0][a][1] == 0:  #H
             e = Guesses['peak'][a]['height']
-            Guess.extend([e])
+            Guess.extend([e][:])
 #            e = Hs[a][0:ChangeArray[0][a][1]]
             #Guess.extend(e[:])
         if not ChangeArray[0][a][2] == 0:  #W
             e = Guesses['peak'][a]['width']
-            Guess.extend([e])
+            Guess.extend([e][:])
 #            e = Ws[a][0:ChangeArray[0][a][2]]
             #Guess.extend(e[:])
         if not ChangeArray[0][a][3] == 0:  #P
             e = Guesses['peak'][a]['profile']
-            Guess.extend([e])
+            Guess.extend([e][:])
 #            e = Ps[a][0:ChangeArray[0][a][3]]
             #Guess.extend(e[:])
     for a in range(len(Guesses['background'])):
         if not ChangeArray[1][a] == 0:  #background
             e = Guesses['background'][a][0]
-            Guess.extend([e])
+            Guess.extend([e][:])
 #            e = bg[a][0:ChangeArray[1][a]]
             #Guess.extend(e[:])
 

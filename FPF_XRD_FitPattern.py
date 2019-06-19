@@ -247,8 +247,8 @@ dspace   = ma.array(dspace,mask=intens.mask)
 ## plot calibration file
 if 1:
     fig = plt.figure()
-    #plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #FIX ME: need variable for vmax.
-    plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #FIX ME: need variable for vmax.
+    plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #Better for monochromatic data.           #FIX ME: need variable for vmax.
+    #plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
     plt.colorbar()
     plt.show()
     plt.close()

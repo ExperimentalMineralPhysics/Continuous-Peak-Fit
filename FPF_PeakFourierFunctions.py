@@ -20,10 +20,58 @@ np.set_printoptions(threshold='nan')
 # Known limitations/bugs
 # FIX ME: need hard limits to gauss - lorentz peak profile ratios
 
-def ParamFitArr(numP, LenBG, val=None, p=None, b=None):
+
+def flatten(li):
+    return sum(([x] if not isinstance(x, list) else flatten(x)
+        for x in li), [])
+
+
+
+def ParamFitArr(numP, LenBG, val=None, p=None, b=None, orda=None):
     #Makes array which represents all the fourier series in the fit.
     # Arr{0} is a list of 4 element lists - one 4 element list for each peak.
     # Arr[0] is the background representative.
+    
+    if not val==None:
+        v = val
+    else:
+        v = 0
+        
+    if p==None:
+        p = [v,v,v,v]
+        
+        
+    Arr = [[],[]]
+    for y in range(numP):
+        Arr[0].append(p)
+    for y in range(LenBG):
+        Arr[1].extend([v])
+    return Arr
+
+def ParamFitArr2(orda, *args):
+    #Makes array which represents all the fourier series in the fit.
+    # Arr{0} is a list of 4 element lists - one 4 element list for each peak.
+    # Arr[1] is the background representative.
+    # Makes all values 0 apart from those listed.
+    
+    #args is a list of the parts to make non-zero and to change
+    #possible options are:
+    # 'all', 'orders' -- pastes orders from orda
+    # 'all', 1 -- makes all values 1
+    # 'background'
+    # 'peak', n
+    # 'd-space', n
+    # 'height', n
+    # 'width', n
+    # 'profile', n
+    
+    
+    if isinstance(orda,dict):
+        numP = len(orda['peak'])
+        LenBG = len(orda['background'])
+    else:
+        numP = orda[0]
+        LenBG = orda[1]
     
     if not val==None:
         v = val
@@ -72,7 +120,7 @@ def PseudoVoigtPeak(twotheta, tth0, W_all, H_all, LGratio):
 
 
 
-def PeaksModel(twotheta, azi, d0s, Hs, Ws, Ps, bg, Conv=None, symm=None, PenCalc=None):
+def PeaksModel2(twotheta, azi, Shapes, Conv=None, symm=None, PenCalc=None):
     
     # Full model of intensities at twotheat and azi given parameters.    
     
@@ -89,7 +137,7 @@ def PeaksModel(twotheta, azi, d0s, Hs, Ws, Ps, bg, Conv=None, symm=None, PenCalc
 #            end = lenbg[b]+start 
 #        backg.append(tmpbackg[start:end])
     
-    I = Fourier_backgrnd((azi,twotheta),bg)
+    I = Fourier_backgrnd((azi,twotheta),Shapes['background'])
     
     if not PenCalc==None:
         #Penatly Function for background
@@ -99,19 +147,15 @@ def PeaksModel(twotheta, azi, d0s, Hs, Ws, Ps, bg, Conv=None, symm=None, PenCalc
     Ipeak = []
     
     #symmety 
-    if not symm==None:
-        azi = azi*symm
+    if symm==None:
+        symm = 1
         
-    for a in range(len(d0s)):
-        
-        
-        print azi
-        print 'd', d0s[a]
-        print 'h', Hs[a]
-        Dall = Fourier_expand(azi, d0s[a])
-        Hall = Fourier_expand(azi, Hs[a])
-        Wall = Fourier_expand(azi, Ws[a])
-        Pall = Fourier_expand(azi, Ps[a])
+    for a in range(len(Shapes['peak'])):
+        #print 'HERE BE DRAGONS!', Shapes,
+        Dall = Fourier_expand(azi, Shapes['peak'][a]['d-space'])
+        Hall = Fourier_expand(azi*symm, Shapes['peak'][a]['height'])
+        Wall = Fourier_expand(azi*symm, Shapes['peak'][a]['width'])
+        Pall = Fourier_expand(azi*symm, Shapes['peak'][a]['profile'])
   
         #conversion
         TTHall = CentroidConversion(Conv, Dall, azi)
@@ -123,9 +167,9 @@ def PeaksModel(twotheta, azi, d0s, Hs, Ws, Ps, bg, Conv=None, symm=None, PenCalc
             #apply penatly function to constrain the Fourier series
             # FIX ME: this should probably be replaced with a np.minimize function rather than the curve_fit call.
             dpen  = FitPenaltyFunction(azi, TTHall,    [np.min(twotheta), np.max(twotheta)])
-            hpen  = FitPenaltyFunction(azi, Hall,   [0, np.max(Hall)*1.1])
-            wpen  = FitPenaltyFunction(azi, Wall,   [0, (np.max(twotheta)-np.min(twotheta))])
-            ppen  = FitPenaltyFunction(azi, Pall, [0, 1], Weight=5)
+            hpen  = FitPenaltyFunction(azi*symm, Hall,   [0, np.max(Hall)*1.1])
+            wpen  = FitPenaltyFunction(azi*symm, Wall,   [0, (np.max(twotheta)-np.min(twotheta))])
+            ppen  = FitPenaltyFunction(azi*symm, Pall, [0, 1], Weight=5)
             #print 'bgpen', POut
 #            print 'dpen', dpen
 #            print 'hpen', hpen
@@ -138,58 +182,134 @@ def PeaksModel(twotheta, azi, d0s, Hs, Ws, Ps, bg, Conv=None, symm=None, PenCalc
         
     return I,POut
 
+#def PeaksModel(twotheta, azi, d0s, Hs, Ws, Ps, bg, Conv=None, symm=None, PenCalc=None):
+#    
+#    # Full model of intensities at twotheat and azi given parameters.    
+#    
+#    
+#    #make backgorund fourier from array (either original or fitted array)
+#    #FIX ME: why is this not done outside this fitting routine? 
+##    backg = []
+##    for b in xrange(len(lenbg)):
+##        if b == 0:
+##            start = 0
+##            end = lenbg[b]
+##        else: 
+##            start = lenbg[b-1]
+##            end = lenbg[b]+start 
+##        backg.append(tmpbackg[start:end])
+#    
+#    I = Fourier_backgrnd((azi,twotheta),bg)
+#    
+#    if not PenCalc==None:
+#        #Penatly Function for background
+#        POut = FitPenaltyFunction(azi, I, [0, np.inf])
+#    
+#    #loop over the number of peaks
+#    Ipeak = []
+#    
+#    #symmety 
+#    if not symm==None:
+#        azi = azi*symm
+#        
+#    for a in range(len(d0s)):
+#        
+#        Dall = Fourier_expand(azi, d0s[a])
+#        Hall = Fourier_expand(azi, Hs[a])
+#        Wall = Fourier_expand(azi, Ws[a])
+#        Pall = Fourier_expand(azi, Ps[a])
+#  
+#        #conversion
+#        TTHall = CentroidConversion(Conv, Dall, azi)
+#        Ipeak.append(PseudoVoigtPeak(twotheta, TTHall, Wall, Hall, Pall))
+#        I = I + Ipeak[a]       
+#       
+#        if not PenCalc==None:
+#            #Penatly Function
+#            #apply penatly function to constrain the Fourier series
+#            # FIX ME: this should probably be replaced with a np.minimize function rather than the curve_fit call.
+#            dpen  = FitPenaltyFunction(azi, TTHall,    [np.min(twotheta), np.max(twotheta)])
+#            hpen  = FitPenaltyFunction(azi, Hall,   [0, np.max(Hall)*1.1])
+#            wpen  = FitPenaltyFunction(azi, Wall,   [0, (np.max(twotheta)-np.min(twotheta))])
+#            ppen  = FitPenaltyFunction(azi, Pall, [0, 1], Weight=5)
+#            #print 'bgpen', POut
+##            print 'dpen', dpen
+##            print 'hpen', hpen
+##            print 'wpen', wpen
+##            print 'ppen', ppen
+#            POut = POut * dpen * hpen * wpen * ppen
+#            #print 'POut', POut
+#    if PenCalc==None:
+#        POut = Ipeak
+#        
+#    return I,POut
 
 
-def ChangeParams(constants, *fitparam):
+def ChangeParams2(constants, *fitparam):
+    
     
     twotheta    = constants[0]
     azi         = constants[1]
     ChangeArray = constants[2]
-    dspc        = constants[3]
-    Hits        = constants[4]
-    Wets        = constants[5]
-    Profs       = constants[6]
-    bg          = constants[7]
-    Conv        = constants[8]
-    symm        = constants[9]
-    fixed       = constants[10]
+    Shapes      = constants[3]
+    Conv        = constants[4]
+    symm        = constants[5]
+    fixed       = constants[6]
     
-    print 'dspc in', dspc
-    print 'Hits in', Hits
+    Shapes = GuessApply2(ChangeArray, Shapes, fitparam)
+    I,pen = PeaksModel2(twotheta, azi, Shapes, Conv, symm, PenCalc=1)
     
-    dspc, Hits, Wets, Profs, bg = GuessApply(ChangeArray, dspc, Hits, Wets, Profs, bg, fitparam)
-        
-    print 'dspc', dspc
-    print 'Hits', Hits
-    
-    I,pen = PeaksModel(twotheta, azi, dspc, Hits, Wets, Profs, bg, Conv, symm, PenCalc=1)
-    #print pen
     return I#*pen
 
+#def ChangeParams(constants, *fitparam):
+#    
+#    twotheta    = constants[0]
+#    azi         = constants[1]
+#    ChangeArray = constants[2]
+#    dspc        = constants[3]
+#    Hits        = constants[4]
+#    Wets        = constants[5]
+#    Profs       = constants[6]
+#    bg          = constants[7]
+#    Conv        = constants[8]
+#    symm        = constants[9]
+#    fixed       = constants[10]
+#    
+#    dspc, Hits, Wets, Profs, bg = GuessApply(ChangeArray, dspc, Hits, Wets, Profs, bg, fitparam)
+#        
+#    
+#    I,pen = PeaksModel(twotheta, azi, dspc, Hits, Wets, Profs, bg, Conv, symm, PenCalc=1)
+#    #print pen
+#    return I#*pen
 
 
-def FitModel(Intfit, twotheta, azimu, ChangeArray, d0sF, HsF, WsF, PsF, bgF, Conv=None, symm=None, fixed=None, method=None):
+def FitModel2(Intfit, twotheta, azimu, ChangeArray, Shapes, Conv=None, symm=None, fixed=None, method=None):
     
-    p0array = GuessGet(ChangeArray, d0sF, HsF, WsF, PsF, bgF)
-
+    # FIX ME: Should the dictionary structure be passed into the curve_fit function or will be be quicker as a set of arrays?
+    #print 'line 255 ChageArray', ChangeArray
+    #print 'line 256, Shapes', Shapes
+    p0array = GuessGet2(ChangeArray, Shapes)
+    
+    #print 'line 258, p0array', p0array
     #flatten bg
-    if not bgF:
-        bgF = backg
-    flatbg = np.array(np.concatenate(([item for sublist in bgF for item in sublist]), axis=None))
-    lenbg=[]
-    for val in bgF:
-        lenbg.append(len(val))
-    lenbg=np.array(lenbg)
+#    if not bgF:
+#        bgF = Shapes['background']
+#    flatbg = np.array(np.concatenate(([item for sublist in bgF for item in sublist]), axis=None))
+#    lenbg=[]
+#    for val in bgF:
+#        lenbg.append(len(val))
+#    lenbg=np.array(lenbg)
     
-    Intfit=np.array(Intfit,dtype='float64')
-    twotheta=np.array(twotheta,dtype='float64')
-    azimu = np.array(azimu,dtype='float64')
+    #Intfit=np.array(Intfit,dtype='float64')
+    #twotheta=np.array(twotheta,dtype='float64')
+    #azimu = np.array(azimu,dtype='float64')
+    
+    #d0sF,HsF,WsF,PsF
     
     if not (method=='minimize'):
         
 #        import pdb; pdb.set_trace()
-
-        popt,pcurv = curve_fit(ChangeParams,(twotheta,azimu,ChangeArray,d0sF,HsF,WsF,PsF,bgF,Conv,symm,fixed),Intfit,p0=p0array, ftol=2e-12, maxfev = 30000, method='lm')    
+        popt,pcurv = curve_fit(ChangeParams2,(twotheta,azimu,ChangeArray,Shapes,Conv,symm,fixed),Intfit,p0=p0array, ftol=2e-12, maxfev = 30000, method='lm')    
         
     else:
         #FIX ME: should curve fit be replaces with minimise? -- so that we can force the constraints.
@@ -205,14 +325,73 @@ def FitModel(Intfit, twotheta, azimu, ChangeArray, d0sF, HsF, WsF, PsF, bgF, Con
         pcurv=0
 
     #print d0sF, 'Before apply'
-    
-    d0sF, HsF, WsF, PsF, bgF = GuessApply(ChangeArray, d0sF, HsF, WsF, PsF, bgF, popt)
-    d0sFerr, HsFerr, WsFerr, PsFerr, bgFerr = GuessApply(ChangeArray, np.zeros(np.shape(d0sF)).tolist(), np.zeros(np.shape(HsF)).tolist(), np.zeros(np.shape(WsF)).tolist(), np.zeros(np.shape(PsF)).tolist(), np.zeros(np.shape(bgF)).tolist(), np.sqrt(np.abs(np.diag(pcurv))))
+#    print 'Shapes \n', Shapes
+    Shapes      = GuessApply2(ChangeArray, Shapes, popt.tolist(), np.sqrt(np.abs(np.diag(pcurv))).tolist())
+#    Shapes_errs = Shapes.copy()
+##    Shapes_errs = GuessApply2(ChangeArray, Shapes_errs, np.sqrt(np.abs(np.diag(pcurv))))
+#    print 'Shapes \n', Shapes
+#    
+##    print 'Shapes errors\n', Shapes_errs
+#    stop
+#    d0sFerr, HsFerr, WsFerr, PsFerr, bgFerr = GuessApply(ChangeArray, np.zeros(np.shape(d0sF)).tolist(), np.zeros(np.shape(HsF)).tolist(), np.zeros(np.shape(WsF)).tolist(), np.zeros(np.shape(PsF)).tolist(), np.zeros(np.shape(bgF)).tolist(), np.sqrt(np.abs(np.diag(pcurv))))
+#
+##    print d0sF, 'After application', type(d0sF)
+##    print d0sFerr, 'After application', type(d0sFerr)
+#
+    #print 'ChangeArr', ChangeArray
+    #print 'potp', popt
+    #print 'Shapes', Shapes
+#    stop
 
-#    print d0sF, 'After application', type(d0sF)
-#    print d0sFerr, 'After application', type(d0sFerr)
+    return Shapes, popt, pcurv
 
-    return d0sF, HsF, WsF, PsF, bgF, d0sFerr, HsFerr, WsFerr, PsFerr, bgFerr, popt, pcurv
+
+
+#def FitModel(Intfit, twotheta, azimu, ChangeArray, d0sF, HsF, WsF, PsF, bgF, Conv=None, symm=None, fixed=None, method=None):
+#    
+#    p0array = GuessGet(ChangeArray, d0sF, HsF, WsF, PsF, bgF)
+#
+#    #flatten bg
+#    if not bgF:
+#        bgF = backg
+#    flatbg = np.array(np.concatenate(([item for sublist in bgF for item in sublist]), axis=None))
+#    lenbg=[]
+#    for val in bgF:
+#        lenbg.append(len(val))
+#    lenbg=np.array(lenbg)
+#    
+#    Intfit=np.array(Intfit,dtype='float64')
+#    twotheta=np.array(twotheta,dtype='float64')
+#    azimu = np.array(azimu,dtype='float64')
+#    
+#    if not (method=='minimize'):
+#        
+##        import pdb; pdb.set_trace()
+#
+#        popt,pcurv = curve_fit(ChangeParams,(twotheta,azimu,ChangeArray,d0sF,HsF,WsF,PsF,bgF,Conv,symm,fixed),Intfit,p0=p0array, ftol=2e-12, maxfev = 30000, method='lm')    
+#        
+#    else:
+#        #FIX ME: should curve fit be replaces with minimise? -- so that we can force the constraints.
+#
+#        #Compose constraints array.
+#        cons = ({'type': 'ineq', 'fun': lambda x:  x[0] - 2 * x[1] + 2},
+#                {'type': 'ineq', 'fun': lambda x: -x[0] - 2 * x[1] + 6},
+#                {'type': 'ineq', 'fun': lambda x: -x[0] + 2 * x[1] + 2})
+#
+#        prm = minimize(MinimiseParams, p0array, args=(Intfit,twotheta,azimu,ChangeArray,d0sF[:],HsF[:],WsF[:],PsF[:],bgF[:],Conv,symm,fixed), tol=1E-10 )
+#        popt = prm.x
+#        print 'prm.x', prm.x
+#        pcurv=0
+#
+#    #print d0sF, 'Before apply'
+#    
+#    d0sF, HsF, WsF, PsF, bgF = GuessApply(ChangeArray, d0sF, HsF, WsF, PsF, bgF, popt)
+#    d0sFerr, HsFerr, WsFerr, PsFerr, bgFerr = GuessApply(ChangeArray, np.zeros(np.shape(d0sF)).tolist(), np.zeros(np.shape(HsF)).tolist(), np.zeros(np.shape(WsF)).tolist(), np.zeros(np.shape(PsF)).tolist(), np.zeros(np.shape(bgF)).tolist(), np.sqrt(np.abs(np.diag(pcurv))))
+#
+##    print d0sF, 'After application', type(d0sF)
+##    print d0sFerr, 'After application', type(d0sFerr)
+#
+#    return d0sF, HsF, WsF, PsF, bgF, d0sFerr, HsFerr, WsFerr, PsFerr, bgFerr, popt, pcurv
 
 
 
@@ -229,74 +408,174 @@ def MinimiseParams(p0, intens,twotheta,azimu,ChangeArray,d0s,Hs,Ws,Ps,bg,Conv,sy
         
     
 
-def GuessGet(ChangeArray, d0s, Hs, Ws, Ps, bg):
+def GuessGet2(ChangeArray, Guesses):
     
-    if isinstance(d0s,list):
-        ran = len(d0s)
-    else:
-        ran = d0s.size
+    #ran = len(Guesses['peak'])
         
     Guess = []
-    for a in range(ran):
+    
+    #print 'line 380', Guesses
+    for a in range(len(Guesses['peak'])):
         if not ChangeArray[0][a][0] == 0:  #d0
-            if isinstance(d0s, list):
-                e = d0s[a][0:ChangeArray[0][a][0]]
-            elif ran>1:
-                e = d0s[a]#[0:ChangeArray[0][a][0]]
-                stop
-            else:
-                e = d0s
-                stop
-            Guess.extend(e[:])
+            e = Guesses['peak'][a]['d-space']
+            Guess.extend([e])
+#            if isinstance(d0s, list):
+#                e = d0s[a][0:ChangeArray[0][a][0]]
+#            elif ran>1:
+#                e = d0s[a]#[0:ChangeArray[0][a][0]]
+#                stop
+#            else:
+#                e = d0s
+#                stop
+            #Guess.extend(e[:])
         if not ChangeArray[0][a][1] == 0:  #H
-            e = Hs[a][0:ChangeArray[0][a][1]]
-            Guess.extend(e[:])
+            e = Guesses['peak'][a]['height']
+            Guess.extend([e])
+#            e = Hs[a][0:ChangeArray[0][a][1]]
+            #Guess.extend(e[:])
         if not ChangeArray[0][a][2] == 0:  #W
-            e = Ws[a][0:ChangeArray[0][a][2]]
-            Guess.extend(e[:])
+            e = Guesses['peak'][a]['width']
+            Guess.extend([e])
+#            e = Ws[a][0:ChangeArray[0][a][2]]
+            #Guess.extend(e[:])
         if not ChangeArray[0][a][3] == 0:  #P
-            e = Ps[a][0:ChangeArray[0][a][3]]
-            Guess.extend(e[:])
-    for a in range(len(bg)):
+            e = Guesses['peak'][a]['profile']
+            Guess.extend([e])
+#            e = Ps[a][0:ChangeArray[0][a][3]]
+            #Guess.extend(e[:])
+    for a in range(len(Guesses['background'])):
         if not ChangeArray[1][a] == 0:  #background
-            e = bg[a][0:ChangeArray[1][a]]
-            Guess.extend(e[:])
-                    
-    return Guess
-    
+            e = Guesses['background'][a][0]
+            Guess.extend([e])
+#            e = bg[a][0:ChangeArray[1][a]]
+            #Guess.extend(e[:])
+
+    out=[]
+    for i in range(len(Guess)):
+        if 'list' in str(type(Guess[i])):
+            for j in range(len(Guess[i])):
+                out.append(Guess[i][j])
+        else :
+            out.append(Guess[i])
+            
+    return out
 
 
-def GuessApply(ChangeArray, d0s, Hs, Ws, Ps, bg_, values):
+#def GuessGet(ChangeArray, d0s, Hs, Ws, Ps, bg):
+#    
+#    if isinstance(d0s,list):
+#        ran = len(d0s)
+#    else:
+#        ran = d0s.size
+#        
+#    Guess = []
+#    for a in range(ran):
+#        if not ChangeArray[0][a][0] == 0:  #d0
+#            if isinstance(d0s, list):
+#                e = d0s[a][0:ChangeArray[0][a][0]]
+#            elif ran>1:
+#                e = d0s[a]#[0:ChangeArray[0][a][0]]
+#                stop
+#            else:
+#                e = d0s
+#                stop
+#            Guess.extend(e[:])
+#        if not ChangeArray[0][a][1] == 0:  #H
+#            e = Hs[a][0:ChangeArray[0][a][1]]
+#            Guess.extend(e[:])
+#        if not ChangeArray[0][a][2] == 0:  #W
+#            e = Ws[a][0:ChangeArray[0][a][2]]
+#            Guess.extend(e[:])
+#        if not ChangeArray[0][a][3] == 0:  #P
+#            e = Ps[a][0:ChangeArray[0][a][3]]
+#            Guess.extend(e[:])
+#    for a in range(len(bg)):
+#        if not ChangeArray[1][a] == 0:  #background
+#            e = bg[a][0:ChangeArray[1][a]]
+#            Guess.extend(e[:])
+#                    
+#    return Guess
     
+def GuessApply2(ChangeArray, V, values, *args):
     
     #print type(values)
-    if isinstance(values, (tuple,)) or isinstance(values, (np.ndarray, np.generic) ):
-        values = list(values)
+#    if isinstance(values, (tuple,)) or isinstance(values, (np.ndarray, np.generic) ):
+#        values = list(values)
         #print 'changed values to tuple'
-        
-    #print values, type(values)
-    #print d0s, type(d0s)
-
+    
     UsedP = 0
-    for a in range(len(d0s)):
+    for a in range(len(V['peak'])):
         if not ChangeArray[0][a][0] == 0:  #d0
-            d0s[a] = values[UsedP:UsedP+ChangeArray[0][a][0]]
+            V['peak'][a]['d-space'] = list(values[UsedP:UsedP+ChangeArray[0][a][0]])
+            if args:
+                V['peak'][a]['d-space_err'] = list(args[0][UsedP:UsedP+ChangeArray[0][a][0]])
+            #d0s[a] = values[UsedP:UsedP+ChangeArray[0][a][0]]
             UsedP = UsedP + ChangeArray[0][a][0]
         if not ChangeArray[0][a][1] == 0:  #H
-            Hs[a] = values[UsedP:UsedP+ChangeArray[0][a][1]]
+            V['peak'][a]['height'] = list(values[UsedP:UsedP+ChangeArray[0][a][1]])
+            if args:
+                V['peak'][a]['height_err'] = list(args[0][UsedP:UsedP+ChangeArray[0][a][1]])
+            #Hs[a] = values[UsedP:UsedP+ChangeArray[0][a][1]]
             UsedP = UsedP + ChangeArray[0][a][1]
         if not ChangeArray[0][a][2] == 0:  #W
-            Ws[a] = values[UsedP:UsedP+ChangeArray[0][a][2]]
+            V['peak'][a]['width'] = list(values[UsedP:UsedP+ChangeArray[0][a][2]])
+            if args:
+                V['peak'][a]['width_err'] = list(args[0][UsedP:UsedP+ChangeArray[0][a][2]])
+            #Ws[a] = values[UsedP:UsedP+ChangeArray[0][a][2]]
             UsedP = UsedP + ChangeArray[0][a][2]
         if not ChangeArray[0][a][3] == 0:  #P
-            Ps[a] = values[UsedP:UsedP+ChangeArray[0][a][3]]
+            V['peak'][a]['profile'] = list(values[UsedP:UsedP+ChangeArray[0][a][3]])
+            if args:
+                V['peak'][a]['profile_err'] = list(args[0][UsedP:UsedP+ChangeArray[0][a][3]])
+            #Ps[a] = values[UsedP:UsedP+ChangeArray[0][a][3]]
             UsedP = UsedP + ChangeArray[0][a][3]
-    for a in range(len(bg_)):
+    for a in range(len(V['background'])):
         if not ChangeArray[1][a] == 0: #background
-            bg_[a] = values[UsedP:UsedP+ChangeArray[1][a]]
+            V['background'][a] = list(values[UsedP:UsedP+ChangeArray[1][a]])
+            if args:
+                if not 'background_err' in V:
+                    V['background_err'] = [[]]
+                    for b in range(len(V['background'])-1):
+                        V['background_err'].append([])
+                V['background_err'][a] = list(args[0][UsedP:UsedP+ChangeArray[1][a]])
+            #bg_[a] = values[UsedP:UsedP+ChangeArray[1][a]]
             UsedP = UsedP + ChangeArray[1][a]
     #print d0s, type(d0s), 'Guess Get'
-    return d0s, Hs, Ws, Ps, bg_
+    #return d0s, Hs, Ws, Ps, bg_
+    return V
+
+
+#def GuessApply(ChangeArray, d0s, Hs, Ws, Ps, bg_, values):
+#    
+#    
+#    #print type(values)
+#    if isinstance(values, (tuple,)) or isinstance(values, (np.ndarray, np.generic) ):
+#        values = list(values)
+#        #print 'changed values to tuple'
+#        
+#    #print values, type(values)
+#    #print d0s, type(d0s)
+#
+#    UsedP = 0
+#    for a in range(len(d0s)):
+#        if not ChangeArray[0][a][0] == 0:  #d0
+#            d0s[a] = values[UsedP:UsedP+ChangeArray[0][a][0]]
+#            UsedP = UsedP + ChangeArray[0][a][0]
+#        if not ChangeArray[0][a][1] == 0:  #H
+#            Hs[a] = values[UsedP:UsedP+ChangeArray[0][a][1]]
+#            UsedP = UsedP + ChangeArray[0][a][1]
+#        if not ChangeArray[0][a][2] == 0:  #W
+#            Ws[a] = values[UsedP:UsedP+ChangeArray[0][a][2]]
+#            UsedP = UsedP + ChangeArray[0][a][2]
+#        if not ChangeArray[0][a][3] == 0:  #P
+#            Ps[a] = values[UsedP:UsedP+ChangeArray[0][a][3]]
+#            UsedP = UsedP + ChangeArray[0][a][3]
+#    for a in range(len(bg_)):
+#        if not ChangeArray[1][a] == 0: #background
+#            bg_[a] = values[UsedP:UsedP+ChangeArray[1][a]]
+#            UsedP = UsedP + ChangeArray[1][a]
+#    #print d0s, type(d0s), 'Guess Get'
+#    return d0s, Hs, Ws, Ps, bg_
 
 
 def CentroidConversion(Conv, args_in, azi):
@@ -330,10 +609,15 @@ def CentroidConversion(Conv, args_in, azi):
                 #a= np.asscalar(np.where(Conv['azimuths'] == azi)[0][0])
                 args_out.append(12.398/(2*args_in*np.sin(np.radians(Conv['calibs'].mcas[a].calibration.two_theta/2))))
             else:
-                a=(np.where(Conv['azimuths'] == azi[x])[0][0])
-                args_out.append(12.398/(2*args_in[x]*np.sin(np.radians(Conv['calibs'].mcas[a].calibration.two_theta/2))))
-
-        
+#                print type(azi)
+#                print azi.mask[x]
+                if not azi.mask[x]:
+                    a=(np.where(Conv['azimuths'] == azi[x])[0][0])
+                    args_out.append(12.398/(2*args_in[x]*np.sin(np.radians(Conv['calibs'].mcas[a].calibration.two_theta/2))))
+                else:
+                    args_out.append(0)
+        if isinstance(azi,np.ma.MaskedArray):
+            args_out = ma.array(args_out, mask=azi.mask)
     else:
         sys.exit('Unrecognised conversion type')
         
@@ -358,7 +642,6 @@ def Fourier_order(params):
 def Fourier_expand(azimu, *param):
 
     #FIX ME: Need to check the fourier is a licit length
-    
     param=np.array(param)
     if (len(param.shape) > 1):
         if np.any(np.array(param.shape) > 1) :
@@ -375,7 +658,6 @@ def Fourier_expand(azimu, *param):
         out = param[0]
     else:
         out[:] = param[0]
-        
     # essentially d_0, h_0 or w_0
 
     if len(param)>1:

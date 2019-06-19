@@ -313,34 +313,52 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     Chng = ff.ParamFitArr(peeks, len(backg), 1)
 
                 #Chng[0][0][3]=0
-                
-                d_,h_,w_,p_,bg__,d0s_err, Hs_err, Ws_err, Ps_err, bg__err, po,pc=ff.FitModel(intens.flatten()[chunks[j]], twotheta.flatten()[chunks[j]], azichunks[j], Chng, [[dguess]], [[hguess]], [[wguess]], [[pguess]], bgguess, fixed=pfixed, Conv=conversion_factor)
+                Guesses={  "background": bgguess, 
+                    "peak": [{
+                         "d-space": dguess, 
+                        "height": hguess, 
+                        "profile": pguess, 
+                        #"profile_fixed": 1,
+                        "width": wguess
+                        }] }
+                Guesses, po,pc = ff.FitModel2(intens.flatten()[chunks[j]], twotheta.flatten()[chunks[j]], azichunks[j], Chng, Guesses, fixed=pfixed, Conv=conversion_factor)
+                #d_,h_,w_,p_,bg__,d0s_err, Hs_err, Ws_err, Ps_err, bg__err, po,pc=ff.FitModel(intens.flatten()[chunks[j]], twotheta.flatten()[chunks[j]], azichunks[j], Chng, [[dguess]], [[hguess]], [[wguess]], [[pguess]], bgguess, fixed=pfixed, Conv=conversion_factor)
                 #AllErr = np.sqrt(np.abs(np.diag(pc)))
-                
                 for i in range(peeks):
-                    newd0[i].append(d_[i][0])
-                    newd0Err[i].append(d0s_err[i][0])
-                    newHall[i].append(h_[i][0])
-                    newHallErr[i].append(Hs_err[i][0])
-                    newWall[i].append(w_[i][0])
-                    newWallErr[i].append(Ws_err[i][0])
+#                    newd0[i].append(d_[i][0])
+#                    newd0Err[i].append(d0s_err[i][0])
+#                    newHall[i].append(h_[i][0])
+#                    newHallErr[i].append(Hs_err[i][0])
+#                    newWall[i].append(w_[i][0])
+#                    newWallErr[i].append(Ws_err[i][0])
+#                    if pfixed==1:
+#                        newPall[i].append(pguess)
+#                        newPallErr[i].append(0.0001)
+#                    else:
+#                        newPall[i].append(p_[i][0])
+#                        newPallErr[i].append(Ps_err[i][0])
+                    newd0[i].append(Guesses['peak'][i]['d-space'][0])
+                    newd0Err[i].append(Guesses['peak'][i]['d-space_err'][0])
+                    newHall[i].append(Guesses['peak'][i]['height'][0])
+                    newHallErr[i].append(Guesses['peak'][i]['height_err'][0])
+                    newWall[i].append(Guesses['peak'][i]['width'][0])
+                    newWallErr[i].append(Guesses['peak'][i]['width_err'][0])
+                    newPall[i].append(Guesses['peak'][i]['profile'][0])
                     if pfixed==1:
-                        newPall[i].append(pguess)
                         newPallErr[i].append(0.0001)
                     else:
-                        newPall[i].append(p_[i][0])
-                        newPallErr[i].append(Ps_err[i][0])
+                        newPallErr[i].append(Guesses['peak'][i]['profile_err'][0])
                 #print bg__
                 #print newBGall
                 #print len(lenbg)
-                for i in range(len(lenbg)):
+                for i in range(len(Guesses['background'])):
                     #print bg__[i][0]
                     #print newBGall[i]
-                    app = bg__[i][0]
+                    #app = bg__[i][0]
                     #print 'app', app
-                    newBGall[i].append(app)
+                    newBGall[i].append(Guesses['background'][i][0])
                     #print 'newBGall',newBGall
-                    newBGallErr[i].append(bg__err[i][0])
+                    newBGallErr[i].append(Guesses['background_err'][i][0])
                    
                 newAziChunks.append(azichunks[j])
                 
@@ -377,16 +395,17 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     asdf2 = intens.flatten()[chunks[j]][asdf_ord]
                     asdf4 = azimu.flatten()[chunks[j]][asdf_ord]
                     if 'profile_fixed' in orders['peak'][0]:
-                        print 'pguess'
+                        #print 'pguess'
                         ins = (asdf1,asdf4,singlelenbg,conversion_factor,pguess)
                     else:
-                        print 'no pguess'
+                        #print 'no pguess'
                         #profile in the fitted parameter list
                         ins = (asdf1,asdf4,singlelenbg,conversion_factor)
                     #print 'ins and po', ins, po
                     #asdf3 = ff.singleInt(ins,tuple(po))
                     #asdf3 = ff.singleInt((asdf1,asdf4,singlelenbg,conversion_factor,pguess),tuple(po))
-                    asdf5 = ff.PeaksModel(asdf1,asdf4,d_,h_,w_,p_,bg__,Conv=conversion_factor)
+                    #asdf5 = ff.PeaksModel(asdf1,asdf4,d_,h_,w_,p_,bg__,Conv=conversion_factor)
+                    asdf5 = ff.PeaksModel2(asdf1,asdf4,Guesses,Conv=conversion_factor)
                     #asdf3 = ff.singleInt((asdf1,asdf4,singlelenbg,conversion_factor),po[0],po[1],po[2],po[3])
     
                     plt.plot(asdf1, asdf2,'.')
@@ -431,7 +450,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         
         for i in xrange(len(lenbg)):
             tempbg,tempbgc = ff.Fourier_fit(np.array(newAziChunks),np.array(newBGall[i]),terms=bg_order[i], errs=np.array(newBGallErr[i]))
-            bgfour.append(tempbg)
+            bgfour.append(tempbg.tolist())
 
         #plot output of fourier fits....
         if 1:
@@ -484,16 +503,17 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         #put fits into data structure.
         #FIX ME: N.B. As written now this only works for a single peak.
         #FIX ME: this has been changed but not verified.
+        
+        #FIXME This will not work for a sloping background. i thnk.
         for j in range(peeks):
             peaks = []
-            peaks.append({"d-space":    dfour[j][0],
-                            "height":   hfour[j][0],
-                            "width":    wfour[j][0],
-                            "profile":  pfour[j][0]})
+            peaks.append({"d-space":    dfour[j][0].tolist(),
+                            "height":   hfour[j][0].tolist(),
+                            "width":    wfour[j][0].tolist(),
+                            "profile":  pfour[j][0].tolist()})
         NewParams = []
         NewParams = {"background": bgfour, "peak":peaks}
-
-        #print NewParams
+        
         ### Feed each d,h,w into versions of main equation to fit only or one at a time
         ### including the new paramters from the Fourier fits above as initial inputs
         ## Slice arrays for twothetarange
@@ -521,121 +541,127 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                         Chng = ff.ParamFitArr(peeks, len(backg),0)
                         Chng[0][k][l] = 1
                             
-                        print Chng
                         
                         
                         #only 4 parameters describe each peak
-#                        # set paramter to change to 1
-#                        if l == 0:
-#                            Parm = 'd-space'
-#                        elif l == 1:
-#                            Parm = 'height'
-#                        elif l == 2:
-#                            Parm = 'width'
-#                        elif l == 3:
-#                            Parm = 'profile'
+                        # set paramter to change to length of array
+                        # FIX ME: should this just be the order of the array - then we pass the order array around and match things up later?
+                        if l == 0:
+                            Chng[0][k][l] = orders['peak'][k]['d-space']*2 +1
+                            Parm = 'd-space'
+                        elif l == 1:
+                            Chng[0][k][l] = orders['peak'][k]['height']*2 +1
+                            Parm = 'height'
+                        elif l == 2:
+                            Chng[0][k][l] = orders['peak'][k]['width']*2 +1
+                            Parm = 'width'
+                        elif l == 3:
+                            Chng[0][k][l] = orders['peak'][k]['profile']*2 +1
+                            Parm = 'profile'
 #                                
-#                    
-#                       
-#                   
-                        print peaks
-                        print peaks[k]['d-space']
-                        print dfour
-                        stop
-                        dfour, hfour, wfour, pfour, bgfour, d0s_err, Hs_err, Ws_err, Ps_err, bg__err, po,pc = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(), Chng, dfour, hfour, wfour, pfour, bgfour, fixed=pfixed, Conv=conversion_factor, symm=symmetry )
+                        print Chng
+                        #print '\nParms in', NewParams
+                        #dfour, hfour, wfour, pfour, bgfour, d0s_err, Hs_err, Ws_err, Ps_err, bg__err, po,pc = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(), Chng, dfour, hfour, wfour, pfour, bgfour, fixed=pfixed, Conv=conversion_factor, symm=symmetry )
                         
-                
-            
-            stop
+                        NewParams, po,pc = ff.FitModel2(intens.flatten(), twotheta.flatten(), azimu.flatten(), Chng, NewParams, fixed=pfixed, Conv=conversion_factor, symm=symmetry )
+                        #NewParams = ModParams
+                        #print 'Parms out', NewParams, '\n'
+                    
+                #refine background
+                Chng = ff.ParamFitArr(peeks, len(backg),0)
+                for k in range(len(orders['background'])):
+                    Chng[1][k] = orders['background'][k]*2 +1
+                print Chng
+                NewParams, po,pc = ff.FitModel2(intens.flatten(), twotheta.flatten(), azimu.flatten(), Chng, NewParams, fixed=pfixed, Conv=conversion_factor, symm=symmetry )    
+                    
 
-
-        refine = 1
-        if refine:
-            print '\nRe-fitting for d, h, w, bg separately...\n'
-            
-            #set peek for a loop over peaks that doesn't yet exist. 
-            peek = 0
-
-            d0s        = ff.Fourier_expand(azimu.flatten(),NewParams['peak'][peek]['d-space'])
-            heights    = ff.Fourier_expand(azimu.flatten()*symmetry,NewParams['peak'][peek]['height'])
-            widths     = ff.Fourier_expand(azimu.flatten()*symmetry,NewParams['peak'][peek]['width'])
-            profiles   = ff.Fourier_expand(azimu.flatten()*symmetry,NewParams['peak'][peek]['profile'])
-            background = ff.Fourier_expand(azimu.flatten(),NewParams['background'])
-
-            print  NewParams['peak'][peek]['profile']
-            ## Fit for background with existing d0, h ,w
-
-            #newbgfit = ff.bgfit(intens.flatten(),twotheta.flatten(),azimu.flatten(),dspace.flatten(),d0s,heights,widths,wavelength,bg=bgfour)
-            bgexp = ff.update_backgrnd(bgfour[0],lenbg,0)
-
-
-
-            if 'profile_fixed' in orders['peak'][0]:
-                refine_parms = 3
-            else:
-                refine_parms = 4
-
-            #loop over parameters
-            for x in range(refine_parms):
-
-                #only 4 parameters describe each peak
-                if x == 0:
-                    Parm = 'd-space'
-                    sym  = 1
-                elif x ==1:
-                    Parm = 'height'
-                    sym  = symmetry
-                elif x ==2:
-                    Parm = 'width'
-                    sym  = symmetry
-                elif x ==3:
-                    Parm = 'profile'
-                    sym  = symmetry
-
-                ## Fit for each parameter keeping others constant
-                print 'Old ', Parm, ' coefficients: ', NewParams['peak'][peek][Parm]
-
-                print conversion_factor
-
-                newfour = ff.ParamFit(Parm, NewParams['peak'][peek][Parm], intens.flatten(),twotheta.flatten(),azimu.flatten()*sym,dspace.flatten(),d0s,heights,widths,profiles,conversion_factor['conversion_constant'],bg=bgexp)
-
-                NewParams['peak'][peek][Parm] = newfour[0]
-                print 'New ', Parm, ' coefficients: ', NewParams['peak'][peek][Parm]
-
-                #copy new fit back into correct array
-                NewParmsExp = ff.Fourier_expand(azimu.flatten()*sym,NewParams['peak'][peek][Parm])
-                if x == 0:
-                    d0s      = NewParmsExp
-                elif x ==1:
-                    heights  = NewParmsExp
-                elif x ==2:
-                    widths   = NewParmsExp
-                elif x ==3:
-                    profiles = NewParmsExp
-
-                if 0:
-                    AziPlot = range(0,360,2)
-                    fig = plt.figure()
-                    ax = fig.add_subplot(1,1,1)
-                    plt.subplot(111)
-                    plt.plot(azimu.flatten(),NewParmsExp, 'r.')
-                    plt.plot(np.array(range(360)),ff.Fourier_expand(np.array(range(360))*sym,NewParams['peak'][peek][Parm]),'r-')
-                    plt.title(Parm)
-                    plt.show()
-                    plt.close()
-
-            ## Fit for background keeping rest constant
-            Parm = 'background'
-            print 'Old ', Parm, ' coefficients: ', NewParams[Parm]
-
-            newfour = ff.ParamFit(Parm, NewParams[Parm], intens.flatten(),twotheta.flatten(),azimu.flatten(),dspace.flatten(),d0s,heights,widths,profiles,conversion_factor['conversion_constant'],bg=bgexp)
-
-            NewParams[Parm] = newfour[0]
-            print 'New ', Parm, ' coefficients: ', NewParams[Parm]
-            bgexp = ff.Fourier_expand(azimu.flatten(),NewParams[Parm])
-
-
-            print  NewParams['peak'][peek]['profile']
+#        refine = 1
+#        if refine:
+#            print '\nRe-fitting for d, h, w, bg separately...\n'
+#            
+#            #set peek for a loop over peaks that doesn't yet exist. 
+#            peek = 0
+#
+#            d0s        = ff.Fourier_expand(azimu.flatten(),NewParams['peak'][peek]['d-space'])
+#            heights    = ff.Fourier_expand(azimu.flatten()*symmetry,NewParams['peak'][peek]['height'])
+#            widths     = ff.Fourier_expand(azimu.flatten()*symmetry,NewParams['peak'][peek]['width'])
+#            profiles   = ff.Fourier_expand(azimu.flatten()*symmetry,NewParams['peak'][peek]['profile'])
+#            background = ff.Fourier_expand(azimu.flatten(),NewParams['background'])
+#
+#            print  NewParams['peak'][peek]['profile']
+#            ## Fit for background with existing d0, h ,w
+#
+#            #newbgfit = ff.bgfit(intens.flatten(),twotheta.flatten(),azimu.flatten(),dspace.flatten(),d0s,heights,widths,wavelength,bg=bgfour)
+#            bgexp = ff.update_backgrnd(bgfour[0],lenbg,0)
+#
+#
+#
+#            if 'profile_fixed' in orders['peak'][0]:
+#                refine_parms = 3
+#            else:
+#                refine_parms = 4
+#
+#            #loop over parameters
+#            for x in range(refine_parms):
+#
+#                #only 4 parameters describe each peak
+#                if x == 0:
+#                    Parm = 'd-space'
+#                    sym  = 1
+#                elif x ==1:
+#                    Parm = 'height'
+#                    sym  = symmetry
+#                elif x ==2:
+#                    Parm = 'width'
+#                    sym  = symmetry
+#                elif x ==3:
+#                    Parm = 'profile'
+#                    sym  = symmetry
+#
+#                ## Fit for each parameter keeping others constant
+#                print 'Old ', Parm, ' coefficients: ', NewParams['peak'][peek][Parm]
+#
+#                print conversion_factor
+#
+#                newfour = ff.ParamFit(Parm, NewParams['peak'][peek][Parm], intens.flatten(),twotheta.flatten(),azimu.flatten()*sym,dspace.flatten(),d0s,heights,widths,profiles,conversion_factor['conversion_constant'],bg=bgexp)
+#
+#                NewParams['peak'][peek][Parm] = newfour[0]
+#                print 'New ', Parm, ' coefficients: ', NewParams['peak'][peek][Parm]
+#
+#                #copy new fit back into correct array
+#                NewParmsExp = ff.Fourier_expand(azimu.flatten()*sym,NewParams['peak'][peek][Parm])
+#                if x == 0:
+#                    d0s      = NewParmsExp
+#                elif x ==1:
+#                    heights  = NewParmsExp
+#                elif x ==2:
+#                    widths   = NewParmsExp
+#                elif x ==3:
+#                    profiles = NewParmsExp
+#
+#                if 0:
+#                    AziPlot = range(0,360,2)
+#                    fig = plt.figure()
+#                    ax = fig.add_subplot(1,1,1)
+#                    plt.subplot(111)
+#                    plt.plot(azimu.flatten(),NewParmsExp, 'r.')
+#                    plt.plot(np.array(range(360)),ff.Fourier_expand(np.array(range(360))*sym,NewParams['peak'][peek][Parm]),'r-')
+#                    plt.title(Parm)
+#                    plt.show()
+#                    plt.close()
+#
+#            ## Fit for background keeping rest constant
+#            Parm = 'background'
+#            print 'Old ', Parm, ' coefficients: ', NewParams[Parm]
+#
+#            newfour = ff.ParamFit(Parm, NewParams[Parm], intens.flatten(),twotheta.flatten(),azimu.flatten(),dspace.flatten(),d0s,heights,widths,profiles,conversion_factor['conversion_constant'],bg=bgexp)
+#
+#            NewParams[Parm] = newfour[0]
+#            print 'New ', Parm, ' coefficients: ', NewParams[Parm]
+#            bgexp = ff.Fourier_expand(azimu.flatten(),NewParams[Parm])
+#
+#
+#            print  NewParams['peak'][peek]['profile']
  
 
     elif orders['PeakPositionSelection']:
@@ -652,75 +678,93 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
     ### Refit through full equation with all data for d,h,w,bg independently
 
     print '\nFinal fit solving for all parms...\n'
+    Chng = [[],[]]
+    for x in range(len(orders['peak'])):
+        if 'profile_fixed' in orders['peak'][x]:
+            Chng[0].append([orders['peak'][x]['d-space']*2+1,orders['peak'][x]['height']*2+1,orders['peak'][x]['width']*2+1,orders['peak'][x]['profile']*2+1])
+        else:
+            Chng[0].append([orders['peak'][x]['d-space']*2+1,orders['peak'][x]['height']*2+1,orders['peak'][x]['width']*2+1,0])
+    for x in range(len(orders['background'])):
+        Chng[1].append(orders['background'][x]*2+1)
+                              
+    print Chng
+    
+    NewParams, po,pc = ff.FitModel2(intens.flatten(), twotheta.flatten(), azimu.flatten(), Chng, NewParams, fixed=pfixed, Conv=conversion_factor, symm=symmetry )
 
+#                       
+#    #setup the parameters
+#    newdfour = []
+#    newdfour.append(NewParams['peak'][0]['d-space'])
+#    newhfour = []
+#    newhfour.append(NewParams['peak'][0]['height'])
+#    newwfour = []
+#    newwfour.append(NewParams['peak'][0]['width'])
+#    newpfour = []
+#    newpfour.append(NewParams['peak'][0]['profile'])
+#
+#    print newpfour[0]
+#    print newwfour[0]
+#
+#
+#    backg = ff.update_backgrnd(NewParams['background'],lenbg,0)
+#
+#    #Finalparms = ff.AllfitNew(intens.flatten(),twotheta.flatten(),azimu.flatten(),NewParams,wavelength)
+#
+#    if 'profile_fixed' in orders['peak'][0]:
+#        fixed = orders['peak'][0]['profile_fixed']
+#        starth = len(newdfour[0])
+#        startw = len(newdfour[0])+len(newhfour[0])
+#        end    = len(newdfour[0])+len(newhfour[0])+len(newwfour[0])
+#
+#    else:
+#        fixed = None
+#        starth = len(newdfour[0])
+#        startw = len(newdfour[0])+len(newhfour[0])
+#        startp = len(newdfour[0])+len(newhfour[0])+len(newwfour[0])
+#        end    = len(newdfour[0])+len(newhfour[0])+len(newwfour[0])+len(newpfour[0])
+#
+#    Finalparms = ff.Allfit(intens.flatten(),twotheta.flatten(),azimu.flatten(),newdfour[0],newhfour[0],newwfour[0],newpfour[0],conversion_factor['conversion_constant'],bg=backg, symm=symmetry, fix=fixed)
+#
+#    #starth = len(newdfour[0])
+#    #startw = len(newdfour[0])+len(newhfour[0])
+#    #startp = len(newdfour[0])+len(newhfour[0])+len(newwfour[0])
+#    #end    = len(newdfour[0])+len(newhfour[0])+len(newwfour[0])+len(newpfour[0])
+#
+#    fin_d = Finalparms[0][0:starth]
+#    fin_h = Finalparms[0][starth:startw]
+#    if 'profile_fixed' in orders['peak'][0]:
+#        fin_w = Finalparms[0][startw:end]
+#        fin_p = orders['peak'][0]['profile_fixed']
+#    else:
+#        fin_w = Finalparms[0][startw:startp]
+#        fin_p = Finalparms[0][startp:end]
+#    # reconstruct background coeffs list
+#    backg = ff.update_backgrnd(Finalparms[0],lenbg,end)
+#
+#    #print len(fin_d)
 
-    #setup the parameters
-    newdfour = []
-    newdfour.append(NewParams['peak'][0]['d-space'])
-    newhfour = []
-    newhfour.append(NewParams['peak'][0]['height'])
-    newwfour = []
-    newwfour.append(NewParams['peak'][0]['width'])
-    newpfour = []
-    newpfour.append(NewParams['peak'][0]['profile'])
+    print 'Final Coefficients\n', NewParams
 
-    print newpfour[0]
-    print newwfour[0]
-
-
-    backg = ff.update_backgrnd(NewParams['background'],lenbg,0)
-
-    #Finalparms = ff.AllfitNew(intens.flatten(),twotheta.flatten(),azimu.flatten(),NewParams,wavelength)
-
-    if 'profile_fixed' in orders['peak'][0]:
-        fixed = orders['peak'][0]['profile_fixed']
-        starth = len(newdfour[0])
-        startw = len(newdfour[0])+len(newhfour[0])
-        end    = len(newdfour[0])+len(newhfour[0])+len(newwfour[0])
-
-    else:
-        fixed = None
-        starth = len(newdfour[0])
-        startw = len(newdfour[0])+len(newhfour[0])
-        startp = len(newdfour[0])+len(newhfour[0])+len(newwfour[0])
-        end    = len(newdfour[0])+len(newhfour[0])+len(newwfour[0])+len(newpfour[0])
-
-    Finalparms = ff.Allfit(intens.flatten(),twotheta.flatten(),azimu.flatten(),newdfour[0],newhfour[0],newwfour[0],newpfour[0],conversion_factor['conversion_constant'],bg=backg, symm=symmetry, fix=fixed)
-
-    #starth = len(newdfour[0])
-    #startw = len(newdfour[0])+len(newhfour[0])
-    #startp = len(newdfour[0])+len(newhfour[0])+len(newwfour[0])
-    #end    = len(newdfour[0])+len(newhfour[0])+len(newwfour[0])+len(newpfour[0])
-
-    fin_d = Finalparms[0][0:starth]
-    fin_h = Finalparms[0][starth:startw]
-    if 'profile_fixed' in orders['peak'][0]:
-        fin_w = Finalparms[0][startw:end]
-        fin_p = orders['peak'][0]['profile_fixed']
-    else:
-        fin_w = Finalparms[0][startw:startp]
-        fin_p = Finalparms[0][startp:end]
-    # reconstruct background coeffs list
-    backg = ff.update_backgrnd(Finalparms[0],lenbg,end)
-
-    #print len(fin_d)
-
-    print 'Final d0 coefficients: ', fin_d
-    print 'Final h coefficients: ',  fin_h
-    print 'Final w coefficients: ',  fin_w
-    print 'Final p coefficients: ',  fin_p
-    print 'Final background coefficients: ', backg
+#    print 'Final d0 coefficients: ', fin_d
+#    print 'Final h coefficients: ',  fin_h
+#    print 'Final w coefficients: ',  fin_w
+#    print 'Final p coefficients: ',  fin_p
+#    print 'Final background coefficients: ', backg
 
 
     #Calculate SSD for fit. 
-
-    if 'profile_fixed' in orders['peak'][0]:
-        inp = (twotheta.flatten(),azimu.flatten(),lenbg,np.array([len(fin_d),len(fin_h),len(fin_w)]), conversion_factor['conversion_constant'], symmetry, newpfour[0])
-    else:
-        inp = (twotheta.flatten(),azimu.flatten(),lenbg,np.array([len(fin_d),len(fin_h),len(fin_w),len(fin_p)]), conversion_factor['conversion_constant'], symmetry)
-    fullfit_intens = ff.Allchange(inp, *Finalparms[0].squeeze())
-    SSD = np.sum( (intens.flatten() - fullfit_intens.flatten())**2 ) 
-    print SSD
+    inp,pen = ff.PeaksModel2(twotheta.flatten(), azimu.flatten(), NewParams, Conv=conversion_factor, symm=symmetry)
+    SSD = np.sum( (intens.flatten() - inp.flatten())**2 ) 
+    print 'SSD', SSD    
+    
+    
+#    if 'profile_fixed' in orders['peak'][0]:
+#        inp = (twotheta.flatten(),azimu.flatten(),lenbg,np.array([len(fin_d),len(fin_h),len(fin_w)]), conversion_factor['conversion_constant'], symmetry, newpfour[0])
+#    else:
+#        inp = (twotheta.flatten(),azimu.flatten(),lenbg,np.array([len(fin_d),len(fin_h),len(fin_w),len(fin_p)]), conversion_factor['conversion_constant'], symmetry)
+#    fullfit_intens = ff.Allchange(inp, *Finalparms[0].squeeze())
+#    SSD = np.sum( (intens.flatten() - fullfit_intens.flatten())**2 ) 
+#    print SSD
 
     #We choose the degree of polynomial for which the variance as computed by
     #Sr(m)/(n-m-1)
@@ -735,7 +779,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
     #degrees of freedom
     # number of parameters solved for.
-    deg_freedom = len(Finalparms[0])
+    #deg_freedom = len(Finalparms[0])
+    deg_freedom = sum(ff.flatten(Chng))
     print 'degrees of freedom', deg_freedom
 
 
@@ -750,7 +795,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         #tthchunk = np.where((twotheta.flatten()>=tthRange[0])&(twotheta.flatten()<=tthRange[1]))
         # print Finalparms[0]
         #fullfit_intens = ff.Allchange((twotheta.flatten(),azimu.flatten(),lenbg,np.array([len(fin_d),len(fin_h),len(fin_w)]), wavelength), *Finalparms[0].squeeze())
-
+        fullfit_intens = inp
         # Set the maximum to the n+1th value in the array
         # FIX ME: the max find is not necessarily efficient. A quicker way should be found if it exists.
         max_pos = 5
@@ -768,6 +813,13 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         y_lims = np.array([np.min(azimu.flatten()), np.max(azimu.flatten())])
         y_lims = np.around(y_lims/180)*180
         
+        if conversion_factor['DispersionType']  == 'EnergyDispersive':
+            xlabel_str = 'Energy (keV)'
+        elif conversion_factor['DispersionType']  == 'AngleDispersive':
+            xlabel_str = 'Azimuth (deg)'
+        else:
+            xlabel_str = 'Dispersive units'
+            
         dot_size = 16
 
         fig = plt.figure()
@@ -776,7 +828,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         #plt.scatter(twotheta, azimu, s=1, c=np.log(intens), edgecolors='none', cmap=plt.cm.jet)
         plt.scatter(twotheta.flatten(),azimu.flatten(), s=dot_size, c=(intens.flatten()), edgecolors='none', cmap=plt.cm.magma_r, vmin=ValMin, vmax=ValMax)
         ax1.set_title('Data')
-        ax1.set_xlabel('2 Theta (deg)')
+        ax1.set_xlabel(xlabel_str)
         ax1.set_ylabel('Azimuth (deg)')
         ax1.set_xlim([np.min(twotheta.flatten()),np.max(twotheta.flatten())])
         ax1.set_ylim(y_lims)
@@ -788,7 +840,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         plt.scatter(twotheta.flatten(), azimu.flatten(), s=dot_size, c=(fullfit_intens.flatten()), edgecolors='none', cmap=plt.cm.magma_r, vmin=ValMin, vmax=ValMax)
         plt.colorbar()
         ax2.set_title('Model')
-        ax2.set_xlabel('2 Theta (deg)')
+        ax2.set_xlabel(xlabel_str)
         ax2.set_ylabel('Azimuth (deg)')
         ax2.set_xlim([np.min(twotheta.flatten()),np.max(twotheta.flatten())])
         ax2.set_ylim(y_lims)
@@ -798,7 +850,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         #plt.scatter(twotheta, azimu, s=1, c=np.log(intens-fullfit_intens), edgecolors='none', cmap=plt.cm.jet)
         plt.scatter(twotheta.flatten(), azimu.flatten(), s=dot_size, c=(intens.flatten()-fullfit_intens.flatten()), edgecolors='none', cmap=plt.cm.coolwarm, vmin=ValMin3, vmax=ValMax3)
         ax3.set_title('Residuals (data - model)')
-        ax3.set_xlabel('2 Theta (deg)')
+        ax3.set_xlabel(xlabel_str)
         ax3.set_ylabel('Azimuth (deg)')
         ax3.set_xlim([np.min(twotheta.flatten()),np.max(twotheta.flatten())])
         ax3.set_ylim(y_lims)
@@ -832,20 +884,22 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
     tth_max = twotheta.max()
     d_min = dspace.min()
     d_max = dspace.max()
-    extent = [[tth_min, tth_max],[d_min, d_max]] #FIX ME: Tis is taking the maximum and hte minimum of the data not the 'range' itself.
+    extent = [[tth_min, tth_max],[d_min, d_max]] #FIX ME: This is taking the maximum and hte minimum of the data not the 'range' itself.
+
+    NewParams.update({'range': extent})
 
 
-    peaks = []
-    peaks.append({"d-space":     fin_d,
-                "height":        fin_h,
-                "width":         fin_w,
-                "profile":       fin_p, 
-                "profile_fixed": fin_p, #FIX ME: this is wrong here! it might not exist.
-                "symmetry":      symmetry
-    })
-    collated = {"background": backg, "range": extent, "peak":peaks}
+#    peaks = []
+#    peaks.append({"d-space":     fin_d,
+#                "height":        fin_h,
+#                "width":         fin_w,
+#                "profile":       fin_p, 
+#                "profile_fixed": fin_p, #FIX ME: this is wrong here! it might not exist.
+#                "symmetry":      symmetry
+#    })
+#    collated = {"background": backg, "range": extent, "peak":peaks}
 
-    return collated
+    return NewParams
     
 
 

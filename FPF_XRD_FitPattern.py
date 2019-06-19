@@ -239,8 +239,8 @@ else:
     
 #apply mask to arrays
 azimu    = ma.array(azimu, mask=intens.mask)
-twotheta = ma.array(twotheta,mask=azimu.mask)
-dspace   = ma.array(dspace,mask=azimu.mask)
+twotheta = ma.array(twotheta,mask=intens.mask)
+dspace   = ma.array(dspace,mask=intens.mask)
 
 
 

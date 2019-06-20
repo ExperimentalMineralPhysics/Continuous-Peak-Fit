@@ -253,7 +253,7 @@ if 1:
     plt.show()
     plt.close()
     
-    quit()
+    #quit()
     
 
 # Process the diffraction patterns #
@@ -276,7 +276,7 @@ for j in range(n_diff_files):
         plt.show()
         plt.close()
         
-        quit()
+        #quit()
         
 
     #get previous fit (if exists)
@@ -316,8 +316,7 @@ for j in range(n_diff_files):
 
         #fit the subpattern
         Fitted_param.append(FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, DetFuncs=calib_mod))
-        #Fitted_param.append(FitSubpattern([twotheta_sub, dspacing_sub, parms_dict['conversion_constant']], azimu_sub, intens_sub, orders, params))
-
+        stop
     #stop
 
     #write output files

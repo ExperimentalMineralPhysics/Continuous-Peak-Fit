@@ -153,7 +153,14 @@ def FitModel(Intfit, twotheta, azimu, ChangeArray, Shapes, Conv=None, symm=None,
     
     if not (method=='minimize'):
         
-        popt,pcurv = curve_fit(ChangeParams,(twotheta,azimu,ChangeArray,Shapes,Conv,symm,fixed),Intfit,p0=p0array, ftol=2e-12, maxfev = 30000, method='lm')    
+        
+        # FIX ME: replace with calls to LMFIT. https://lmfit.github.io/lmfit-py/model.html or equivalnet to get constrained fits.
+        try:
+            popt,pcurv = curve_fit(ChangeParams,(twotheta,azimu,ChangeArray,Shapes,Conv,symm,fixed),Intfit,p0=p0array, ftol=2e-12, maxfev = 12000, method='lm')    
+        except:
+            
+            popt  = [np.nan] * np.empty(len(p0array))
+            pcurv = [np.nan] * np.empty((len(p0array),len(p0array),))
         
     else:
         #FIX ME: should curve fit be replaces with minimise? -- so that we can force the constraints.
@@ -383,13 +390,21 @@ def Fourier_expand(azimu, *param):
 
 def Fourier_fit(azimu,ydata,terms,param=None,errs=None):
 
+    #get NaN values.
+    idx = np.isfinite(azimu) & np.isfinite(ydata) & (ydata > 0)
     if(type(terms)==list):
         terms = terms[0]
     if param:
         param=param
     else:
         param = [0 for i in range((2*terms+1))]
-    popt,pcurv = curve_fit(Fourier_expand,azimu,ydata,p0=param,sigma=errs)
+        
+    if errs.all == None:
+        errs = np.ones(ydata.shape)
+        
+    print errs
+            
+    popt,pcurv = curve_fit(Fourier_expand,azimu[idx],ydata[idx],p0=param,sigma=errs[idx])
 
 
     return popt,pcurv

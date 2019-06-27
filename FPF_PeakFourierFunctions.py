@@ -233,7 +233,7 @@ def GuessGet(ChangeArray, Guesses):
             #Guess.extend(e[:])
     for a in range(len(Guesses['background'])):
         if not ChangeArray[1][a] == 0:  #background
-            e = Guesses['background'][a][0]
+            e = Guesses['background'][a]
             Guess.extend([e][:])
 #            e = bg[a][0:ChangeArray[1][a]]
             #Guess.extend(e[:])

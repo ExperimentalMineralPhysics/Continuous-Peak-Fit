@@ -429,7 +429,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 plt.subplot(5,x_plt,y_plt)
                 plt.title('Background')
                 plt.scatter(newAziChunks,newBGall[k], s=20, facecolors='none', edgecolors='b')
-                plt.plot(AziPlot,ff.Fourier_expand(np.array(AziPlot), np.array(bgfour[k][0])), 'r-')
+                plt.plot(AziPlot,ff.Fourier_expand(np.array(AziPlot), np.array(bgfour[k])), 'r-')
                 
             plt.show()
             plt.close()

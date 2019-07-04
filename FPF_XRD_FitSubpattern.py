@@ -510,6 +510,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         NewParams = PreviousParams
         pfixed = 'something'
 
+        # FIS ME: need to confirm the number of parameters matches the orders of the fits.
 
 
     ### Refit through full equation with all data for d,h,w,bg independently
@@ -555,7 +556,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
 
     ### Plot results to check
-    if 1:
+    if 0:
         print '\nPlotting results for fit...\n'
 
         fullfit_intens = inp
@@ -624,11 +625,12 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         plt.tight_layout()
 
         # save figures without overwriting old names
-        filename = 'Fit2Peak'
-        i = 1
-        while os.path.exists('{}{:d}.png'.format(filename, i)):
-            i += 1
-        plt.savefig('{}{:d}.png'.format(filename, i))
+        if 0:
+            filename = 'Fit2Peak'
+            i = 1
+            while os.path.exists('{}{:d}.png'.format(filename, i)):
+                i += 1
+            plt.savefig('{}{:d}.png'.format(filename, i))
 
         plt.show()
 
@@ -651,4 +653,13 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
     NewParams.update({'range': extent})
 
+    FitStats = {"degree-of-freedom": deg_freedom,
+                "n-points":          n_points,
+                "ssd":               SSD,
+                "varience":          SSD_var
+    }
+    NewParams.update({'FitProperties': FitStats})
+
+
+    
     return NewParams

@@ -7,7 +7,7 @@ import numpy as np
 #import numpy.ma as ma
 import os
 import matplotlib.pyplot as plt
-np.set_printoptions(threshold='nan')
+np.set_printoptions(threshold=sys.maxsize)
 import FPF_PeakFourierFunctions as ff
 
 
@@ -15,14 +15,14 @@ import FPF_PeakFourierFunctions as ff
 # The script should not need to know what the limits are - it should only see the data that it needs to fit. 
 
 
-def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousParams=None, DetFuncs='FPF_DioptasFunctions'):
+def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousParams=None, DetFuncs='FPF_DioptasFunctions', SaveFit=None):
     
     #load detector functions to use where needed. Mostly for converstion of tth to dspacing.
     #This is loaded from detector functions file to avoid making any assumptions about the conversion between values (if indeed any is required). 
     det = __import__(DetFuncs)
 
     # sort inputs
-
+    
     # two theta and dspacing are both 'x' dimensions. therefore import them as single array.
     # split them up here if needed. 
     if np.shape(TwoThetaAndDspacings)[0] == 3:
@@ -79,9 +79,9 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     Parm = 'width'
                 elif x ==3:
                     Parm = 'profile'
-                elif x ==4:
-                    Parm = 'profile_fixed'
-
+                #elif x ==4:
+                #    Parm = 'profile_fixed'
+                
                 if orders['peak'][y][Parm] > ff.Fourier_order(PreviousParams['peak'][y][Parm]):
                     #print 'longer'
                     changeby = orders['peak'][y][Parm]*2 + 1 - np.size(PreviousParams['peak'][y][Parm])
@@ -92,7 +92,13 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     #print 'smaller'
                     changeby = np.size(PreviousParams['peak'][y][Parm]) - ((orders['peak'][y][Parm])*2 + 1)
                     PreviousParams['peak'][y][Parm] = PreviousParams['peak'][y][Parm][1:-(changeby-1)]
-
+            
+            if 'profile_fixed' in orders['peak'][y]:
+                PreviousParams['peak'][y]['profile'] = orders['peak'][y]['profile_fixed']
+            elif 'profile_fixed' in PreviousParams['peak'][y][Parm]:
+                del PreviousParams['peak'][y]['profile_fixed']
+                
+                
 
         # loop for background orders/size
         for y in range( np.max([len(orders['background']), len(PreviousParams['background'])]) ):
@@ -124,7 +130,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         #tidy up from reductions in length of PreviousParams
         PreviousParams['background'] = [x for x in PreviousParams['background'] if x != []]
         
-
     if PreviousParams:
         backg = PreviousParams['background']
         backg_type = 'coeffs'
@@ -160,8 +165,9 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 
                 peek = j+1
                 tthguess = tthguesses[tthguesses[:,0]==peek,1:]
-                
-                dfour.append(ff.Fourier_fit(tthguess[:,0],det.Conversion(tthguess[:,1], conversion_factor),terms=orders['peak'][j]['d-space']))
+                print tthguess[:,0]
+                print det.Conversion(tthguess, conversion_factor)
+                dfour.append(ff.Fourier_fit(tthguess[:,0],det.Conversion(tthguess, conversion_factor),terms=orders['peak'][j]['d-space']))
             
                 print 'tthguess:', tthguess
                 print 'dfour:',dfour
@@ -232,6 +238,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 pfixed = 0
                                 
                 peaks = []
+                lims = []
                     
                 if 'dfour' in locals():
                     #if the positions have been pre guessed extract values from dfour.
@@ -240,7 +247,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                         
                         #guess returns d-spacing then converted to two theta.                         
                         dguess = ff.Fourier_expand(np.mean(azimu.flatten()[chunks[j]]), dfour[k][0])
-                        tthguess = (det.Conversion(dguess, conversion_factor, reverse=1))
+                        tthguess = (det.Conversion(dguess, conversion_factor, reverse=1)) #FIXME: might break here because of how changed Conversion to work with energy dispersive diffraction. 
                     
                         tthind = ((np.abs(twotheta.flatten()[chunks[j]] - tthguess)).argmin() )
                         #FIX ME: this takes the closest tth value to get the inensity. The mean of a number of the smallest values would be more stable.
@@ -288,7 +295,11 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                                   "profile": [pguess], 
                                   "width": [wguess]
                                   })
-                                             
+                    lims.append({"d-space": [np.min(dspace.flatten()[chunks[j]]), np.max(dspace.flatten()[chunks[j]])],
+                                 "height":  [0,np.inf],
+                                 "profile": [0, 1],
+                                 "width":   [0, (np.max(dspace.flatten()[chunks[j]]) + np.min(dspace.flatten()[chunks[j]]))/2]})
+                         
                 singleBackg = [[] for i in range(len(backg))]
                 for i in xrange(len(backg)):
                     singleBackg[i] = [backg[i][0]]
@@ -302,7 +313,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
                 Guesses={  "background": bgguess, 
                     "peak": peaks }
-                Guesses, po,pc = ff.FitModel(intens.flatten()[chunks[j]], twotheta.flatten()[chunks[j]], azichunks[j], Chng, Guesses, fixed=pfixed, Conv=conversion_factor)
+                
+                limits = {"peak": lims}
+                
+                Guesses, po,pc = ff.FitModel(intens.flatten()[chunks[j]], twotheta.flatten()[chunks[j]], azichunks[j], Chng, Guesses, fixed=pfixed, Conv=conversion_factor, bounds = limits)
                 for i in range(peeks):
                     newd0[i].append(Guesses['peak'][i]['d-space'][0])
                     newd0Err[i].append(Guesses['peak'][i]['d-space_err'][0])
@@ -310,7 +324,12 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     newHallErr[i].append(Guesses['peak'][i]['height_err'][0])
                     newWall[i].append(Guesses['peak'][i]['width'][0])
                     newWallErr[i].append(Guesses['peak'][i]['width_err'][0])
-                    newPall[i].append(Guesses['peak'][i]['profile'][0])
+                    if Guesses['peak'][i]['profile'][0] > 1: # FixMe: This limits the possible widths of the peaks in the initial guess. Should be replaced by constrained fit. 
+                        newPall[i].append(0.9)
+                    elif Guesses['peak'][i]['profile'][0] < 0:
+                        newPall[i].append(0.1)
+                    else:
+                        newPall[i].append(Guesses['peak'][i]['profile'][0])
                     if pfixed==1:
                         newPallErr[i].append(0.0001)
                     else:
@@ -535,6 +554,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
     SSD = np.sum( (intens.flatten() - inp.flatten())**2 ) 
     print 'SSD', SSD    
     
+    # https://autarkaw.org/2008/07/05/finding-the-optimum-polynomial-order-to-use-for-regression/
     #We choose the degree of polynomial for which the variance as computed by
     #Sr(m)/(n-m-1)
     #is a minimum or when there is no significant decrease in its value as the degree of polynomial is increased. In the above formula,
@@ -553,10 +573,15 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
     SSD_var = SSD/(n_points + deg_freedom -1)
     print 'variance', SSD_var
+    
+    # ChiSq is defined in the same way as GSAS. See GSAS manual page 165/166
+    ChiSq = SSD/(n_points - deg_freedom) 
+    print 'ChiSquared', ChiSq
 
 
     ### Plot results to check
-    if 0:
+    view = 0
+    if SaveFit==1 or view==1:
         print '\nPlotting results for fit...\n'
 
         fullfit_intens = inp
@@ -624,18 +649,43 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
         plt.tight_layout()
 
-        # save figures without overwriting old names
-        if 0:
-            filename = 'Fit2Peak'
-            i = 1
-            while os.path.exists('{}{:d}.png'.format(filename, i)):
-                i += 1
-            plt.savefig('{}{:d}.png'.format(filename, i))
 
-        plt.show()
+#        # make a second figure with the Q-Q plot of the data and fit.
+#        #the second subplot is a cdf of the residuals with a gaussian added to it. 
+#        fig2 = plt.figure()
+#        axQ = plt.subplots()
+#        plt.scatter(intens.flatten(), fullfit_intens.flatten(), s=dot_size)
+#        #axQ.set_xlabel('Observations')
+#        #axQ.set_ylabel('Model')
+#        plt.grid(True)
+#        plt.tight_layout()
+
+        # save figures without overwriting old names
+        if SaveFit==1:
+            filename = ''
+            for x in range(len(orders['peak'])):
+                if 'phase' in orders['peak'][x]:
+                    filename = filename + orders['peak'][x]['phase']
+                    if 'hkl' in orders['peak'][x]:
+                        filename = filename + str(orders['peak'][x]['hkl'])
+                if x < len(orders['peak'])-1 and len(orders['peak']) > 1:
+                    filename = filename + '_'
+            if filename == '':    
+                filename = 'Fit2Peak'
+                
+            i = 1 #fix me: this doesnt make a new figure it over writes the old one.
+            while os.path.exists('{}_{:d}.png'.format(filename, i)):
+                i += 1
+            if i==1:
+                plt.savefig('{}.png'.format(filename))
+            else:
+                plt.savefig('{}_{:d}.png'.format(filename, i))
+
+        if view==1:
+            plt.show()
 
         plt.close()
-
+        print 'Done with Figure'
 
     '''
     collated = {"d-space":    fin_d,
@@ -656,7 +706,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
     FitStats = {"degree-of-freedom": deg_freedom,
                 "n-points":          n_points,
                 "ssd":               SSD,
-                "varience":          SSD_var
+                "varience":          SSD_var,
+                "ChiSq":             ChiSq
     }
     NewParams.update({'FitProperties': FitStats})
 

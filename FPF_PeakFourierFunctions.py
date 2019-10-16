@@ -10,7 +10,7 @@ import sys#, copy, os
 #import matplotlib.path as mlp
 from scipy.optimize import curve_fit
 from scipy.optimize import minimize
-np.set_printoptions(threshold='nan')
+np.set_printoptions(threshold=sys.maxsize)
 
 
 # Fitting functions required for fitting peaks to the data. 
@@ -147,7 +147,7 @@ def ChangeParams(constants, *fitparam):
 
 
 
-def FitModel(Intfit, twotheta, azimu, ChangeArray, Shapes, Conv=None, symm=None, fixed=None, method=None):
+def FitModel(Intfit, twotheta, azimu, ChangeArray, Shapes, Conv=None, symm=None, fixed=None, method=None, weights=None, bounds=None):
     
     p0array = GuessGet(ChangeArray, Shapes)
     
@@ -156,7 +156,7 @@ def FitModel(Intfit, twotheta, azimu, ChangeArray, Shapes, Conv=None, symm=None,
         
         # FIX ME: replace with calls to LMFIT. https://lmfit.github.io/lmfit-py/model.html or equivalnet to get constrained fits.
         try:
-            popt,pcurv = curve_fit(ChangeParams,(twotheta,azimu,ChangeArray,Shapes,Conv,symm,fixed),Intfit,p0=p0array, ftol=2e-12, maxfev = 12000, method='lm')    
+            popt,pcurv = curve_fit(ChangeParams,(twotheta,azimu,ChangeArray,Shapes,Conv,symm,fixed),Intfit,p0=p0array, ftol=2e-12, maxfev = 12000, method='lm', sigma=weights )    
         except:
             
             popt  = [np.nan] * np.empty(len(p0array))
@@ -399,11 +399,9 @@ def Fourier_fit(azimu,ydata,terms,param=None,errs=None):
     else:
         param = [0 for i in range((2*terms+1))]
         
-    if errs.all == None:
+    if errs is None or errs.all == None:
         errs = np.ones(ydata.shape)
-        
-    print errs
-            
+                    
     popt,pcurv = curve_fit(Fourier_expand,azimu[idx],ydata[idx],p0=param,sigma=errs[idx])
 
 
@@ -436,7 +434,7 @@ def Fourier_backgrnd(azimutheta, param):
 def FitPenaltyFunction(Azimuths, FourierValues, valid_range, Weight=None, FV=None, Power=None):
 
     if Weight==None:
-        Weight = 10#0000
+        Weight = 1000#0000
     if Power==None:
         Power = 1
     
@@ -452,7 +450,7 @@ def FitPenaltyFunction(Azimuths, FourierValues, valid_range, Weight=None, FV=Non
     if np.max(Vals) > valid_range[1]:
         Penalise = np.max(Vals) - valid_range[0]
 
-    Penalise = Penalise**Power*Weight + 1
+    Penalise = Penalise**Power*Weight #+ 1
     return Penalise
 
 

@@ -9,11 +9,21 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import matplotlib.path as mlp
 from scipy.optimize import curve_fit
-np.set_printoptions(threshold='nan')
+np.set_printoptions(threshold=sys.maxsize)
 
 from FPF_XRD_FitSubpattern import FitSubpattern
 import FPF_PeakFourierFunctions as ff
 import FPF_WriteMultiFit as wr
+
+
+#FIX ME:
+# need to check that dependencies are present.
+# models that are required for running (and are not listed above):
+# h5py   -- sudo apt-get update; sudo apt-get install python-h5py
+#        -- this maybe a dependency of fabio and so installed with pyFAI but I have not checked.
+# pyFAI  -- sudo apt-get install pyfai
+# Fabio  -- but this appears to be installed with pyFAI.
+
 
 # Needed for JSON to save fitted parameters. 
 # copied from https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array#24375113
@@ -245,7 +255,7 @@ dspace   = ma.array(dspace,mask=intens.mask)
 
 
 ## plot calibration file
-if 1:
+if 0:
     fig = plt.figure()
     plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #Better for monochromatic data.           #FIX ME: need variable for vmax.
     #plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
@@ -253,7 +263,6 @@ if 1:
     plt.show()
     plt.close()
     
-    #quit()
     
 
 # Process the diffraction patterns #
@@ -288,6 +297,14 @@ for j in range(n_diff_files):
             previous_fit = json.load(json_data)
 
     
+    
+    # switch to save the first fit in each sequence.
+    if j==0:
+        SaveFigs = 1
+    else:
+        SaveFigs = 0
+
+    
     ## Pass each subpatern to FPF_Fit_Subpattern for fitting in turn.
     #get number of subpatterns to be fitted
     n_subpats = len(FitSettings.fit_orders)
@@ -313,12 +330,11 @@ for j in range(n_diff_files):
             orders = FitSettings.fit_orders[i]
             orders['AziBins'] = FitSettings.AziBins
         #print orders
-
+            
         #fit the subpattern
-        Fitted_param.append(FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, DetFuncs=calib_mod))
-        stop
-    #stop
+        Fitted_param.append(FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, DetFuncs=calib_mod, SaveFit=SaveFigs))
 
+        
     #write output files
     
     # store all the fit information as a JSON file. 

@@ -38,7 +38,11 @@ def ImportImage(ImageName):
     return im
     
     
-
+def DetectorCheck(ImageName, detector=None):
+    
+    # this function is empty because GSAS does not require knowledge of the detector type
+    
+    return None
 
 
 def GetMask(MSKfile, ImInts, ImTTH, ImAzi, file_name, pix):
@@ -287,7 +291,10 @@ def GetCalibration(filenam):
 
                 else:
                     parms_dict[newparms[0]] = str(parm)
-
+    
+    #get wavelengths in Angstrom
+    parms_dict['Conversion_constant'] = parms_dict['Wavelength'] 
+    
     # force all dictionary labels to be lower case -- makes s
     parms_dict =  {k.lower(): v for k, v in parms_dict.items()}
 

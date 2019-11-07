@@ -6,15 +6,19 @@ import FPF_PeakFourierFunctions as ff
 import json
 
 
-def WriteMultiFit(base_file_name, data_to_write, Num_Azi):
+def WriteMultiFit(base_file_name, data_to_write, Num_Azi, wavelength):
 # writes *.fit files required by polydefix.
 
+    # force Num_Azi to be a float
+    Num_Azi = float(Num_Azi)
 
-    base, ext = os.path.splitext(base_file_name)
+    # create output file name from passed name
+    path, filename = os.path.split(base_file_name)
+    base, ext = os.path.splitext(filename)
     out_file = base + '.fit'
 
-    text_file = open(out_file, "w")
 
+    text_file = open(out_file, "w")
 
 
     #headers. set file version to be 1.
@@ -89,10 +93,17 @@ def WriteMultiFit(base_file_name, data_to_write, Num_Azi):
 
         # value of the background intensity and slope (assuming a linear background)
         text_file.write("# background coefficients\n")
-        for l in range(int(Num_Azi)):
-            az = l/Num_Azi*360
+        for k in range(int(Num_Azi)):
+            az = np.array([k/Num_Azi*360])
+            inter = ff.Fourier_expand(az, data_to_write[j]['background'][0])
+            if len(data_to_write[j]['background']) > 1:
+                slop = ff.Fourier_expand(az, data_to_write[j]['background'][1])
+            else:
+                slop = 0
 
-            bg = data_to_write[j]['background']
+            text_file.write("%13.4f %13.4f\n" % (inter, slop))
+
+
         #[bg1intensity      bg1slope
         #... These are the intensity at the min 2 theta and slope the background against 2 theta      ]
         #BGlastIntensity    BGlastSlope]                                                              ]
@@ -107,14 +118,19 @@ def WriteMultiFit(base_file_name, data_to_write, Num_Azi):
             #...                                                          ]  number of peaks in
             #positionLast  IntensityLast  HWLast      WeightLast]         ]  subpattern
             #print data_to_write[j]['peak'][k]['d-space']
+            if 'symmetry' in data_to_write[j]['peak'][k]:
+                sym = data_to_write[j]['peak'][k]['symmetry']
+            else:
+                sym = 1
             for l in range(int(Num_Azi)):
                 az = np.array([l/Num_Azi*360])
-                peak_d = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['d-space']) #FIX ME - needs to be in two theta not d-spacing
-                peak_i = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
-                peak_w = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
-                peak_p = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
+                peak_d = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['d-space'])
+                peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
+                peak_i = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
+                peak_w = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
+                peak_p = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
 
-                text_file.write("%13.4f %13.4f %13.4f %13.4f\n" % (peak_d, peak_i, peak_w, peak_p))
+                text_file.write("%13.4f %13.4f %13.4f %13.4f\n" % (peak_tth, peak_i, peak_w, peak_p))
 
 
 
@@ -125,7 +141,7 @@ def WriteMultiFit(base_file_name, data_to_write, Num_Azi):
 
 
 #test cases for wirting files
-test = 1
+test = 0
 
 if test==1:
     Fouriers_to_write = [{'peak': [{

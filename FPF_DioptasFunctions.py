@@ -75,15 +75,18 @@ def Conversion(tth_in, conv, reverse=0):
     #convert wavelength into angstroms.
     # this is not longer required because it is done in the GetCalibration stage. 
     wavelength = conv['conversion_constant']
+    print wavelength
     
     if not reverse:
         #convert tth to d-spacing
-        dspc_out = wavelength/2/np.sin(np.radians(tth_in/2))
+        dspc_out = wavelength/2/np.sin(np.radians(tth_in[:,1]/2))
         
     else:
         #convert dspacing to tth.
         #N.B. this is the reverse finction so that labels tth and dspacing are not correct. 
+        print tth_in
         dspc_out = 2*np.degrees(np.arcsin(wavelength/2/tth_in))
+        #dspc_out = 2*np.degrees(np.arcsin(wavelength/2/tth_in[:,1]))
         
         
     return dspc_out

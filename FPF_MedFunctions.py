@@ -49,23 +49,30 @@ def DetectorCheck(ImageName, detector=None):
     return detector
 
 
-def Conversion(tth_in, calib, reverse=0):
+def Conversion(E_in, calib, reverse=0):
     #convert energy into d-spacing.
+    
+    #Convert Energy (keV) to wavelength (Angstroms)
+    # E = hc/lamda;  h = 4.135667662(25)×10−15 eV s; c = 299792458 m/s
+    wavelength = 4.135667662e-15*(299792458*1E10)/(E_in[:,1]*1000)
+    
+    # determine which detector calibration goes with each energy.
+    sort_idx = np.array(calib['azimuths']).argsort()
+    de = sort_idx[np.searchsorted(calib['azimuths'],E_in[:,0],sorter = sort_idx)]
+    
 
-    
-    #convert wavelength into angstroms.
-    # this is not longer required because it is done in the GetCalibration stage. 
-    wavelength = wavelength
-    
     if not reverse:
-        #convert tth to d-spacing
-        dspc_out = wavelength/2/np.sin(np.radians(tth_in/2))
+        #convert energy to d-spacing
+        dspc_out = []
+        for i in range(len(de)):
+            dspc_out.append(wavelength[i]/2/np.sin(np.radians(calib['calibs'].mcas[i].calibration.two_theta/2)))
+        dspc_out = np.array(dspc_out)
         
     else:
-        #convert dspacing to tth.
+        #convert dspacing to energy.
         #N.B. this is the reverse finction so that labels tth and dspacing are not correct. 
-        dspc_out = 2*np.degrees(np.arcsin(wavelength/2/tth_in))
-        
+        dspc_out = 2*np.degrees(np.arcsin(wavelength/2/tth))
+        stop
         
     return dspc_out
 

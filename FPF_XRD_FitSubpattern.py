@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 np.set_printoptions(threshold=sys.maxsize)
 import FPF_PeakFourierFunctions as ff
 
-
+plots_on = 1 # of 1 plots all the figures
+view = 0 # plots the final fit only
 # FIX ME;
 # The script should not need to know what the limits are - it should only see the data that it needs to fit. 
 
@@ -342,7 +343,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 newAziChunks.append(azichunks[j])
 
                 #plot the fits.
-                if 0:
+                if 0 or plots_on:
                     asdf_ord = np.argsort(twotheta.flatten()[chunks[j]])
                     tth_plot = twotheta.flatten()[chunks[j]][asdf_ord]
                     int_plot = intens.flatten()[chunks[j]][asdf_ord]
@@ -390,7 +391,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             bgfour.append(tempbg.tolist())
 
         #plot output of fourier fits....
-        if 0:
+        if 0 or plots_on:
 
             y_lims  = np.array([np.min(newAziChunks), np.max(newAziChunks)])
             y_lims  = np.around(y_lims/180)*180
@@ -581,8 +582,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
 
     ### Plot results to check
-    view = 0
-    if SaveFit==1 or view==1:
+    if SaveFit==1 or view==1 or plots_on==1:
         print '\nPlotting results for fit...\n'
 
         fullfit_intens = inp
@@ -682,7 +682,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             else:
                 plt.savefig('{}_{:d}.png'.format(filename, i))
 
-        if view==1:
+        if view==1 or plots_on==1:
             plt.show()
 
         plt.close()

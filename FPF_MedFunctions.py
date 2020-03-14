@@ -19,6 +19,15 @@ import Mca
 # FIX ME: Need a dependency check.  
 
 
+def DetectorRequirements():
+    
+    RequiredParams = [
+            'Calib_param'
+            ]
+    
+    return RequiredParams
+
+
 def ImportImage(ImageName):
 
     filename, file_extension = os.path.splitext(ImageName)
@@ -126,6 +135,9 @@ def GetCalibration(filenam):
     else:
         sys.exit('\n\nDetector is unknown. Edit function to add number of detectors and associated azimuths.\n\n')
 
+    # 2 theta angle in degrees
+    parms_dict['conversion_constant'] = 6.5
+    
     return parms_dict
 
 

@@ -153,14 +153,15 @@ def FitModel(Intfit, twotheta, azimu, ChangeArray, Shapes, Conv=None, symm=None,
     
     if not (method=='minimize'):
         
-        
         # FIX ME: replace with calls to LMFIT. https://lmfit.github.io/lmfit-py/model.html or equivalnet to get constrained fits.
         try:
+            
             popt,pcurv = curve_fit(ChangeParams,(twotheta,azimu,ChangeArray,Shapes,Conv,symm,fixed),Intfit,p0=p0array, ftol=2e-12, maxfev = 12000, method='lm', sigma=weights )    
         except:
             
             popt  = [np.nan] * np.empty(len(p0array))
             pcurv = [np.nan] * np.empty((len(p0array),len(p0array),))
+    
         
     else:
         #FIX ME: should curve fit be replaces with minimise? -- so that we can force the constraints.
@@ -176,7 +177,7 @@ def FitModel(Intfit, twotheta, azimu, ChangeArray, Shapes, Conv=None, symm=None,
         pcurv=0
 
     Shapes      = GuessApply(ChangeArray, Shapes, popt.tolist(), np.sqrt(np.abs(np.diag(pcurv))).tolist())
-    
+
     return Shapes, popt, pcurv
 
 

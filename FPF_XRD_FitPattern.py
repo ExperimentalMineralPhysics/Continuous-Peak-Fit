@@ -15,6 +15,7 @@ from FPF_XRD_FitSubpattern import FitSubpattern
 import FPF_PeakFourierFunctions as ff
 import FPF_WriteMultiFit as wr
 
+import FPF_WritePolydefixED as ED
 
 #FIX ME:
 # need to check that dependencies are present.
@@ -93,22 +94,51 @@ FitParameters = dir(FitSettings)
 # List all the required parameters.
 # NOTE: No doubt this will change hence denoted as a list that is worked over. 
 # 1. Have option to have list of files rather than sequence. This list needs to be called diff_files.
-RequiredList = ['AziBins',
-                'Calib_type', 
-                'Calib_data', 
-                'Calib_param', 
-                'Calib_pixels',   #this is only needed for GSAS-II and should be read from image file.
-                #'Calib_mask',    #a mask file is not strictly required.
-                'Output_NumAziWrite', 
-                'Output_directory', 
-                'Output_type', 
+
+# Inputs: 
+#   calibration type. (required)
+#   data - in form of:
+#       - file listing data files. (with or without directory)
+#       - file listing data file numbers (needs directory, file name, number digits, ending)
+#       - beginin and and numbers for files (needs directory, file name, number digits, ending)
+
+RequiredList = ['Calib_type', 
+                #'Calib_data',        # Removed because this is not strictly required.
+                #'Calib_param',       # Now added to calibration function file.
+                #'Calib_pixels',      # this is only needed for GSAS-II and should be read from image file. FIX ME: add to GSAS-II inputfile.
+                #'Calib_mask',        # a mask file is not strictly required.
+                'datafile_directory', 
                 'datafile_Basename', 
                 'datafile_Ending', 
-                'datafile_EndNum', 
-                'datafile_NumDigit', 
-                'datafile_StartNum', 
-                'datafile_directory', 
-                'fit_orders']
+                #'datafile_StartNum',  # now optionally replaced by datafile_Files
+                #'datafile_EndNum',    # now optionally replaced by datafile_Files
+                'datafile_NumDigit',
+                'AziBins',
+                'fit_orders',
+                'Output_type',
+                'Output_NumAziWrite', 
+                'Output_directory']
+
+AlternativesList = [
+                [['datafile_StartNum', 'datafile_EndNum'], ['datafile_Files'] ]
+                ]
+
+
+# load the detector functions here.
+if not 'Calib_type' in FitParameters:
+    sys.exit('There is no ''Calib_type'' in the settings. The fitting cannot proceed until a recognised Calibration type is present.')
+else:
+    calib_mod = 'FPF_' + FitSettings.Calib_type + 'Functions'
+try:
+    det = __import__(calib_mod)
+except ImportError:
+    raise ImportError('The ''Calib_type'' '+ FitSettings.Calib_type + ' is not recognised; the file ' + calib_mod +' does not exist. Check if the calibration type exists.')
+    # FIX ME: List possible calibration types.
+ 
+
+# Add detector requirements to the Required List of parameters - which has been read from the Detector functions. 
+RequiredList = RequiredList + det.DetectorRequirements()
+
 
 #check all the required values are present.
 all_present = 1
@@ -119,15 +149,35 @@ for x in range(len(RequiredList)):
     else:
         print 'The settings file requires a parameter called  \'',RequiredList[x],'\''
         all_present = 0
+
+possible = [[[],[]] * len(AlternativesList)]
+for x in range(len(AlternativesList)):
+    for y in range(2):
+        for z in range(len(AlternativesList[x][y])):
+            if AlternativesList[x][y][z] in FitParameters:
+            
+                possible[x][y].append(1)
+            else:
+                possible[x][y].append(0)
+
+# check alternatives in are present           
+for x in range(len(AlternativesList)):
+    if np.sum(possible[x][0]) == len(AlternativesList[x][0]) and np.sum(possible[x][1]) != len(AlternativesList[x][1]):
+        
+        all_present = all_present
+                   
+    elif np.sum(possible[x][0]) != len(AlternativesList[x][0]) and np.sum(possible[x][1]) == len(AlternativesList[x][1]):
+        
+        all_present = all_present
+                   
+    else:
+        all_present = 0
+            
 # exit if all parameters are not present
 if all_present == 0:
     sys.exit('The highlighed Settings are missing from the input file. Fitting cannot proceed until they are all present.')
 
 
-
-# load the detector functions here.
-calib_mod = 'FPF_' + FitSettings.Calib_type + 'Functions'
-det = __import__(calib_mod)
 
 
 # Detector check.
@@ -138,17 +188,12 @@ else:
     det_name = None
 FitSettings.Calib_detector = det.DetectorCheck(FitSettings.Calib_data, det_name)
 
-    
 
 # define locally required names.
 temporary_data_file = 'PreviousFit_JSON.dat'
 
 backg_type = 'flat'
 backg = [[4]]
-
-
-
-
 
 #### Main code ####
 
@@ -203,7 +248,7 @@ elif backg_type == 'flat':
 
 
 # diffraction patterns #
-if not 'diff_files' in locals():
+if not 'datafile_Files' in FitParameters:
     n_diff_files = FitSettings.datafile_EndNum - FitSettings.datafile_StartNum + 1
     diff_files = []
     for j in range(n_diff_files):
@@ -214,8 +259,19 @@ if not 'diff_files' in locals():
         
         #append diffraction pattern name and directory
         diff_files.append(FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n + FitSettings.datafile_Ending)
+elif 'datafile_Files' in FitParameters:
+    n_diff_files = len(FitSettings.datafile_Files)
+    diff_files = []
+    for j in range(n_diff_files):
+        # make list of diffraction pattern names
+
+        #make number of pattern
+        n = str(FitSettings.datafile_Files[j]).zfill(FitSettings.datafile_NumDigit)
+        
+        #append diffraction pattern name and directory
+        diff_files.append(FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n + FitSettings.datafile_Ending)
 else:
-    n_diff_files = len(diff_files)
+    n_diff_files = len(FitSettings.datafile_Files)
 
 
   
@@ -257,16 +313,21 @@ dspace   = ma.array(dspace,mask=intens.mask)
 ## plot calibration file
 if 0:
     fig = plt.figure()
-    plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #Better for monochromatic data.           #FIX ME: need variable for vmax.
-    #plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
-    plt.colorbar()
+    if FitSettings.Calib_type == 'Med':
+        #plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
+        for x in range(9):
+            plt.plot(twotheta[x], intens[x]+100*x)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
+        
+    else:
+        #plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #Better for monochromatic data.             #FIX ME: need variable for vmax.
+        plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0)  #Better for monochromatic data.             #FIX ME: need variable for vmax.
+        plt.colorbar()
     plt.show()
     plt.close()
     
-    
+    sys.exit()
 
 # Process the diffraction patterns #
-
 for j in range(n_diff_files):
 
     print 'Process ',diff_files[j]
@@ -280,12 +341,20 @@ for j in range(n_diff_files):
     ## plot input file
     if 0:
         fig = plt.figure()
-        plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 4000)  #FIX ME: need variable for vmax.
-        plt.colorbar()
+        if FitSettings.Calib_type == 'Med':
+            #plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
+            for x in range(9):
+                plt.plot(twotheta[x], intens[x]+100*x)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
+        
+        else:
+            #plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #Better for monochromatic data.             #FIX ME: need variable for vmax.
+            plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 4000)  #FIX ME: need variable for vmax.
+            plt.colorbar()
+        
         plt.show()
         plt.close()
         
-        #quit()
+        stop #quit()
         
 
     #get previous fit (if exists)
@@ -341,7 +410,7 @@ for j in range(n_diff_files):
     #filename, file_extension = os.path.splitext(diff_files[j])
     filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
     filename = filename+'.json'
-    print filename
+    
     with open(filename, 'w') as TempFile:
         # Write a JSON string into the file.
         json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
@@ -361,3 +430,11 @@ for j in range(n_diff_files):
 
         # Write a JSON string into the file.
         json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
+
+
+# Write the output files.
+# This is there so that the output file can be run separately from the fitting of the diffraction patterns. 
+# FIX ME: Need to add optins for choice of output.
+ED.WritePolydefixED(FitSettings, parms_dict)
+
+

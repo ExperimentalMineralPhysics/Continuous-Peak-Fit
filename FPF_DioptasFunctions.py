@@ -18,6 +18,16 @@ import fabio
 #   -   Load mask
 #   -   Load Calibration
 
+def DetectorRequirements():
+    
+    RequiredParams = [
+            'Calib_param',
+            'Calib_detector',
+            #'Calib_pixels'
+            ]
+    
+    return RequiredParams
+
 
 
 def ImportImage(ImageName):

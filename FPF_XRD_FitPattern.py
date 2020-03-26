@@ -25,6 +25,8 @@ iterations = 1  # Number of iterations of refinement if refine=True
 #        -- this maybe a dependency of fabio and so installed with pyFAI but I have not checked.
 # pyFAI  -- sudo apt-get install pyfai
 # Fabio  -- but this appears to be installed with pyFAI.
+# lmfit  -- 
+# pillow -- 
 
 
 # Needed for JSON to save fitted parameters. 
@@ -348,7 +350,7 @@ for j in range(n_diff_files):
         json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
 
     # FIX ME: Need to add options for choice of output.
-    wr.WriteMultiFit(diff_files[j], Fitted_param, FitSettings.Output_NumAziWrite, parms_dict['conversion_constant'])
+    # wr.WriteMultiFit(diff_files[j], Fitted_param, FitSettings.Output_NumAziWrite, parms_dict['conversion_constant'])
 
     # #Write the fits to a temporary file
     # TempFilename = open(temporary_data_file, 'w')

@@ -559,14 +559,14 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                                       "profile": [pguess],
                                       "width": [wguess]
                                       })
-                        '''
+                        
                         # DMF added needs checking - required to drive fit and avoid failures
                         lims.append({"d-space": [np.min(dspace.flatten()[chunks[j]]), np.max(dspace.flatten()[chunks[j]])],
                                  "height": [0, np.inf],
                                  "profile": [0, 1],
                                  "width": [0, (np.max(dspace.flatten()[chunks[j]]) +
                                                np.min(dspace.flatten()[chunks[j]])) / 2]})
-                        '''
+                        
 
                 else:
                     # guess guesses from data slice - assuming a single peak
@@ -639,6 +639,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 for pk in range(len(Guesses['peak'])):
 
                     if 'dfour' in locals():
+                        #SAH need to add limits to the fitter here.
+                        ''' old code
                         params.add('peak_'+str(pk)+'_d0', Guesses['peak'][pk]['d-space'][0])
                         params.add('peak_'+str(pk)+'_h0', Guesses['peak'][pk]['height'][0])
                         if pfixed == 1:
@@ -647,6 +649,22 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                         else:
                             params.add('peak_'+str(pk)+'_p0', Guesses['peak'][pk]['profile'][0])
                         params.add('peak_'+str(pk)+'_w0', Guesses['peak'][pk]['width'][0])
+                        '''
+                        params.add('peak_'+str(pk)+'_d0', Guesses['peak'][pk]['d-space'][0],
+                                   min=limits['peak'][pk]['d-space'][0], max=limits['peak'][pk]['d-space'][1])
+                        params.add('peak_'+str(pk)+'_h0', Guesses['peak'][pk]['height'][0],
+                                   min=limits['peak'][pk]['height'][0], max=limits['peak'][pk]['height'][1])
+                        if pfixed == 1:
+                            params.add('peak_'+str(pk)+'_p0', Guesses['peak'][pk]['profile'][0],
+                                       min=limits['peak'][pk]['profile'][0], max=limits['peak'][pk]['profile'][1],
+                                       vary=False)
+                        else:
+                            params.add('peak_'+str(pk)+'_p0', Guesses['peak'][pk]['profile'][0],
+                                       min=limits['peak'][pk]['profile'][0], max=limits['peak'][pk]['profile'][1])
+                        params.add('peak_'+str(pk)+'_w0', Guesses['peak'][pk]['width'][0],
+                                   min=limits['peak'][pk]['width'][0], max=limits['peak'][pk]['width'][1])
+                        
+                        
                     else:
 
                         # If using bounds/limits should be written as below:
@@ -677,7 +695,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 #                                  bounds=limits)
                 # In above, limits passed but not used, check desired functionality
 
-                print('\nFit to data chunk ' + str(j) + ' of ' + str(len(chunks)) + '\n')
+                print('\nFit to data chunk ' + str(j+1) + ' of ' + str(len(chunks)) + '\n')
                 # print(out.fit_report())
                 params = out.params
                 params.pretty_print()
@@ -751,7 +769,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         wfour = []
         pfour = []
         master_params = Parameters()  # initiate total Parameter class to add to
-        # FIX ME: parameters initiated with no limits currently
+        # FIX ME: parameters initiated with no limits currently -- SAH: I think I have fixed this now. #
         for j in range(peeks):
 
             # symmetry
@@ -828,14 +846,14 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             # plt.subplot(511)
             ax1.set_title('D-spacing')
             for j in range(peeks):
-                ax1.scatter(newAziChunks, newd0[j], s=20, facecolors='none', edgecolors='b')  # FIX ME: should have
-                # a different colour for each peak in the subpattern
+                ax1.scatter(newAziChunks, newd0[j], s=10)
                 # plt.errorbar(newAziChunks,newd0[j],newd0Err[j], linestyle="None") #FIX ME: should have a different
                 # colour for each peak in the subpattern
                 gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AziPlot), param=dfour[j][0])
                 # have to pass params but use of param will override
-                ax1.plot(AziPlot, gmod_plot, 'r-')
+                ax1.plot(AziPlot, gmod_plot)
                 # plt.plot(AziPlot, ff.Fourier_expand(np.array(AziPlot), dfour[j][0]), 'r-')
+
 
             # plt.subplot(512)
             ax2 = fig.add_subplot(5, 1, 2)
@@ -845,9 +863,9 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     symm = orders['peak'][j]['symmetry']
                 else:
                     symm = 1
-                ax2.scatter(newAziChunks, newHall[j], s=20, facecolors='none', edgecolors='b')
+                ax2.scatter(newAziChunks, newHall[j], s=10)
                 gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AziPlot) * symm, param=hfour[j][0])
-                ax2.plot(AziPlot, gmod_plot, 'r-')
+                ax2.plot(AziPlot, gmod_plot)#, 'r-')
                 # plt.plot(AziPlot, ff.Fourier_expand(np.array(AziPlot) * symm, hfour[j][0]), 'r-')
 
             ax3 = fig.add_subplot(5, 1, 3)
@@ -858,9 +876,9 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     symm = orders['peak'][j]['symmetry']
                 else:
                     symm = 1
-                ax3.scatter(newAziChunks, newWall[j], s=20, facecolors='none', edgecolors='b')
+                ax3.scatter(newAziChunks, newWall[j], s=10)
                 gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AziPlot) * symm, param=wfour[j][0])
-                ax3.plot(AziPlot, gmod_plot, 'r-')
+                ax3.plot(AziPlot, gmod_plot)
                 # plt.plot(AziPlot, ff.Fourier_expand(np.array(AziPlot) * symm, np.array(wfour[j][0])), 'r-')
 
             ax4 = fig.add_subplot(5, 1, 4)
@@ -871,9 +889,9 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     symm = orders['peak'][j]['symmetry']
                 else:
                     symm = 1
-                ax4.scatter(newAziChunks, newPall[j], s=20, facecolors='none', edgecolors='b')
+                ax4.scatter(newAziChunks, newPall[j], s=10)
                 gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AziPlot) * symm, param=pfour[j][0])
-                ax4.plot(AziPlot, gmod_plot, 'r-')
+                ax4.plot(AziPlot, gmod_plot)
                 # plt.plot(AziPlot, ff.Fourier_expand(np.array(AziPlot) * symm, np.array(pfour[j][0])), 'r-')
 
             for k in range(len(lenbg)):
@@ -881,9 +899,9 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 y_plt = len(lenbg) * 4 + k + 1
                 ax5 = fig.add_subplot(5, x_plt, y_plt)
                 ax5.set_title('Background')
-                ax5.scatter(newAziChunks, newBGall[k], s=20, facecolors='none', edgecolors='b')
+                ax5.scatter(newAziChunks, newBGall[k], s=10)
                 gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AziPlot), param=bgfour[k][0])
-                ax5.plot(AziPlot, gmod_plot, 'r-')
+                ax5.plot(AziPlot, gmod_plot)
                 # plt.plot(AziPlot, ff.Fourier_expand(np.array(AziPlot), np.array(bgfour[k])), 'r-')
 
             plt.show()
@@ -1088,7 +1106,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
     # Plot results to check
     view = 0
-    if SaveFit == 1 or view == 1:
+    if SaveFit == 1 or view == 1 or debug:
         print('\nPlotting results for fit...\n')
 
         gmodel = Model(ff.PeaksModel, independent_vars=['twotheta', 'azi'])
@@ -1123,39 +1141,39 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
         fig = plt.figure()
         ax = fig.add_subplot(1, 3, 1)
-        ax1 = plt.subplot(131)
+        axO1 = plt.subplot(131)
         # plt.scatter(twotheta, azimu, s=1, c=np.log(intens), edgecolors='none', cmap=plt.cm.jet)
         plt.scatter(twotheta.flatten(), azimu.flatten(), s=dot_size, c=(intens.flatten()), edgecolors='none',
                     cmap=plt.cm.magma_r, vmin=ValMin, vmax=ValMax)
-        ax1.set_title('Data')
-        ax1.set_xlabel(xlabel_str)
-        ax1.set_ylabel('Azimuth (deg)')
-        ax1.set_xlim([np.min(twotheta.flatten()), np.max(twotheta.flatten())])
-        ax1.set_ylim(y_lims)
+        axO1.set_title('Data')
+        axO1.set_xlabel(xlabel_str)
+        axO1.set_ylabel('Azimuth (deg)')
+        axO1.set_xlim([np.min(twotheta.flatten()), np.max(twotheta.flatten())])
+        axO1.set_ylim(y_lims)
         locs, labels = plt.xticks()
         plt.setp(labels, rotation=90)
         plt.colorbar()
-        ax2 = plt.subplot(132)
+        axO2 = plt.subplot(132)
         # plt.scatter(twotheta, azimu, s=1, c=np.log(fullfit_intens), edgecolors='none', cmap=plt.cm.jet)
         plt.scatter(twotheta.flatten(), azimu.flatten(), s=dot_size, c=(fullfit_intens.flatten()), edgecolors='none',
                     cmap=plt.cm.magma_r, vmin=ValMin, vmax=ValMax)
         plt.colorbar()
-        ax2.set_title('Model')
-        ax2.set_xlabel(xlabel_str)
-        ax2.set_ylabel('Azimuth (deg)')
-        ax2.set_xlim([np.min(twotheta.flatten()), np.max(twotheta.flatten())])
-        ax2.set_ylim(y_lims)
+        axO2.set_title('Model')
+        axO2.set_xlabel(xlabel_str)
+        axO2.set_ylabel('Azimuth (deg)')
+        axO2.set_xlim([np.min(twotheta.flatten()), np.max(twotheta.flatten())])
+        axO2.set_ylim(y_lims)
         locs, labels = plt.xticks()
         plt.setp(labels, rotation=90)
-        ax3 = plt.subplot(133)
+        axO3 = plt.subplot(133)
         # plt.scatter(twotheta, azimu, s=1, c=np.log(intens-fullfit_intens), edgecolors='none', cmap=plt.cm.jet)
         plt.scatter(twotheta.flatten(), azimu.flatten(), s=dot_size, c=(intens.flatten() - fullfit_intens.flatten()),
                     edgecolors='none', cmap=plt.cm.coolwarm, vmin=ValMin3, vmax=ValMax3)
-        ax3.set_title('Residuals (data - model)')
-        ax3.set_xlabel(xlabel_str)
-        ax3.set_ylabel('Azimuth (deg)')
-        ax3.set_xlim([np.min(twotheta.flatten()), np.max(twotheta.flatten())])
-        ax3.set_ylim(y_lims)
+        axO3.set_title('Residuals (data - model)')
+        axO3.set_xlabel(xlabel_str)
+        axO3.set_ylabel('Azimuth (deg)')
+        axO3.set_xlim([np.min(twotheta.flatten()), np.max(twotheta.flatten())])
+        axO3.set_ylim(y_lims)
         locs, labels = plt.xticks()
         plt.setp(labels, rotation=90)
         plt.colorbar()
@@ -1193,7 +1211,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             else:
                 plt.savefig('{}_{:d}.png'.format(filename, i))
 
-        if view == 1:
+        if view == 1 or debug:
             plt.show()
 
         plt.close()

@@ -120,7 +120,7 @@ def PeaksModel_old(twotheta, azi, Shapes, Conv=None, symm=None, PenCalc=None):
     return I, POut
 
 
-def gather_paramerrs_to_list(param, param_str, comp, nterms=None):
+def gather_paramerrs_to_list(param, param_str, comp=None, nterms=None): #fix me comp=none makes lots of erros while running but it crashes if =none is not presnet.  
     """
     Make a nested list of parameters and errors from a lmfit Parameters class
     :param param: dict with multiple coefficients per component
@@ -739,7 +739,7 @@ def Fourier_fit(ydata, azimu, param, terms=None, errs=None, param_str='peak_0', 
     """
 
     # get NaN values.
-    idx = np.isfinite(azimu) & np.isfinite(ydata) & (ydata > 0)
+    idx = np.isfinite(azimu) & np.isfinite(ydata) & (ydata > 0) #FIX ME: SAH.ydata>0 is true for XRD data but not necessarily true for all data.
     # print(idx)
     if type(terms) == list:
         terms = terms[0]
@@ -761,9 +761,9 @@ def Fourier_fit(ydata, azimu, param, terms=None, errs=None, param_str='peak_0', 
     # Attempt to mitigate failure of fit with weights containing 'None' values
     # Replace with nan and alter dtype from object to float64
     new_errs = errs[idx]
-    new_errs[new_errs is None] = 10 * new_errs[new_errs != None].max()
+    new_errs[new_errs == None] = 1000 * new_errs[new_errs != None].max()
     new_errs = new_errs.astype('float64')
-    out = fmodel.fit(ydata[idx], param, azimu=azimu[idx], method=fit_method, weights=new_errs, comp_str=param_str,
+    out = fmodel.fit(ydata[idx], param, azimu=azimu[idx], method=fit_method, sigma=new_errs, comp_str=param_str,
                      nan_policy='propagate')
 
     return out

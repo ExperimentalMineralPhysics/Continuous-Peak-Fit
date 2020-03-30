@@ -70,24 +70,37 @@ def params_to_newparams(params, num_peaks, num_bg, order_peak):
 
         if 'symmetry' in order_peak[i]:  # orders['peak'][j]:  # FIX ME: the symmetry part of this is a horrible
             # way of doing it.
-            peaks.append({"d-space": dspace,
-                          "height": hspace,
-                          "width": wspace,
-                          "profile": pspace,
-                          "symmetry": order_peak[i]['symmetry']})
+            peaks.append({"d-space":     dspace[0],
+                          "d-space_err": dspace[1],
+                          "height":      hspace[0],
+                          "height_err":  hspace[1],
+                          "width":       wspace[0],
+                          "width_err":   wspace[1],
+                          "profile":     pspace[0],
+                          "profile_err": pspace[1],
+                          "symmetry":    order_peak[i]['symmetry']})
         else:
-            peaks.append({"d-space": dspace,
-                          "height": hspace,
-                          "width": wspace,
-                          "profile": pspace})
-
+            peaks.append({"d-space": dspace[0],
+                          "d-space_err": dspace[1],
+                          "height":      hspace[0],
+                          "height_err":  hspace[1],
+                          "width":       wspace[0],
+                          "width_err":   wspace[1],
+                          "profile":     pspace[0],
+                          "profile_err": pspace[1]})
     # Get background parameters
     bgspace = []
+    bgspace_err = []
     for b in range(num_bg):
         new_str = 'bg_c'+str(b)+'_f'
-        bgspace.append(ff.gather_params_to_list(params, new_str))
+        bgspc = ff.gather_paramerrs_to_list(params, new_str)
+        bgspace.append(bgspc[0])
+        bgspace_err.append(bgspc[1])
+        #print('background', ff.gather_params_to_list(params, new_str))
+        #bgspace.append(ff.gather_params_to_list(params, new_str))
 
-    NewParams = {"background": bgspace, "peak": peaks}
+    #NewParams = {"background": bgspace, "peak": peaks}
+    NewParams = {"background": bgspace, "background_err": bgspace_err, "peak": peaks}
 
     return NewParams
 
@@ -1053,6 +1066,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                       weights=None, params=master_params)
     master_params = out.params
     print('\nFinal Coefficients\n')
+    #print(out.fit_report(min_correl=1))
     print(out.fit_report())
     # print('Final Coefficients\n', NewParams)
 
@@ -1249,8 +1263,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 }
 
     NewParams.update({'FitProperties': FitStats})
-    # print(NewParams)
-
 
     # FIX ME: Need to put master_params into NewParams to return!
 

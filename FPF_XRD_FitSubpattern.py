@@ -104,7 +104,7 @@ def params_to_newparams(params, num_peaks, num_bg, order_peak):
 
     return NewParams
 
-def run_initial_fit(azi, y_data, y_data_errs, params, param_str, comp, order, extras, method='leastsq'):
+def run_initial_fit(azi, y_data, y_data_errs, params, param_str, comp, order, extras, method='leastsq', symm=1):
     """
     :param azi: x-data arr float
     :param y_data: y_data arr float
@@ -121,7 +121,7 @@ def run_initial_fit(azi, y_data, y_data_errs, params, param_str, comp, order, ex
     params = ff.initiate_params(params, param_str, comp, order, max=max, min=min, expr=expr)
     params = ff.unvary_params(params, param_str, comp)  # set other parameters to not vary
     fout = ff.Fourier_fit(azimu=azi, ydata=np.array(y_data), param=params, errs=np.array(y_data_errs),
-                          param_str=param_str + '_' + comp, fit_method=method)
+                          param_str=param_str + '_' + comp, symm=symm, fit_method=method)
     params = fout.params
     # dfour.append(ff.gather_paramerrs_to_list(params, param_str, comp))
     # params.pretty_print()
@@ -144,34 +144,41 @@ def initial_component_fits(master_params, param_str, data_arrays, comp_lists, or
     dfour, hfour, wfour, pfour = comp_lists
     d0_order, h_order, w_order, p_order = order_list
     d_lims, h_lims, w_lims, p_lims = limits
+    print(d_lims)
+    print(symm)
 
+    #initiate symmetry 
+    comp = 's'
+    master_params = ff.initiate_params(master_params, param_str, comp, 0, max=10, min=1, value=symm)
+    #master_params.pretty_print()
+    
     # FIX ME: need to propagate method properly
     comp = 'd'
-    master_params = run_initial_fit(azi=np.array(newAziChunks), y_data=np.array(newd0), y_data_errs=np.array(newd0Err),
-                                    params=master_params, param_str=param_str, comp=comp, order=d0_order,
-                                    extras=d_lims, method='leastsq')
+    master_params = run_initial_fit(azi=np.array(newAziChunks), y_data=np.array(newd0), 
+                                    y_data_errs=np.array(newd0Err),  params=master_params, param_str=param_str, 
+                                    comp=comp, order=d0_order, extras=d_lims, method='leastsq', symm=1)
     dfour.append(ff.gather_paramerrs_to_list(master_params, param_str, comp))
-    # master_params.pretty_print()
-
+    #master_params.pretty_print()
+  
     comp = 'h'
-    master_params = run_initial_fit(azi=np.array(newAziChunks)*symm, y_data=np.array(newHall),
+    master_params = run_initial_fit(azi=np.array(newAziChunks), y_data=np.array(newHall),
                                     y_data_errs=np.array(newHallErr), params=master_params, param_str=param_str,
-                                    comp=comp, order=h_order, extras=d_lims, method='leastsq')
+                                    comp=comp, order=h_order, extras=h_lims, method='leastsq', symm=symm)
     hfour.append(ff.gather_paramerrs_to_list(master_params, param_str, comp))
-    # master_params.pretty_print()
+    master_params.pretty_print()
 
     comp = 'w'
-    master_params = run_initial_fit(azi=np.array(newAziChunks)*symm, y_data=np.array(newWall),
+    master_params = run_initial_fit(azi=np.array(newAziChunks), y_data=np.array(newWall),
                                     y_data_errs=np.array(newWallErr), params=master_params, param_str=param_str,
-                                    comp=comp, order=w_order, extras=w_lims, method='leastsq')
+                                    comp=comp, order=w_order, extras=w_lims, method='leastsq', symm=symm)
     wfour.append(ff.gather_paramerrs_to_list(master_params, param_str, comp))
     # master_params.pretty_print()
 
     # FIX ME: seems to occur regardless of pfixed as checked in other places, is this correct?
     comp = 'p'
-    master_params = run_initial_fit(azi=np.array(newAziChunks)*symm, y_data=np.array(newPall),
+    master_params = run_initial_fit(azi=np.array(newAziChunks), y_data=np.array(newPall),
                                     y_data_errs=np.array(newPallErr), params=master_params, param_str=param_str,
-                                    comp=comp, order=p_order, extras=p_lims, method='leastsq')
+                                    comp=comp, order=p_order, extras=p_lims, method='leastsq', symm=symm)
     pfour.append(ff.gather_paramerrs_to_list(master_params, param_str, comp))
     # master_params.pretty_print()
 
@@ -216,9 +223,9 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
     master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
     master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
     # master_params.pretty_print()
-    out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(), num_peaks=len(Guesses['peak']),
-                      nterms_back=len(bgguess), Conv=conversion_factor, fixed=pfixed, method=None, weights=None,
-                      params=master_params)
+    out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(), 
+                      num_peaks=len(Guesses['peak']), nterms_back=len(bgguess), Conv=conversion_factor, 
+                      fixed=pfixed, method=None, weights=None,  params=master_params)
     # master_params = out.params
     dfour.append(ff.gather_paramerrs_to_list(master_params, param_str, comp))
     # print('d after fit')
@@ -227,7 +234,7 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
     comp = 'h'
     master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
     master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
-    out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),
+    out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(), 
                       num_peaks=len(Guesses['peak']), nterms_back=len(bgguess), Conv=conversion_factor,
                       fixed=pfixed, method=None, weights=None, params=master_params)
     master_params = out.params
@@ -782,7 +789,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         wfour = []
         pfour = []
         master_params = Parameters()  # initiate total Parameter class to add to
-        # FIX ME: parameters initiated with no limits currently -- SAH: I think I have fixed this now. #
+        # FIX ME: parameters initiated with no limits currently -- SAH: I think I have fixed this now. no i have not. silly boy.
         for j in range(peeks):
 
             # symmetry
@@ -940,10 +947,14 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 for k in range(peeks):
 
                     param_str = 'peak_' + str(j)
-                    if 'profile_fixed' not in orders['peak'][0]:
+                    if 'profile_fixed' not in orders['peak'][k]:
                         p_fixed = None
                     else:
                         p_fixed = True
+                    if 'symmetry' in orders['peak'][k]:
+                        symm = orders['peak'][k]['symmetry']
+                    else:
+                        symm = 1
                     master_params, dfour, hfour, wfour, pfour = update_component_fits(master_params, intens, azimu,
                                                                                       twotheta, param_str,
                                                                                       [dfour, hfour, wfour, pfour],
@@ -1052,8 +1063,15 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
     for p in master_params:
         master_params[p].set(vary=True)
 
-    # unvary p for appropriate peaks
     for x in range(num_peaks):
+        #unvary symmetry!! This should never vary.
+        new_str = 'peak_' + str(x) + '_s'
+        str_keys = [key for key, val in master_params.items() if new_str in key]
+        print(str_keys)
+        for pstr in str_keys:
+            master_params[pstr].set(vary=False)
+        
+        # unvary p for appropriate peaks
         if 'profile_fixed' in orders['peak'][x]:
             new_str = 'peak_' + str(x) + '_' + p
             str_keys = [key for key, val in master_params.items() if new_str in key]

@@ -120,7 +120,7 @@ def PeaksModel_old(twotheta, azi, Shapes, Conv=None, symm=None, PenCalc=None):
     return I, POut
 
 
-def gather_paramerrs_to_list(param, param_str, comp=None, nterms=None): #fix me comp=none makes lots of erros while running but it crashes if =none is not presnet.  
+def gather_paramerrs_to_list(param, param_str, comp=None, nterms=None): #fix me: Doesn't run without Comp=None. Maybe it was never validated before SAH ran it. 
     """
     Make a nested list of parameters and errors from a lmfit Parameters class
     :param param: dict with multiple coefficients per component
@@ -187,7 +187,7 @@ def gather_params_from_dict(param, param_str, comp):
     return param_list
 
 
-def initiate_params(param, param_str, comp, nterms, max=None, min=None, expr=None):
+def initiate_params(param, param_str, comp, nterms, max=None, min=None, expr=None, value=1.):
     """
     Create all required coefficients for no. terms
     :param param: lmfit Parameter class (can be empty)
@@ -197,7 +197,7 @@ def initiate_params(param, param_str, comp, nterms, max=None, min=None, expr=Non
     :return:
     """
     for t in range(2 * nterms + 1):
-        param.add(param_str + '_' + comp + str(t), 1., max=max, min=min, expr=expr)
+        param.add(param_str + '_' + comp + str(t), value, max=max, min=min, expr=expr)
     return param
 
 
@@ -284,8 +284,8 @@ def PeaksModel(twotheta, azi, num_peaks=None, nterms_back=None, Conv=None, PenCa
     Ipeak = []
     for a in range(num_peaks):
 
-        if 'peak_' + str(a) + '_s' in params:
-            symm = params['peak_' + str(a) + '_s']
+        if 'peak_' + str(a) + '_s0' in params:
+            symm = params['peak_' + str(a) + '_s0']
         else:
             symm = 1
 
@@ -726,7 +726,7 @@ def Fourier_expand(azimu, param=None, comp_str=None, **params):
     return fout
 
 
-def Fourier_fit(ydata, azimu, param, terms=None, errs=None, param_str='peak_0', fit_method='leastsq'):
+def Fourier_fit(ydata, azimu, param, terms=None, errs=None, param_str='peak_0', symm=1, fit_method='leastsq'):
     """Fit the Fourier expansion to number of required terms
     :param ydata: Component data array to fit float
     :param azimu: data array float
@@ -734,6 +734,7 @@ def Fourier_fit(ydata, azimu, param, terms=None, errs=None, param_str='peak_0', 
     :param terms: number of terms to fit int
     :param errs: Component data array errors of size ydata
     :param param_str: str start of parameter name
+    :param symm: symmetry in azimuth of the fourier to be fit
     :param fit_method: lmfit method default 'leastsq'
     :return: lmfit Model result
     """
@@ -763,7 +764,7 @@ def Fourier_fit(ydata, azimu, param, terms=None, errs=None, param_str='peak_0', 
     new_errs = errs[idx]
     new_errs[new_errs == None] = 1000 * new_errs[new_errs != None].max()
     new_errs = new_errs.astype('float64')
-    out = fmodel.fit(ydata[idx], param, azimu=azimu[idx], method=fit_method, sigma=new_errs, comp_str=param_str,
+    out = fmodel.fit(ydata[idx], param, azimu=azimu[idx]*symm, method=fit_method, sigma=new_errs, comp_str=param_str,
                      nan_policy='propagate')
 
     return out

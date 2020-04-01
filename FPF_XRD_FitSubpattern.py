@@ -1026,16 +1026,72 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         NewParams = PreviousParams
         pfixed = 'something'
         print('Somehow got to previousparams')
-        print(PreviousParams)
-        for ba in PreviousParams:
-            print(PreviousParams[ba])
+        #print(PreviousParams)
+        #for ba in PreviousParams:
+        #    print(PreviousParams[ba])
+            
+        #FIX ME: should this be some def or subfunction? 
+        master_params = Parameters()  # initiate total Parameter class to add to
+        # FIX ME: parameters initiated with no limits currently 
+        
+        for j in range(peeks):
+            
+            param_str = 'peak_' + str(j)  # defines peak string to start parameter name
 
+            #initiate symmetry
+            comp = 's'
+            if 'symmetry' in orders['peak'][j].keys():
+                symm = orders['peak'][j]['symmetry']
+            else:
+                symm = 1
+            master_params = ff.initiate_params(master_params, param_str, comp, 0, max=10, min=1, value=np.array(symm))
+                
+            #initiate d
+            dfour = PreviousParams['peak'][j]['d-space']
+            comp = 'd'
+            master_params = ff.initiate_params(master_params, param_str, comp, orders['peak'][j]['d-space'], value=np.array(dfour))
+
+            #initiate h
+            hfour = PreviousParams['peak'][j]['height']
+            comp = 'h'
+            master_params = ff.initiate_params(master_params, param_str, comp, orders['peak'][j]['height'], value=hfour)
+
+            #initiate w
+            wfour = PreviousParams['peak'][j]['width']
+            comp = 'w'
+            master_params = ff.initiate_params(master_params, param_str, comp, orders['peak'][j]['width'], value=wfour)
+
+            #initiate p
+            pfour = PreviousParams['peak'][j]['profile']
+            comp = 'p'
+            master_params = ff.initiate_params(master_params, param_str, comp, orders['peak'][j]['profile'], value=pfour)
+
+
+        # Initiate background parameters
+        comp = 'bg'
+        for b in range(len(backg)):
+            # print(backg[b])
+            for f_b in range(len(backg[b])):
+                # print(b, f_b)
+                master_params.add('bg_c' + str(b) + '_f' + str(f_b), PreviousParams['background'][b][f_b])  # need limits
+        
+        #master_params.pretty_print()
+                
+        # Guess for background, if orders and therefore no guess input, choose appropriate
+        # copied from above to allow the code to run. FIX ME: doesn't need all this code.
+        singleBackg = [[] for i in range(len(backg))]
+        for i in range(len(backg)):
+            singleBackg[i] = [backg[i][0]]
+        bgguess = singleBackg
+        bgguess[0][0] = 5
+        
+        
         # def previous_params_to_params(PreviousParams):
 
-
-
         # FIX ME: need to confirm the number of parameters matches the orders of the fits.
-
+        
+        
+        
     # FIX ME: Need to sort out use of lmfit parameters and NewParams, below will not work currently for loaded
     # parameters as master_params not created from NewParams yet. If possible use the json import/export within lmfit.
 
@@ -1067,7 +1123,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         #unvary symmetry!! This should never vary.
         new_str = 'peak_' + str(x) + '_s'
         str_keys = [key for key, val in master_params.items() if new_str in key]
-        print(str_keys)
         for pstr in str_keys:
             master_params[pstr].set(vary=False)
         

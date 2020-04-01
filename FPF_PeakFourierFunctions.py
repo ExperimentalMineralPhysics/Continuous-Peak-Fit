@@ -196,8 +196,16 @@ def initiate_params(param, param_str, comp, nterms, max=None, min=None, expr=Non
     :param nterms: number of terms required
     :return:
     """
+    
+    value = np.array(value) #force input to be array so that can be iterated over
+
     for t in range(2 * nterms + 1):
-        param.add(param_str + '_' + comp + str(t), value, max=max, min=min, expr=expr)
+        if value.size==1:
+            ind = 0
+        else:
+            ind = t
+        param.add(param_str + '_' + comp + str(t), value.item(ind), max=max, min=min, expr=expr)
+        # param.add(param_str + '_' + comp + str(t), value, max=max, min=min, expr=expr)
     return param
 
 

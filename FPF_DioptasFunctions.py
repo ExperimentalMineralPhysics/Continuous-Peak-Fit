@@ -19,6 +19,15 @@ import fabio
 #   -   Load mask
 #   -   Load Calibration
 
+def Requirements():
+    
+    RequiredParams = [
+            'Calib_param',
+            'Calib_detector',
+            #'Calib_pixels'
+            ]
+    
+    return RequiredParams
 
 def ImportImage(ImageName):
     # im = Image.open(ImageName) ##always tiff?- no

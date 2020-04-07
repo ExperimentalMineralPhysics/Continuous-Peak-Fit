@@ -6,137 +6,208 @@ import FPF_PeakFourierFunctions as ff
 import json
 
 
-def WriteMultiFit(base_file_name, data_to_write, Num_Azi, wavelength):
-# writes *.fit files required by polydefix.
+def Requirements():
+    #List non-universally required parameters for writing this output type.
+    
+    RequiredParams = [
+            'Output_NumAziWrite'
+            ]
+    OptionalParams = [
+            'Output_ElasticProperties', #FIX ME: this needs to be included
+            'Output_directory' # if no direcrtory is specified write to current directory.
+            ]
+    
+    return RequiredParams
+
+
+def WriteOutput(FitSettings, parms_dict):
+    #writes output from multifit in the form of *.fit files required for polydefix.
+    #writes a separate file for each diffraction pattern.
+    #uses the parameters in the json files to do so.
+
+    
+    FitParameters = dir(FitSettings)
+    
+    #Parse the required inputs. 
+    base_file_name = FitSettings.datafile_Basename
+    
+    # diffraction patterns 
+    # Identical to code in XRD_FitPatterns
+    if not 'datafile_Files' in FitParameters:
+        n_diff_files = FitSettings.datafile_EndNum - FitSettings.datafile_StartNum + 1
+        diff_files = []
+        for j in range(n_diff_files):
+            # make list of diffraction pattern names
+    
+            #make number of pattern
+            n = str(j+FitSettings.datafile_StartNum).zfill(FitSettings.datafile_NumDigit)
+            
+            #append diffraction pattern name and directory
+            diff_files.append(FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n + FitSettings.datafile_Ending)
+    elif 'datafile_Files' in FitParameters:
+        n_diff_files = len(FitSettings.datafile_Files)
+        diff_files = []
+        for j in range(n_diff_files):
+            # make list of diffraction pattern names
+    
+            #make number of pattern
+            n = str(FitSettings.datafile_Files[j]).zfill(FitSettings.datafile_NumDigit)
+            
+            #append diffraction pattern name and directory
+            diff_files.append(FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n + FitSettings.datafile_Ending)
+    else:
+        n_diff_files = len(FitSettings.datafile_Files)
+
+    if 'Output_directory' in FitParameters:
+        out_dir = FitSettings.Output_directory
+    else:
+        out_dir = './'
+        
+    #def WriteOutput(base_file_name, data_to_write, Num_Azi, wavelength):
+    ## writes *.fit files required by polydefix.
 
     # force Num_Azi to be a float
-    Num_Azi = float(Num_Azi)
-
-    # create output file name from passed name
-    path, filename = os.path.split(base_file_name)
-    base, ext = os.path.splitext(filename)
-    out_file = base + '.fit'
+    #Num_Azi = float(Num_Azi)
+    Num_Azi = FitSettings.Output_NumAziWrite
+    wavelength = parms_dict['conversion_constant']
 
 
-    text_file = open(out_file, "w")
-
-
-    #headers. set file version to be 1.
-    text_file.write("# File version\n" )
-    text_file.write("1\n" )
-
-    #header peak profile
-    # I dont know how used this is.
-    #Also need to write a single number.
-    if 'profile' in data_to_write:
-        to_write = data_to_write['profile']
-    else:
-        to_write = 0
-
-    text_file.write("# Peak profile (0: gauss, 1: pseudo-voigt, 2: lorentz)\n" )
-    text_file.write("%8i\n" % to_write)
+    for z in range(n_diff_files):
+        
+        #read file to write output for
+        filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
+        filename = filename+'.json'
+        
+        print('Writing', filename)
+        
+        # Read JSON data from file
+        with open(filename) as json_data:
+            data_to_write = json.load(json_data)
+        
+        
+        # create output file name from passed name
+        path, filename = os.path.split(diff_files[z])
+        base, ext = os.path.splitext(filename)
+        out_file = out_dir + base + '.fit'
     
-    #number of subpatterns
-    # FIX ME: I dont know how the data will be input here.
-    # num_subpatterns = 2
-
-    num_subpatterns = len(data_to_write)
-
-    text_file.write("# Number of sub-patterns\n" )
-    text_file.write("%8i\n" % num_subpatterns)
-
-    #print type(num_subpatterns)
-    #print num_subpatterns
     
-    for j in range(num_subpatterns):
+        text_file = open(out_file, "w")
 
-        text_file.write("# Sub-patterns        %i\n" % j)
 
-        #number of peaks
-        text_file.write("# Number of peaks\n")
-        text_file.write("%8i\n" % len(data_to_write[j]['peak']))
-
-        #peak profile
-        text_file.write("# Peak profile\n")
-        pro = data_to_write[j]['peak'][0]['profile']
-        if pro == 0:
-            profile_write = 0
-        elif pro == 1:
-            profile_write = 2
+        #headers. set file version to be 1.
+        text_file.write("# File version\n" )
+        text_file.write("1\n" )
+    
+        #header peak profile
+        # I dont know how used this is.
+        #Also need to write a single number.
+        if 'profile' in data_to_write:
+            to_write = data_to_write['profile']
         else:
-            profile_write = 1
-        text_file.write("%8i\n" % profile_write)
-
-        #width factor
-        text_file.write("# Width factor\n")
-        text_file.write("%13.5f\n" % 15)
-        #[0.000000]
-
-        #Range in azimuth of each window/subpattern. Preceeded by the number of azimuths
-        text_file.write("# Range in azimuth: nvalues, and values\n")
-        #[number of azimuth slices]
-        text_file.write("%10i\n" % Num_Azi)
-        #[azimuth1
-        #...
-        #azimuth last]
-        for k in range(int(Num_Azi)):
-            az = k/Num_Azi*360
-            text_file.write("%10.1f\n" % az)
-
-        #Start and end of the back ground in each subpattern 
-        text_file.write("# background positions, in 2 theta (left/right)\n")
-        #[bg1left      bg1right
-        #... These are the minimum and maximum extent of the background in 2 theta
-        #BGlastLeft    BGlastRight]
-        for k in range(int(Num_Azi)):
-            text_file.write("%13.4f %13.4f\n" % (data_to_write[j]['range'][0][0], data_to_write[j]['range'][0][1]))
-
-        # value of the background intensity and slope (assuming a linear background)
-        text_file.write("# background coefficients\n")
-        for k in range(int(Num_Azi)):
-            az = np.array([k/Num_Azi*360])
-            inter = ff.Fourier_expand(az, data_to_write[j]['background'][0])
-            if len(data_to_write[j]['background']) > 1:
-                slop = ff.Fourier_expand(az, data_to_write[j]['background'][1])
+            to_write = 0
+    
+        text_file.write("# Peak profile (0: gauss, 1: pseudo-voigt, 2: lorentz)\n" )
+        text_file.write("%8i\n" % to_write)
+        # FIX ME: this is currently fixed. It should be read from the input constraints.
+        
+        #number of subpatterns
+        # FIX ME: I dont know how the data will be input here.
+        # num_subpatterns = 2
+    
+        num_subpatterns = len(data_to_write)
+    
+        text_file.write("# Number of sub-patterns\n" )
+        text_file.write("%8i\n" % num_subpatterns)
+    
+        #print type(num_subpatterns)
+        #print num_subpatterns
+        
+        for j in range(num_subpatterns):
+    
+            text_file.write("# Sub-patterns        %i\n" % j)
+    
+            #number of peaks
+            text_file.write("# Number of peaks\n")
+            text_file.write("%8i\n" % len(data_to_write[j]['peak']))
+    
+            #peak profile
+            text_file.write("# Peak profile\n")
+            pro = data_to_write[j]['peak'][0]['profile']
+            if pro == 0:
+                profile_write = 0
+            elif pro == 1:
+                profile_write = 2
             else:
-                slop = 0
-
-            text_file.write("%13.4f %13.4f\n" % (inter, slop))
-
-
-        #[bg1intensity      bg1slope
-        #... These are the intensity at the min 2 theta and slope the background against 2 theta      ]
-        #BGlastIntensity    BGlastSlope]                                                              ]
-
-        #header for the peaks in the file
-        text_file.write("# Peak positions (2 theta), intensity, half-width, weight Gauss/Lorentz (for pseudo-voigt),\n")
-        # write the peak properties for each azimuth slice. and each peak.
-        num_peaks = len(data_to_write[j]['peak'])
-        for k in range(num_peaks):
-            text_file.write("# peak number        %i\n" % k)
-            #[position1     Intensity1  HW1            Weight1            ]  repeat for the
-            #...                                                          ]  number of peaks in
-            #positionLast  IntensityLast  HWLast      WeightLast]         ]  subpattern
-            #print data_to_write[j]['peak'][k]['d-space']
-            if 'symmetry' in data_to_write[j]['peak'][k]:
-                sym = data_to_write[j]['peak'][k]['symmetry']
-            else:
-                sym = 1
-            for l in range(int(Num_Azi)):
-                az = np.array([l/Num_Azi*360])
-                peak_d = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['d-space'])
-                peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
-                peak_i = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
-                peak_w = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
-                peak_p = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
-
-                text_file.write("%13.4f %13.4f %13.4f %13.4f\n" % (peak_tth, peak_i, peak_w, peak_p))
-
-
-
-
-    text_file.close()
-
+                profile_write = 1
+            text_file.write("%8i\n" % profile_write)
+    
+            #width factor
+            text_file.write("# Width factor\n")
+            text_file.write("%13.5f\n" % 15)
+            #[0.000000]
+    
+            #Range in azimuth of each window/subpattern. Preceeded by the number of azimuths
+            text_file.write("# Range in azimuth: nvalues, and values\n")
+            #[number of azimuth slices]
+            text_file.write("%10i\n" % Num_Azi)
+            #[azimuth1
+            #...
+            #azimuth last]
+            for k in range(int(Num_Azi)):
+                az = k/Num_Azi*360
+                text_file.write("%10.1f\n" % az)
+    
+            #Start and end of the back ground in each subpattern 
+            text_file.write("# background positions, in 2 theta (left/right)\n")
+            #[bg1left      bg1right
+            #... These are the minimum and maximum extent of the background in 2 theta
+            #BGlastLeft    BGlastRight]
+            for k in range(int(Num_Azi)):
+                text_file.write("%13.4f %13.4f\n" % (data_to_write[j]['range'][0][0], data_to_write[j]['range'][0][1]))
+    
+            # value of the background intensity and slope (assuming a linear background)
+            text_file.write("# background coefficients\n")
+            for k in range(int(Num_Azi)):
+                az = np.array([k/Num_Azi*360])
+                inter = ff.Fourier_expand(az, data_to_write[j]['background'][0])
+                if len(data_to_write[j]['background']) > 1:
+                    slop = ff.Fourier_expand(az, data_to_write[j]['background'][1])
+                else:
+                    slop = 0
+    
+                text_file.write("%13.4f %13.4f\n" % (inter, slop))
+    
+    
+            #[bg1intensity      bg1slope
+            #... These are the intensity at the min 2 theta and slope the background against 2 theta      ]
+            #BGlastIntensity    BGlastSlope]                                                              ]
+    
+            #header for the peaks in the file
+            text_file.write("# Peak positions (2 theta), intensity, half-width, weight Gauss/Lorentz (for pseudo-voigt),\n")
+            # write the peak properties for each azimuth slice. and each peak.
+            num_peaks = len(data_to_write[j]['peak'])
+            for k in range(num_peaks):
+                text_file.write("# peak number        %i\n" % k)
+                #[position1     Intensity1  HW1            Weight1            ]  repeat for the
+                #...                                                          ]  number of peaks in
+                #positionLast  IntensityLast  HWLast      WeightLast]         ]  subpattern
+                #print data_to_write[j]['peak'][k]['d-space']
+                if 'symmetry' in data_to_write[j]['peak'][k]:
+                    sym = data_to_write[j]['peak'][k]['symmetry']
+                else:
+                    sym = 1
+                for l in range(int(Num_Azi)):
+                    az = np.array([l/Num_Azi*360])
+                    peak_d = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['d-space'])
+                    peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
+                    peak_i = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
+                    peak_w = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
+                    peak_p = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
+    
+                    text_file.write("%13.4f %13.4f %13.4f %13.4f\n" % (peak_tth, peak_i, peak_w, peak_p))
+    
+        text_file.close()
+    
 
 
 

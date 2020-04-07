@@ -141,8 +141,8 @@ def GetCalibration(filenam):
     parms_dict = {}
 
     for item in filelines:
-        newparms = item.strip('\n').strip().split(':', 1)
-        parm = newparms[1]
+        newparms = item.strip('\n').split(':', 1)
+        parm = newparms[1].strip()
 
         value = None
         # print parm
@@ -167,7 +167,7 @@ def GetCalibration(filenam):
                                 newValue = float(val)
                                 newlist.append(newValue)
                             except ValueError:
-                                newlist.append(val.replace("'", "").replace(" ", ""))
+                                newlist.append(val.replace("'", "").replace(" ", "").replace("\"", ""))
                     parms_dict[newparms[0]] = newlist
                 elif parm.startswith('{'):
                     # print parm
@@ -186,7 +186,7 @@ def GetCalibration(filenam):
                                 newValue = float(val)
                                 newdict[str(newkey)] = newValue
                             except ValueError:
-                                newdict[str(newkey)] = val.replace("'", "").replace(" ", "")
+                                newdict[str(newkey)] = val.replace("'", "").replace(" ", "").replace("\"", "")
                     parms_dict[newparms[0]] = newdict
                 elif not parm:
                     parms_dict[newparms[0]] = ''
@@ -196,6 +196,7 @@ def GetCalibration(filenam):
 
     #process 'detector_config' into pixel sizes if needed.
     if 'Detector_config' in parms_dict:
+        print(parms_dict['Detector_config'])
         parms_dict['pixelsize1'] = parms_dict['Detector_config']['PixelSize1']
         parms_dict['pixelsize2'] = parms_dict['Detector_config']['PixelSize2']
                    

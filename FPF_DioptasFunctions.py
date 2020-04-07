@@ -46,6 +46,11 @@ def ImportImage(ImageName):
     # Dioptas flips the images to match the orientations in Plot2D. 
     # Therefore implemented here to be consistent with Dioptas.
     im = np.array(im)[::-1]
+    
+    if 0:
+        imgplot = plt.imshow(im, vmin=0, vmax=2000)
+        plt.colorbar()
+        plt.show()
 
     #    info = i._getexif()
     #    for tag, value in info.items():
@@ -56,10 +61,10 @@ def ImportImage(ImageName):
     #    stop
 
     # the bits of Fabio that might get most of the parameters not saved in calibration
-    # print data.DESCRIPTION
-    # print data.factory
-    # print data.header
-    # print data.header_keys
+    # print(im_all.DESCRIPTION)
+    # print(im_all.factory)
+    # print(im_all.header)
+    # print(im_all.header_keys)
 
     return im
 
@@ -101,6 +106,7 @@ def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx):
     # Save and load functions within Dioptas are: load_mask and save_mask in dioptas/model/MaskModel.py
 
     ImMsk = np.array(Image.open(MSKfile))
+    ImInts = ma.array(ImInts, mask=ImMsk)
 
     if 0:
         # Plot mask.
@@ -118,7 +124,10 @@ def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx):
 
         plt.close()
 
-    ImInts = ma.array(ImInts, mask=ImMsk)
+    #FIX ME: need to validate size of images vs. detector name. Otherwise the mask can be the wrong size 
+    #det_size = pyFAI.detectors.ALL_DETECTORS['picam_v1'].MAX_SHAPE
+    #FIX ME : this could probably all be done by using the detector class in fabio. 
+
 
     return ImInts
 
@@ -132,7 +141,7 @@ def GetCalibration(filenam):
     parms_dict = {}
 
     for item in filelines:
-        newparms = item.strip('\n').split(':', 1)
+        newparms = item.strip('\n').strip().split(':', 1)
         parm = newparms[1]
 
         value = None
@@ -166,7 +175,7 @@ def GetCalibration(filenam):
                     newdict = {}
                     for keyval in listvals:
                         # print keyval
-                        newkey = keyval.split(':')[0].replace("'", "").replace(" ", "")
+                        newkey = keyval.split(':')[0].replace("'", "").replace(" ", "").replace("\"", "")
                         val = keyval.split(':')[1]
                         newValue = None
                         try:
@@ -185,6 +194,11 @@ def GetCalibration(filenam):
                 else:
                     parms_dict[newparms[0]] = str(parm)
 
+    #process 'detector_config' into pixel sizes if needed.
+    if 'Detector_config' in parms_dict:
+        parms_dict['pixelsize1'] = parms_dict['Detector_config']['PixelSize1']
+        parms_dict['pixelsize2'] = parms_dict['Detector_config']['PixelSize2']
+                   
     # get wavelengths in Angstrom
     parms_dict['conversion_constant'] = parms_dict['Wavelength'] * 1E10
 

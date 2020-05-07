@@ -1,4 +1,9 @@
-# /usr/bin/python
+#!/usr/bin/env python
+
+__all__ = ['create_newparams', 'params_to_newparams', 'ParamFitArr', 'PseudoVoigtPeak', 'gather_paramerrs_to_list',
+           'gather_params_to_list', 'gather_params_from_dict', 'initiate_params', 'PeaksModel', 'vary_params',
+           'unvary_params', 'FitModel', 'MinimiseParams', 'GuessApply', 'Fourier_expand', 'Fourier_fit', 'ChangeParams',
+           'Fourier_backgrnd', 'PeaksModel_old']
 
 import numpy as np
 import numpy.ma as ma
@@ -9,13 +14,101 @@ from lmfit import minimize, report_fit, Model
 
 np.set_printoptions(threshold=sys.maxsize)
 
-
 # Fitting functions required for fitting peaks to the data. 
 # Called by FPF_XRD_FitSubpattern.
 
 
 # Known limitations/bugs
 # FIX ME: need hard limits to gauss - lorentz peak profile ratios
+
+
+def create_newparams(num_peaks, dfour, hfour, wfour, pfour, bgfour, order_peak):
+    """
+    Create the NewParams dictionary from results
+    :param num_peaks: number of peaks int
+    :param dfour: list of coefficients per peak float
+    :param hfour: list of coefficients per peak float
+    :param wfour: list of coefficients per peak float
+    :param pfour: list of coefficients per peak float
+    :param bgfour:
+    :param order_peak:
+    :return: NewParams dictionary
+    """
+    peaks = []
+    for j in range(num_peaks):
+        if 'symmetry' in order_peak[j]:  # orders['peak'][j]:  # FIX ME: the symmetry part of this is a horrible way
+            # of doing it.
+            peaks.append({"d-space": dfour[j][0],
+                          "height": hfour[j][0],
+                          "width": wfour[j][0],
+                          "profile": pfour[j][0],
+                          "symmetry": order_peak[j]['symmetry']})
+                            # "symmetry": orders['peak'][j]['symmetry']})
+        else:
+            peaks.append({"d-space": dfour[j][0],
+                          "height": hfour[j][0],
+                          "width": wfour[j][0],
+                          "profile": pfour[j][0]})
+    NewParams = {"background": bgfour, "peak": peaks}
+
+    return NewParams
+
+
+def params_to_newparams(params, num_peaks, num_bg, order_peak):
+    """
+    Gather Parameters class to NewParams dictionary format
+    :param params: lmfit Parameters class object
+    :param num_peaks: number of peaks
+    :param num_bg: number of background terms
+    :return: NewParams dictionary object
+    """
+
+    peaks = []
+    for i in range(num_peaks):
+        new_str = 'peak_'+str(i)+'_d'
+        dspace = gather_paramerrs_to_list(params, new_str)
+        new_str = 'peak_'+str(i)+'_h'
+        hspace = gather_paramerrs_to_list(params, new_str)
+        new_str = 'peak_'+str(i)+'_w'
+        wspace = gather_paramerrs_to_list(params, new_str)
+        new_str = 'peak_'+str(i)+'_p'
+        pspace = gather_paramerrs_to_list(params, new_str)
+
+        if 'symmetry' in order_peak[i]:  # orders['peak'][j]:  # FIX ME: the symmetry part of this is a horrible
+            # way of doing it.
+            peaks.append({"d-space":     dspace[0],
+                          "d-space_err": dspace[1],
+                          "height":      hspace[0],
+                          "height_err":  hspace[1],
+                          "width":       wspace[0],
+                          "width_err":   wspace[1],
+                          "profile":     pspace[0],
+                          "profile_err": pspace[1],
+                          "symmetry":    order_peak[i]['symmetry']})
+        else:
+            peaks.append({"d-space": dspace[0],
+                          "d-space_err": dspace[1],
+                          "height":      hspace[0],
+                          "height_err":  hspace[1],
+                          "width":       wspace[0],
+                          "width_err":   wspace[1],
+                          "profile":     pspace[0],
+                          "profile_err": pspace[1]})
+    # Get background parameters
+    bgspace = []
+    bgspace_err = []
+    for b in range(num_bg):
+        new_str = 'bg_c'+str(b)+'_f'
+        bgspc = gather_paramerrs_to_list(params, new_str)
+        bgspace.append(bgspc[0])
+        bgspace_err.append(bgspc[1])
+        # print('background', ff.gather_params_to_list(params, new_str))
+        # bgspace.append(ff.gather_params_to_list(params, new_str))
+
+    # NewParams = {"background": bgspace, "peak": peaks}
+    NewParams = {"background": bgspace, "background_err": bgspace_err, "peak": peaks}
+
+    return NewParams
 
 
 def flatten(li):
@@ -120,7 +213,8 @@ def PeaksModel_old(twotheta, azi, Shapes, Conv=None, symm=None, PenCalc=None):
     return I, POut
 
 
-def gather_paramerrs_to_list(param, param_str, comp=None, nterms=None): #fix me: Doesn't run without Comp=None. Maybe it was never validated before SAH ran it. 
+def gather_paramerrs_to_list(param, param_str, comp=None, nterms=None):  # fix me: Doesn't run without Comp=None.
+    # Maybe it was never validated before SAH ran it.
     """
     Make a nested list of parameters and errors from a lmfit Parameters class
     :param param: dict with multiple coefficients per component
@@ -197,10 +291,10 @@ def initiate_params(param, param_str, comp, nterms, max=None, min=None, expr=Non
     :return:
     """
     
-    value = np.array(value) #force input to be array so that can be iterated over
+    value = np.array(value)  # force input to be array so that can be iterated over
 
     for t in range(2 * nterms + 1):
-        if value.size==1:
+        if value.size == 1:
             ind = 0
         else:
             ind = t

@@ -8,7 +8,7 @@ Modifications:
     Stripped out parts that are not required:
         - spline function and option to align the called data. 
 """
-import Mca
+from cpf import Mca
 import numpy as Numeric
 #import spline
 

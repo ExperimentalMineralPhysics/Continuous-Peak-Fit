@@ -1,21 +1,27 @@
-# /usr/bin/python
+#!/usr/bin/env python
 
 #import sys
 #sys.path.append('/Users/simon/g2conda/GSASII/')
+
+__all__ = ['Requirements', 'ImportImage', 'DetectorCheck', 'Conversion', 'GetMask', 'GetCalibration', 'GetTth',
+           'GetAzm', 'GetDsp']
+
 
 import numpy as np
 import numpy.ma as ma
 import copy, os, sys
 from PIL import Image
+from PIL.ExifTags import TAGS
 import math
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import matplotlib.path as mlp
+import sys
 from scipy.optimize import curve_fit
-np.set_printoptions(threshold='nan')
+np.set_printoptions(threshold=sys.maxsize)
 
 
-#import Plot85 as GsIO
+#import GSASIIIO as GsIO
 
 # ------- above here is the intro stuff that I dont know if it is needed. 
 
@@ -26,39 +32,29 @@ def ImportImage(ImageName):
     #Im = GsIO.GetImageData([], ImageName)
 
 
-
-    File = open(ImageName,'r')
-    save = {}
-    #oldThreshold = data['Thresholds'][0]
-    S = File.readline()
-    while S:
-        # if the row is 10 numbers then keep otherise not data.
-        if S == 'DATA:':
-            S = File.readline()
-            continue
-        [key,val] = S[:-1].split(':')
-        if key in ['Points','Rings','Arcs','Polygons','Frames','Thresholds']:
-            #if key == 'Thresholds':
-            #    S = File.readline()
-            #    continue
-            save[key] = eval(val)
-            #if key == 'Thresholds':
-            #    save[key][0] = oldThreshold
-            #    save[key][1][1] = min(oldThreshold[1],save[key][1][1])
-        S = File.readline()
-    File.close()
-
-
-
-
     im = Image.open(ImageName) ##always tiff?- no
     #print type(im)
     #im = im.transpose(Image.FLIP_TOP_BOTTOM)
     #im = im.transpose(Image.FLIP_LEFT_RIGHT)
     #print type(im)
+    
+    #inf = im._getexif()
+    
     return im
+    
+    
+def DetectorCheck(ImageName, detector=None):
+    
+    # this function is empty because GSAS does not require knowledge of the detector type
+    
+    return None
 
-def CreateGSASIIMask(MSKfile, ImInts, ImageSize, ImTTH, ImAzi, Imy,Imx):
+
+def GetMask(MSKfile, ImInts, ImTTH, ImAzi, file_name, pix, debug=False):
+    
+    
+    Imx,Imy = GetImSizeArr(file_name, pix)    
+    
 
     #GSAS-II lisence problems later.
     #As it stands we may have to get people to copy a GSAS-II file from their repository so that it does not
@@ -146,15 +142,15 @@ def CreateGSASIIMask(MSKfile, ImInts, ImageSize, ImTTH, ImAzi, Imy,Imx):
     if FrmLms:
         path = mlp.Path(FrmLms)
         grid = path.contains_points(points)-True
-        print Imx.shape[0]
-        print Imx.shape[1]
-        print Imx.shape[0]*Imx.shape[1]
-        print grid.shape
+        print(Imx.shape[0])
+        print(Imx.shape[1])
+        print(Imx.shape[0]*Imx.shape[1])
+        print(grid.shape)
         grid = np.reshape(grid, (Imx.shape[0], Imx.shape[1]))
         ImMsk.mask = ma.mask_or(ma.getmask(ImMsk),grid)
 
 
-    if 0:
+    if debug:
         #This is left in here for debugging.
         fig = plt.figure()
         ax = fig.add_subplot(1,2,1)
@@ -239,13 +235,12 @@ def LoadMask(mskfilename):
     return save
 
 
-def load_inputs_file(filenam):
+def GetCalibration(filenam):
+    'Parse inputs file, create type specific inputs.'
 
-    '''
-    Parse inputs file, create type specific inputs.
-    '''
+    parms_file = open(filenam,'rb')
 
-    filelines = filenam.readlines()
+    filelines = parms_file.readlines()
     parms_dict = {}
 
     for item in filelines:
@@ -301,6 +296,12 @@ def load_inputs_file(filenam):
 
                 else:
                     parms_dict[newparms[0]] = str(parm)
+    
+    #get wavelengths in Angstrom
+    parms_dict['Conversion_constant'] = parms_dict['Wavelength'] 
+    
+    # force all dictionary labels to be lower case -- makes s
+    parms_dict =  {k.lower(): v for k, v in parms_dict.items()}
 
 
     return parms_dict
@@ -355,9 +356,9 @@ def GetTthAzmDsp(x,y,data): #expensive
     dist = data['distance']/cosd(tilt)
     x0 = data['distance']*tand(tilt)
     phi = data['rotation']
-    dep = data['DetDepth']
-    LRazim = data['LRazimuth']
-    azmthoff = data['azmthOff']
+    dep = data['detdepth']
+    LRazim = data['lrazimuth']
+    azmthoff = data['azmthoff']
     dx = np.array(x-cent[0],dtype=np.float32)
     dy = np.array(y-cent[1],dtype=np.float32)
     D = ((dx-x0)**2+dy**2+data['distance']**2)      #sample to pixel distance
@@ -381,21 +382,58 @@ def peneCorr(tth,dep,tilt=0.,azm=0.):
     return dep*(1.-npcosd(tth))         #best one
 
 
+def GetImSizeArr(image_name, pix):
+
+    print(image_name)
+    im = ImportImage(image_name)
+
+    imarray = np.array(im)
+
+    gd = np.mgrid[0:imarray.shape[0],0:imarray.shape[1]]       ##SAH: edit
+    #print gd.shape
+    y = gd[0,:,:]+1       ##SAH: edit
+    x = gd[1,:,:]+1       ##SAH: edit
+    #print y.shape, x.shape
+    #print x[2]
+    y = (y) * pix / 1e3   ##SAH: edit
+    x = (x) * pix / 1e3   ##SAH: edit
+    #print x             ##SAH: edit
+    #print y             ##SAH: edit
+    '''
+    ## SAH: would linspace+meshgrid be a better way of making the arrays?
+    ## DMF: Could do it this way...
+    xn = np.linspace(0, imarray.shape[0],num=imarray.shape[0],endpoint=False,dtype=int)#nx)
+    yn = np.linspace(0, imarray.shape[1],num=imarray.shape[1],endpoint=False,dtype=int)#ny)
+    xv, yv = np.meshgrid(xn, yn)
+
+    #print xv.shape,yv.shape,xv[1],yv[1]
+
+    '''
+    return x, y
+
+
 #related calls#
-def GetTth(x,y,data):
+def GetTth(calib_file, data, pix):
     'Give 2-theta value for detector x,y position; calibration info in data'
+    x,y = GetImSizeArr(calib_file, pix)    
     return GetTthAzmDsp(x,y,data)[0]
 
-def GetTthAzm(x,y,data):
+
+def GetTthAzm(calib_file, data, pix):
     'Give 2-theta, azimuth values for detector x,y position; calibration info in data'
+    x,y = GetImSizeArr(calib_file, pix)
     return GetTthAzmDsp(x,y,data)[0:2]
 
-def GetDsp(x,y,data):
+
+def GetDsp(calib_file, data, pix):
     'Give d-spacing value for detector x,y position; calibration info in data'
+    x,y = GetImSizeArr(calib_file, pix)
     return GetTthAzmDsp(x,y,data)[3]
 
-def GetAzm(x,y,data):
+
+def GetAzm(calib_file, data, pix):
     'Give azimuth value for detector x,y position; calibration info in data'
+    x,y = GetImSizeArr(calib_file, pix)
     return GetTthAzmDsp(x,y,data)[1]
 
 

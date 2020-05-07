@@ -1,5 +1,9 @@
-# /usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+
+__all__ = ['Requirements', 'ImportImage', 'DetectorCheck', 'Conversion', 'GetMask', 'GetCalibration', 'GetTth',
+           'GetAzm', 'GetDsp']
 
 import sys
 import os
@@ -29,7 +33,8 @@ def Requirements():
     
     return RequiredParams
 
-def ImportImage(ImageName):
+
+def ImportImage(ImageName, debug=False):
     # im = Image.open(ImageName) ##always tiff?- no
 
     filename, file_extension = os.path.splitext(ImageName)
@@ -47,7 +52,7 @@ def ImportImage(ImageName):
     # Therefore implemented here to be consistent with Dioptas.
     im = np.array(im)[::-1]
     
-    if 0:
+    if debug:
         imgplot = plt.imshow(im, vmin=0, vmax=2000)
         plt.colorbar()
         plt.show()
@@ -101,14 +106,14 @@ def Conversion(tth_in, conv, reverse=0):
     return dspc_out
 
 
-def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx):
+def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx, debug=False):
     # Dioptas mask is compressed Tiff image. 
     # Save and load functions within Dioptas are: load_mask and save_mask in dioptas/model/MaskModel.py
 
     ImMsk = np.array(Image.open(MSKfile))
     ImInts = ma.array(ImInts, mask=ImMsk)
 
-    if 0:
+    if debug:
         # Plot mask.
         # This is left in here for debugging.
         fig = plt.figure()

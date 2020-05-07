@@ -1,8 +1,11 @@
 
+__all__ = ['Requirements', 'WriteOutput']
+
+
 import os
 
 import numpy as np
-import FPF_PeakFourierFunctions as ff
+import cpf.PeakFunctions as ff
 import json
 
 
@@ -61,7 +64,7 @@ def WriteOutput(FitSettings, parms_dict):
     if 'Output_directory' in FitParameters:
         out_dir = FitSettings.Output_directory
     else:
-        out_dir = './'
+        out_dir = '../'
             
 
     # create output file name from passed name

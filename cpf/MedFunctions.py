@@ -1,22 +1,29 @@
-# /usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+__all__ = ['Requirements', 'ImportImage', 'DetectorCheck', 'Conversion', 'GetMask', 'GetCalibration', 'GetTth',
+           'GetAzm', 'GetDsp']
+
 
 import sys
 import os
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
-import Med
-import Mca
+from cpf import Med
+
 
 # For MED files from Energy dispersive diffraction patterns at X17B2, 6-BMB and others.
 
 # For ease of use the *.med files are imported using Mark Rivers' Med.py and Mca.py functions.
 # These were downloaded from ??? in June 2019.
-# and edited to remove unnecessary dependencies e.g. 'Numeric' and 'LinearAlgebra' packages and functions that had further dependencies.
+# and edited to remove unnecessary dependencies e.g. 'Numeric' and 'LinearAlgebra' packages and functions that had
+# further dependencies.
 # I don't know how much of this is required but for now I am just adding the packages.
 
-# FIX ME: Need a dependency check.  
+# FIX ME: Need a dependency check.
+
+
 
 
 def Requirements():
@@ -95,7 +102,7 @@ def Conversion(E_in, calib, reverse=0, azm=None):
 
 
 
-def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx):
+def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx, debug=False):
     # Masks for 10 element detector are either for full detector or for an energy range. 
     # Currently this just works by removing  single detector.
     
@@ -105,7 +112,7 @@ def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx):
     for x in range(len(MSKfile)):
         ImMsk[MSKfile[x]-1] = 1
     
-    if 0:
+    if debug:
         #Plot mask.
         #This is left in here for debugging.
         fig = plt.figure()

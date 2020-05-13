@@ -1,4 +1,4 @@
-# Fourier-Peak-Fit
+# Continuous-Peak-Fit
 
 ## Installation
 

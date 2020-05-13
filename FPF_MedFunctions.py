@@ -58,9 +58,15 @@ def DetectorCheck(ImageName, detector=None):
     return detector
 
 
-def Conversion(E_in, calib, reverse=0):
+def Conversion(E_in, calib, reverse=0, azm=None):
     #convert energy into d-spacing.
+    if not azm is None:
+        E_in = np.array([[azm, E_in]]) #FIX ME: this is a horrible way to make the conversion work but it is needed for processing the guesses of MED detectors.
     
+    
+    print('E_in',E_in, 'calib,', calib)
+    print('type E_in', type(E_in))
+    print(E_in[:,1])
     #Convert Energy (keV) to wavelength (Angstroms)
     # E = hc/lamda;  h = 4.135667662(25)×10−15 eV s; c = 299792458 m/s
     wavelength = 4.135667662e-15*(299792458*1E10)/(E_in[:,1]*1000)
@@ -68,7 +74,6 @@ def Conversion(E_in, calib, reverse=0):
     # determine which detector calibration goes with each energy.
     sort_idx = np.array(calib['azimuths']).argsort()
     de = sort_idx[np.searchsorted(calib['azimuths'],E_in[:,0],sorter = sort_idx)]
-    
 
     if not reverse:
         #convert energy to d-spacing
@@ -80,8 +85,11 @@ def Conversion(E_in, calib, reverse=0):
     else:
         #convert dspacing to energy.
         #N.B. this is the reverse finction so that labels tth and dspacing are not correct. 
-        dspc_out = 2*np.degrees(np.arcsin(wavelength/2/tth))
-        stop
+        dspc_out = []
+        for i in range(len(de)):
+            dspc_out.append(2*np.degrees(np.arcsin(wavelength/2/calib['calibs'].mcas[i].calibration.two_theta)))
+        dspc_out = np.array(dspc_out)
+        
         
     return dspc_out
 

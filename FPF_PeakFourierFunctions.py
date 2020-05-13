@@ -748,7 +748,7 @@ def Fourier_fit(ydata, azimu, param, terms=None, errs=None, param_str='peak_0', 
     """
 
     # get NaN values.
-    idx = np.isfinite(azimu) & np.isfinite(ydata) & (ydata > 0) #FIX ME: SAH.ydata>0 is true for XRD data but not necessarily true for all data.
+    idx = np.isfinite(azimu) & np.isfinite(ydata) #& (ydata > 0) #FIX ME: SAH.ydata>0 is true for XRD data but not necessarily true for all data.
     # print(idx)
     if type(terms) == list:
         terms = terms[0]

@@ -77,7 +77,7 @@ def WriteOutput(FitSettings, parms_dict):
     #headers. set file version to be 1.
     text_file.write("# Experiment analysis file. to be used with PolydefixED\n")
     text_file.write("# For more information: http://merkel.zoneo.net/Polydefix/\n" )
-    text_file.write("# File Created by FPF_WritePolydefixED function in ???\n")
+    text_file.write("# File Created by FPF_WritePolydefixED function in FourierPeakFit\n")
     text_file.write("# For more information: http://www.github.com/me/something\n" )
     text_file.write("# File version\n" )
     text_file.write("     1\n" )
@@ -171,16 +171,27 @@ def WriteOutput(FitSettings, parms_dict):
     #Write material properties
     # FIX ME: need to be able to import material properties and write them to the file without messing about.
     text_file.write("# Material properties set (1/0)\n")
-    if 'Material' in parms_dict:
-        text_file.write("     1\n")
+    text_file.write("     1\n")
+    text_file.write("# Material properties\n")
+    text_file.write("# Version\n")
+    text_file.write("2       \n")
+        
+    if 'Material' in FitParameters:
+        #left empty on purpose
+        text_file.write("")
+        
+    elif 'Output_ElasticProperties' in FitParameters:
+        print('in right place')
+        print(FitSettings.Output_ElasticProperties)
+        fid = open(FitSettings.Output_ElasticProperties, 'r')
+        
+        #pipe ealstic properties to the output file.
+        text_file.write(fid.read())
+        
     else:
-        text_file.write("     1\n")
         
         # FIX ME: here I am just writing the elastic properties of olivine with no regard for the structure of the file or the avaliable data. 
         #         This should really be fixed. 
-        text_file.write("# Material properties\n")
-        text_file.write("# Version\n")
-        text_file.write("2       \n")
         text_file.write("# Name\n")
         text_file.write("Olivine\n")
         text_file.write("# Symmetry\n")

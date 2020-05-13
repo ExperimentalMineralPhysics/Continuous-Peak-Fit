@@ -189,7 +189,7 @@ if all_present == 0:
 
 
 
-
+'''
 # Detector check.
 # Check if the detector is required and if so if it is present and recognised.
 if 'Calib_detector' in FitParameters:
@@ -200,7 +200,7 @@ FitSettings.Calib_detector = det.DetectorCheck(FitSettings.Calib_data, det_name)
 
 # define locally required names.
 temporary_data_file = 'PreviousFit_JSON.dat'
-
+'''
 # backg_type = 'flat'
 # backg = [[4]]
 
@@ -214,52 +214,6 @@ temporary_data_file = 'PreviousFit_JSON.dat'
 parms_dict = det.GetCalibration(FitSettings.Calib_param)
 
 '''
-### Sort background out ####
-'''
-'''
-if backg_type == 'coeffs':
-    # coefficients provided, figure out height using values
-    tempbackg = []
-    bg_order = []
-    if isinstance(backg, list):
-        for val in backg:
-            if not isinstance(val, list):
-                tempbackg.append([val])
-                bg_order.append(0)
-            else:
-                tempbackg.append(val)
-                bg_order.append((len(val) - 1) / 2)
-    else:
-        tempbackg = [[backg]]
-    backg = tempbackg
-
-elif backg_type == 'order':
-    # orders requested, figure out height using best guess
-    print('TBD')
-    tempbackg = []
-    bg_order = []
-    if isinstance(backg, list):
-        if len(backg) == 2:
-            nfourier = backg[0]
-            npoly = backg[1]
-        else:
-            nfourier = backg[0]
-            npoly = 0
-    else:
-        nfourier = backg
-        npoly = 0
-    for i in range(npoly + 1):
-        tempbackg_f = [1 for j in range(nfourier + 1)]
-        tempbackg.append(tempbackg_f)
-        bg_order.append(nfourier)
-    backg = tempbackg
-
-elif backg_type == 'flat':
-    backg = [[backg]]
-
-print(backg, 'backg')
-'''
-
 # diffraction patterns #
 if not 'datafile_Files' in FitParameters:
     n_diff_files = FitSettings.datafile_EndNum - FitSettings.datafile_StartNum + 1
@@ -316,124 +270,10 @@ azimu = ma.array(azimu, mask=intens.mask)
 twotheta = ma.array(twotheta, mask=intens.mask)
 dspace = ma.array(dspace, mask=intens.mask)
 
-# plot calibration file
-if debug:
-    fig = plt.figure()
-    if FitSettings.Calib_type == 'Med':
-        #plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
-        for x in range(9):
-            plt.plot(twotheta[x], intens[x]+100*x)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
-        
-    else:
-        #plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #Better for monochromatic data.             #FIX ME: need variable for vmax.
-        plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0)  #Better for monochromatic data.             #FIX ME: need variable for vmax.
-        plt.colorbar()
-    plt.show()
-    plt.close()
+'''
 
 
-# Process the diffraction patterns #
 
-for j in range(n_diff_files):
-
-    print('Process ', diff_files[j])
-
-    # Get diffraction pattern to process.
-    im = det.ImportImage(diff_files[j])
-
-    # get intensity array and mask it
-    intens = ma.array(im, mask=azimu.mask)
-
-    # plot input file
-    if debug:
-        fig = plt.figure()
-        if FitSettings.Calib_type == 'Med':
-            #plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
-            for x in range(9):
-                plt.plot(twotheta[x], intens[x]+100*x)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
-                #plt.plot(dspace[x], intens[x]+100*x)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
-        
-        else:
-            #plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)  #Better for monochromatic data.             #FIX ME: need variable for vmax.
-            plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 4000)  #FIX ME: need variable for vmax.
-            plt.colorbar()
-        plt.xlabel('2$\theta$')
-        plt.ylabel('Azimuth')
-        plt.show()
-        #plt.close()
-    
-    # get previous fit (if exists)
-    # load temporary fit file - if it exists. 
-    if os.path.isfile(temporary_data_file):
-        # Read JSON data from file
-        print('Loading previous fit results from %s' %temporary_data_file)
-        with open(temporary_data_file) as json_data:
-            previous_fit = json.load(json_data)
-
-    # switch to save the first fit in each sequence.
-    if j == 0 or SaveAll == 1:
-        SaveFigs = 1
-    else:
-        SaveFigs = 0
-
-    # Pass each sub-pattern to FPF_Fit_Subpattern for fitting in turn.
-    # get number of sub-patterns to be fitted
-    n_subpats = len(FitSettings.fit_orders)
-    Fitted_param = []
-
-    for i in range(n_subpats):
-
-        tthRange = FitSettings.fit_orders[i]['range'][0]
-
-        # get subsections of data to pass
-        subpat = np.where((twotheta >= tthRange[0]) & (twotheta <= tthRange[1]))
-        twotheta_sub = twotheta[subpat]
-        dspacing_sub = dspace[subpat]
-        azimu_sub = azimu[subpat]
-        intens_sub = intens[subpat]
-
-        if 'previous_fit' in locals():
-            params = previous_fit[i]
-        else:
-            params = []
-
-        if FitSettings.fit_orders:
-            orders = FitSettings.fit_orders[i]
-            orders['AziBins'] = FitSettings.AziBins
-        # print orders
-
-        # print(twotheta_sub.shape, dspacing_sub.shape, parms_dict, azimu_sub.shape, intens_sub.shape, orders, params,
-        #       calib_mod, SaveFigs)
-
-        # fit the subpattern
-        Fitted_param.append(
-            FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
-                          DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine, iterations=iterations, fnam=diff_files[j]))
-
-    # write output files
-
-    # store all the fit information as a JSON file. 
-    # filename, file_extension = os.path.splitext(diff_files[j])
-    filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
-    filename = filename + '.json'
-    # print(filename)
-    with open(filename, 'w') as TempFile:
-        # Write a JSON string into the file.
-        json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
-
-    # #Write the fits to a temporary file
-    # TempFilename = open(temporary_data_file, 'w')
-    # # Write a JSON string into the file.
-    # json_string = json.dumps(Fitted_param, TempFilename, sort_keys=True, indent=4, default=json_numpy_serialzer)
-    # #json_string = json.dumps(Fitted_param, TempFilename, sort_keys=True, indent=4, separators=(',', ': '))
-    # TempFilename.write(json_string)
-    '''
-    # print json_string
-    with open(temporary_data_file, 'w') as TempFile:
-
-        # Write a JSON string into the file.
-        json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
-    '''
 
 # Write the output files.
 # This is there so that the output file can be run separately from the fitting of the diffraction patterns. 

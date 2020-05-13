@@ -271,7 +271,7 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
 
 
 def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousParams=None,
-                  DetFuncs='FPF_DioptasFunctions', SaveFit=None, debug=False, refine=True, iterations=1):
+                  DetFuncs='FPF_DioptasFunctions', SaveFit=None, debug=False, refine=True, iterations=1, fnam=False):
     """
     Perform the various fitting stages to the data
     :param TwoThetaAndDspacings:
@@ -554,7 +554,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
                         # guess returns d-spacing then converted to two theta.
                         dguess = ff.Fourier_expand(np.mean(azimu.flatten()[chunks[j]]), dfour[k][0])
-                        tthguess = (det.Conversion(dguess, conversion_factor, reverse=1))  # FIXME: might break here
+                        tthguess = (det.Conversion(dguess, conversion_factor, reverse=1, azm=np.mean(azimu.flatten()[chunks[j]])))  # FIXME: might break here
                         # because of how changed Conversion to work with energy dispersive diffraction.
 
                         tthind = ((np.abs(twotheta.flatten()[chunks[j]] - tthguess)).argmin())
@@ -563,7 +563,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
                         hguess = (intens.flatten()[chunks[j]][tthind] - backg_base)  # FIX ME: This is very crude.
                         # Need a better way to do it.
-                        wguess = ((np.max(dspace.flatten()[chunks[j]]) + np.min(dspace.flatten()[chunks[j]])) / 40)
+                        wguess = ((np.max(dspace.flatten()[chunks[j]]) + np.min(dspace.flatten()[chunks[j]])) / 20 / peeks)
                         print(wguess)
                         # FIX ME: This is very crude. Need a better way to do it. \
 
@@ -620,10 +620,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                                   "width": [wguess]
                                   })
                     lims.append({"d-space": [np.min(dspace.flatten()[chunks[j]]), np.max(dspace.flatten()[chunks[j]])],
-                                 "height": [0, np.inf],
+                                 "height": [0, 4*np.max(intens.flatten()[chunks[j]])],
                                  "profile": [0, 1],
-                                 "width": [0, (np.max(dspace.flatten()[chunks[j]]) +
-                                               np.min(dspace.flatten()[chunks[j]])) / 2]})
+                                 "width": [(np.max(dspace.flatten()[chunks[j]]) + np.min(dspace.flatten()[chunks[j]])) / 1000,
+                                           (np.max(dspace.flatten()[chunks[j]]) + np.min(dspace.flatten()[chunks[j]])) / 2]})
 
                 # Guess for background, if orders and therefore no guess input, choose appropriate
                 singleBackg = [[] for i in range(len(backg))]
@@ -843,8 +843,11 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             master_params = ff.unvary_params(master_params, param_str, '')
             master_params = ff.vary_params(master_params, param_str, '')
             # master_params.pretty_print()
-            fout = ff.Fourier_fit(azimu=np.array(newAziChunks), ydata=np.array(newBGall[j]), param=master_params,
-                                  errs=np.array(newBGallErr[j]), param_str=param_str, fit_method='leastsq')
+            print('azimu', np.array(newAziChunks))
+            print('bgall', np.array(newBGall[i]))
+            print('bgallErr', np.array(newBGallErr[i]))
+            fout = ff.Fourier_fit(azimu=np.array(newAziChunks), ydata=np.array(newBGall[i]), param=master_params,
+                                  errs=np.array(newBGallErr[i]), param_str=param_str, fit_method='leastsq')
             # tempbg, tempbgc = ff.Fourier_fit(np.array(newAziChunks), np.array(newBGall[i]), terms=bg_order[i],
             #                                 errs=np.array(newBGallErr[i]))
             # bgfour.append(tempbg.tolist())
@@ -865,6 +868,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             ax1 = fig.add_subplot(5, 1, 1)
             # plt.subplot(511)
             ax1.set_title('D-spacing')
+            
             for j in range(peeks):
                 ax1.scatter(newAziChunks, newd0[j], s=10)
                 # plt.errorbar(newAziChunks,newd0[j],newd0Err[j], linestyle="None") #FIX ME: should have a different
@@ -1224,7 +1228,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         else:
             xlabel_str = 'Dispersive units'
 
-        dot_size = 16
+        dot_size = 4
 
         fig = plt.figure()
         ax = fig.add_subplot(1, 3, 1)
@@ -1279,7 +1283,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
         # save figures without overwriting old names
         if SaveFit == 1:
-            filename = ''
+            if not fnam == False:
+                filename = os.path.splitext(os.path.basename(fnam))[0] + '_'
+            else:
+                filename = ''
             for x in range(len(orders['peak'])):
                 if 'phase' in orders['peak'][x]:
                     filename = filename + orders['peak'][x]['phase']

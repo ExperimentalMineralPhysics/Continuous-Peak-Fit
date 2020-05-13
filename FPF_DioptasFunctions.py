@@ -196,9 +196,9 @@ def GetCalibration(filenam):
 
     #process 'detector_config' into pixel sizes if needed.
     if 'Detector_config' in parms_dict:
-        print(parms_dict['Detector_config'])
-        parms_dict['pixelsize1'] = parms_dict['Detector_config']['PixelSize1']
-        parms_dict['pixelsize2'] = parms_dict['Detector_config']['PixelSize2']
+        #print(parms_dict['Detector_config'])
+        parms_dict['pixelsize1'] = parms_dict['Detector_config']['pixel1']
+        parms_dict['pixelsize2'] = parms_dict['Detector_config']['pixel2']
                    
     # get wavelengths in Angstrom
     parms_dict['conversion_constant'] = parms_dict['Wavelength'] * 1E10

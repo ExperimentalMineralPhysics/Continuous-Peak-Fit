@@ -89,7 +89,7 @@ def json_numpy_serialzer(o):
         raise TypeError("{} of type {} is not JSON serializable".format(repr(o), type(o)))
 
 
-def execute(settings_file=None, inputs=None, debug=False, refine=True, iterations=1):
+def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1):
     """
     :param settings_file:
     :param inputs:
@@ -337,6 +337,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
     # create mask from mask file if present.
     # if not make all values valid
     if 'Calib_mask' in FitParameters:
+        
         mask_file = os.path.abspath(FitSettings.Calib_mask)
         intens = det.GetMask(mask_file, intens, twotheta, azimu, os.path.abspath(FitSettings.Calib_data),
                              FitSettings.Calib_pixels, debug=debug)
@@ -418,7 +419,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
                 previous_fit = json.load(json_data)
 
         # switch to save the first fit in each sequence.
-        if j == 0:
+        if j == 0 or save_all == True:
             SaveFigs = 1
         else:
             SaveFigs = 0
@@ -452,13 +453,13 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
             # print(twotheta_sub.shape, dspacing_sub.shape, parms_dict, azimu_sub.shape, intens_sub.shape, orders,
             # params, calib_mod, SaveFigs)
 
-            # fit the subpattern
+	        # fit the subpattern
             Fitted_param.append(
                 FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
-                              DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine, iterations=iterations))
+                              DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine, iterations=iterations, fnam=diff_files[j]))
 
         # write output files
-
+        
         # store all the fit information as a JSON file.
         # filename, file_extension = os.path.splitext(diff_files[j])
         filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
@@ -468,23 +469,24 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
             # Write a JSON string into the file.
             json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
 
-        # #Write the fits to a temporary file
-        # TempFilename = open(temporary_data_file, 'w')
-        # # Write a JSON string into the file.
-        # json_string = json.dumps(Fitted_param, TempFilename, sort_keys=True, indent=4, default=json_numpy_serializer)
-        # #json_string = json.dumps(Fitted_param, TempFilename, sort_keys=True, indent=4, separators=(',', ': '))
-        # TempFilename.write(json_string)
-
-        # print json_string
-        with open(temporary_data_file, 'w') as TempFile:
-
-            # Write a JSON string into the file.
-            json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
+        # if propagating the fits write them to a temporary file
+        if propagate == True:
+            # TempFilename = open(temporary_data_file, 'w')
+            # # Write a JSON string into the file.
+            # json_string = json.dumps(Fitted_param, TempFilename, sort_keys=True, indent=4, default=json_numpy_serializer)
+            # #json_string = json.dumps(Fitted_param, TempFilename, sort_keys=True, indent=4, separators=(',', ': '))
+            # TempFilename.write(json_string)
+    
+            # print json_string
+            with open(temporary_data_file, 'w') as TempFile:
+    
+                # Write a JSON string into the file.
+                json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
 
     # Write the output files.
     # This is there so that the output file can be run separately from the fitting of the diffraction patterns.
     # FIX ME: Need to add options for more than one output.
-    print('\nWrite out file(s)')
+    print('\nWrite output file(s)')
     wr.WriteOutput(FitSettings, parms_dict)
 
 
@@ -494,4 +496,4 @@ if __name__ == '__main__':
     sys.path.append(os.getcwd())
     settings_file = sys.argv[1]
     print(settings_file)
-    execute(inputs=None, settings_file=settings_file, debug=False, refine=True, iterations=1)
+    execute(inputs=None, settings_file=settings_file, debug=False, refine=True, save_all=False, iterations=1)

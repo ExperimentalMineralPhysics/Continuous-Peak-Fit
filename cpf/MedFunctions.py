@@ -35,7 +35,7 @@ def Requirements():
     return RequiredParams
 
 
-def ImportImage(ImageName):
+def ImportImage(ImageName, debug=False):
 
     filename, file_extension = os.path.splitext(ImageName)
     

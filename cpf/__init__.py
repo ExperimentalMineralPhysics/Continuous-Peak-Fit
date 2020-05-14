@@ -13,6 +13,7 @@ from . import WriteMultiFit
 from . import WritePolydefixED
 from . import Mca
 from . import Med
+from . import PostProcessOutputs
 
 
 def generate_inputs():

@@ -763,8 +763,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             master_params = ff.unvary_params(master_params, param_str, '')
             master_params = ff.vary_params(master_params, param_str, '')
             # master_params.pretty_print()
-            fout = ff.Fourier_fit(azimu=np.array(newAziChunks), ydata=np.array(newBGall[j]), param=master_params,
-                                  errs=np.array(newBGallErr[j]), param_str=param_str, fit_method='leastsq')
+            fout = ff.Fourier_fit(azimu=np.array(newAziChunks), ydata=np.array(newBGall[i]), param=master_params,
+                                  errs=np.array(newBGallErr[i]), param_str=param_str, fit_method='leastsq')
             # tempbg, tempbgc = ff.Fourier_fit(np.array(newAziChunks), np.array(newBGall[i]), terms=bg_order[i],
             #                                 errs=np.array(newBGallErr[i]))
             # bgfour.append(tempbg.tolist())

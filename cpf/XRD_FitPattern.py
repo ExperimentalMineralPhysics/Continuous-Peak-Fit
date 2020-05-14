@@ -338,8 +338,8 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
     # if not make all values valid
     if 'Calib_mask' in FitParameters:
         
-        mask_file = os.path.abspath(FitSettings.Calib_mask)
-        intens = det.GetMask(mask_file, intens, twotheta, azimu, os.path.abspath(FitSettings.Calib_data),
+        #mask_file = os.path.abspath(FitSettings.Calib_mask)
+        intens = det.GetMask(FitSettings.Calib_mask, intens, twotheta, azimu, os.path.abspath(FitSettings.Calib_data),
                              FitSettings.Calib_pixels, debug=debug)
     else:
         # print np.shape(intens), type(intens)

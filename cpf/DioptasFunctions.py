@@ -84,9 +84,11 @@ def DetectorCheck(ImageName, detector=None):
     return detector
 
 
-def Conversion(tth_in, conv, reverse=0):
+def Conversion(tth_in, conv, reverse=0, azm=None):
     # convert two theta values into d-spacing.
 
+	#azm is needed to enable compatibility with the enerdispersive detectors
+	
     # convert wavelength into angstroms.
     # this is not longer required because it is done in the GetCalibration stage. 
     wavelength = conv['conversion_constant']
@@ -116,16 +118,16 @@ def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx, debug=False):
     if debug:
         # Plot mask.
         # This is left in here for debugging.
-        fig = plt.figure()
-        ax = fig.add_subplot(1, 2, 1)
-        plt.subplot(121)
-        plt.scatter(Imx, Imy, s=4, c=intens, edgecolors='none', cmap=plt.cm.jet)
-        ax = fig.add_subplot(1, 2, 2)
-        plt.subplot(122)
-        plt.scatter(ma.array(Imx, mask=ImMsk.mask), ma.array(Imy, mask=ImMsk.mask), s=4, c=intens, edgecolors='none',
+        fig_1 = plt.figure()
+        ax1 = fig_1.add_subplot(1, 2, 1)
+        #plt.subplot(121)
+        ax1.scatter(ImTTH, ImAzi, s=4, c=ImInts, edgecolors='none', cmap=plt.cm.jet)
+        ax2 = fig_1.add_subplot(1, 2, 2)
+        #plt.subplot(122)
+        ax2.scatter(ImTTH, ImAzi, s=4, c=ImInts, edgecolors='none',
                     cmap=plt.cm.jet)
-        plt.colorbar()
-        plt.show()
+        #ax2.colorbar()
+        fig_1.show()
 
         plt.close()
 

@@ -119,9 +119,11 @@ def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx, debug=False):
         ax = fig.add_subplot(1,2,1)
         plt.subplot(121)
         plt.scatter(ImTTH, ImAzi, s=4, c=ImInts, edgecolors='none', cmap=plt.cm.jet)
+        ax.set_ylim([0,360])
         ax = fig.add_subplot(1,2,2)
         plt.subplot(122)
         plt.scatter(ma.array(ImTTH,mask=ImMsk), ma.array(ImAzi,mask=ImMsk), s=4, c=ImInts, edgecolors='none', cmap=plt.cm.jet)
+        ax.set_ylim([0,360])
         plt.colorbar()
         plt.show()
     

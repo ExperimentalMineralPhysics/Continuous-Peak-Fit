@@ -363,11 +363,11 @@ def PeaksModel(twotheta, azi, num_peaks=None, nterms_back=None, Conv=None, PenCa
     # recreate backg array to pass to Fourier_backgrnd
     back_keys = [key for key, val in params.items() if 'bg_c' in key]
     nterm_fouriers = []
-    for i in range(nterms_back):
+    for i in range(int(nterms_back)):
         f = sum('bg_c' + str(i) in L for L in back_keys)
         nterm_fouriers.append(f)
     backg = []
-    for j in range(nterms_back):
+    for j in range(int(nterms_back)):
         fbg = []
         for k in range(nterm_fouriers[j]):
             fbg.append(params['bg_c' + str(j) + '_f' + str(k)])
@@ -384,7 +384,7 @@ def PeaksModel(twotheta, azi, num_peaks=None, nterms_back=None, Conv=None, PenCa
 
     # loop over the number of peaks
     Ipeak = []
-    for a in range(num_peaks):
+    for a in range(int(num_peaks)):
 
         if 'peak_' + str(a) + '_s0' in params:
             symm = params['peak_' + str(a) + '_s0']

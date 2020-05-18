@@ -82,13 +82,11 @@ def json_numpy_serialzer(o):
         raise TypeError("{} of type {} is not JSON serializable".format(repr(o), type(o)))
 
 
-def execute(settings_file=None, inputs=None):
+def execute(settings_file=None, inputs=None, outputs=None):
     """
     :param settings_file:
     :param inputs:
-    :param debug:
-    :param refine:
-    :param iterations:
+    :param outputs
     :return:
     """
     # Inputs ###
@@ -173,17 +171,25 @@ def execute(settings_file=None, inputs=None):
 
     # load output function(s) and check output options are present and valid
     # FIX ME: inly works for single output should work for multiple.
-    if 'Output_type' in FitParameters:
-        # output_mod = 'FPF_Write' + FitSettings.Output_type
+    print(outputs)
+    if outputs is not None:
+        output_mod = 'cpf.Write' + outputs
+        
+    elif 'Output_type' in FitParameters:
         output_mod = 'cpf.Write' + FitSettings.Output_type
-        try:
-            wr = importlib.import_module(output_mod)
-            # wr = __import__(output_mod)
-        except ImportError:
-            raise ImportError(
-                'The ''Output_type'' ' + FitSettings.Output_type + ' is not recognised; the file ' + output_mod +
-                ' does not exist. Check if the calibration type exists.')
-            # FIX ME: List possible output types.
+        
+    else:
+        print('No output stype. Raise error')
+        stop
+        
+    try:
+        wr = importlib.import_module(output_mod)
+        # wr = __import__(output_mod)
+    except ImportError:
+        raise ImportError(
+            'The ''Output_type'' ' + FitSettings.Output_type + ' is not recognised; the file ' + output_mod +
+            ' does not exist.')
+        # FIX ME: List possible output types.
 
         RequiredList = RequiredList + wr.Requirements()
 

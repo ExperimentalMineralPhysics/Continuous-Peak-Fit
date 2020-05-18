@@ -11,6 +11,7 @@ from . import MedFunctions
 from . import Plot85Functions
 from . import WriteMultiFit
 from . import WritePolydefixED
+from . import WriteDifferentialStrain
 from . import Mca
 from . import Med
 from . import PostProcessOutputs

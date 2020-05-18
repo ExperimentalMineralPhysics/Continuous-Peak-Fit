@@ -428,6 +428,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
         # get number of sub-patterns to be fitted
         n_subpats = len(FitSettings.fit_orders)
         Fitted_param = []
+        lmfit_models = []
 
         for i in range(n_subpats):
 
@@ -454,14 +455,14 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             # params, calib_mod, SaveFigs)
 
 	        # fit the subpattern
-            Fitted_param.append(
-                FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
-                              DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine, iterations=iterations, fnam=diff_files[j]))
-
+            tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
+                              DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine, iterations=iterations, fnam=diff_files[j])
+            Fitted_param.append(tmp[0])
+            lmfit_models.append(tmp[1])
+            
         # write output files
         
-        # store all the fit information as a JSON file.
-        # filename, file_extension = os.path.splitext(diff_files[j])
+        # store the fit parameters information as a JSON file.
         filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
         filename = filename + '.json'
         # print(filename)

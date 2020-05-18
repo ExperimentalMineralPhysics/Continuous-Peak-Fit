@@ -12,6 +12,7 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 from lmfit import Parameters, Model
+from lmfit.model import save_modelresult#, load_modelresult
 import importlib
 
 import cpf.PeakFunctions as ff
@@ -1230,6 +1231,33 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         plt.close()
         print('Done with Figure')
 
+    #save lmfit structure
+    if SaveFit:
+        if not fnam == None:
+            filename = os.path.splitext(os.path.basename(fnam))[0] + '_'
+        else:
+            filename = 'Fit2Peak'
+        for x in range(len(orders['peak'])):
+            if 'phase' in orders['peak'][x]:
+                filename = filename + orders['peak'][x]['phase']
+            else:
+                filename = filename + "Peak"
+            if 'hkl' in orders['peak'][x]:
+                filename = filename + str(orders['peak'][x]['hkl'])
+            else:
+                filename = filename + x
+                    
+            if x < len(orders['peak']) - 1 and len(orders['peak']) > 1:
+                filename = filename + '_'
+                
+        
+        save_modelresult(out, filename+'.sav')
+        
+        # asdf = load_modelresult(filename+'.sav', funcdefs={'PeaksModel': ff.PeaksModel})
+        # #asdf = load_model(filename+'.sav', funcdefs={'PeaksModel': ff.PeaksModel})
+        # print(asdf.fit_report())
+
+        
     '''
     collated = {"d-space":    fin_d,
                 "height":     fin_h,
@@ -1265,4 +1293,4 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
     # FIX ME: Need to put master_params into NewParams to return!
 
-    return NewParams
+    return [ NewParams, out]

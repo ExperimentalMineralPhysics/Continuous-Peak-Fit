@@ -7,7 +7,8 @@ import os
 import numpy as np
 import cpf.PeakFunctions as ff
 import json
-
+import re
+import datetime
 
 def Requirements():
     #List non-universally required parameters for writing this output type.
@@ -17,6 +18,7 @@ def Requirements():
             ]
     OptionalParams = [
             'ElasticProperties', #FIX ME: this needs to be included
+            'tc', # which thermocoule to include from 6BMB/X17B2 collection system. default to 1. #FIX ME: this needs to be included
             'Output_directory' # if no direcrtory is specified write to current directory.
             ]
     
@@ -184,8 +186,7 @@ def WriteOutput(FitSettings, parms_dict):
         text_file.write("")
         
     elif 'Output_ElasticProperties' in FitParameters:
-        print('in right place')
-        print(FitSettings.Output_ElasticProperties)
+        
         fid = open(FitSettings.Output_ElasticProperties, 'r')
         
         #pipe ealstic properties to the output file.
@@ -256,12 +257,30 @@ def WriteOutput(FitSettings, parms_dict):
     text_file.write("# Information on time step       \n")
     text_file.write("# Step number.  Step name.         Step time.    Step temperature (K).    taux de def E\n")
     for x in range(n_diff_files):
-        #FIX ME: if exists write the input for strain or temperature.
-        
+        temp = np.array(0.)
+        with open(diff_files[x], 'r') as myfile:
+            for line in myfile:  # For each line, stored as line,
+            
+                #get date.
+                if "DATE:" in line: 
+                    ftime = datetime.datetime.strptime(line,"DATE:  %b %d, %Y %H:%M:%S.%f ")
+                    if x==0:
+                        t_o = ftime
+                    t = ftime - t_o #time relative to first diffraction 
+                        
+                #get temperature
+                if not 'Output_tc' in FitParameters:
+                    st = "LVP_tc1_calcs.I"
+                else:
+                    st = "LVP_tc" + FitSettings.Output_tc + "_calcs.I"
+                if st in line:
+                    temp = re.findall(r'"(.*?)"', line)
+                    temp = float(temp[0]) + 273.
+            
         #strip directory and ending from filename
         diff_name = os.path.splitext(os.path.basename(diff_files[x]))[0]
         
-        text_file.write("%8i        %s  %3.4g                  %3.4g\n" %  (x+1, "{:<18}".format(diff_name), x, 25+273))
+        text_file.write("%8i        %s  %8.8g            %6.1f\n" %  (x+1, "{:<18}".format(diff_name), t.seconds, temp))
         
 
     #Write the experimental data fits.

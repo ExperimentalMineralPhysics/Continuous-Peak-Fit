@@ -14,7 +14,6 @@ from . import WritePolydefixED
 from . import WriteDifferentialStrain
 from . import Mca
 from . import Med
-from . import PostProcessOutputs
 
 
 def generate_inputs():

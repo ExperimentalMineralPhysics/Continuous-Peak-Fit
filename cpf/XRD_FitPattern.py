@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__all__ = ['execute']
+__all__ = ['execute', 'writeoutput']
 
 import json
 import os
@@ -89,14 +89,12 @@ def json_numpy_serialzer(o):
         raise TypeError("{} of type {} is not JSON serializable".format(repr(o), type(o)))
 
 
-def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1):
+def initiate(settings_file=None, inputs=None):    
     """
     :param settings_file:
     :param inputs:
-    :param debug:
-    :param refine:
-    :param iterations:
-    :return:
+    :return FitParameters:
+    :return FitSettings:
     """
     # Inputs ###
     # and setup
@@ -116,6 +114,8 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             #     settings_file = settings_file.strip('.py')
             # FitSettings = __import__(settings_file)
             FitParameters = dir(FitSettings)
+            
+            FitSettings.inputfile = settings_file
         except:
             raise FileNotFoundError
 
@@ -226,7 +226,199 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
     else:
         det_name = None
     FitSettings.Calib_detector = det.DetectorCheck(os.path.abspath(FitSettings.Calib_data), det_name)
+    
+    return FitSettings, FitParameters
 
+
+
+def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=None, det=None):
+    
+    #if something then initite
+    if parms_dict == None:
+        FitSettings, FitParameters = initiate(settings_file)
+        
+    if det==None: 
+        # calibration parameter file #
+        #load detector here
+        det = importlib.import_module('cpf.' + FitSettings.Calib_type + 'Functions')
+        parms_dict = det.GetCalibration(os.path.abspath(FitSettings.Calib_param))
+       
+    
+    # load output function(s) and check output options are present and valid
+    # FIX ME: inly works for single output should work for multiple.
+    if outtype is not None:
+        output_mod = 'cpf.Write' + outtype
+        
+    elif 'Output_type' in FitParameters:
+        output_mod = 'cpf.Write' + FitSettings.Output_type
+        
+    else:
+        print('No output stype. Raise error')
+        stop
+    
+    try:
+        wr = importlib.import_module(output_mod)
+        # wr = __import__(output_mod)
+    except ImportError:
+        raise ImportError(
+            'The ''Output_type'' ' + FitSettings.Output_type + ' is not recognised; the file ' + output_mod +
+            ' does not exist. Check if the calibration type exists.')
+        # FIX ME: List possible output types.
+    
+    # This is there so that the output file can be run separately from the fitting of the diffraction patterns.
+    # FIX ME: Need to add options for more than one output.    
+    print('\nWrite output file(s)')
+    wr.WriteOutput(FitSettings, parms_dict)
+
+
+def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1):
+    """
+    :param settings_file:
+    :param inputs:
+    :param debug:
+    :param refine:
+    :param iterations:
+    :return:
+    """
+    # Inputs ###
+    # and setup
+    '''
+    if settings_file:
+        try:
+            print('  ')
+            print('The name of the settings file is: ', settings_file)
+
+            if not str.endswith(settings_file, '.py'):
+                settings_file = settings_file + '.py'
+            spec = importlib.util.spec_from_file_location("settings_module", settings_file)
+            FitSettings = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(FitSettings)
+
+            # if str.endswith(settings_file, '.py'):
+            #     settings_file = settings_file.strip('.py')
+            # FitSettings = __import__(settings_file)
+            FitParameters = dir(FitSettings)
+            
+            FitSettings.inputfile = settings_file
+        except:
+            raise FileNotFoundError
+
+    elif inputs:
+        raise NotImplementedError
+
+    else:
+        raise ValueError('No inputs provided')
+
+    # List all the required parameters.
+    # NOTE: No doubt this will change hence denoted as a list that is worked over.
+    # 1. Have option to have list of files rather than sequence. This list needs to be called diff_files.
+
+    # Inputs:
+    #   calibration type. (required)
+    #   data - in form of:
+    #       - file listing data files. (with or without directory)
+    #       - file listing data file numbers (needs directory, file name, number digits, ending)
+    #       - beginning and and numbers for files (needs directory, file name, number digits, ending)
+
+    RequiredList = ['Calib_type',
+                    # 'Calib_data',        # Removed because this is not strictly required.
+                    # 'Calib_param',       # Now added to calibration function file.
+                    # 'Calib_pixels',      # this is only needed for GSAS-II and should be read from image file. FIX
+                    # ME: add to GSAS-II inputfile.
+                    # 'Calib_mask',        # a mask file is not strictly required.
+                    'datafile_directory',
+                    'datafile_Basename',
+                    'datafile_Ending',
+                    # 'datafile_StartNum',  # now optionally replaced by datafile_Files
+                    # 'datafile_EndNum',    # now optionally replaced by datafile_Files
+                    'datafile_NumDigit',
+                    'AziBins',
+                    'fit_orders',
+                    # 'Output_type',		   # should be optional
+                    # 'Output_NumAziWrite',  # should be optional
+                    # 'Output_directory']	   # should be optional
+                    ]
+    AlternativesList = [
+        [['datafile_StartNum', 'datafile_EndNum'], ['datafile_Files']]
+    ]
+
+    # load the detector functions here.
+    if not 'Calib_type' in FitParameters:
+        sys.exit(
+            'There is no ''Calib_type'' in the settings. The fitting cannot proceed until a recognised '
+            'Calibration type is present.')
+    else:
+        # calib_mod = 'FPF_' + FitSettings.Calib_type + 'Functions'
+        calib_mod = 'cpf.' + FitSettings.Calib_type + 'Functions'
+    try:
+        det = importlib.import_module(calib_mod)
+        # det = __import__(calib_mod)
+    except ImportError:
+        raise ImportError(
+            'The ''Calib_type'' ' + FitSettings.Calib_type + ' is not recognised; the file ' + calib_mod +
+            ' does not exist. Check if the calibration type exists.')
+        # FIX ME: List possible calibration types.
+
+    # Add detector requirements to the Required List of parameters - which has been read from the Detector functions.
+    RequiredList = RequiredList + det.Requirements()
+
+    # load output function(s) and check output options are present and valid
+    # FIX ME: inly works for single output should work for multiple.
+    if 'Output_type' in FitParameters:
+        # output_mod = 'FPF_Write' + FitSettings.Output_type
+        output_mod = 'cpf.Write' + FitSettings.Output_type
+        try:
+            wr = importlib.import_module(output_mod)
+            # wr = __import__(output_mod)
+        except ImportError:
+            raise ImportError(
+                'The ''Output_type'' ' + FitSettings.Output_type + ' is not recognised; the file ' + output_mod +
+                ' does not exist. Check if the calibration type exists.')
+            # FIX ME: List possible output types.
+
+        RequiredList = RequiredList + wr.Requirements()
+
+    # check all the required values are present.
+    all_present = 1
+    # properties of the data files.
+    for x in range(len(RequiredList)):
+        if RequiredList[x] in FitParameters:
+            print('Got: ', RequiredList[x])
+        else:
+            print('The settings file requires a parameter called  \'', RequiredList[x], '\'')
+            all_present = 0
+
+    possible = [[[], []] * len(AlternativesList)]
+    for x in range(len(AlternativesList)):
+        for y in range(2):
+            for z in range(len(AlternativesList[x][y])):
+                if AlternativesList[x][y][z] in FitParameters:
+
+                    possible[x][y].append(1)
+                else:
+                    possible[x][y].append(0)
+
+    # exit if all parameters are not present
+    if all_present == 0:
+        sys.exit(
+            "The highlighted settings are missing from the input file. Fitting cannot proceed until they are all present.")
+
+    # Detector check.
+    # Check if the detector is required and if so if it is present and recognised.
+    if 'Calib_detector' in FitParameters:
+        det_name = FitSettings.Calib_detector
+    else:
+        det_name = None
+    FitSettings.Calib_detector = det.DetectorCheck(os.path.abspath(FitSettings.Calib_data), det_name)
+    '''
+    
+    
+    FitSettings, FitParameters = initiate(settings_file, inputs)
+    
+    #load detector here
+    calib_mod = 'cpf.' + FitSettings.Calib_type + 'Functions'
+    det = importlib.import_module('cpf.' + FitSettings.Calib_type + 'Functions')
+    
     # define locally required names.
     temporary_data_file = 'PreviousFit_JSON.dat'
 
@@ -485,10 +677,14 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
                 json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
 
     # Write the output files.
-    # This is there so that the output file can be run separately from the fitting of the diffraction patterns.
-    # FIX ME: Need to add options for more than one output.
-    print('\nWrite output file(s)')
-    wr.WriteOutput(FitSettings, parms_dict)
+    writeoutput(settings_file, FitSettings=FitSettings, parms_dict=parms_dict, det=det, outtype=FitSettings.Output_type)
+    
+
+    # print('\nWrite output file(s)')
+    # wr.WriteOutput(FitSettings, parms_dict)
+
+    
+    
 
 
 if __name__ == '__main__':

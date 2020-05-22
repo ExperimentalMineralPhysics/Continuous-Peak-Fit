@@ -604,7 +604,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
 
         # get previous fit (if exists)
         # load temporary fit file - if it exists.
-        if os.path.isfile(temporary_data_file):
+        if os.path.isfile(temporary_data_file) and propagate==True:
             # Read JSON data from file
             print('Loading previous fit results from %s' % temporary_data_file)
             with open(temporary_data_file) as json_data:

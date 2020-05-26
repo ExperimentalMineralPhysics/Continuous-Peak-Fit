@@ -89,7 +89,7 @@ def json_numpy_serialzer(o):
         raise TypeError("{} of type {} is not JSON serializable".format(repr(o), type(o)))
 
 
-def initiate(settings_file=None, inputs=None):    
+def initiate(settings_file=None, inputs=None, outtype=None):    
     """
     :param settings_file:
     :param inputs:
@@ -180,19 +180,39 @@ def initiate(settings_file=None, inputs=None):
 
     # load output function(s) and check output options are present and valid
     # FIX ME: inly works for single output should work for multiple.
-    if 'Output_type' in FitParameters:
-        # output_mod = 'FPF_Write' + FitSettings.Output_type
-        output_mod = 'cpf.Write' + FitSettings.Output_type
-        try:
-            wr = importlib.import_module(output_mod)
+    output_mod = []
+    if outtype is not None:
+        if isinstance(outtype, str):
+            output_mod.append('cpf.Write' + outtype)
+        else:
+            for x in range(len(outtype)):
+                output_mod.append('cpf.Write' + outtype[x])
+        
+    elif 'Output_type' in FitParameters:
+        if isinstance(FitSettings.Output_type, str):
+            output_mod.append('cpf.Write' + FitSettings.Output_type)
+        else:
+            for x in range(len(FitSettings.Output_type)):
+                output_mod.append('cpf.Write' + FitSettings.Output_type[x])
+        
+    else:
+        raise ValueError('No output type. Add ''Output_type'' to input file or specify ''outtype'' in command.')
+        
+    try:
+        for x in range(len(output_mod)):
+        
+            wr = importlib.import_module(output_mod[x])
             # wr = __import__(output_mod)
-        except ImportError:
-            raise ImportError(
-                'The ''Output_type'' ' + FitSettings.Output_type + ' is not recognised; the file ' + output_mod +
-                ' does not exist. Check if the calibration type exists.')
+            RequiredList = RequiredList + wr.Requirements()
+            
+    except ImportError:
+        raise ImportError(
+            'The ''Output_type'' ' + FitSettings.Output_type + ' is not recognised; the file ' + output_mod +
+            ' does not exist. Check if the calibration type exists.')
             # FIX ME: List possible output types.
+    
 
-        RequiredList = RequiredList + wr.Requirements()
+
 
     # check all the required values are present.
     all_present = 1
@@ -233,9 +253,10 @@ def initiate(settings_file=None, inputs=None):
 
 def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=None, det=None):
     
-    #if something then initite
+    # if something then initite
+    # initiate checks the output functions are present and valid.
     if parms_dict == None:
-        FitSettings, FitParameters = initiate(settings_file)
+        FitSettings, FitParameters = initiate(settings_file, outtype=outtype)
         
     if det==None: 
         # calibration parameter file #
@@ -244,31 +265,28 @@ def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=N
         parms_dict = det.GetCalibration(os.path.abspath(FitSettings.Calib_param))
        
     
-    # load output function(s) and check output options are present and valid
-    # FIX ME: inly works for single output should work for multiple.
+    output_mod = []
     if outtype is not None:
-        output_mod = 'cpf.Write' + outtype
+        print(type(outtype))
+        if isinstance(outtype, str):
+            output_mod.append('cpf.Write' + outtype)
+        else:
+            for x in range(len(outtype)):
+                output_mod.append('cpf.Write' + outtype[x])
         
     elif 'Output_type' in FitParameters:
-        output_mod = 'cpf.Write' + FitSettings.Output_type
-        
-    else:
-        print('No output stype. Raise error')
-        stop
+        if isinstance(FitSettings.Output_type, str):
+            output_mod.append('cpf.Write' + FitSettings.Output_type)
+        else:
+            for x in range(len(FitSettings.Output_type)):
+                output_mod.append('cpf.Write' + FitSettings.Output_type[x])
+               
     
-    try:
-        wr = importlib.import_module(output_mod)
-        # wr = __import__(output_mod)
-    except ImportError:
-        raise ImportError(
-            'The ''Output_type'' ' + FitSettings.Output_type + ' is not recognised; the file ' + output_mod +
-            ' does not exist. Check if the calibration type exists.')
-        # FIX ME: List possible output types.
+    for x in range(len(output_mod)):
     
-    # This is there so that the output file can be run separately from the fitting of the diffraction patterns.
-    # FIX ME: Need to add options for more than one output.    
-    print('\nWrite output file(s)')
-    wr.WriteOutput(FitSettings, parms_dict)
+        wr = importlib.import_module(output_mod[x])
+        print('\nWrite output file(s) using', output_mod[x])
+        wr.WriteOutput(FitSettings, parms_dict)
 
 
 def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1):

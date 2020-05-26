@@ -66,7 +66,7 @@ def WriteOutput(FitSettings, parms_dict):
     if 'Output_directory' in FitParameters:
         out_dir = FitSettings.Output_directory
     else:
-        out_dir = '../'
+        out_dir = './'
             
 
     # create output file name from passed name
@@ -182,6 +182,10 @@ def WriteOutput(FitSettings, parms_dict):
     text_file.write("2       \n")
         
     if 'Material' in FitParameters:
+        
+        raise ValueError("''Material'' is depreciated as an option. Change your input file to have a ''Phase'' instead.")
+        
+    elif 'Phase' in FitParameters:
         #left empty on purpose
         text_file.write("")
         

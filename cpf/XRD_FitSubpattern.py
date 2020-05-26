@@ -223,6 +223,15 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         twotheta = TwoThetaAndDspacings
         # FIX ME: need to set a value for 'conversion_factor' in here and propagate its none-use through the code.
 
+    # set data type for the intensity data.
+    # This is needed for saving the fits using save_modelresult/ load_modelresult. 
+    # load_modelresult fails if the data is a masked integer array.
+    if isinstance(intens, int) or isinstance(intens, np.int32):
+        intens = float(intens)
+    elif isinstance(intens, np.int64):
+        intens = np.float64(intens)
+        
+
     # FIX ME: need to match orders of arrays to previous numbers.
     # if no parameters
     #     get orders of arrays

@@ -67,14 +67,19 @@ def WriteOutput(FitSettings, parms_dict):
     if 'Output_directory' in FitParameters:
         out_dir = FitSettings.Output_directory
     else:
-        out_dir = '../'
+        out_dir = './'
             
 
     # create output file name from passed name
     path, filename = os.path.split(base_file_name)
     base, ext = os.path.splitext(filename)
+    if not base:
+        print("No base filename, using input filename instead.")
+        base =  os.path.splitext(FitSettings.inputfile)[0]
+        
     if base[-1:] == '_': #if the base file name ends in an '_' remove it. 
         base = base[0:-1]
+        
     out_file = out_dir + base + '.dat'
 
     text_file = open(out_file, "w")
@@ -117,6 +122,7 @@ def WriteOutput(FitSettings, parms_dict):
                 if x < len(orders['peak']) - 1 and len(orders['peak']) > 1:
                     subfilename = subfilename + '_'
                         
+            print(subfilename)
             gmodel = load_modelresult(subfilename+'.sav', funcdefs={'PeaksModel': ff.PeaksModel})
         
             # FIX ME: this will only work for one peak. Needs fixing if more then one peak in subpattern

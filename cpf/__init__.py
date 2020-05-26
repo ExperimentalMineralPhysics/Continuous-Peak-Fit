@@ -10,6 +10,7 @@ from . import GSASIIFunctions
 from . import MedFunctions
 from . import Plot85Functions
 from . import WriteMultiFit
+from . import WritePolydefix
 from . import WritePolydefixED
 from . import WriteDifferentialStrain
 from . import Mca

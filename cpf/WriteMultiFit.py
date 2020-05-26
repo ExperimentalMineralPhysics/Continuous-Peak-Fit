@@ -63,7 +63,7 @@ def WriteOutput(FitSettings, parms_dict):
     if 'Output_directory' in FitParameters:
         out_dir = FitSettings.Output_directory
     else:
-        out_dir = '../'
+        out_dir = './'
         
     #def WriteOutput(base_file_name, data_to_write, Num_Azi, wavelength):
     ## writes *.fit files required by polydefix.
@@ -79,9 +79,7 @@ def WriteOutput(FitSettings, parms_dict):
         #read file to write output for
         filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
         filename = filename+'.json'
-        
-        print('Writing', filename)
-        
+                
         # Read JSON data from file
         with open(filename) as json_data:
             data_to_write = json.load(json_data)
@@ -91,6 +89,8 @@ def WriteOutput(FitSettings, parms_dict):
         path, filename = os.path.split(diff_files[z])
         base, ext = os.path.splitext(filename)
         out_file = out_dir + base + '.fit'
+        
+        print('Writing', out_dir + base + '.fit')
     
     
         text_file = open(out_file, "w")

@@ -1,6 +1,4 @@
 
 *.pyx
 *.pyc
-*.pyc
-*.pyc
-/build/
+.DS_Store

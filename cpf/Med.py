@@ -8,7 +8,7 @@ Modifications:
     Stripped out parts that are not required:
         - spline function and option to align the called data. 
 """
-import Mca
+from cpf import Mca
 import numpy as Numeric
 #import spline
 
@@ -342,7 +342,7 @@ class Med(Mca.Mca):
       for i in range(self.n_detectors):
          data[i,:] = self.mcas[i].get_data()
       if (align != 0):
-          print 'This option has been removed'
+          print('This option has been removed')
           stop
 #         ref_energy = self.mcas[0].get_energy()
 #         for i in range(self.n_detectors):

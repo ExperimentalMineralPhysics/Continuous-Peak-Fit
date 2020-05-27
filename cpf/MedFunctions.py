@@ -1,25 +1,32 @@
-# /usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+__all__ = ['Requirements', 'ImportImage', 'DetectorCheck', 'Conversion', 'GetMask', 'GetCalibration', 'GetTth',
+           'GetAzm', 'GetDsp']
+
 
 import sys
 import os
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
-import Med
-import Mca
+from cpf import Med
+
 
 # For MED files from Energy dispersive diffraction patterns at X17B2, 6-BMB and others.
 
 # For ease of use the *.med files are imported using Mark Rivers' Med.py and Mca.py functions.
 # These were downloaded from ??? in June 2019.
-# and edited to remove unnecessary dependencies e.g. 'Numeric' and 'LinearAlgebra' packages and functions that had further dependencies.
+# and edited to remove unnecessary dependencies e.g. 'Numeric' and 'LinearAlgebra' packages and functions that had
+# further dependencies.
 # I don't know how much of this is required but for now I am just adding the packages.
 
-# FIX ME: Need a dependency check.  
+# FIX ME: Need a dependency check.
 
 
-def DetectorRequirements():
+
+
+def Requirements():
     
     RequiredParams = [
             'Calib_param'
@@ -28,7 +35,7 @@ def DetectorRequirements():
     return RequiredParams
 
 
-def ImportImage(ImageName):
+def ImportImage(ImageName, debug=False):
 
     filename, file_extension = os.path.splitext(ImageName)
     
@@ -58,9 +65,15 @@ def DetectorCheck(ImageName, detector=None):
     return detector
 
 
-def Conversion(E_in, calib, reverse=0):
+def Conversion(E_in, calib, reverse=0, azm=None):
     #convert energy into d-spacing.
+    if not azm is None:
+        E_in = np.array([[azm, E_in]]) #FIX ME: this is a horrible way to make the conversion work but it is needed for processing the guesses of MED detectors.
     
+    
+    print('E_in',E_in, 'calib,', calib)
+    print('type E_in', type(E_in))
+    print(E_in[:,1])
     #Convert Energy (keV) to wavelength (Angstroms)
     # E = hc/lamda;  h = 4.135667662(25)×10−15 eV s; c = 299792458 m/s
     wavelength = 4.135667662e-15*(299792458*1E10)/(E_in[:,1]*1000)
@@ -68,7 +81,6 @@ def Conversion(E_in, calib, reverse=0):
     # determine which detector calibration goes with each energy.
     sort_idx = np.array(calib['azimuths']).argsort()
     de = sort_idx[np.searchsorted(calib['azimuths'],E_in[:,0],sorter = sort_idx)]
-    
 
     if not reverse:
         #convert energy to d-spacing
@@ -80,14 +92,17 @@ def Conversion(E_in, calib, reverse=0):
     else:
         #convert dspacing to energy.
         #N.B. this is the reverse finction so that labels tth and dspacing are not correct. 
-        dspc_out = 2*np.degrees(np.arcsin(wavelength/2/tth))
-        stop
+        dspc_out = []
+        for i in range(len(de)):
+            dspc_out.append(2*np.degrees(np.arcsin(wavelength/2/calib['calibs'].mcas[i].calibration.two_theta)))
+        dspc_out = np.array(dspc_out)
+        
         
     return dspc_out
 
 
 
-def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx):
+def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx, debug=False):
     # Masks for 10 element detector are either for full detector or for an energy range. 
     # Currently this just works by removing  single detector.
     
@@ -97,16 +112,18 @@ def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx):
     for x in range(len(MSKfile)):
         ImMsk[MSKfile[x]-1] = 1
     
-    if 0:
+    if debug:
         #Plot mask.
         #This is left in here for debugging.
         fig = plt.figure()
         ax = fig.add_subplot(1,2,1)
         plt.subplot(121)
         plt.scatter(ImTTH, ImAzi, s=4, c=ImInts, edgecolors='none', cmap=plt.cm.jet)
+        ax.set_ylim([0,360])
         ax = fig.add_subplot(1,2,2)
         plt.subplot(122)
         plt.scatter(ma.array(ImTTH,mask=ImMsk), ma.array(ImAzi,mask=ImMsk), s=4, c=ImInts, edgecolors='none', cmap=plt.cm.jet)
+        ax.set_ylim([0,360])
         plt.colorbar()
         plt.show()
     

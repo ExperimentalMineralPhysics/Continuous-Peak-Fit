@@ -1,14 +1,12 @@
-# Input parameters for BCC1_2GPa_100s_001. 
+
+
+# Input parameters for BCC1_2GPa_100s_001.
 #
 # It is an attempt to collate all the information needed in the fitting routines.
-# A 'proper' input file type can be formuated later.
+# A 'proper' input file type can be formulated later.
 
 # properties of the data files.
-<<<<<<< HEAD
-datafile_directory = './'
-=======
-datafile_directory = './Example1Fe/'
->>>>>>> python3
+datafile_directory = './Example1-Fe/'
 datafile_Basename  = 'BCC1_2GPa_10s_001_'
 datafile_Ending    = '.tif'
 datafile_StartNum  = 1
@@ -18,15 +16,9 @@ datafile_NumDigit  = 5
 # Calibration and masking.
 Calib_type   = "Dioptas"
 Calib_detector = 'Pilatus1M'
-<<<<<<< HEAD
-Calib_data     = 'CeO2_Pil207_E30_2Nov2016_001.tif'
-Calib_param    = 'CeO2_cal_Dioptas.poni'
-Calib_mask     = 'DiffractionMask_Dioptas.mask'
-=======
 Calib_data     = datafile_directory + 'CeO2_Pil207_E30_2Nov2016_001.tif'
 Calib_param    = datafile_directory + 'CeO2_cal_Dioptas.poni'
 Calib_mask     = datafile_directory + 'DiffractionMask_Dioptas.mask'
->>>>>>> python3
 Calib_pixels = 172
 
 # Fitting properties for peaks.
@@ -53,7 +45,7 @@ fit_orders = [
              "symmetry": 2
            }],
          "range": [[10.8, 11.67]],
-         "PeakPositionSelection": [[1,-120.5,11.19],[1,-58.997,11.19],[1,59.289,11.19],[1,23.187,11.19],[1,23.212,11.19], [1,23.158,11.19], [1,23.246,11.19], [2,-120, 11.54], [2,-90, 11.54], [2,-45, 11.54], [2,-0, 11.54], [2,45, 11.54], [2,90, 11.54], [2,120, 11.54], [2,179, 11.54]]
+         "PeakPositionSelection": [[1,-170.5,11.19],[1,-150.5,11.19],[1,-120.5,11.19],[1,-58.997,11.19],[1,59.289,11.19],[1,23.187,11.19],[1,23.212,11.19], [1,53.158,11.19], [1,73.246,11.19], [1,93.246,11.19], [1,123.246,11.19], [2,-170, 11.54], [2,-150, 11.54], [2,-110, 11.54], [2,-90, 11.54], [2,-45, 11.54], [2,-0, 11.54], [2,45, 11.54], [2,90, 11.54], [2,120, 11.54], [2,150, 11.54], [2,179, 11.54]]
        },
        {
          "background": [0,0],

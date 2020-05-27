@@ -24,7 +24,7 @@ Modifications:
 """
 
 import numpy as Numeric
-import string
+#import string
 import copy
 import math
 import sys
@@ -1520,11 +1520,11 @@ def read_ascii_file(file):
    while(1):
       line = fp.readline()
       if (line == ''): break
-      pos = string.find(line, ' ')
+      pos = line.find(' ') #pos = string.find(line, ' ')
       if (pos == -1): pos = len(line)
       tag = line[0:pos]
-      value = string.strip(line[pos:])
-      values = string.split(value)
+      value = str.strip(line[pos:])#line[pos:].strip #value = string.strip(line[pos:])
+      values = str.split(value) #values = string.split(value)
       if (tag == 'VERSION:'):
           pass
       elif (tag == 'DATE:'):  
@@ -1566,9 +1566,9 @@ def read_ascii_file(file):
             calibration[d].two_theta = float(values[d])
       elif (tag == 'ENVIRONMENT:'):
          env = McaEnvironment()
-         p1 = string.find(value, '=')
+         p1 = str.find(value, '=')
          env.name = value[0:p1]
-         p2 = string.find(value[p1+2:], '"')
+         p2 = str.find(value[p1+2:], '"')
          env.value = value[p1+2: p1+2+p2]
          env.description = value[p1+2+p2+3:-1]
          environment.append(env)
@@ -1578,7 +1578,7 @@ def read_ascii_file(file):
             data.append(Numeric.zeros(nchans, 'i'))
          for chan in range(nchans):
             line = fp.readline()
-            counts = string.split(line)
+            counts = str.split(line)
             for d in range(n_detectors):
                data[d][chan]=int(counts[d])
       else:
@@ -1595,16 +1595,16 @@ def read_ascii_file(file):
                       rois[d][i].right = int(values[d])
                 break
              elif (tag == roi+'LABEL:'):
-                labels = string.split(value, '&')
+                labels = str.split(value, '&')
                 for d in range(n_detectors):
                    if (i < nrois[d]):
-                      rois[d][i].label = string.strip(labels[d])
+                      rois[d][i].label = str.strip(labels[d])
                 break
          else:
-            print 'Unknown tag = '+tag+' in file: ' + file + '.'
+            print('Unknown tag = '+tag+' in file: ' + file + '.')
 
    # Make sure DATA array is defined, else this was not a valid data file
-   if (data == None): print 'Not a valid data file: ' + file + '.'
+   if (data == None): print('Not a valid data file: ' + file + '.')
    fp.close()
    # Built dictionary to return
    r = {}

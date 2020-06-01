@@ -24,6 +24,26 @@ def Requirements():
     
     return RequiredParams
     
+
+def lmfit_fix_int_data_type(fname):
+    """
+    fixes problem with lmfit save/load model. 
+    lmfit load model cannot read int32 data with nulls in it. 
+    if replace 'int32' with 'float32' it will read. 
+    """
+            
+    ObjRead = open(fname, "r")   
+    txtContent = ObjRead.read();
+    ObjRead.close()
+    
+    txtContent = txtContent.replace('int', 'float')
+    
+    print('    Rewriting', fname)
+    ObjRead = open(fname, "w")
+    ObjRead.write(txtContent)
+    ObjRead.close()
+    
+
     
 def WriteOutput(FitSettings, parms_dict):
 # writes *.exp files required by polydefixED.
@@ -122,8 +142,15 @@ def WriteOutput(FitSettings, parms_dict):
                 if x < len(orders['peak']) - 1 and len(orders['peak']) > 1:
                     subfilename = subfilename + '_'
                         
-            print(subfilename)
-            gmodel = load_modelresult(subfilename+'.sav', funcdefs={'PeaksModel': ff.PeaksModel})
+            print('  Incorporating ' + subfilename)
+            try:
+                gmodel = load_modelresult(subfilename+'.sav', funcdefs={'PeaksModel': ff.PeaksModel})
+            except:
+                lmfit_fix_int_data_type(subfilename+'.sav')
+                try:
+                    gmodel = load_modelresult(subfilename+'.sav', funcdefs={'PeaksModel': ff.PeaksModel})
+                except:
+                    raise FileNotFoundError     
         
             # FIX ME: this will only work for one peak. Needs fixing if more then one peak in subpattern
             corr = gmodel.params['peak_0_d3'].correl['peak_0_d4']

@@ -234,7 +234,7 @@ def gather_params_from_dict(param, param_str, comp):
     return param_list
 
 
-def initiate_params(param, param_str, comp, nterms, max=None, min=None, expr=None, value=1.):
+def initiate_params(param, param_str, comp, nterms=None, max=None, min=None, expr=None, value=1.):
     """
     Create all required coefficients for no. terms
     :param param: lmfit Parameter class (can be empty)
@@ -245,6 +245,9 @@ def initiate_params(param, param_str, comp, nterms, max=None, min=None, expr=Non
     """
     
     value = np.array(value)  # force input to be array so that can be iterated over
+
+    if nterms is None:
+        nterms = int((len(value) - 1)/2)
 
     for t in range(2 * nterms + 1):
         if value.size == 1:
@@ -298,7 +301,8 @@ def vary_params(param, param_str, comp):
     return param
 
 
-def PeaksModel(twotheta, azi, num_peaks=None, nterms_back=None, Conv=None, **params):
+#def PeaksModel(twotheta, azi, num_peaks=None, nterms_back=None, Conv=None, **params):
+def PeaksModel(twotheta, azi, Conv=None, **params):
     """Full model of intensities at twotheta and azi given input parameters
     :param twotheta: arr values float
     :param azi: arr values float
@@ -316,20 +320,45 @@ def PeaksModel(twotheta, azi, num_peaks=None, nterms_back=None, Conv=None, **par
     # recreate backg array to pass to Fourier_backgrnd
     back_keys = [key for key, val in params.items() if 'bg_c' in key]
     nterm_fouriers = []
-    for i in range(int(nterms_back)):
+    
+    i=0
+    backg=[]
+    while sum(nterm_fouriers) < len(back_keys):
+        
         f = sum('bg_c' + str(i) in L for L in back_keys)
         nterm_fouriers.append(f)
-    backg = []
-    for j in range(int(nterms_back)):
+        
         fbg = []
-        for k in range(nterm_fouriers[j]):
-            fbg.append(params['bg_c' + str(j) + '_f' + str(k)])
-        backg.append(np.array(fbg))
+        for k in range(f):
+            fbg.append(params['bg_c' + str(i) + '_f' + str(k)])
+        backg.append(np.array(fbg))   
+        i = i+1
+    
+    # for i in range(int(nterms_back)):
+    #     f = sum('bg_c' + str(i) in L for L in back_keys)
+    #     nterm_fouriers.append(f)
+    # backg = []
+    # for j in range(int(nterms_back)):
+    #     fbg = []
+    #     for k in range(nterm_fouriers[j]):
+    #         fbg.append(params['bg_c' + str(j) + '_f' + str(k)])
+    #     backg.append(np.array(fbg))
+    # print(backg)
+    
     # for future logging
     # print('recreate backg to pass to fourier_backg\n', 'back_keys is ', back_keys)
     # print('backg is ', backg)
 
     I = Fourier_backgrnd((azi, twotheta), backg)
+
+    
+    peak_keys = [key for key, val in params.items() if 'peak' in key]
+    num_peaks = 0
+    nterm_peaks = 0
+    while nterm_peaks < len(peak_keys):
+        f = sum('peak_' + str(num_peaks) in L for L in peak_keys)
+        nterm_peaks = nterm_peaks + f
+        num_peaks = num_peaks+1
 
     # loop over the number of peaks
     Ipeak = []
@@ -419,8 +448,9 @@ def FitModel(Intfit, twotheta, azimu, params, num_peaks, nterms_back, Conv=None,
 
     # minner = Minimizer(fcn2min, params, fcn_args=(x, data))
     # result = minner.minimize()
-    out = gmodel.fit(Intfit, params, twotheta=twotheta, azi=azimu, num_peaks=num_peaks, nterms_back=nterms_back,
-                     Conv=Conv, fixed=fixed, nan_policy='propagate')
+    # out = gmodel.fit(Intfit, params, twotheta=twotheta, azi=azimu, num_peaks=num_peaks, nterms_back=nterms_back,
+    #                  Conv=Conv, fixed=fixed, nan_policy='propagate')
+    out = gmodel.fit(Intfit, params, twotheta=twotheta, azi=azimu, Conv=Conv, nan_policy='propagate')
     # print(out.fit_report())
     # print(out.params)
     # out.params.pretty_print()
@@ -478,10 +508,14 @@ def Fourier_order(params):
     # Given list of Fourier coefficients return order (n) of the Fourier series.
 
     if isinstance(params, (list,)):
-        order = (len(params) - 1) / 2
+        order = int((len(params) - 1) / 2)
     elif isinstance(params, (float,)):
-        order = (np.size(params) - 1) / 2
+        order = int((np.size(params) - 1) / 2)
+    elif isinstance(params, (int,)):
+        order = 0
     else:
+        print(params)
+        print(type(params))
         raise ValueError('Parameter list is not list or float.')
 
     return order
@@ -531,7 +565,7 @@ def Fourier_expand(azimu, param=None, comp_str=None, **params):
         fout[:] = param[0]
     # essentially d_0, h_0 or w_0
 
-    if not isinstance(param, np.float64) and len(param) > 1:
+    if not isinstance(param, np.float64) and np.size(param) > 1:
         for i in range(1, int((len(param) - 1) / 2) + 1):
             # len(param)-1 should never be odd because of initial a_0 parameter
             fout = fout + param[(2 * i) - 1] * np.sin(np.deg2rad(azimu) * i) + param[2 * i] * np.cos(

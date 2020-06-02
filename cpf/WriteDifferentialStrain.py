@@ -110,8 +110,30 @@ def WriteOutput(FitSettings, parms_dict):
     text_file.write("# File version: %i \n" % 1 )
     text_file.write("# \n")
     
-    #write header   
-    text_file.write("# Data file,     Peak,      d0,        d0_err,    d2cos,     d2cos_err, d2sin,    d2sin_err,  corr coef, diff strain, diff strain err, orientation, orientation err, d_max,      d_min,    h0,         h0_err,    w0,        w0_err,    p0,        p0_err \n")
+    #write header
+    col_width = 12
+    text_file.write(("# {0:<"+str(col_width+5)+"}").format("Data File"+","))
+    text_file.write(("{0:<"+str(col_width)+"}").format("Peak"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("d0"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("d0_err"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("d2cos"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("d2cos_err"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("d2sin"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("d2sin_err"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("corr coef"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("diff strain"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("diff s err"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("orientation"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("orient err"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("d_max"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("d_min"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("h0"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("h0_err"+",")) 
+    text_file.write(("{0:>"+str(col_width)+"}").format("w0"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("w0_err"+",")) 
+    text_file.write(("{0:>"+str(col_width)+"}").format("p0"+","))
+    text_file.write(("{0:>"+str(col_width)+"}").format("p0_err"+","))
+    text_file.write("\n")
     
     for z in range(n_diff_files):
         
@@ -171,9 +193,9 @@ def WriteOutput(FitSettings, parms_dict):
                 else:
                     out_peak = out_peak + "Peak"
                 if 'hkl' in orders['peak'][x]:
-                    out_peak = out_peak + str(orders['peak'][x]['hkl'])
+                    out_peak = out_peak + ' (' + str(orders['peak'][x]['hkl']) + ')'
                 else:
-                    out_peak = out_peak + x
+                    out_peak = out_peak + ' ' + str(x)
                 
                 # d0
                 out_d0       = fit[y]['peak'][x]['d-space'][0]
@@ -230,28 +252,38 @@ def WriteOutput(FitSettings, parms_dict):
             
             
                 #write numbers to file
-                text_file.write(" %s," % out_name)
-                text_file.write(" %s," % out_peak)
-                text_file.write(" %10.5f," % out_d0)
-                text_file.write(" %10.5f," % out_d0err)
-                text_file.write(" %10.5f," % out_dcos2)
-                text_file.write(" %10.5f," % out_dcos2err)
-                text_file.write(" %10.5f," % out_dsin2)
-                text_file.write(" %10.5f," % out_dsin2err)
-                text_file.write(" %10.5f," % out_dcorr)
-                text_file.write(" %10.5f," % out_dd)
-                text_file.write(" %10.5f," % out_dderr)
-                text_file.write(" %10.5f," % out_ang)
-                text_file.write(" %10.5f," % out_angerr)
-                text_file.write(" %10.5f," % out_dmax)
-                text_file.write(" %10.5f," % out_dmin)
-                text_file.write(" %10.5f," % out_h0)
-                text_file.write(" %10.5f," % out_h0err)
-                text_file.write(" %10.5f," % out_w0)
-                text_file.write(" %10.5f," % out_w0err)
-                text_file.write(" %10.5f," % out_p0)
-                text_file.write(" %10.5f," % out_p0err)
+                dp = 5
+                text_file.write(("{0:<"+str(col_width+7)+"}").format(out_name+","))
+                text_file.write(("{0:<"+str(col_width)+"}").format(out_peak+","))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_d0))
+                #text_file.write(" %10.5f," % out_d0)
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_d0err))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dcos2))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dcos2err))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dsin2))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dsin2err))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dcorr))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dd))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dderr))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_ang))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_angerr))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dmax))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dmin))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_h0))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_h0err))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_w0))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_w0err))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_p0))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_p0err))
                 text_file.write("\n")
+            
+            
+            
+    # col_width = 10
+    # text_file.write(("# {0:<"+str(col_width+5)+"}").format("Data File"+","))
+    # text_file.write(("{0:<"+str(col_width)+"}").format("Peak"+","))
+    # text_file.write(("{0:<"+str(col_width)+"}").format("d0"+","))
+    # text_file.write(("{0:<"+str(col_width)+"}").format("d0_err"+","))
             
     text_file.close()
             

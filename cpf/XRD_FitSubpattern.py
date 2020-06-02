@@ -357,7 +357,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 p = 'peaks'
             else:
                 p = 'peak'
-            print('\nNo previous fits or selections. Assuming ' + str(peeks) + p + ' and group fitting in azimuth...\n')
+            print('\nNo previous fits or selections. Assuming ' + str(peeks) + ' ' + p + ' and group fitting in azimuth...\n')
         else:
             print('\nUsing manual selections for initial guesses...\n')
 
@@ -750,7 +750,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                                   errs=np.array(newBGallErr[i]), param_str=param_str, fit_method='leastsq')
             master_params = fout.params
             bgfour.append(ff.gather_paramerrs_to_list(master_params, param_str, 'f'))
-        master_params.pretty_print()
 
         # plot output of fourier fits....
         if debug:

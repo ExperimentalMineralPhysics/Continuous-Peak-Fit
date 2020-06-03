@@ -220,6 +220,30 @@ def GetCalibration(filenam):
     return parms_dict
 
 
+def bins(azimu, bins):
+    # determine bins to use in initial fitting.
+    # assign each data to a chunk corresponding to its azimuth value
+    # Returns array with indices for each bin and array of bin centroids
+    
+    azmax = azimu.max()
+    azmin = azimu.min()
+    binsize = (azmax - azmin) / bins    
+    chunks = []
+    azichunks = []
+
+    tempazi = azimu.flatten()
+    
+    for i in range(bins):
+        start = azmin + i * binsize
+        end = azmin + (i + 1) * binsize
+        azichunk = np.where((tempazi > start) & (tempazi <= end))
+        azichunks.append(((end - start) / 2) + start)
+        chunks.append(azichunk)
+
+    return chunks, azichunks
+
+
+
 def GetTth(cali_file, poni, pix=None, det=None):
     'Give 2-theta value for detector x,y position; calibration info in data'
     ai = AzimuthalIntegrator(poni['distance'], poni['poni1'], poni['poni2'], poni['rot1'], poni['rot2'], poni['rot3'],

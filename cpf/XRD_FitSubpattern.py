@@ -394,30 +394,9 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 dfour.append(ff.Fourier_fit_old(tthguess[:, 0], det.Conversion(tthguess, conversion_factor),
                                                 terms=orders['peak'][j]['d-space']))
                 '''
-
-        azmax = azimu.max()
-        azmin = azimu.min()
-        binsize = (azmax - azmin) / total
-        chunks = []
-        azichunks = []
-
-        for i in range(total):
-
-            end = azmin + (i + 1) * binsize
-            start = azmin + i * binsize
-
-            tempazi = azimu.flatten()
-            azichunk = np.where((tempazi > start) & (tempazi <= end))
-
-            if np.unique(tempazi[azichunk]).size == 1:
-                # FIXME: this is a quick way of distinguishing between angle
-                # and energy dispersive data without having to know anything about hte number of detectors.... should
-                # be made more robust because the azimuth is needed to convert energy to d-spacing and wont work if
-                # it is wrong.
-                azichunks.append(tempazi[azichunk[0][0]])
-            else:
-                azichunks.append(((end - start) / 2) + start)
-            chunks.append(azichunk)
+        
+        # get chunks according to detector type. 
+        chunks, azichunks = det.bins(azimu, total)
 
         # Final output list of azimuths with corresponding twotheta_0,h,w
 

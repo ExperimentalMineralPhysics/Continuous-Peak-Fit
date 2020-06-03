@@ -148,6 +148,8 @@ def GetCalibration(filenam):
     if len(dat.mcas) == 10:
         az = np.linspace(0,180,9)
         az = np.append(az, 270)
+        az[0] = az[0]+2
+        az[8] = az[8]-2
         parms_dict['azimuths'] = az        
     else:
         sys.exit('\n\nDetector is unknown. Edit function to add number of detectors and associated azimuths.\n\n')
@@ -157,6 +159,23 @@ def GetCalibration(filenam):
     
     return parms_dict
 
+    
+def bins(azimu, bins):
+    # determine bins to use in initial fitting.
+    # assign each data to a chunk corresponding to its azimuth value
+    # Returns array with indices for each bin and array of bin centroids
+    
+    bin_vals = np.unique(azimu)
+    
+    chunks = []
+    azichunks = []
+    
+    tempazi = azimu.flatten()
+    for i in range(len(bin_vals)):
+        azichunk = np.where((tempazi == bin_vals[i]))        
+        chunks.append(azichunk)
+
+    return chunks, bin_vals
 
 
 def GetTth(cali_file, parms_dict, pix=None, det=None):

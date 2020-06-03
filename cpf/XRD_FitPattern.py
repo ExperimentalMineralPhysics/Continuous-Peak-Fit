@@ -120,7 +120,7 @@ def initiate(settings_file=None, inputs=None, outtype=None):
                     # 'datafile_StartNum',  # now optionally replaced by datafile_Files
                     # 'datafile_EndNum',    # now optionally replaced by datafile_Files
                     'datafile_NumDigit',
-                    'AziBins',
+                    #'AziBins',            # required based on detector type
                     'fit_orders',
                     # 'Output_type',		   # should be optional
                     # 'Output_NumAziWrite',  # should be optional
@@ -422,7 +422,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
 
             if FitSettings.fit_orders:
                 orders = FitSettings.fit_orders[i]
-                orders['AziBins'] = FitSettings.AziBins
+                #orders['AziBins'] = FitSettings.AziBins
 
 	        # fit the subpattern
             tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,

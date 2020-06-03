@@ -160,7 +160,7 @@ def GetCalibration(filenam):
     return parms_dict
 
     
-def bins(azimu, bins):
+def bins(azimu, orders):
     # determine bins to use in initial fitting.
     # assign each data to a chunk corresponding to its azimuth value
     # Returns array with indices for each bin and array of bin centroids

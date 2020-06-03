@@ -228,7 +228,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
     if orders:
         # print orders
-        total = orders['AziBins']
+        #total = orders['AziBins']
         backg_type = 'order'
         bg_order = orders['background']
         # print(bg_order, 'order')
@@ -396,7 +396,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 '''
         
         # get chunks according to detector type. 
-        chunks, azichunks = det.bins(azimu, total)
+        chunks, azichunks = det.bins(azimu, orders)
 
         # Final output list of azimuths with corresponding twotheta_0,h,w
 

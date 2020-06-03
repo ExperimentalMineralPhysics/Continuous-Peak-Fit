@@ -1144,6 +1144,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             save_modelresult(out, filename+'.sav')
         except:
             print('Cannot save lmfit object')
+            if os.path.isfile(filename+'.sav'):
+                os.remove(filename+'.sav')
+            else:    
+                print("File doesn't exists!")
         
     tth_min = twotheta.min()
     tth_max = twotheta.max()

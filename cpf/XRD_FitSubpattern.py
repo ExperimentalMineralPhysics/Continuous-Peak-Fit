@@ -662,6 +662,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     tth_plot = twotheta.flatten()[chunks[j]]
                     int_plot = intens.flatten()[chunks[j]]
                     azm_plot = np.tile(azimu.flatten()[chunks[j]][0], (300))
+                    azm_plot = ma.array(azm_plot, mask=(~np.isfinite(azm_plot))) #FIX ME: required for plotting energy dispersive data.
                     gmodel = Model(ff.PeaksModel, independent_vars=['twotheta', 'azi'])
                     tth_range = np.linspace(np.min(twotheta.flatten()[chunks[j]]), np.max(twotheta.flatten()[chunks[j]]), azm_plot.size)
                     # mod_plot = gmodel.eval(params=params, twotheta=tth_range, azi=azm_plot,
@@ -1160,8 +1161,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             if x < len(orders['peak']) - 1 and len(orders['peak']) > 1:
                 filename = filename + '_'
                 
-        
-        save_modelresult(out, filename+'.sav')
+        try:
+            save_modelresult(out, filename+'.sav')
+        except:
+            print('Cannot save lmfit object')
         
     tth_min = twotheta.min()
     tth_max = twotheta.max()

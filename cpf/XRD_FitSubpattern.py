@@ -509,7 +509,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                         # height guess is nth highest intensity - backgound guess at this position
                         hguess = (intens.flatten()[chunks[j]].compressed())[idx[n-1]]
                         if len(backg_guess) > 1:
-                            hguess = hguess - (backg_guess[0][0] + backg_guess[1][0] * (backg_guess[0][0] - twotheta.flatten()[chunks[j]].compressed()[idx[n-1]]))
+                            hguess = hguess - (backg_guess[0][0] + backg_guess[1][0] * (twotheta.flatten()[chunks[j]].compressed()[idx[n-1]] - twotheta.flatten()[chunks[j]].min() )) )) )
                         elif len(backg_guess) == 1:
                             hguess = hguess - backg_guess[0][0]
                             

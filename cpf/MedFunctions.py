@@ -71,9 +71,9 @@ def Conversion(E_in, calib, reverse=0, azm=None):
         E_in = np.array([[azm, E_in]]) #FIX ME: this is a horrible way to make the conversion work but it is needed for processing the guesses of MED detectors.
     
     
-    print('E_in',E_in, 'calib,', calib)
-    print('type E_in', type(E_in))
-    print(E_in[:,1])
+    # print('E_in',E_in, 'calib,', calib)
+    # print('type E_in', type(E_in))
+    # print(E_in[:,1])
     #Convert Energy (keV) to wavelength (Angstroms)
     # E = hc/lamda;  h = 4.135667662(25)×10−15 eV s; c = 299792458 m/s
     wavelength = 4.135667662e-15*(299792458*1E10)/(E_in[:,1]*1000)
@@ -87,8 +87,7 @@ def Conversion(E_in, calib, reverse=0, azm=None):
         dspc_out = []
         for i in range(len(de)):
             dspc_out.append(wavelength[i]/2/np.sin(np.radians(calib['calibs'].mcas[i].calibration.two_theta/2)))
-        dspc_out = np.array(dspc_out)
-        
+        dspc_out = np.squeeze(np.array(dspc_out))
     else:
         #convert dspacing to energy.
         #N.B. this is the reverse finction so that labels tth and dspacing are not correct. 

@@ -97,7 +97,7 @@ def Conversion(tth_in, conv, reverse=0, azm=None):
 
     if not reverse:
         # convert tth to d_spacing
-        dspc_out = wavelength / 2 / np.sin(np.radians(tth_in[:, 1] / 2))
+        dspc_out = wavelength / 2 / np.sin(np.radians(tth_in / 2))
 
     else:
         # convert d-spacing to tth.

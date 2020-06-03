@@ -384,7 +384,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 temp_param = ff.initiate_params(param=temp_param, param_str=param_str, comp=comp,
                                                 nterms=orders['peak'][j]['d-space'])
                 # temp_param.pretty_print()
-                fout = ff.Fourier_fit(azimu=tthguess[:, 0], ydata=det.Conversion(tthguess, conversion_factor),
+                fout = ff.Fourier_fit(azimu=tthguess[:, 0], ydata=tthguess[:, 1],
                                       param=temp_param, param_str=param_str + '_' + comp, fit_method='leastsq')
                 temp_param = fout.params
                 if debug:
@@ -469,10 +469,9 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                         if debug and k == 0:
                             print('dfour in locals')
                         
-                        # guess returns d-spacing then converted to two theta.
-                        dguess = ff.Fourier_expand(np.mean(azimu.flatten()[chunks[j]]), dfour[k][0])
-                        tthguess = (det.Conversion(dguess, conversion_factor, reverse=1, azm=np.mean(azimu.flatten()[chunks[j]]))) 
-                        
+                        # guess returns tthguess from dfour then converts in into d-spacing.
+                        tthguess = ff.Fourier_expand(np.mean(azimu.flatten()[chunks[j]]), dfour[k][0])
+                        dguess   = det.Conversion(tthguess, conversion_factor, azm=np.mean(azimu.flatten()[chunks[j]]))
                         #finds the index of the closes two theta to the d-spacing input  
                         idx = ((np.abs(twotheta.flatten()[chunks[j]] - tthguess)).argmin())
                         # FIX ME: The mean of a number of the smallest values would be more stable.
@@ -480,10 +479,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                         # height is intensity of slosest pixel in d-spacing - background at that position
                         hguess = intens.flatten()[chunks[j]][idx] 
                         if len(backg_guess) > 1:
-                            hguess = hguess - (backg_guess[0][0] + backg_guess[1][0] * (backg_guess[0][0] - twotheta.flatten()[chunks[j]][idx]))
+                            hguess = hguess - (backg_guess[0][0] + backg_guess[1][0] * (twotheta.flatten()[chunks[j]][idx] - twotheta.flatten()[chunks[j]].min() ))
                         elif len(backg_guess) == 1:
                             hguess = hguess - backg_guess[0][0]
-                                                          
+                            
                         # # wguess is fractional width of the data range
                         # wguess = (det.Conversion(np.max(dspace.flatten()[chunks[j]]), conversion_factor, reverse=1, azm=np.mean(azimu.flatten()[chunks[j]])) - 
                         #           det.Conversion(np.min(dspace.flatten()[chunks[j]]), conversion_factor, reverse=1, azm=np.mean(azimu.flatten()[chunks[j]])) ) / wguess_fraction
@@ -509,7 +508,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                         # height guess is nth highest intensity - backgound guess at this position
                         hguess = (intens.flatten()[chunks[j]].compressed())[idx[n-1]]
                         if len(backg_guess) > 1:
-                            hguess = hguess - (backg_guess[0][0] + backg_guess[1][0] * (twotheta.flatten()[chunks[j]].compressed()[idx[n-1]] - twotheta.flatten()[chunks[j]].min() )) )) )
+                            hguess = hguess - (backg_guess[0][0] + backg_guess[1][0] * (twotheta.flatten()[chunks[j]].compressed()[idx[n-1]] - twotheta.flatten()[chunks[j]].min() ))
                         elif len(backg_guess) == 1:
                             hguess = hguess - backg_guess[0][0]
                             
@@ -539,8 +538,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     # DMF added needs checking - required to drive fit and avoid failures
                     lims.append({"d-space": [np.min(dspace.flatten()[chunks[j]]), np.max(dspace.flatten()[chunks[j]])],
                                  "height": [0, np.max(intens.flatten()[chunks[j]])],
-                                 "width": [(np.max(twotheta.flatten()[chunks[j]]) - np.min(twotheta.flatten()[chunks[j]])) / 100,
-                                           (np.max(twotheta.flatten()[chunks[j]]) - np.min(twotheta.flatten()[chunks[j]])) / 2],
+                                 "width": [(np.max(twotheta.flatten()[chunks[j]]) - np.min(twotheta.flatten()[chunks[j]])) / 100 / peeks,
+                                           (np.max(twotheta.flatten()[chunks[j]]) - np.min(twotheta.flatten()[chunks[j]])) / 2 / peeks],
                                  "profile": [0, 1]
                                  })
 
@@ -1100,7 +1099,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 if 'hkl' in orders['peak'][x]:
                     filename = filename + str(orders['peak'][x]['hkl'])
                 else:
-                    filename = filename + x
+                    filename = filename + str(x)
                         
                 if x < len(orders['peak']) - 1 and len(orders['peak']) > 1:
                     filename = filename + '_'
@@ -1135,7 +1134,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             if 'hkl' in orders['peak'][x]:
                 filename = filename + str(orders['peak'][x]['hkl'])
             else:
-                filename = filename + x
+                filename = filename + str(x)
                     
             if x < len(orders['peak']) - 1 and len(orders['peak']) > 1:
                 filename = filename + '_'

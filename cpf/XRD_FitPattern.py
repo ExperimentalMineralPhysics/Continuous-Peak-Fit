@@ -422,7 +422,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
 
             if FitSettings.fit_orders:
                 orders = FitSettings.fit_orders[i]
-                #orders['AziBins'] = FitSettings.AziBins
+                orders['AziBins'] = FitSettings.AziBins
 
 	        # fit the subpattern
             tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,

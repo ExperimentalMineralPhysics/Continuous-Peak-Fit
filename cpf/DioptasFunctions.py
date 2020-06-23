@@ -120,23 +120,28 @@ def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx, debug=False):
         # Plot mask.
         # This is left in here for debugging.
         fig_1 = plt.figure()
-        ax1 = fig_1.add_subplot(1, 2, 1)
-        #plt.subplot(121)
-        ax1.scatter(ImTTH, ImAzi, s=4, c=ImInts, edgecolors='none', cmap=plt.cm.jet)
-        ax2 = fig_1.add_subplot(1, 2, 2)
-        #plt.subplot(122)
-        ax2.scatter(ImTTH, ImAzi, s=4, c=ImInts, edgecolors='none',
-                    cmap=plt.cm.jet)
+        ax1 = fig_1.add_subplot(1, 3, 1)
+        ax1.scatter(ImTTH, ImAzi, s=1, c=(ImInts.data), edgecolors='none', cmap=plt.cm.jet, vmin=0, vmax=np.percentile(ImInts.flatten(), 98))
+        ax1.set_title('All data')
+        
+        ax2 = fig_1.add_subplot(1, 3, 2)
+        ax2.scatter(ImTTH, ImAzi, s=1, c=ImMsk, edgecolors='none', cmap='Greys')
+        ax2.set_title('Mask')
+        ax2.set_xlim(ax1.get_xlim())
+        
+        ax3 = fig_1.add_subplot(1, 3, 3)
+        ax3.scatter(ImTTH, ImAzi, s=1, c=(ImInts), edgecolors='none', cmap=plt.cm.jet, vmin=0, vmax=np.percentile(ImInts.flatten(), 98))
+        ax3.set_title('Masked data')
+        ax3.set_xlim(ax1.get_xlim())
         #ax2.colorbar()
-        fig_1.show()
+        plt.show()
 
         plt.close()
 
     #FIX ME: need to validate size of images vs. detector name. Otherwise the mask can be the wrong size 
     #det_size = pyFAI.detectors.ALL_DETECTORS['picam_v1'].MAX_SHAPE
     #FIX ME : this could probably all be done by using the detector class in fabio. 
-
-
+    
     return ImInts
 
 

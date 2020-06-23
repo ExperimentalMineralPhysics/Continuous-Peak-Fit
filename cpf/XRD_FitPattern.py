@@ -229,7 +229,6 @@ def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=N
     
     output_mod = []
     if outtype is not None:
-        print(type(outtype))
         if isinstance(outtype, str):
             output_mod.append('cpf.Write' + outtype)
         else:
@@ -251,7 +250,7 @@ def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=N
         wr.WriteOutput(FitSettings, parms_dict)
 
 
-def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1):
+def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1, track=False):
     """
     :param settings_file:
     :param inputs:
@@ -342,13 +341,18 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             for x in range(9):
                 plt.plot(twotheta[x], intens[x] + 100 * x)  # Better for energy dispersive data. #FIX ME: need variable
                 # for vmax.
+            plt.xlabel('Energy (keV)')
+            plt.ylabel('Intensity')
 
         else:
             # plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)
             # #Better for monochromatic data.             #FIX ME: need variable for vmax.
             plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin=0)
             # Better for monochromatic data.             #FIX ME: need variable for vmax.
+            plt.xlabel(r'2$\theta$')
+            plt.ylabel('Azimuth')
             plt.colorbar()
+        plt.title('Calibration data')
         plt.show()
         plt.close()
 
@@ -373,15 +377,18 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
                 for x in range(9):
                     plt.plot(twotheta[x], intens[
                         x] + 100 * x)  # Better for energy dispersive data.  #FIX ME: need variable for vmax.
+                plt.xlabel('Energy (keV)')
+                plt.ylabel('Intensity')
 
             else:
                 # plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
                 # vmax = 1000)  #Better for monochromatic data.             #FIX ME: need variable for vmax.
                 plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin=0,
                             vmax=4000)  # FIX ME: need variable for vmax.
+                plt.xlabel(r'2$\theta$')
+                plt.ylabel('Azimuth')
                 plt.colorbar()
-            plt.xlabel(r'2$\theta$')
-            plt.ylabel('Azimuth')
+            plt.title(os.path.basename(diff_files[j]))
             plt.show()
             plt.close()
             
@@ -407,6 +414,34 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
         for i in range(n_subpats):
 
             tthRange = FitSettings.fit_orders[i]['range'][0]
+            
+            if hasattr(FitSettings, 'fit_orders'):#FitSettings.fit_orders:
+                orders = FitSettings.fit_orders[i]
+            if hasattr(FitSettings, 'AziBins'):
+                orders['AziBins'] = FitSettings.AziBins
+                
+            if 'previous_fit' in locals():
+                params = previous_fit[i]                    
+            else:
+                params = []
+                
+            #Track the position of the peak centroid 
+            #FIX ME; This is crude - the range doesnt change width. so cant account for massive change in stress. But does it need to?
+            if track is True and 'previous_fit' in locals():
+                print('tthRange', tthRange)
+                mid=[]
+                for k in range(len(params['peak'])):
+                    mid.append(params['peak'][k]['d-space'][0])
+                cent = det.Conversion(np.sum(mid)/(k+1), parms_dict, reverse=1, azm=None)
+                tthRange[0] = tthRange[0] - ((tthRange[1]+tthRange[0])/2) + cent
+                tthRange[1] = tthRange[1] - ((tthRange[1]+tthRange[0])/2) + cent
+                print('move by:' , ((tthRange[1]+tthRange[0])/2) + cent)
+                print('tthRange', tthRange)
+                
+                # The PeakPositionSelections are only used if the fits are not being propagated
+                if 'PeakPositionSelection' in orders:
+                    for k in range(len(orders['PeakPositionSelection'])):
+                        orders['PeakPositionSelection'][k][2] = orders['PeakPositionSelection'][k][2] - ((tthRange[1]+tthRange[0])/2) + cent
 
             # get subsections of data to pass
             subpat = np.where((twotheta >= tthRange[0]) & (twotheta <= tthRange[1]))
@@ -415,14 +450,6 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             azimu_sub = azimu[subpat]
             intens_sub = intens[subpat]
 
-            if 'previous_fit' in locals():
-                params = previous_fit[i]
-            else:
-                params = []
-
-            if FitSettings.fit_orders:
-                orders = FitSettings.fit_orders[i]
-                orders['AziBins'] = FitSettings.AziBins
 
 	        # fit the subpattern
             tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,

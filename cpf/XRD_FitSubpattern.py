@@ -21,6 +21,36 @@ np.set_printoptions(threshold=sys.maxsize)
 
 # FIX ME;
 # The script should not need to know what the limits are - it should only see the data that it needs to fit.
+def peak_string(orders, fname=False):
+    """
+    :param orders: list of peak orders which should include peak names/hkls
+    :return: string listing peak names
+    """
+    #FIX ME: this will be a data type function so should probably more somewhere else in the end. 
+    p_str = ''
+    
+    for x in range(len(orders['peak'])):
+        if 'phase' in orders['peak'][x]:
+            p_str = p_str + orders['peak'][x]['phase']
+        else:
+            p_str = p_str + "Peak"
+        if fname is False:
+            p_str = p_str + " ("
+        if 'hkl' in orders['peak'][x]:
+            p_str = p_str + str(orders['peak'][x]['hkl'])
+        else:
+            p_str = p_str + str(x+1)
+        if fname is False:
+            p_str = p_str + ")"
+                
+        if x < len(orders['peak']) - 1 and len(orders['peak']) > 1:
+            if fname is False:
+                p_str = p_str + " & "
+            else:
+                p_str = p_str + '_'
+
+    return p_str
+
 
 def run_initial_fit(azi, y_data, y_data_errs, params, param_str, comp, order, extras, method='leastsq', symm=1):
     """
@@ -656,7 +686,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     plt.plot(tth_range, mod_plot, marker='', color='red', linewidth=2, label='fit')
                     plt.xlim(tthrange)
                     plt.legend()
-                    plt.title('Chunk ' + str(j+1))
+                    plt.title(peak_string(orders) + '; Chunk ' + str(j+1))
                     plt.show()
                     
                     
@@ -790,6 +820,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AziPlot), param=bgfour[k][0])
                 ax5.plot(AziPlot, gmod_plot)
 
+            fig.suptitle(peak_string(orders) + '; Fits to Chunks')
             plt.show()
             plt.close()
 
@@ -1072,7 +1103,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         locs, labels = plt.xticks()
         plt.setp(labels, rotation=90)
         plt.colorbar()
-
+        plt.suptitle(peak_string(orders) + '; final fit')
         plt.tight_layout()
 
         #        # make a second figure with the Q-Q plot of the data and fit.
@@ -1086,25 +1117,12 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         #        plt.tight_layout()
 
         # save figures without overwriting old names
-        if SaveFit == 1:
+        if SaveFit:
             if not fnam == None:
                 filename = os.path.splitext(os.path.basename(fnam))[0] + '_'
             else:
-                filename = ''
-            for x in range(len(orders['peak'])):
-                if 'phase' in orders['peak'][x]:
-                    filename = filename + orders['peak'][x]['phase']
-                else:
-                    filename = filename + "Peak"
-                if 'hkl' in orders['peak'][x]:
-                    filename = filename + str(orders['peak'][x]['hkl'])
-                else:
-                    filename = filename + str(x)
-                        
-                if x < len(orders['peak']) - 1 and len(orders['peak']) > 1:
-                    filename = filename + '_'
-            if filename == '':
-                filename = 'Fit2Peak'
+                filename = 'Fit2Peak_'
+            filename = filename + peak_string(orders, fname=True)
 
             i = 1  # fix me: this doesnt make a new figure it over writes the old one.
             while os.path.exists('{}_{:d}.png'.format(filename, i)):
@@ -1125,19 +1143,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         if not fnam == None:
             filename = os.path.splitext(os.path.basename(fnam))[0] + '_'
         else:
-            filename = 'Fit2Peak'
-        for x in range(len(orders['peak'])):
-            if 'phase' in orders['peak'][x]:
-                filename = filename + orders['peak'][x]['phase']
-            else:
-                filename = filename + "Peak"
-            if 'hkl' in orders['peak'][x]:
-                filename = filename + str(orders['peak'][x]['hkl'])
-            else:
-                filename = filename + str(x)
-                    
-            if x < len(orders['peak']) - 1 and len(orders['peak']) > 1:
-                filename = filename + '_'
+            filename = 'Fit2Peak_'
+        filename = filename + peak_string(orders, fname=True)
                 
         try:
             save_modelresult(out, filename+'.sav')

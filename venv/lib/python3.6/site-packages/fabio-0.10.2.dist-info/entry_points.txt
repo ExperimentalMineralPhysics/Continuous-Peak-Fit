@@ -1,0 +1,6 @@
+[console_scripts]
+fabio-convert = fabio.app.convert:main
+
+[gui_scripts]
+fabio_viewer = fabio.app.viewer:main
+

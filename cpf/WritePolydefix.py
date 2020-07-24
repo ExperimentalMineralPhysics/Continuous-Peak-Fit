@@ -133,6 +133,9 @@ def WriteOutput(FitSettings, parms_dict):
             if 'hkl' in FitSettings.fit_orders[x]['peak'][y]:
                 hkl = str(FitSettings.fit_orders[x]['peak'][y]['hkl'])
                 
+                if hkl == '0' or hkl == 0:
+                    hkl = '000'
+                    
                 #check if the d-spacing fits are NaN or not. if NaN switch off (0) otherwise use (1).
                 # Got first file name        
                 filename = os.path.splitext(os.path.basename(diff_files[0]))[0]

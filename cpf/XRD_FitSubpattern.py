@@ -1124,10 +1124,12 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 filename = 'Fit2Peak_'
             filename = filename + peak_string(orders, fname=True)
 
-            i = 1  # fix me: this doesnt make a new figure it over writes the old one.
+            i = 0
+            if os.path.exists('{}.png'.format(filename)):
+                i+=1
             while os.path.exists('{}_{:d}.png'.format(filename, i)):
                 i += 1
-            if i == 1:
+            if i == 0:
                 plt.savefig('{}.png'.format(filename))
             else:
                 plt.savefig('{}_{:d}.png'.format(filename, i))

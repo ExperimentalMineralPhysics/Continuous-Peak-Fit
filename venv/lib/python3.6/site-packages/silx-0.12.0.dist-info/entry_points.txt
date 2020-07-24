@@ -1,0 +1,3 @@
+[console_scripts]
+silx = silx.__main__:main
+

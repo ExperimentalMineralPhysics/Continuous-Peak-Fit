@@ -1,8 +1,0 @@
-prefix=/local/shunt/pycharm/Continuous-Peak-Fit/venv
-
-Name: Pycairo
-Description: Python 3 bindings for cairo
-Version: 1.19.1
-Requires: cairo
-Cflags: -I${prefix}/include/pycairo
-Libs:

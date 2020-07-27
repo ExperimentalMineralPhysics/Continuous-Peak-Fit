@@ -1,1 +1,0 @@
-#undef cl_khr_int64_base_atomics

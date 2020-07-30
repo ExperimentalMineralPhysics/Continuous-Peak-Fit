@@ -15,6 +15,7 @@ from PIL.ExifTags import TAGS
 import matplotlib.pyplot as plt
 
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+import pyFAI
 import fabio
 
 
@@ -75,11 +76,21 @@ def ImportImage(ImageName, debug=False):
     return im
 
 
-def DetectorCheck(ImageName, detector=None):
+def DetectorCheck(Settings, detector=None):
+    
     # FIX ME: we should try importing the image and reading the detector type from it.
-    if detector is None:
-        sys.exit('\n\nDioptas requires a detector type.\nTo list the possible detector types in the command line '
-                 'type:\n   import pyFAI\n   pyFAI.detectors.Detector.registry\n\n')
+    # The image is now imported and read but this means that the detector type in settings is no longer necessary and could be removed.
+    if detector is None or detector is 'unknown' or detector is 'other' or detector is 'blank':
+        
+        im_all = fabio.open(os.path.abspath(Settings.Calib_data))
+        sz = Settings.Calib_pixels #Pixel_size
+        if sz>1:
+            sz=sz*1e-6
+        detector = pyFAI.detectors.Detector(pixel1=sz, pixel2=sz, splineFile=None, max_shape=im_all.shape)
+        
+        # sys.exit('\n\nDioptas requires a detector type.\nTo list the possible detector types in the command line '
+        #          'type:\n   import pyFAI\n   pyFAI.detectors.Detector.registry\n\n')
+    
     # FIX ME: check the detector type is valid.
 
     return detector

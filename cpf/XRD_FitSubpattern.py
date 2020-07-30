@@ -534,16 +534,19 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     else: # guess guesses from data slice - assuming a single peak
                         
                         # find brightest pixels
-                        idx = (-intens.flatten()[chunks[j]].compressed()).argsort()[:n]
+                        
+                        # get index of nth brightest pixel.
+                        idx = np.argsort(intens.flatten()[chunks[j]].compressed())[-n:][0]
+                        
                         # height guess is nth highest intensity - backgound guess at this position
-                        hguess = (intens.flatten()[chunks[j]].compressed())[idx[n-1]]
+                        hguess = (intens.flatten()[chunks[j]].compressed())[idx]                        
                         if len(backg_guess) > 1:
-                            hguess = hguess - (backg_guess[0][0] + backg_guess[1][0] * (twotheta.flatten()[chunks[j]].compressed()[idx[n-1]] - twotheta.flatten()[chunks[j]].min() ))
+                            hguess = hguess - (backg_guess[0][0] + backg_guess[1][0] * (twotheta.flatten()[chunks[j]].compressed()[idx] - twotheta.flatten()[chunks[j]].min() ))
                         elif len(backg_guess) == 1:
                             hguess = hguess - backg_guess[0][0]
                             
                         # d-spacing of highest nth intestity pixel
-                        dguess = dspace.flatten()[chunks[j]].compressed()[idx[n - 1]]
+                        dguess = dspace.flatten()[chunks[j]].compressed()[idx]
 
                     # wguess is fractional width of the data range
                     wguess = (np.max(twotheta.flatten()[chunks[j]]) - np.min(twotheta.flatten()[chunks[j]])) / wguess_fraction / peeks

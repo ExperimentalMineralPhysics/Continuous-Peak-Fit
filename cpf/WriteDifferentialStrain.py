@@ -36,6 +36,7 @@ def lmfit_fix_int_data_type(fname):
     txtContent = ObjRead.read();
     ObjRead.close()
     
+    txtContent = txtContent.replace('uint', 'float')
     txtContent = txtContent.replace('int', 'float')
     
     print('    Rewriting', fname)
@@ -45,7 +46,7 @@ def lmfit_fix_int_data_type(fname):
     
 
     
-def WriteOutput(FitSettings, parms_dict):
+def WriteOutput(FitSettings, parms_dict, **kwargs):
 # writes *.exp files required by polydefixED.
 # N.B. this is a different file than that required by polydefix for monochromatic diffraction.
 # This file contains a list of all the diffraction information. Hence it has to be written after the fitting as a single operation.

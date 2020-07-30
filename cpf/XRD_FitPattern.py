@@ -66,7 +66,7 @@ def json_numpy_serialzer(o):
         raise TypeError("{} of type {} is not JSON serializable".format(repr(o), type(o)))
 
 
-def initiate(settings_file=None, inputs=None, outtype=None):    
+def initiate(settings_file=None, inputs=None, outtype=None, **kwargs):    
     """
     :param settings_file:
     :param inputs:
@@ -214,7 +214,7 @@ def initiate(settings_file=None, inputs=None, outtype=None):
 
 
 
-def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=None, det=None):
+def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=None, det=None, differential_only=False, **kwargs):
     
     # if no params_dist then initiate. Check all the output functions are present and valid.
     if parms_dict == None:
@@ -247,10 +247,10 @@ def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=N
     
         wr = importlib.import_module(output_mod[x])
         print('\nWrite output file(s) using', output_mod[x])
-        wr.WriteOutput(FitSettings, parms_dict)
+        wr.WriteOutput(FitSettings, parms_dict, differential_only=differential_only)
 
 
-def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1, track=False):
+def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1, track=False, **kwargs):
     """
     :param settings_file:
     :param inputs:
@@ -353,6 +353,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             plt.ylabel('Azimuth')
             plt.colorbar()
         plt.title('Calibration data')
+        plt.draw()
         plt.show()
         plt.close()
 
@@ -389,7 +390,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
                 plt.ylabel('Azimuth')
                 plt.colorbar()
             plt.title(os.path.basename(diff_files[j]))
-            plt.show()
+            plt.draw()
             plt.close()
             
         # get previous fit (if exists and required)

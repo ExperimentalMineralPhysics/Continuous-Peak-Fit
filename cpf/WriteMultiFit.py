@@ -22,7 +22,7 @@ def Requirements():
     return RequiredParams
 
 
-def WriteOutput(FitSettings, parms_dict):
+def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
     #writes output from multifit in the form of *.fit files required for polydefix.
     #writes a separate file for each diffraction pattern.
     #uses the parameters in the json files to do so.
@@ -88,6 +88,8 @@ def WriteOutput(FitSettings, parms_dict):
         # create output file name from passed name
         path, filename = os.path.split(diff_files[z])
         base, ext = os.path.splitext(filename)
+        if differential_only is not False:
+            base = base+'_DiffOnly'
         out_file = out_dir + base + '.fit'
         
         print('Writing', out_dir + base + '.fit')
@@ -199,8 +201,14 @@ def WriteOutput(FitSettings, parms_dict):
                 else:
                     sym = 1
                 for l in range(int(Num_Azi)):
-                    az = np.array([l/Num_Azi*360])
-                    peak_d = ff.Fourier_expand((az), data_to_write[j]['peak'][k]['d-space'])
+                    if differential_only is False or len(data_to_write[j]['peak'][k]['d-space'])<=3:
+                        d_coef = data_to_write[j]['peak'][k]['d-space']
+                    else:
+                        d_coef = data_to_write[j]['peak'][k]['d-space']
+                        d_coef = d_coef[:5] # truncate array to 5 numbers.
+                        d_coef[1] = 0 # 
+                        d_coef[2] = 0
+                    peak_d = ff.Fourier_expand((az), d_coef)
                     peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
                     peak_i = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
                     peak_w = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
@@ -213,10 +221,13 @@ def WriteOutput(FitSettings, parms_dict):
 
 
 
-#test cases for wirting files
-test = 0
+def WriteTestCase(FitSettings, parms_dict, differential_only=False):
+    #writes output from multifit in the form of *.fit files required for polydefix.
+    #writes a separate file for each diffraction pattern.
+    #uses the parameters in the json files to do so.
 
-if test==1:
+    
+
     Fouriers_to_write = [{'peak': [{
     'profile': 0, 
     'width': [ 0.03296637], 
@@ -267,7 +278,7 @@ if test==1:
 
     Azimuths = 360.
 
-    WriteMultiFit(file_name, Fouriers_to_write, Azimuths)
+    WriteMultiFit.WriteOutput(file_name, Fouriers_to_write, Azimuths)
 
 
     #Write the fits to a temporary file

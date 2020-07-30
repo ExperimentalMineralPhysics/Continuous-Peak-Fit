@@ -25,7 +25,7 @@ def Requirements():
     return RequiredParams
     
     
-def WriteOutput(FitSettings, parms_dict):
+def WriteOutput(FitSettings, parms_dict, **kwargs):
 # writes *.exp files required by polydefixED.
 # N.B. this is a different file than that required by polydefix for monochromatic diffraction.
 # This file contains a list of all the diffraction information. Hence it has to be written after the fitting as a single operation.

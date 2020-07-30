@@ -26,14 +26,14 @@ def Requirements():
     return RequiredParams
     
     
-def WriteOutput(FitSettings, parms_dict):
+def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
 # writes *.fit files produced by multifit (as input for polydefix)
 # writes *.exp files required by polydefix.
 # N.B. this is a different file than that required by polydefix for energy dispersive diffraction.
 
     
     #Write fit files
-    WriteMultiFit.WriteOutput(FitSettings, parms_dict)
+    WriteMultiFit.WriteOutput(FitSettings, parms_dict, differential_only=differential_only)
 
 
 
@@ -80,6 +80,9 @@ def WriteOutput(FitSettings, parms_dict):
     base, ext = os.path.splitext(filename)
     if base[-1:] == '_': #if the base file name ends in an '_' remove it. 
         base = base[0:-1]
+    
+    if differential_only is not False:
+        base = base+'_DiffOnly'
     out_file = out_dir + base + '.exp'
 
     text_file = open(out_file, "w")

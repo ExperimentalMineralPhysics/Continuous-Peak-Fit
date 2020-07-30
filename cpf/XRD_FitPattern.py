@@ -208,7 +208,7 @@ def initiate(settings_file=None, inputs=None, outtype=None):
         det_name = FitSettings.Calib_detector
     else:
         det_name = None
-    FitSettings.Calib_detector = det.DetectorCheck(os.path.abspath(FitSettings.Calib_data), det_name)
+    FitSettings.Calib_detector = det.DetectorCheck(FitSettings, det_name)
     
     return FitSettings, FitParameters
 

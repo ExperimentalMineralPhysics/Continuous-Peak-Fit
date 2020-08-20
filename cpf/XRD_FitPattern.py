@@ -66,6 +66,45 @@ def json_numpy_serialzer(o):
         raise TypeError("{} of type {} is not JSON serializable".format(repr(o), type(o)))
 
 
+def FileList(FitParameters, FitSettings):
+    # from the Settings make a list of all the data files.
+    # FIX ME: There is code exactly like this in the output writing scripts. This should be called universaly - but where to put it?
+    
+    # diffraction patterns -- make list of files
+    if not 'datafile_Files' in FitParameters:
+        n_diff_files = FitSettings.datafile_EndNum - FitSettings.datafile_StartNum + 1
+        diff_files = []
+        for j in range(n_diff_files):
+            # make list of diffraction pattern names
+
+            # make number of pattern
+            n = str(j + FitSettings.datafile_StartNum).zfill(FitSettings.datafile_NumDigit)
+
+            # append diffraction pattern name and directory
+            diff_files.append(os.path.abspath(
+                FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n +
+                FitSettings.datafile_Ending))
+    elif 'datafile_Files' in FitParameters:
+        n_diff_files = len(FitSettings.datafile_Files)
+        diff_files = []
+        for j in range(n_diff_files):
+            # make list of diffraction pattern names
+
+            # make number of pattern
+            n = str(FitSettings.datafile_Files[j]).zfill(FitSettings.datafile_NumDigit)
+
+            # append diffraction pattern name and directory
+            diff_files.append(os.path.abspath(
+                FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n +
+                FitSettings.datafile_Ending))
+    else:
+        n_diff_files = len(FitSettings.datafile_Files) 
+        
+    return diff_files, n_diff_files
+
+
+
+
 def initiate(settings_file=None, inputs=None, outtype=None, **kwargs):    
     """
     :param settings_file:
@@ -210,6 +249,21 @@ def initiate(settings_file=None, inputs=None, outtype=None, **kwargs):
         det_name = None
     FitSettings.Calib_detector = det.DetectorCheck(FitSettings, det_name)
     
+    
+    # Data directory and file validation: check they exist.
+    if os.path.exists(FitSettings.datafile_directory) is False:
+            raise ImportError(
+                'The data directory ' + FitSettings.datafile_directory + ' does not exist.')
+    print('The data directory exists.')
+    diff_files, n_diff_files = FileList(FitParameters, FitSettings)
+    for j in range(n_diff_files):
+        if os.path.isfile(diff_files[j]) is False:
+            raise ImportError(
+                'The data file ' + diff_files[j] + ' does not exist. Check the input file.')
+    print('All the data files exist.')
+    
+    
+    
     return FitSettings, FitParameters
 
 
@@ -272,36 +326,9 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
     # calibration parameter file #
     parms_dict = det.GetCalibration(os.path.abspath(FitSettings.Calib_param))
 
-    # diffraction patterns #
-    if not 'datafile_Files' in FitParameters:
-        n_diff_files = FitSettings.datafile_EndNum - FitSettings.datafile_StartNum + 1
-        diff_files = []
-        for j in range(n_diff_files):
-            # make list of diffraction pattern names
-
-            # make number of pattern
-            n = str(j + FitSettings.datafile_StartNum).zfill(FitSettings.datafile_NumDigit)
-
-            # append diffraction pattern name and directory
-            diff_files.append(os.path.abspath(
-                FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n +
-                FitSettings.datafile_Ending))
-    elif 'datafile_Files' in FitParameters:
-        n_diff_files = len(FitSettings.datafile_Files)
-        diff_files = []
-        for j in range(n_diff_files):
-            # make list of diffraction pattern names
-
-            # make number of pattern
-            n = str(FitSettings.datafile_Files[j]).zfill(FitSettings.datafile_NumDigit)
-
-            # append diffraction pattern name and directory
-            diff_files.append(os.path.abspath(
-                FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n +
-                FitSettings.datafile_Ending))
-    else:
-        n_diff_files = len(FitSettings.datafile_Files)
-
+    # get list of diffraction patterns #
+    diff_files, n_diff_files = FileList(FitParameters, FitSettings)
+        
     # get calibration for image set.
     # get array for azimuth, two theta and d-space the same size as the image.
     azimu = det.GetAzm(os.path.abspath(FitSettings.Calib_data), parms_dict, FitSettings.Calib_pixels,
@@ -354,7 +381,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             plt.colorbar()
         plt.title('Calibration data')
         plt.draw()
-        plt.show()
+        #plt.show()
         plt.close()
 
     # Process the diffraction patterns #

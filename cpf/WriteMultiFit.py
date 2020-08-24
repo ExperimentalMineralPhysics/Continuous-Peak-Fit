@@ -201,6 +201,7 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
                 else:
                     sym = 1
                 for l in range(int(Num_Azi)):
+                    az = np.array([l/Num_Azi*360])
                     if differential_only is False or len(data_to_write[j]['peak'][k]['d-space'])<=3:
                         d_coef = data_to_write[j]['peak'][k]['d-space']
                     else:

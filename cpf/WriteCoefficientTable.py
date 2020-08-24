@@ -17,8 +17,6 @@ def Requirements():
             #'apparently none!
             ]
     OptionalParams = [
-            'ElasticProperties', #FIX ME: this needs to be included
-            'tc', # which thermocoule to include from 6BMB/X17B2 collection system. default to 1. #FIX ME: this needs to be included
             'Output_directory' # if no direcrtory is specified write to current directory.
             ]
     
@@ -30,6 +28,8 @@ def lmfit_fix_int_data_type(fname):
     fixes problem with lmfit save/load model. 
     lmfit load model cannot read int32 data with nulls in it. 
     if replace 'int32' with 'float32' it will read. 
+    
+    Kept incase ever want to write covariences to output file. Not used at time of writing.
     """
             
     ObjRead = open(fname, "r")   
@@ -47,9 +47,12 @@ def lmfit_fix_int_data_type(fname):
 
     
 def WriteOutput(FitSettings, parms_dict, **kwargs):
-# writes some of the fitted coeficients to a table. With a focus on the differential strain coefficents
+# writes some of the fitted coeficients to a table. 
+# More general version of WriteDifferentialStrain.
+# Focused on d-spacing coefficents but generalisible to all coefficients.
 
-
+    coefs_vals_write = 'd-space'
+    
     FitParameters = dir(FitSettings)
     
     #Parse the required inputs. 
@@ -101,6 +104,13 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
         
     out_file = out_dir + base + '.dat'
 
+    #get number of coefficients.
+    num_subpatterns = len(FitSettings.fit_orders)
+    max_coefs = 0
+    for y in range(num_subpatterns):
+        for x in range(len(FitSettings.fit_orders[y]['peak'])):            
+            max_coefs = np.max([max_coefs, FitSettings.fit_orders[y]['peak'][x]['d-space']])
+
     text_file = open(out_file, "w")
     print('Writing', out_file)
     
@@ -110,28 +120,20 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     text_file.write("# \n")
     
     #write header
-    col_width = 12
+    col_width = 15
     text_file.write(("# {0:<"+str(col_width+5)+"}").format("Data File"+","))
-    text_file.write(("{0:<"+str(col_width)+"}").format("Peak"+","))
+    text_file.write(("{0:<"+str(col_width)+"}").format("Peak"+","))  
+    #coefficient header list
     text_file.write(("{0:>"+str(col_width)+"}").format("d0"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d0_err"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d2cos"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d2cos_err"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d2sin"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d2sin_err"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("corr coef"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("diff strain"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("diff s err"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("orientation"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("orient err"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d_max"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d_min"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("h0"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("h0_err"+",")) 
-    text_file.write(("{0:>"+str(col_width)+"}").format("w0"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("w0_err"+",")) 
-    text_file.write(("{0:>"+str(col_width)+"}").format("p0"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("p0_err"+","))
+    for w in range(max_coefs):
+        text_file.write(("{0:>"+str(col_width)+"}").format("d"+str(w+1)+"cos,"))
+        text_file.write(("{0:>"+str(col_width)+"}").format("d"+str(w+1)+"sin,"))      
+    #coefficient errors header list
+    text_file.write(("{0:>"+str(col_width)+"}").format("d0"+" error,"))
+    for w in range(max_coefs):
+        text_file.write(("{0:>"+str(col_width)+"}").format("d"+str(w+1)+"cos error,"))
+        text_file.write(("{0:>"+str(col_width)+"}").format("d"+str(w+1)+"sin error,"))
+
     text_file.write("\n")
     
     for z in range(n_diff_files):
@@ -147,7 +149,7 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
         for y in range(num_subpatterns):
             
             orders = FitSettings.fit_orders[y]
-            
+            '''
             subfilename = os.path.splitext(os.path.basename(diff_files[z]))[0] + '_'
             
             for x in range(len(orders['peak'])):
@@ -177,7 +179,8 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
             corr = gmodel.params['peak_0_d3'].correl['peak_0_d4']
             #ci, trace = lmfit.conf_interval(mini, gmodel, sigmas=[1, 2], trace=True)
             #lmfit.printfuncs.report_ci(ci)
-
+            '''
+            
             #get parameters to write to output file.
             #file name
             out_name = os.path.splitext(os.path.basename(diff_files[z]))[0]
@@ -195,7 +198,7 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                     out_peak = out_peak + ' (' + str(orders['peak'][x]['hkl']) + ')'
                 else:
                     out_peak = out_peak + ' ' + str(x)
-                
+                '''
                 # d0
                 out_d0       = fit[y]['peak'][x]['d-space'][0]
                 out_d0err    = fit[y]['peak'][x]['d-space_err'][0]
@@ -247,33 +250,26 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                 #profile mean
                 out_p0    = fit[y]['peak'][x]['profile'][0]
                 out_p0err = fit[y]['peak'][x]['profile_err'][0]
-            
+                '''
             
             
                 #write numbers to file
-                dp = 5
+                dp = col_width-7
                 text_file.write(("{0:<"+str(col_width+7)+"}").format(out_name+","))
                 text_file.write(("{0:<"+str(col_width)+"}").format(out_peak+","))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_d0))
-                #text_file.write(" %10.5f," % out_d0)
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_d0err))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dcos2))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dcos2err))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dsin2))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dsin2err))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dcorr))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dd))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dderr))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_ang))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_angerr))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dmax))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dmin))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_h0))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_h0err))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_w0))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_w0err))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_p0))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_p0err))
+                
+                
+                #coefficients
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['peak'][x]['d-space'][0]))
+                for w in range(max_coefs):
+                    text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['peak'][x]['d-space'][2*w+1]))
+                    text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['peak'][x]['d-space'][2*w+2]))
+                #coefficient errors
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['peak'][x]['d-space_err'][0]))
+                for w in range(max_coefs):
+                    text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['peak'][x]['d-space_err'][2*w+1]))
+                    text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['peak'][x]['d-space_err'][2*w+2]))
+                
                 text_file.write("\n")
             
             

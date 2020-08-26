@@ -7,6 +7,7 @@ __all__ = ['FitSubpattern']
 
 import os
 import sys
+import time
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
@@ -212,6 +213,12 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
     :param debug:
     :return:
     """
+    
+    # measure the elaspsed time during fitting.
+    # To help deide what is bad fit or if over fitting the data. 
+    t_start = time.time()
+
+    
     # load detector functions to use where needed. Mostly for conversion of tth to d-spacing.
     # This is loaded from detector functions file to avoid making any assumptions about the conversion between
     # values (if indeed any is required).
@@ -1169,13 +1176,22 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
     NewParams.update({'range': extent})
 
+    # elasped time for fitting 
+    t_end = time.time()
+    t_elapsed = t_end - t_start
+
+
     FitStats = {"degree-of-freedom": deg_freedom,
                 "n-points": n_points,
-                "ChiSq": ChiSq
+                "ChiSq": ChiSq,
+                "time-elapsed": t_elapsed,
                 }
 
     NewParams.update({'FitProperties': FitStats})
 
     # FIX ME: Need to put master_params into NewParams to return!
+
+
+
 
     return [ NewParams, out]

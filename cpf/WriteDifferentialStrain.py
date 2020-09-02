@@ -164,20 +164,27 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                     subfilename = subfilename + '_'
                         
             print('  Incorporating ' + subfilename)
-            try:
-                gmodel = load_modelresult(subfilename+'.sav', funcdefs={'PeaksModel': ff.PeaksModel})
-            except:
-                lmfit_fix_int_data_type(subfilename+'.sav')
+            if os.path.isfile(subfilename+'.sav'):
                 try:
                     gmodel = load_modelresult(subfilename+'.sav', funcdefs={'PeaksModel': ff.PeaksModel})
                 except:
-                    raise FileNotFoundError     
-        
-            # FIX ME: this will only work for one peak. Needs fixing if more then one peak in subpattern
-            corr = gmodel.params['peak_0_d3'].correl['peak_0_d4']
-            #ci, trace = lmfit.conf_interval(mini, gmodel, sigmas=[1, 2], trace=True)
-            #lmfit.printfuncs.report_ci(ci)
+                    lmfit_fix_int_data_type(subfilename+'.sav')
+                    try:
+                        gmodel = load_modelresult(subfilename+'.sav', funcdefs={'PeaksModel': ff.PeaksModel})
+                    except:
+                        raise FileNotFoundError  
+                # FIX ME: this will only work for one peak. Needs fixing if more then one peak in subpattern
+                try:
+                    corr = gmodel.params['peak_0_d3'].correl['peak_0_d4']
+                except:
+                    corr = np.nan
+                #ci, trace = lmfit.conf_interval(mini, gmodel, sigmas=[1, 2], trace=True)
+                #lmfit.printfuncs.report_ci(ci)
 
+            else:
+                #print('  No file ' + subfilename)
+                corr = np.nan
+        
             #get parameters to write to output file.
             #file name
             out_name = os.path.splitext(os.path.basename(diff_files[z]))[0]
@@ -199,38 +206,52 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                 # d0
                 out_d0       = fit[y]['peak'][x]['d-space'][0]
                 out_d0err    = fit[y]['peak'][x]['d-space_err'][0]
+                if out_d0err is None:  #catch  'null' as an error 
+                    out_d0err = np.nan
+                    
                 #differential coefficients, errors and covarience
-                out_dcos2    = fit[y]['peak'][x]['d-space'][3]
-                out_dsin2    = fit[y]['peak'][x]['d-space'][4]
-                out_dcos2err = fit[y]['peak'][x]['d-space_err'][3]
-                out_dsin2err = fit[y]['peak'][x]['d-space_err'][4]
-                out_dcorr    = gmodel.params['peak_0_d3'].correl['peak_0_d4']
+                try:
+                    out_dcos2    = fit[y]['peak'][x]['d-space'][3]
+                    out_dsin2    = fit[y]['peak'][x]['d-space'][4]
+                    out_dcos2err = fit[y]['peak'][x]['d-space_err'][3]
+                    out_dsin2err = fit[y]['peak'][x]['d-space_err'][4]
+                    #differential strain
+                    # a.cos(2t) + b.sin(2t) = (a^2+b^2)^(1/2) . cos(2t - atan(b/a))
+                    # out_dd  = (a^2+b^2)^(1/2)
+                    out_dd    = (fit[y]['peak'][x]['d-space'][3]**2 + fit[y]['peak'][x]['d-space'][4]**2)**(1/2)
+                    #out_dderr= [(2.a.da.)^2 + (2.b.db)^2]^(1/2)]^(1/2)
+                    out_dderr = ((2 * fit[y]['peak'][x]['d-space'][3] * fit[y]['peak'][x]['d-space_err'][3])**2 + 
+                                 (2 * fit[y]['peak'][x]['d-space'][4] * fit[y]['peak'][x]['d-space_err'][4])**2 ) ** (1/4)
+                    
+                    #angle
+                    # out_ang  = atan(b/a)
+                    out_ang    = (np.arctan(fit[y]['peak'][x]['d-space'][4] / fit[y]['peak'][x]['d-space'][3]))
+                    # d (atan(c))/dc = 1/(c^2+1). c = b/a. dc = c.((da/a)^2 + (db/b)^2)^(1/2)
+                    # out_angerr = dc. 
+                    out_angerr = 1 / ((fit[y]['peak'][x]['d-space'][4] / fit[y]['peak'][x]['d-space'][3])**2 + 1) * (np.abs(out_ang) * ((fit[y]['peak'][x]['d-space_err'][3]/fit[y]['peak'][x]['d-space'][3])**2 + (fit[y]['peak'][x]['d-space_err'][4]/fit[y]['peak'][x]['d-space'][4])**2)**(1/2))
+                    # correction to make angle correct (otherwise out by pi)
+                    if fit[y]['peak'][x]['d-space'][3] < 0:
+                        out_ang = out_ang + np.pi
+                    # force angles to be between -pi and pi
+                    if out_ang > np.pi/2:
+                        out_ang = out_ang - np.pi
+                    elif out_ang < -np.pi/2:
+                        out_ang = out_ang + np.pi
+                    # convert angles to degrees.
+                    out_ang    = np.rad2deg(out_ang)
+                    out_angerr = np.rad2deg(out_angerr)
+                except:
+                    out_dcos2    = np.nan
+                    out_dsin2    = np.nan
+                    out_dcos2err = np.nan
+                    out_dsin2err = np.nan
+                    out_dd       = np.nan
+                    out_dderr    = np.nan
+                    out_ang      = np.nan
+                    out_angerr   = np.nan
+                    
+                out_dcorr    = corr#gmodel.params['peak_0_d3'].correl['peak_0_d4']
                 
-                #differential strain
-                # a.cos(2t) + b.sin(2t) = (a^2+b^2)^(1/2) . cos(2t - atan(b/a))
-                # out_dd  = (a^2+b^2)^(1/2)
-                out_dd    = (fit[y]['peak'][x]['d-space'][3]**2 + fit[y]['peak'][x]['d-space'][4]**2)**(1/2)
-                #out_dderr= [(2.a.da.)^2 + (2.b.db)^2]^(1/2)]^(1/2)
-                out_dderr = ((2 * fit[y]['peak'][x]['d-space'][3] * fit[y]['peak'][x]['d-space_err'][3])**2 + 
-                             (2 * fit[y]['peak'][x]['d-space'][4] * fit[y]['peak'][x]['d-space_err'][4])**2 ) ** (1/4)
-                
-                #angle
-                # out_ang  = atan(b/a)
-                out_ang    = (np.arctan(fit[y]['peak'][x]['d-space'][4] / fit[y]['peak'][x]['d-space'][3]))
-                # d (atan(c))/dc = 1/(c^2+1). c = b/a. dc = c.((da/a)^2 + (db/b)^2)^(1/2)
-                # out_angerr = dc. 
-                out_angerr = 1 / ((fit[y]['peak'][x]['d-space'][4] / fit[y]['peak'][x]['d-space'][3])**2 + 1) * (np.abs(out_ang) * ((fit[y]['peak'][x]['d-space_err'][3]/fit[y]['peak'][x]['d-space'][3])**2 + (fit[y]['peak'][x]['d-space_err'][4]/fit[y]['peak'][x]['d-space'][4])**2)**(1/2))
-                # correction to make angle correct (otherwise out by pi)
-                if fit[y]['peak'][x]['d-space'][3] < 0:
-                    out_ang = out_ang + np.pi
-                # force angles to be between -pi and pi
-                if out_ang > np.pi/2:
-                    out_ang = out_ang - np.pi
-                elif out_ang < -np.pi/2:
-                    out_ang = out_ang + np.pi
-                # convert angles to degrees.
-                out_ang    = np.rad2deg(out_ang)
-                out_angerr = np.rad2deg(out_angerr)
                 
                 
                 #differential max
@@ -240,13 +261,25 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                 
                 #height mean
                 out_h0    = fit[y]['peak'][x]['height'][0]
+                if out_h0 is None:  #catch  'null' as an error 
+                    out_h0 = np.nan
                 out_h0err = fit[y]['peak'][x]['height_err'][0]
+                if out_h0err is None:  #catch  'null' as an error 
+                    out_h0err = np.nan
                 #width mean
                 out_w0    = fit[y]['peak'][x]['width'][0]
+                if out_w0 is None:  #catch  'null' as an error 
+                    out_w0 = np.nan
                 out_w0err = fit[y]['peak'][x]['width_err'][0]
+                if out_w0err is None:  #catch  'null' as an error 
+                    out_w0err = np.nan
                 #profile mean
                 out_p0    = fit[y]['peak'][x]['profile'][0]
+                if out_p0 is None:  #catch  'null' as an error 
+                    out_p0 = np.nan
                 out_p0err = fit[y]['peak'][x]['profile_err'][0]
+                if out_p0err is None:  #catch  'null' as an error 
+                    out_p0err = np.nan
             
             
             

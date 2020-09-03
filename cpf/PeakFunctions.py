@@ -21,6 +21,79 @@ np.set_printoptions(threshold=sys.maxsize)
 # FIX ME: need hard limits to gauss - lorentz peak profile ratios
 
 
+def parse_bounds(bounds, dspace, intens, twotheta, ndat=None, param=None):
+    """
+    Turn text limits in bounds into numbers and return bounds in dictionary format.
+    :param bounds: bounds dictionary
+    :param dspace: dspacings of data
+    :param intens: intensities of data
+    :return: limits dictionary object
+    """
+    limits = {}
+    if bounds is None:
+        bounds = {
+              "background": ['min', 'max'],
+              "d-space":    ['min', 'max'],
+              "height":     [ 0,    '2*max'],
+              "profile":    [ 0,     1],
+              "width":      [ 'range/(ndata)',  'range/2'],
+              }
+    if ndat is None:
+        ndat = np.size(dspace)
+
+    choice_list = ['d-space', 'height', 'width', 'profile', 'background']
+    if param is not None:
+        choice_list = param
+    
+    for par in choice_list:
+        if par is 'height' or par is 'background':
+            vals = intens
+        elif par is 'width':
+            vals = twotheta
+        else:
+            vals = dspace
+            
+        b = bounds[par]
+        b = [str(w).replace('inf', 'np.inf') for w in b]
+        b = [str(w).replace('range', '(max-min)') for w in b]
+        b = [w.replace('ndata', str(ndat)) for w in b]
+        b = [w.replace('max', str(np.max(vals))) for w in b]
+        b = [w.replace('min', str(np.min(vals))) for w in b]
+        b = [eval(w) for w in b]
+        limits[par] = b          
+        
+        
+    # for j in range(5):
+    #     if j == 0:
+    #         par = 'd-space'
+    #         vals = dspace
+    #     elif j==1:
+    #         par = 'height'
+    #         vals = intens
+    #     elif j==2:
+    #         par = 'width'
+    #         vals = dspace
+    #     elif j==3:
+    #         par = 'profile'
+    #     elif j==4:
+    #         par = 'background'
+    #         vals = intens
+
+    #     b = bounds[par]
+    #     b = [str(w).replace('range', '(max-min)') for w in b]
+    #     b = [w.replace('ndata', str(ndat)) for w in b]
+    #     b = [w.replace('max', str(np.max(vals))) for w in b]
+    #     b = [w.replace('min', str(np.min(vals))) for w in b]
+    #     b = [eval(w) for w in b]
+    #     limits[par] = b
+
+    # if param is not None:
+    #     limits = limits[param]
+
+    return limits
+
+
+
 def create_newparams(num_peaks, dfour, hfour, wfour, pfour, bgfour, order_peak):
     """
     Create the NewParams dictionary from results
@@ -111,15 +184,27 @@ def params_to_newparams(params, num_peaks, num_bg, order_peak):
 
 
 def flatten(li):
+    """
+    :param li:
+    :return:
+    """
     return sum(([x] if not isinstance(x, list) else flatten(x)
                 for x in li), [])
 
 
 def ParamFitArr(numP, LenBG, val=None, p=None, b=None, orda=None):
-    # Makes array which represents all the fourier series in the fit.
-    # Arr{0} is a list of 4 element lists - one 4 element list for each peak.
-    # Arr[0] is the background representative.
-
+    """
+    Makes array which represents all the fourier series in the fit.
+    Arr{0} is a list of 4 element lists - one 4 element list for each peak.
+    Arr[0] is the background representative.
+    :param numP:
+    :param LenBG:
+    :param val:
+    :param p:
+    :param b:
+    :param orda:
+    :return:
+    """
     if val:
         v = val
     else:
@@ -138,19 +223,42 @@ def ParamFitArr(numP, LenBG, val=None, p=None, b=None, orda=None):
 
 # Gausian shape
 def GaussianPeak(twotheta, tth0, W_all, H_all):
+    """
+    Gaussian shape
+    :param twotheta:
+    :param tth0:
+    :param W_all:
+    :param H_all:
+    :return:
+    """
     W_all = W_all / np.sqrt(np.log(4))
     GaussPeak = H_all * np.exp((-(twotheta - tth0) ** 2) / (2 * W_all ** 2))
     return GaussPeak
 
 
-# Lorentz shape.
 def LorentzianPeak(twotheta, tth0, W_all, H_all):
+    """
+    Lorentz shape
+    :param twotheta:
+    :param tth0:
+    :param W_all:
+    :param H_all:
+    :return:
+    """
     LPeak = H_all * W_all ** 2 / ((twotheta - tth0) ** 2 + W_all ** 2)
     return LPeak
 
 
-# Pseudo-Voigt.
 def PseudoVoigtPeak(twotheta, tth0, W_all, H_all, LGratio):
+    """
+    Pseudo-Voigt
+    :param twotheta:
+    :param tth0:
+    :param W_all:
+    :param H_all:
+    :param LGratio:
+    :return:
+    """
     # FIX ME: how should the ratio be fixed?
     # The ratio is between 1 and 0. it has to be limited.
     # But need options for fixed ratio and not fitting them.
@@ -234,27 +342,39 @@ def gather_params_from_dict(param, param_str, comp):
     return param_list
 
 
-def initiate_params(param, param_str, comp, nterms=None, max=None, min=None, expr=None, value=1.):
+def initiate_params(param, param_str, comp, trig_orders=None, limits=None, expr=None, value=0., ind_vars=None):
     """
     Create all required coefficients for no. terms
     :param param: lmfit Parameter class (can be empty)
     :param param_str: base string to create lmfit parameter
     :param comp: string to add to base string to create lmfit parameter
-    :param nterms: number of terms required
+    :param trig_orders: number of trigonometric orders
+    :param limits: list [max,min] or None
+    :param expr: str or None, str expression to use or 'calc'
+    :param value: int if don't know nterms, use this many orders
+    :param ind_vars: array-based independent variable to be added to parameters to use in expr
     :return:
     """
-    
+    if limits:
+        new_max, new_min = limits
+    else:
+        new_min = -np.inf
+        new_max = np.inf
     value = np.array(value)  # force input to be array so that can be iterated over
+    if trig_orders is None:
+        trig_orders = int((len(value) - 1)/2)
 
-    if nterms is None:
-        nterms = int((len(value) - 1)/2)
-
-    for t in range(2 * nterms + 1):
+    # First loop to add all the parameters so can be used in expressions
+    #parm_list = []
+    for t in range(2 * trig_orders + 1):
         if value.size == 1:
             ind = 0
         else:
             ind = t
-        param.add(param_str + '_' + comp + str(t), value.item(ind), max=max, min=min, expr=expr)
+        if t == 0:
+        	param.add(param_str + '_' + comp + str(t), value.item(ind), max=new_max, min=new_min, expr=expr)
+        else:
+        	param.add(param_str + '_' + comp + str(t), value.item(ind), expr=expr)
         # param.add(param_str + '_' + comp + str(t), value, max=max, min=min, expr=expr)
     return param
 
@@ -373,7 +493,6 @@ def PeaksModel(twotheta, azi, Conv=None, **params):
         param_str = 'peak_' + str(a)
         comp = 'd'
         parms = gather_params_from_dict(params, param_str, comp)
-        # print(parms)
         Dall = Fourier_expand(azi, param=parms)
         comp = 'h'
         parms = gather_params_from_dict(params, param_str, comp)
@@ -420,7 +539,7 @@ def ChangeParams(constants, *fitparam):
 
 
 def FitModel(Intfit, twotheta, azimu, params, num_peaks, nterms_back, Conv=None, fixed=None,
-             method='leastsq', weights=None):
+             fit_method='leastsq', weights=None):
     # ChangeArray, Shapes, Conv=None, symm=None, fixed=None, method=None,
     # weights=None, bounds=None):
     """Initiate model of intensities at twotheta and azi given input parameters and fit

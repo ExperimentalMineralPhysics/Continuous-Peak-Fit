@@ -17,6 +17,13 @@ Calib_mask     = datafile_directory + 'DiffractionMask_Dioptas.mask'
 Calib_pixels   = 172
 
 # Fitting properties for peaks.
+fit_bounds = {
+              "background": ['min', 'max'],
+              "d-space":    ['min', 'max'],
+              "height":     [ 0,    '2*max'],
+              "profile":    [ 0,     1],
+              "width":      [ 'range/(ndata)',  'range/2'],
+              }
 fit_orders = [
         {
           "range": [[10.8, 11.67]],

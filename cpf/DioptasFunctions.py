@@ -130,6 +130,10 @@ def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx, debug=False):
     if debug:
         # Plot mask.
         # This is left in here for debugging.
+        # N.B. The plot is a pig with even 1000x1000 pixel images and takes a long time to render.
+        if ImTTH.size > 100000:
+            print(' Have patience. The mask plot will appear but it can take its time to render.')
+            
         fig_1 = plt.figure()
         ax1 = fig_1.add_subplot(1, 3, 1)
         ax1.scatter(ImTTH, ImAzi, s=1, c=(ImInts.data), edgecolors='none', cmap=plt.cm.jet, vmin=0, vmax=np.percentile(ImInts.flatten(), 98))

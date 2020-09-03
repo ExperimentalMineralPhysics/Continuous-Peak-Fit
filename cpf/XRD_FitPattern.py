@@ -13,21 +13,18 @@ from cpf.XRD_FitSubpattern import FitSubpattern
 
 np.set_printoptions(threshold=sys.maxsize)
 
-# Needed for JSON to save fitted parameters. 
+
+# Needed for JSON to save fitted parameters.
 # copied from https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array#24375113
 # on 13th November 2018
 def json_numpy_serialzer(o):
     """ Serialize numpy types for json
-
     Parameters:
         o (object): any python object which fails to be serialized by json
-
     Example:
-
         >>> import json
         >>> a = np.array([1, 2, 3])
         >>> json.dumps(a, default=json_numpy_serializer)
-
     """
     numpy_types = (
         np.bool_,
@@ -125,7 +122,7 @@ def initiate(settings_file=None, inputs=None, outtype=None, **kwargs):
             spec.loader.exec_module(FitSettings)
 
             FitParameters = dir(FitSettings)
-            
+
             FitSettings.inputfile = settings_file
         except:
             raise FileNotFoundError
@@ -159,7 +156,7 @@ def initiate(settings_file=None, inputs=None, outtype=None, **kwargs):
                     # 'datafile_StartNum',  # now optionally replaced by datafile_Files
                     # 'datafile_EndNum',    # now optionally replaced by datafile_Files
                     'datafile_NumDigit',
-                    #'AziBins',            # required based on detector type
+                    # 'AziBins',            # required based on detector type
                     'fit_orders',
                     # 'Output_type',		   # should be optional
                     # 'Output_NumAziWrite',  # should be optional
@@ -195,29 +192,25 @@ def initiate(settings_file=None, inputs=None, outtype=None, **kwargs):
         else:
             for x in range(len(outtype)):
                 output_mod.append('cpf.Write' + outtype[x])
-        
     elif 'Output_type' in FitParameters:
         if isinstance(FitSettings.Output_type, str):
             output_mod.append('cpf.Write' + FitSettings.Output_type)
         else:
             for x in range(len(FitSettings.Output_type)):
                 output_mod.append('cpf.Write' + FitSettings.Output_type[x])
-        
     else:
         raise ValueError('No output type. Add ''Output_type'' to input file or specify ''outtype'' in command.')
-        
+
     try:
         for x in range(len(output_mod)):
-        
             wr = importlib.import_module(output_mod[x])
             RequiredList = RequiredList + wr.Requirements()
-            
     except ImportError:
         raise ImportError(
             'The ''Output_type'' ' + FitSettings.Output_type + ' is not recognised; the file ' + output_mod +
             ' does not exist. Check if the calibration type exists.')
-            # FIX ME: List possible output types.
-    
+        # FIX ME: List possible output types.
+
     # check all the required values are present.
     all_present = 1
     # properties of the data files.
@@ -240,14 +233,15 @@ def initiate(settings_file=None, inputs=None, outtype=None, **kwargs):
     # exit if all parameters are not present
     if all_present == 0:
         sys.exit(
-            "The highlighted settings are missing from the input file. Fitting cannot proceed until they are all present.")
+            "The highlighted settings are missing from the input file. Fitting cannot proceed until they are "
+            "all present.")
 
     # Detector check: Check if the detector is required and if so if it is present and recognised.
     if 'Calib_detector' in FitParameters:
         det_name = FitSettings.Calib_detector
     else:
         det_name = None
-    FitSettings.Calib_detector = det.DetectorCheck(FitSettings, det_name)
+    FitSettings.Calib_detector = det.DetectorCheck(os.path.abspath(FitSettings.Calib_data), det_name)
     
     
     # Data directory and file validation: check they exist.
@@ -268,19 +262,26 @@ def initiate(settings_file=None, inputs=None, outtype=None, **kwargs):
 
 
 
-def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=None, det=None, differential_only=False, **kwargs):
-    
-    # if no params_dist then initiate. Check all the output functions are present and valid.
-    if parms_dict == None:
+def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=None, det=None, use_bounds=False,
+                differential_only=False, **kwargs):
+    """
+    :param settings_file:
+    :param FitSettings:
+    :param parms_dict:
+    :param outtype:
+    :param det:
+    :return:
+    """
+    # if no params_dict then initiate. Check all the output functions are present and valid.
+    if parms_dict is None:
         FitSettings, FitParameters = initiate(settings_file, outtype=outtype)
-        
-    if det==None: 
+
+    if det is None:
         # get parms_dict from calibration parameter file #
-        #load detector here
+        # load detector here
         det = importlib.import_module('cpf.' + FitSettings.Calib_type + 'Functions')
         parms_dict = det.GetCalibration(os.path.abspath(FitSettings.Calib_param))
-       
-    
+
     output_mod = []
     if outtype is not None:
         if isinstance(outtype, str):
@@ -288,23 +289,21 @@ def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=N
         else:
             for x in range(len(outtype)):
                 output_mod.append('cpf.Write' + outtype[x])
-        
     elif 'Output_type' in FitParameters:
         if isinstance(FitSettings.Output_type, str):
             output_mod.append('cpf.Write' + FitSettings.Output_type)
         else:
             for x in range(len(FitSettings.Output_type)):
                 output_mod.append('cpf.Write' + FitSettings.Output_type[x])
-               
-    
+
     for x in range(len(output_mod)):
-    
         wr = importlib.import_module(output_mod[x])
         print('\nWrite output file(s) using', output_mod[x])
         wr.WriteOutput(FitSettings, parms_dict, differential_only=differential_only)
 
 
-def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1, track=False, **kwargs):
+def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1,
+            track=False, **kwargs):
     """
     :param settings_file:
     :param inputs:
@@ -312,14 +311,14 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
     :param refine:
     :param iterations:
     :return:
-    """    
-    
+    """
+
     FitSettings, FitParameters = initiate(settings_file, inputs)
-    
-    #load detector
+
+    # load detector
     calib_mod = 'cpf.' + FitSettings.Calib_type + 'Functions'
     det = importlib.import_module('cpf.' + FitSettings.Calib_type + 'Functions')
-    
+
     # define locally required names.
     temporary_data_file = 'PreviousFit_JSON.dat'
 
@@ -419,35 +418,36 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             plt.title(os.path.basename(diff_files[j]))
             plt.draw()
             plt.close()
-            
+
         # get previous fit (if exists and required)
-        if os.path.isfile(temporary_data_file) and propagate==True:
+        if os.path.isfile(temporary_data_file) and propagate is True:
             # Read JSON data from file
             print('Loading previous fit results from %s' % temporary_data_file)
             with open(temporary_data_file) as json_data:
                 previous_fit = json.load(json_data)
 
         # switch to save the first fit in each sequence.
-        if j == 0 or save_all == True:
+        if j == 0 or save_all is True:
             SaveFigs = 1
         else:
             SaveFigs = 0
 
-        # Pass each sub-pattern to FPF_Fit_Subpattern for fitting in turn.
+        # Pass each sub-pattern to Fit_Subpattern for fitting in turn.
         # get number of sub-patterns to be fitted
         n_subpats = len(FitSettings.fit_orders)
         Fitted_param = []
         lmfit_models = []
 
         for i in range(n_subpats):
-
             tthRange = FitSettings.fit_orders[i]['range'][0]
-            
-            if hasattr(FitSettings, 'fit_orders'):#FitSettings.fit_orders:
+            if hasattr(FitSettings, 'fit_orders'):  # FitSettings.fit_orders:
                 orders = FitSettings.fit_orders[i]
             if hasattr(FitSettings, 'AziBins'):
                 orders['AziBins'] = FitSettings.AziBins
-                
+            if 'fit_bounds' in FitParameters:
+                bounds = FitSettings.fit_bounds
+            else:
+                bounds = None
             if 'previous_fit' in locals():
                 params = previous_fit[i]                    
             else:
@@ -465,7 +465,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
                 tthRange[1] = tthRange[1] - ((tthRange[1]+tthRange[0])/2) + cent
                 print('move by:' , ((tthRange[1]+tthRange[0])/2) + cent)
                 print('tthRange', tthRange)
-                
+
                 # The PeakPositionSelections are only used if the fits are not being propagated
                 if 'PeakPositionSelection' in orders:
                     for k in range(len(orders['PeakPositionSelection'])):
@@ -478,15 +478,25 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             azimu_sub = azimu[subpat]
             intens_sub = intens[subpat]
 
-
-	        # fit the subpattern
-            tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
-                              DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine, iterations=iterations, fnam=diff_files[j])
+            #Mask the subpattern by intensity if called for
+            if 'Imax' in orders:
+                intens_sub   = ma.masked_outside(intens_sub,0,int(orders['Imax']))
+                azimu_sub    = ma.array(azimu_sub, mask=intens_sub.mask)
+                twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
+                dspacing_sub = ma.array(dspacing_sub, mask=intens_sub.mask)
+                
+            # fit the subpattern
+            # tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
+            #                     DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
+            #                     iterations=iterations, fnam=diff_files[j])
+            tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds,
+                                DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
+                                iterations=iterations, fnam=diff_files[j])
             Fitted_param.append(tmp[0])
             lmfit_models.append(tmp[1])
-            
+
         # write output files
-        
+
         # store the fit parameters information as a JSON file.
         filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
         filename = filename + '.json'
@@ -496,22 +506,19 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
 
         # if propagating the fits write them to a temporary file
-        if propagate == True:    
+        if propagate:
             # print json_string
             with open(temporary_data_file, 'w') as TempFile:
-    
                 # Write a JSON string into the file.
                 json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
 
     # Write the output files.
     writeoutput(settings_file, FitSettings=FitSettings, parms_dict=parms_dict, det=det, outtype=FitSettings.Output_type)
-    
 
 
 if __name__ == '__main__':
-
     # Load settings fit settings file.
     sys.path.append(os.getcwd())
     settings_file = sys.argv[1]
-    print(settings_file)
+    # print(settings_file)
     execute(inputs=None, settings_file=settings_file, debug=False, refine=True, save_all=False, iterations=1)

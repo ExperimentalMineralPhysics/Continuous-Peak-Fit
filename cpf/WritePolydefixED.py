@@ -261,7 +261,7 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     text_file.write("# Information on time step       \n")
     text_file.write("# Step number.  Step name.         Step time.    Step temperature (K).    taux de def E\n")
     for x in range(n_diff_files):
-        temp = np.array(0.)
+        temp = np.array(0.) # pre-set temperature to 0 incase no value is found in the data file.
         with open(diff_files[x], 'r') as myfile:
             for line in myfile:  # For each line, stored as line,
             
@@ -270,16 +270,24 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                     ftime = datetime.datetime.strptime(line,"DATE:  %b %d, %Y %H:%M:%S.%f ")
                     if x==0:
                         t_o = ftime
-                    t = ftime - t_o #time relative to first diffraction 
-                        
-                #get temperature
-                if not 'Output_tc' in FitParameters:
-                    st = "LVP_tc1_calcs.I"
-                else:
-                    st = "LVP_tc" + FitSettings.Output_tc + "_calcs.I"
-                if st in line:
-                    temp = re.findall(r'"(.*?)"', line)
-                    temp = float(temp[0]) + 273.
+                    t = ftime - t_o #time relative to first diffraction
+
+                #get temperature 
+                if 'Output_TemperaturePower' in FitParameters: #get temperture from furnace power 
+                    st = "LVP_furnace_calcs.D"
+                    if st in line:
+                        pwr = float(re.findall(r'"(.*?)"', line)[0])
+                        for i in range(len(FitSettings.Output_TemperaturePower)):
+                            temp = temp + FitSettings.Output_TemperaturePower[i] * pwr**i
+                        temp = temp + 273      
+                else: # get temperature from thermocouple reading
+                    if not 'Output_tc' in FitParameters:
+                        st = "LVP_tc1_calcs.I"
+                    else:
+                        st = "LVP_tc" + FitSettings.Output_tc + "_calcs.I"
+                    if st in line:
+                        temp = re.findall(r'"(.*?)"', line)
+                        temp = float(temp[0]) + 273.
             
         #strip directory and ending from filename
         diff_name = os.path.splitext(os.path.basename(diff_files[x]))[0]

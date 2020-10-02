@@ -74,12 +74,18 @@ def run_initial_fit(azi, y_data, y_data_errs, params, param_str, comp, order, ex
     new_limits = extras
     new_min, new_max, expr = new_limits
     
+    if isinstance(order, list):
+        orderr = max(order)
+    else:
+        orderr = order
+    
     if value is None:
-        value = np.zeros(order*2+1)
+        value = np.zeros(orderr*2+1)
         value[0] = np.mean(y_data)
     # print('Initiate parms', expr)
-    params = ff.initiate_params(params, param_str, comp, order, limits=[new_max, new_min], expr=expr, ind_vars=azi, value=value)
+    params = ff.initiate_params(params, param_str, comp, orderr, limits=[new_max, new_min], expr=expr, ind_vars=azi, value=value)
     params = ff.unvary_params(params, param_str, comp)  # set other parameters to not vary
+    params = ff.unvary_part_params(params, param_str, comp, order)  # set part of parameter not  to vary
     params.pretty_print()
     fout = ff.Fourier_fit(azimu=azi, ydata=np.array(y_data), param=params, errs=np.array(y_data_errs),
                           param_str=param_str + '_' + comp, symm=symm, fit_method=method)
@@ -154,7 +160,7 @@ def initial_component_fits(master_params, param_str, data_arrays, comp_lists, or
 
 
 def update_component_fits(master_params, intens, azimu, twotheta, param_str, comp_lists, conversion_factor, bgguess,
-                          Guesses, pfixed=None):
+                          Guesses, o=None, pfixed=None):
     """
     Perform component fits to data
     :param master_params: lmfit Parameter class object
@@ -175,7 +181,7 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
     comp = 'd'
     master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
     master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
-    # master_params.pretty_print()
+    master_params = ff.unvary_part_params(master_params, param_str, comp, o['d-space'])  # set part of these parameters to not vary
     out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),
                       num_peaks=len(Guesses['peak']), nterms_back=len(bgguess), Conv=conversion_factor,
                       fixed=pfixed, fit_method=None, weights=None, params=master_params)
@@ -185,19 +191,21 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
     comp = 'h'
     master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
     master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
+    master_params = ff.unvary_part_params(master_params, param_str, comp, o['height'])  # set part of these parameters to not vary
     out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),
                       num_peaks=len(Guesses['peak']), nterms_back=len(bgguess), Conv=conversion_factor,
                       fixed=pfixed, fit_method=None, weights=None, params=master_params)
-    master_params = out.params
+    #master_params = out.params
     hfour.append(ff.gather_paramerrs_to_list(master_params, param_str, comp))
 
     comp = 'w'
     master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
     master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
+    master_params = ff.unvary_part_params(master_params, param_str, comp, o['width'])  # set part of these parameters to not vary
     out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),
                       num_peaks=len(Guesses['peak']), nterms_back=len(bgguess), Conv=conversion_factor,
                       fixed=pfixed, fit_method=None, weights=None, params=master_params)
-    master_params = out.params
+    #master_params = out.params
     wfour.append(ff.gather_paramerrs_to_list(master_params, param_str, comp))
 
     comp = 'p'
@@ -205,11 +213,12 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
         # if 'profile_fixed' not in order_peak[0]: # orders['peak'][0]:
         master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
         master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
+        master_params = ff.unvary_part_params(master_params, param_str, comp, o['profile'])  # set part of these parameters to not vary
         out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),
                           num_peaks=len(Guesses['peak']), nterms_back=len(bgguess),
                           Conv=conversion_factor,
                           fixed=pfixed, fit_method=None, weights=None, params=master_params)
-        master_params = out.params
+        #master_params = out.params
     pfour.append(ff.gather_paramerrs_to_list(master_params, param_str, comp))
 
     return master_params, dfour, hfour, wfour, pfour
@@ -321,9 +330,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             backg.append(np.zeros(len(bg_order) * 2 + 1))
         '''
         for j in bg_order:
-            backg.append(np.zeros(j * 2 + 1))
-        # print(backg, 'backg')
-
+            backg.append(np.zeros(np.max(j) * 2 + 1))
+        
         for y in range(peeks):
             # force profile orders to match the fixed orders
             # FIX ME: should this generate an error?
@@ -358,15 +366,15 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 # elif x ==4:
                 #    Parm = 'profile_fixed'
                 '''
-                if orders['peak'][y][Parm] > ff.Fourier_order(PreviousParams['peak'][y][Parm]):
+                if np.max(orders['peak'][y][Parm]) > ff.Fourier_order(PreviousParams['peak'][y][Parm]):
                     # print 'longer'
-                    change_by = orders['peak'][y][Parm] * 2 + 1 - np.size(PreviousParams['peak'][y][Parm])
+                    change_by = np.max(orders['peak'][y][Parm]) * 2 + 1 - np.size(PreviousParams['peak'][y][Parm])
                     # PreviousParams['peak'][y][Parm] = np.pad(PreviousParams['peak'][y][Parm], (0,change_by),
                     # mode='constant', constant_values=0)
                     PreviousParams['peak'][y][Parm] = (PreviousParams['background'][y] + [0] * change_by)
-                elif orders['peak'][y][Parm] < ff.Fourier_order(PreviousParams['peak'][y][Parm]):
+                elif np.max(orders['peak'][y][Parm]) < ff.Fourier_order(PreviousParams['peak'][y][Parm]):
                     # print 'smaller'
-                    change_by = np.size(PreviousParams['peak'][y][Parm]) - ((orders['peak'][y][Parm]) * 2 + 1)
+                    change_by = np.size(PreviousParams['peak'][y][Parm]) - (np.max(orders['peak'][y][Parm]) * 2 + 1)
                     PreviousParams['peak'][y][Parm] = PreviousParams['peak'][y][Parm][1:-(change_by - 1)]
             if 'profile_fixed' in orders['peak'][y]:
                 PreviousParams['peak'][y]['profile'] = orders['peak'][y]['profile_fixed']
@@ -378,23 +386,23 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             # loop over the degree of the background
             if len(PreviousParams['background']) - 1 >= y and len(orders['background']) - 1 >= y:
                 # if present in both arrays make sure it is the right size.
-                if orders['background'][y] > ff.Fourier_order(PreviousParams['background'][y]):
+                if np.max(orders['background'][y]) > ff.Fourier_order(PreviousParams['background'][y]):
                     # print 'longer'
-                    change_by = orders['background'][y] * 2 + 1 - np.size(PreviousParams['background'][y])
+                    change_by = np.max(orders['background'][y]) * 2 + 1 - np.size(PreviousParams['background'][y])
                     # print change_by
                     # PreviousParams['background'][y] = np.pad(PreviousParams['background'][y], (0,change_by),
                     # mode='constant', constant_values=0)
                     PreviousParams['background'][y] = (PreviousParams['background'][y] + [0] * change_by)
-                elif orders['background'][y] < ff.Fourier_order(PreviousParams['background'][y]):
+                elif np.max(orders['background'][y]) < ff.Fourier_order(PreviousParams['background'][y]):
                     # print 'smaller'
-                    change_by = np.size(PreviousParams['background'][y]) - ((orders['background'][y]) * 2 + 1)
+                    change_by = np.size(PreviousParams['background'][y]) - (np.max(orders['background'][y]) * 2 + 1)
                     PreviousParams['background'][y] = PreviousParams['background'][y][:-change_by]
             elif len(PreviousParams['background']) - 1 >= y > len(orders['background']) - 1:
                 # if previous params has too many degrees remove the higher ones
                 PreviousParams['background'][y] = []
             elif len(PreviousParams['background']) - 1 < y <= len(orders['background']) - 1:
                 # if previous parameters does not have enough degrees add more.
-                PreviousParams['background'].append([0] * (orders['background'][y] * 2 + 1))
+                PreviousParams['background'].append([0] * (np.max(orders['background'][y]) * 2 + 1))
 
         # tidy up from reductions in length of PreviousParams
         PreviousParams['background'] = [x for x in PreviousParams['background'] if x != []]
@@ -790,6 +798,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             param_str = 'bg_c' + str(i)
             master_params = ff.unvary_params(master_params, param_str, '')
             master_params = ff.vary_params(master_params, param_str, '')
+            master_params = ff.unvary_part_params(master_params, param_str, 'f', orders['background'][i])
+            
             fout = ff.Fourier_fit(azimu=np.array(newAziChunks), ydata=np.array(newBGall[i]), param=master_params,
                                   errs=np.array(newBGallErr[i]), param_str=param_str, fit_method='leastsq')
             master_params = fout.params
@@ -801,9 +811,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             
         # plot output of fourier fits....
         if debug:
-            y_lims = np.array([np.min(newAziChunks), np.max(newAziChunks)])
-            y_lims = np.around(y_lims / 180) * 180
-            AziPlot = range(np.int(y_lims[0]), np.int(y_lims[1]), 2)
+            #y_lims = np.array([np.min(newAziChunks), np.max(newAziChunks)])
+            #y_lims = np.around(y_lims / 180) * 180
+            #AziPlot = range(np.int(y_lims[0]), np.int(y_lims[1]), 2)
+            AziPlot = range(0, 360, 2)
             gmodel = Model(ff.Fourier_expand, independent_vars=['azimu'])
 
             fig = plt.figure()
@@ -885,21 +896,24 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                         p_fixed = True
                     else:
                         p_fixed = False
-                    if 'symmetry' in orders['peak'][k]:
-                        symm = orders['peak'][k]['symmetry']
-                    else:
-                        symm = 1
+                    # if 'symmetry' in orders['peak'][k]:
+                    #     symm = orders['peak'][k]['symmetry']
+                    # else:
+                    #     symm = 1
+                    
                     master_params, dfour, hfour, wfour, pfour = update_component_fits(master_params, intens, azimu,
                                                                                       twotheta, param_str,
                                                                                       [dfour, hfour, wfour, pfour],
                                                                                       conversion_factor, backg_guess,
-                                                                                      Guesses, p_fixed)
+                                                                                      Guesses, o=orders['peak'][j], pfixed=p_fixed)
 
                 # refine background
                 param_str = 'bg_c'
                 # print(param_str, lenbg, i)
                 master_params = ff.unvary_params(master_params, param_str, '')
                 master_params = ff.vary_params(master_params, param_str, '')
+                for k in range(len(orders['background'])):
+                    master_params = ff.unvary_part_params(master_params, param_str+str(k), 'f', orders['background'][k])  # set part of these parameters to not vary
                 out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(), num_peaks=len(Guesses['peak']),
                                   nterms_back=len(backg_guess), Conv=conversion_factor, fixed=pfixed, fit_method=None,
                                   weights=None, params=master_params)
@@ -1010,6 +1024,15 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             str_keys = [key for key, val in master_params.items() if new_str in key]
             for pstr in str_keys:
                 master_params[pstr].set(vary=False)
+                
+        # unvary specific parts of components it needed
+        master_params = ff.unvary_part_params(master_params, 'peak_' + str(x), 'd', orders['peak'][x]['d-space']) 
+        master_params = ff.unvary_part_params(master_params, 'peak_' + str(x), 'h', orders['peak'][x]['height']) 
+        master_params = ff.unvary_part_params(master_params, 'peak_' + str(x), 'w', orders['peak'][x]['width']) 
+        master_params = ff.unvary_part_params(master_params, 'peak_' + str(x), 'p', orders['peak'][x]['profile']) 
+        
+    for x in range(len(orders['background'])):
+        master_params = ff.unvary_part_params(master_params, param_str+str(x), 'f', orders['background'][x])
     
     # FIX ME: need to sort parameters, bgguess doesn't exist if load previous fit data
     out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(), num_peaks=num_peaks,

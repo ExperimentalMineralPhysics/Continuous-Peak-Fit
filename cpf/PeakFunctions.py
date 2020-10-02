@@ -366,7 +366,7 @@ def initiate_params(param, param_str, comp, trig_orders=None, limits=None, expr=
 
     # First loop to add all the parameters so can be used in expressions
     #parm_list = []
-    for t in range(2 * trig_orders + 1):
+    for t in range(2 * np.max(trig_orders) + 1):
         if value.size == 1:
             ind = 0
         else:
@@ -400,6 +400,47 @@ def unvary_params(param, param_str, comp):
             param[p].set(vary=False)
     return param
 
+def unvary_part_params(param, param_str, comp, order=None):
+    """
+    Set single component of the selected parameters to vary=False
+    :param param: lmfit Parameter class
+    :param param_str: base string to select with
+    :param comp: string to add to base string to select with
+    :param order: order of the coefficients. parts missing are set to vary=False
+    :return: updated lmfit Parameter class
+    """
+    if isinstance(order, list):
+        orderr = max(order)
+        for i in range(orderr):
+            if not np.isin(i,order):
+                param = unvary_single_param(param, param_str, comp, 2*i)
+                if i>0:
+                    param = unvary_single_param(param, param_str, comp, 2*i-1)
+    return param
+    
+ 
+def unvary_single_param(param, param_str, comp, val):
+    """
+    Set single component of the selected parameters to vary=False
+    :param param: lmfit Parameter class
+    :param param_str: base string to select with
+    :param comp: string to add to base string to select with
+    :param val: order of coeffients to set to vary=False
+    :return: updated lmfit Parameter class
+    """
+    if comp:
+        new_str = param_str + '_' + comp
+    else:
+        new_str = param_str
+    new_str = new_str + str(val)
+    str_keys = [key for key, val in param.items() if new_str in key]
+    # print(str_keys)
+    for p in param:
+        # print(p)
+        if p in str_keys:
+            # print('yes')
+            param[p].set(vary=False)
+    return param
 
 def vary_params(param, param_str, comp):
     """

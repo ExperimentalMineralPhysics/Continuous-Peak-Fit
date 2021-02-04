@@ -249,6 +249,13 @@ def initiate(settings_file=None, inputs=None, outtype=None, **kwargs):
         det_name = FitSettings.Calib_detector
     else:
         det_name = None
+    if not 'Calib_data' in FitParameters:
+        # this is here to catch calls for the calibration data -- which is not used as calibration data.
+        # it just has to be a data file of the right size and detector. If there is no calibration data 
+        # we are now just replacing it with the first data file.
+        # FIX ME: the whole calib_data could be removed if wanted.
+        diff_files, n_diff_files = FileList(FitParameters, FitSettings)
+        FitSettings.Calib_data = diff_files[0]
     FitSettings.Calib_detector = det.DetectorCheck(os.path.abspath(FitSettings.Calib_data), det_name)
     
     

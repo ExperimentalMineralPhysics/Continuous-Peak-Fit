@@ -65,37 +65,44 @@ def json_numpy_serialzer(o):
 
 def FileList(FitParameters, FitSettings):
     # from the Settings make a list of all the data files.
-    # FIX ME: There is code exactly like this in the output writing scripts. This should be called universaly - but where to put it?
+    # This function is called by the output writing scripts to make sure the file names are called consistently. 
+    
+    #define step
+    if not 'datafile_Step' in FitParameters:
+        Step = 1
+    else:
+        Step = FitSettings.datafile_Step
     
     # diffraction patterns -- make list of files
     if not 'datafile_Files' in FitParameters:
-        n_diff_files = FitSettings.datafile_EndNum - FitSettings.datafile_StartNum + 1
+        n_diff_files = int(np.floor((FitSettings.datafile_EndNum - FitSettings.datafile_StartNum)/Step + 1))
         diff_files = []
+            
         for j in range(n_diff_files):
             # make list of diffraction pattern names
 
             # make number of pattern
-            n = str(j + FitSettings.datafile_StartNum).zfill(FitSettings.datafile_NumDigit)
+            n = str(FitSettings.datafile_StartNum+j*Step).zfill(FitSettings.datafile_NumDigit)
 
             # append diffraction pattern name and directory
             diff_files.append(os.path.abspath(
                 FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n +
                 FitSettings.datafile_Ending))
     elif 'datafile_Files' in FitParameters:
-        n_diff_files = len(FitSettings.datafile_Files)
+        n_diff_files = int(len(FitSettings.datafile_Files)/Step + 1)
         diff_files = []
         for j in range(n_diff_files):
             # make list of diffraction pattern names
 
             # make number of pattern
-            n = str(FitSettings.datafile_Files[j]).zfill(FitSettings.datafile_NumDigit)
+            n = str(FitSettings.datafile_Files[j*Step]).zfill(FitSettings.datafile_NumDigit)
 
             # append diffraction pattern name and directory
             diff_files.append(os.path.abspath(
                 FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n +
                 FitSettings.datafile_Ending))
     else:
-        n_diff_files = len(FitSettings.datafile_Files) 
+        n_diff_files = int(len(FitSettings.datafile_Files)/Step + 1)
         
     return diff_files, n_diff_files
 
@@ -165,6 +172,7 @@ def initiate(settings_file=None, inputs=None, outtype=None, **kwargs):
     AlternativesList = [
         [['datafile_StartNum', 'datafile_EndNum'], ['datafile_Files']]
     ]
+    OptionalList = ['datafile_Step']
 
     # load the detector functions here.
     if not 'Calib_type' in FitParameters:

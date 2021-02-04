@@ -8,6 +8,7 @@ import numpy as np
 #import cpf.PeakFunctions as ff
 import cpf.WriteMultiFit as WriteMultiFit
 import json
+import cpf.XRD_FitPattern as XRD_FP
 #import re
 #import datetime
 
@@ -40,41 +41,12 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
     FitParameters = dir(FitSettings)
     
     #Parse the required inputs. 
-    base_file_name = FitSettings.datafile_Basename
-    
-    # diffraction patterns 
-    # Identical to code in XRD_FitPatterns
-    if not 'datafile_Files' in FitParameters:
-        n_diff_files = FitSettings.datafile_EndNum - FitSettings.datafile_StartNum + 1
-        diff_files = []
-        for j in range(n_diff_files):
-            # make list of diffraction pattern names
-    
-            #make number of pattern
-            n = str(j+FitSettings.datafile_StartNum).zfill(FitSettings.datafile_NumDigit)
-            
-            #append diffraction pattern name and directory
-            diff_files.append(FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n + FitSettings.datafile_Ending)
-    elif 'datafile_Files' in FitParameters:
-        n_diff_files = len(FitSettings.datafile_Files)
-        diff_files = []
-        for j in range(n_diff_files):
-            # make list of diffraction pattern names
-    
-            #make number of pattern
-            n = str(FitSettings.datafile_Files[j]).zfill(FitSettings.datafile_NumDigit)
-            
-            #append diffraction pattern name and directory
-            diff_files.append(FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n + FitSettings.datafile_Ending)
-    else:
-        n_diff_files = len(FitSettings.datafile_Files)
-
+    diff_files, n_diff_files = XRD_FP.FileList(FitParameters, FitSettings)
     if 'Output_directory' in FitParameters:
         out_dir = FitSettings.Output_directory
     else:
         out_dir = './'
             
-
     # create output file name from passed name
     path, filename = os.path.split(base_file_name)
     base, ext = os.path.splitext(filename)

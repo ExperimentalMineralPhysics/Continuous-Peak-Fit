@@ -4,12 +4,13 @@
 # A 'proper' input file type can be formulated later.
 
 # properties of the data files.
-datafile_directory = './Example1Fe/'
+datafile_directory = './'#'/Example1-Fe/'
 datafile_Basename  = 'BCC1_2GPa_10s_001_'
 datafile_Ending    = '.tif'
 datafile_StartNum  = 1
 datafile_EndNum    = 10
 datafile_NumDigit  = 5
+datafile_Step      = 3
 
 '''
 # Calibration and masking.

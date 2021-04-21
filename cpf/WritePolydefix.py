@@ -41,6 +41,7 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
     FitParameters = dir(FitSettings)
     
     #Parse the required inputs. 
+    base_file_name = FitSettings.datafile_Basename
     diff_files, n_diff_files = XRD_FP.FileList(FitParameters, FitSettings)
     if 'Output_directory' in FitParameters:
         out_dir = FitSettings.Output_directory

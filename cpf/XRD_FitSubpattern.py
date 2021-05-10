@@ -86,7 +86,7 @@ def run_initial_fit(azi, y_data, y_data_errs, params, param_str, comp, order, ex
     params = ff.initiate_params(params, param_str, comp, orderr, limits=[new_max, new_min], expr=expr, ind_vars=azi, value=value)
     params = ff.unvary_params(params, param_str, comp)  # set other parameters to not vary
     params = ff.unvary_part_params(params, param_str, comp, order)  # set part of parameter not  to vary
-    params.pretty_print()
+    #params.pretty_print()
     fout = ff.Fourier_fit(azimu=azi, ydata=np.array(y_data), param=params, errs=np.array(y_data_errs),
                           param_str=param_str + '_' + comp, symm=symm, fit_method=method)
     params = fout.params
@@ -607,7 +607,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                                   })
                   
                     # DMF added needs checking - required to drive fit and avoid failures
-                    lims.append(ff.parse_bounds(bounds, dspace.flatten()[chunks[j]], intens.flatten()[chunks[j]], twotheta.flatten()[chunks[j]], param=['d-space', 'height', 'width', 'profile']))
+                    lims.append(ff.parse_bounds(bounds, dspace.flatten()[chunks[j]], intens.flatten()[chunks[j]], twotheta.flatten()[chunks[j]], param=['d-space', 'height', 'width', 'profile'], npeaks=len(orders['peak'])))
                     # lims.append({"d-space": [np.min(dspace.flatten()[chunks[j]]), np.max(dspace.flatten()[chunks[j]])],
                     #              "height": [0, np.max(intens.flatten()[chunks[j]])],
                     #              "width": [(np.max(twotheta.flatten()[chunks[j]]) - np.min(twotheta.flatten()[chunks[j]])) / 100 / peeks,
@@ -799,7 +799,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             master_params = ff.unvary_params(master_params, param_str, '')
             master_params = ff.vary_params(master_params, param_str, '')
             master_params = ff.unvary_part_params(master_params, param_str, 'f', orders['background'][i])
-            
             fout = ff.Fourier_fit(azimu=np.array(newAziChunks), ydata=np.array(newBGall[i]), param=master_params,
                                   errs=np.array(newBGallErr[i]), param_str=param_str, fit_method='leastsq')
             master_params = fout.params
@@ -1042,8 +1041,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
     
     print('\nFinal Coefficients\n')
     # print(out.fit_report(min_correl=1))
-    print(out.fit_report())
-    master_params.pretty_print()
+    print(out.fit_report(show_correl=False))
+    #master_params.pretty_print()
     # print('Final Coefficients\n', NewParams)
     
     # Write master_params to NewParams dict object

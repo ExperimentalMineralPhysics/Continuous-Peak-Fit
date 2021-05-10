@@ -89,7 +89,7 @@ def FileList(FitParameters, FitSettings):
                 FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n +
                 FitSettings.datafile_Ending))
     elif 'datafile_Files' in FitParameters:
-        n_diff_files = int(len(FitSettings.datafile_Files)/Step + 1)
+        n_diff_files = int(len(FitSettings.datafile_Files)/Step)
         diff_files = []
         for j in range(n_diff_files):
             # make list of diffraction pattern names
@@ -109,7 +109,7 @@ def FileList(FitParameters, FitSettings):
 
 
 
-def initiate(settings_file=None, inputs=None, outtype=None, **kwargs):    
+def initiate(settings_file=None, inputs=None, outtype=None, initiateData=True, **kwargs):    
     """
     :param settings_file:
     :param inputs:
@@ -258,19 +258,18 @@ def initiate(settings_file=None, inputs=None, outtype=None, **kwargs):
         FitSettings.Calib_data = diff_files[0]
     FitSettings.Calib_detector = det.DetectorCheck(os.path.abspath(FitSettings.Calib_data), det_name)
     
-    
-    # Data directory and file validation: check they exist.
-    if os.path.exists(FitSettings.datafile_directory) is False:
-            raise ImportError(
-                'The data directory ' + FitSettings.datafile_directory + ' does not exist.')
-    print('The data directory exists.')
-    diff_files, n_diff_files = FileList(FitParameters, FitSettings)
-    for j in range(n_diff_files):
-        if os.path.isfile(diff_files[j]) is False:
-            raise ImportError(
-                'The data file ' + diff_files[j] + ' does not exist. Check the input file.')
-    print('All the data files exist.')
-    
+    if initiateData is True:
+        # Data directory and file validation: check they exist.
+        if os.path.exists(FitSettings.datafile_directory) is False:
+                raise ImportError(
+                    'The data directory ' + FitSettings.datafile_directory + ' does not exist.')
+        print('The data directory exists.')
+        diff_files, n_diff_files = FileList(FitParameters, FitSettings)
+        for j in range(n_diff_files):
+            if os.path.isfile(diff_files[j]) is False:
+                raise ImportError(
+                    'The data file ' + diff_files[j] + ' does not exist. Check the input file.')
+        print('All the data files exist.')
     
     
     return FitSettings, FitParameters
@@ -289,8 +288,8 @@ def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=N
     """
     # if no params_dict then initiate. Check all the output functions are present and valid.
     if parms_dict is None:
-        FitSettings, FitParameters = initiate(settings_file, outtype=outtype)
-
+        FitSettings, FitParameters = initiate(settings_file, outtype=outtype, initiateData=False)
+            
     if det is None:
         # get parms_dict from calibration parameter file #
         # load detector here

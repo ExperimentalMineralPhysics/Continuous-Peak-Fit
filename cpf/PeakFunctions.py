@@ -21,7 +21,7 @@ np.set_printoptions(threshold=sys.maxsize)
 # FIX ME: need hard limits to gauss - lorentz peak profile ratios
 
 
-def parse_bounds(bounds, dspace, intens, twotheta, ndat=None, param=None):
+def parse_bounds(bounds, dspace, intens, twotheta, ndat=None, npeaks=1, param=None):
     """
     Turn text limits in bounds into numbers and return bounds in dictionary format.
     :param bounds: bounds dictionary
@@ -36,7 +36,7 @@ def parse_bounds(bounds, dspace, intens, twotheta, ndat=None, param=None):
               "d-space":    ['min', 'max'],
               "height":     [ 0,    '2*max'],
               "profile":    [ 0,     1],
-              "width":      [ 'range/(ndata)',  'range/2'],
+              "width":      [ 'range/(ndata)',  'range/2/npeaks'],
               }
     if ndat is None:
         ndat = np.size(dspace)
@@ -59,6 +59,7 @@ def parse_bounds(bounds, dspace, intens, twotheta, ndat=None, param=None):
         b = [w.replace('ndata', str(ndat)) for w in b]
         b = [w.replace('max', str(np.max(vals))) for w in b]
         b = [w.replace('min', str(np.min(vals))) for w in b]
+        b = [w.replace('npeaks', str(npeaks)) for w in b]
         b = [eval(w) for w in b]
         limits[par] = b          
         
@@ -624,8 +625,8 @@ def CentroidConversion(Conv, args_in, azi):
     # Conv['DispersionType'] is the conversion type
     # Conv[...] are the values required for the conversion
     # FIX ME: these functions should be a sub function of the detector types. but need to work out how to do it.
-
-    if Conv['DispersionType'] is None or Conv == 0:
+    
+    if Conv == 0 or Conv['DispersionType'] is None:
         args_out = args_in
 
     elif Conv['DispersionType'] == 'AngleDispersive':

@@ -127,7 +127,7 @@ def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx, debug=False):
     ImMsk = np.array(Image.open(MSKfile))
     ImInts = ma.array(ImInts, mask=ImMsk)
 
-    if debug:
+    if 0: #debug:
         # Plot mask.
         # This is left in here for debugging.
         # N.B. The plot is a pig with even 1000x1000 pixel images and takes a long time to render.
@@ -158,6 +158,91 @@ def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx, debug=False):
     #FIX ME : this could probably all be done by using the detector class in fabio. 
     
     return ImInts
+
+
+
+
+def plot(ImDispersion, ImAzimuths, ImIntensity, dtype='data', masked=True, ImIntensity2=None):
+    # Plot data.
+    # possibilities:
+    #   1. just plotting the data or model - with or without mask: label 'data'
+    #   2. plot of data, model and differences: label 'model'
+    #   3. plot of all data, mask and masked data. label 'mask'
+    to_plot = []
+    if dtype == 'data':
+        n_plots = 1
+        to_plot.append(ImIntensity)
+        plot_mask = [masked]
+        plot_title = ['Data']
+        plot_cmap = [plt.cm.jet]
+        
+    elif dtype == 'model':
+        n_plots = 3
+        to_plot.append(ImIntensity)
+        to_plot.append(ImIntensity2)
+        to_plot.append(ImIntensity - ImIntensity2)
+        plot_mask = [masked, masked, masked]
+        plot_title = ['Data', 'Model', 'Residuals']
+        plot_cmap = ['jet', 'jet', 'jet']
+        
+    elif dtype == 'mask':
+        n_plots = 3
+        to_plot.append(ImIntensity)
+        to_plot.append(np.array(ma.getmaskarray(ImIntensity), dtype='uint8')+1)
+        to_plot.append(ImIntensity)
+        plot_mask = [False, False, True]
+        plot_title = ['All Data', 'Mask', 'Masked Data']
+        plot_cmap = 'jet', 'Greys', 'jet'
+                
+    else:
+        stop    
+    
+    y_lims = np.array([np.min(ImAzimuths.flatten()), np.max(ImAzimuths.flatten())])
+    y_lims = np.around(y_lims / 180) * 180
+
+
+    # N.B. The plot is a pig with even 1000x1000 pixel images and takes a long time to render.
+    if ImIntensity.size > 100000:
+        print(' Have patience. The plot(s) will appear but it can take its time to render.')
+        
+    
+    fig_1 = plt.figure()
+    for i in range(n_plots):
+        ax1 = fig_1.add_subplot(1, n_plots, i+1)
+        if plot_mask[i] == True:
+            ax1.scatter(ImDispersion, ImAzimuths, s=1, c=(to_plot[i]), edgecolors='none', cmap=plot_cmap[i], vmin=0) #plot all data includeing masked data.
+        else:
+            ax1.scatter(ImDispersion.data, ImAzimuths.data, s=1, c=(to_plot[i].data), edgecolors='none', cmap=plot_cmap[i], vmin=0)
+        ax1.set_title(plot_title[i])
+        ax1.set_ylim(y_lims)
+        locs, labels = plt.xticks()
+        plt.setp(labels, rotation=90)
+        if i == 0:
+            ax1.set_ylabel(r'Azimuth ($^\circ$)')
+        ax1.set_xlabel(r'$2\theta$ ($^\circ$)')
+        
+    plt.show()
+    plt.close()
+    
+    
+    if dtype == 'mask':
+    
+        #plot cdf of the intensities.
+        # sort the data in ascending order
+        x1 = np.sort(ImIntensity)
+          
+        # get the cdf values of y
+        y1 = np.arange(np.size(x1)) / float(np.size(x1))
+          
+        fig_2 = plt.figure()   
+        ax1 = fig_2.add_subplot(1, 1, 1)   
+        ax1.plot(x1, y1, marker='o')
+        ax1.set_title('CDF of the intensities')
+        
+        plt.show()
+
+
+
 
 
 def GetCalibration(filenam):

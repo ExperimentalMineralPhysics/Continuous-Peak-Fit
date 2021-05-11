@@ -399,6 +399,13 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
         #plt.show()
         plt.close()
 
+
+    # if parallel processing start the pool
+    if parallel is True:  
+        p = mp.Pool(processes=mp.cpu_count())
+
+
+
     # Process the diffraction patterns #
 
     for j in range(n_diff_files):
@@ -539,8 +546,8 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
 
   
         if parallel is True:            
-            print(mp.cpu_count())
-            print(len(parallel_pile)) 
+            #print(mp.cpu_count())
+            #print(len(parallel_pile)) 
             
             '''
             kwargs = {'DetFuncs': calib_mod, 'SaveFit': SaveFigs, 'debug': debug, 'refine': refine, 'iterations': iterations, 'fnam': diff_files[j]}           
@@ -548,14 +555,14 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             result.start()
             result.join()
             '''
-            p = mp.Pool(processes=mp.cpu_count())#, initializer=(SubpatternParallel_init), initargs=(FitSettings, FitParameters, params, diff_files[j], calib_mod, SaveFigs, debug, refine, iterations))) 
+            #p = mp.Pool(processes=mp.cpu_count())#, initializer=(SubpatternParallel_init), initargs=(FitSettings, FitParameters, params, diff_files[j], calib_mod, SaveFigs, debug, refine, iterations))) 
             #result = p.map(parallel_processing1, parallel_pile) #works for just args as parallelepile
             tmp = p.map(parallel_processing, parallel_pile) 
-            p.close()
             for i in range(n_subpats):
                 Fitted_param.append(tmp[i][0])
                 lmfit_models.append(tmp[i][1])
 
+        
         # write output files
 
         # store the fit parameters information as a JSON file.
@@ -576,9 +583,11 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
     # Write the output files.
     writeoutput(settings_file, FitSettings=FitSettings, parms_dict=parms_dict, det=det, outtype=FitSettings.Output_type)
 
+    if parallel is True:     
+        p.close()
 
-def parallel_processing1(p):
-    return FitSubpattern(*p)
+#def parallel_processing1(p):
+#    return FitSubpattern(*p)
 
 def parallel_processing(p):
     a, kw = p

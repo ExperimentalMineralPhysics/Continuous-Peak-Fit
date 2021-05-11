@@ -241,7 +241,7 @@ def plot(ImDispersion, ImAzimuths, ImIntensity, dtype='data', masked=True, ImInt
         
         plt.show()
 
-
+    return fig_1, fig_2
 
 
 

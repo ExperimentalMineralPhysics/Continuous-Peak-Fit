@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import importlib.util
-from cpf.XRD_FitSubpattern import FitSubpattern
+from cpf.XRD_FitSubpattern import FitSubpattern, peak_string
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -499,13 +499,6 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
                 twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
                 dspacing_sub = ma.array(dspacing_sub, mask=intens_sub.mask)
                 
-            if debug:
-                #FIX ME: this plots the input data. perhaps it should have its own switch rather than being subservient to Debug. 
-                # It is not a debug it is a setup thing.
-                #plot the data and the mask.
-                det.plot(twotheta_sub, azimu_sub, intens_sub, dtype='mask')
-                
-            stop    
             # fit the subpattern
             # tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
             #                     DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
@@ -535,6 +528,167 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
 
     # Write the output files.
     writeoutput(settings_file, FitSettings=FitSettings, parms_dict=parms_dict, det=det, outtype=FitSettings.Output_type)
+
+
+
+def setup(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1,
+            track=False, parallel=True, **kwargs):
+    """
+    :param settings_file:
+    :param inputs:
+    :param debug:
+    :param refine:
+    :param iterations:
+    :return:
+    """
+
+    FitSettings, FitParameters = initiate(settings_file, inputs)
+
+    # load detector
+    calib_mod = 'cpf.' + FitSettings.Calib_type + 'Functions'
+    det = importlib.import_module('cpf.' + FitSettings.Calib_type + 'Functions')
+
+    # define locally required names.
+    temporary_data_file = 'PreviousFit_JSON.dat'
+
+    # calibration parameter file #
+    parms_dict = det.GetCalibration(os.path.abspath(FitSettings.Calib_param))
+
+    # get list of diffraction patterns #
+    diff_files, n_diff_files = FileList(FitParameters, FitSettings)
+        
+    # get calibration for image set.
+    # get array for azimuth, two theta and d-space the same size as the image.
+    azimu = det.GetAzm(os.path.abspath(FitSettings.Calib_data), parms_dict, FitSettings.Calib_pixels,
+                       FitSettings.Calib_detector)
+    twotheta = det.GetTth(os.path.abspath(FitSettings.Calib_data), parms_dict, FitSettings.Calib_pixels,
+                          FitSettings.Calib_detector)
+    dspace = det.GetDsp(os.path.abspath(FitSettings.Calib_data), parms_dict, FitSettings.Calib_pixels,
+                        FitSettings.Calib_detector)
+    # FIX ME: Should be able to send diffraction patter, mask and calibration parameters to a function and get back
+    # three masked arrays.
+
+    # load calibration data/image -- to get intensities for mask.
+    im = det.ImportImage(os.path.abspath(FitSettings.Calib_data), debug=debug)
+    intens = ma.array(im)
+
+    # create mask from mask file if present.
+    # if not make all values valid
+    if 'Calib_mask' in FitParameters:
+        intens = det.GetMask(FitSettings.Calib_mask, intens, twotheta, azimu, os.path.abspath(FitSettings.Calib_data),
+                             FitSettings.Calib_pixels, debug=debug)
+    else:
+        ImMask = np.zeros_like(intens)
+        intens = ma.array(intens, mask=ImMask)
+        intens = ma.masked_outside(intens, 0, np.inf)
+
+    # apply mask to arrays
+    azimu = ma.array(azimu, mask=intens.mask)
+    twotheta = ma.array(twotheta, mask=intens.mask)
+    dspace = ma.array(dspace, mask=intens.mask)
+
+
+
+    # plot calibration file
+    if debug:
+        fig = plt.figure()
+        if FitSettings.Calib_type == 'Med':
+            # plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
+            # vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
+            for x in range(9):
+                plt.plot(twotheta[x], intens[x] + 100 * x)  # Better for energy dispersive data. #FIX ME: need variable
+                # for vmax.
+            plt.xlabel('Energy (keV)')
+            plt.ylabel('Intensity')
+
+        else:
+            # plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)
+            # #Better for monochromatic data.             #FIX ME: need variable for vmax.
+            plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin=0)
+            # Better for monochromatic data.             #FIX ME: need variable for vmax.
+            plt.xlabel(r'2$\theta$')
+            plt.ylabel('Azimuth')
+            plt.colorbar()
+        plt.title('Calibration data')
+        plt.draw()
+        #plt.show()
+        plt.close()
+
+
+    # Get diffraction pattern to process.
+    im = det.ImportImage(diff_files[0])
+
+    # get intensity array and mask it
+    intens = ma.array(im, mask=azimu.mask)
+
+    # plot input file
+    if debug:
+        fig = plt.figure()
+        if FitSettings.Calib_type == 'Med':
+            # plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
+            # vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
+            for x in range(9):
+                plt.plot(twotheta[x], intens[
+                    x] + 100 * x)  # Better for energy dispersive data.  #FIX ME: need variable for vmax.
+            plt.xlabel('Energy (keV)')
+            plt.ylabel('Intensity')
+
+        else:
+            # plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
+            # vmax = 1000)  #Better for monochromatic data.             #FIX ME: need variable for vmax.
+            plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin=0,
+                        vmax=4000)  # FIX ME: need variable for vmax.
+            plt.xlabel(r'2$\theta$')
+            plt.ylabel('Azimuth')
+            plt.colorbar()
+        plt.title(os.path.basename(diff_files[0]))
+        plt.draw()
+        plt.close()
+
+    # Pass each sub-pattern to Fit_Subpattern for fitting in turn.
+    # get number of sub-patterns to be fitted
+    n_subpats = len(FitSettings.fit_orders)
+
+    for i in range(n_subpats):
+        tthRange = FitSettings.fit_orders[i]['range'][0]
+        if hasattr(FitSettings, 'fit_orders'):  # FitSettings.fit_orders:
+            orders = FitSettings.fit_orders[i]
+        
+        # get subsections of data to pass
+        subpat = np.where((twotheta >= tthRange[0]) & (twotheta <= tthRange[1]))
+        twotheta_sub = twotheta[subpat]
+        dspacing_sub = dspace[subpat]
+        azimu_sub = azimu[subpat]
+        intens_sub = intens[subpat]
+
+        #Mask the subpattern by intensity if called for
+        if 'Imax' in orders:
+            intens_sub   = ma.masked_outside(intens_sub,0,int(orders['Imax']))
+            azimu_sub    = ma.array(azimu_sub, mask=intens_sub.mask)
+            twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
+            dspacing_sub = ma.array(dspacing_sub, mask=intens_sub.mask)
+            
+        #FIX ME: this plots the input data. perhaps it should have its own switch rather than being subservient to Debug. 
+        # It is not a debug it is a setup thing.
+        #plot the data and the mask.
+        fig_1, fig_2 = det.plot(twotheta_sub, azimu_sub, intens_sub, dtype='mask')
+        
+    
+        # save figures without overwriting old names
+        filename = os.path.splitext(os.path.basename(diff_files[0]))[0] + '_'
+        filename = filename + peak_string(orders, fname=True)
+    
+        i = 0
+        if os.path.exists('{}.png'.format(filename)):
+            i+=1
+        while os.path.exists('{}_{:d}.png'.format(filename, i)):
+            i += 1
+        if i == 0:
+            fig_1.savefig('{}_mask.png'.format(filename))
+            fig_2.savefig('{}_CDF.png'.format(filename))
+        else:
+            fig_1.savefig('{}_{:d}.png'.format(filename, i))
+            fig_2.savefig('{}_{:d}.png'.format(filename, i))
 
 
 if __name__ == '__main__':

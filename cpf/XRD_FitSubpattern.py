@@ -224,64 +224,7 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
     return master_params, dfour, hfour, wfour, pfour
 
 
-# A global dictionary storing the variables passed from the initializer.
-var_dict = {}
 
-def SubpatternParallel_init(TwoThetaAndDspacings, azimu, intens, FitSettings, FitParameters, params, diff_files, calib_mod, SaveFigs, debug, refine, iterations):
-    
-    # Using a dictionary is not strictly necessary. You can also
-    # use global variables.
-    var_dict['TwoThetaAndDspacings'] = TwoThetaAndDspacings
-    var_dict['azimu'] = azimu
-    var_dict['intens'] = intens
-    var_dict['FitSettings'] = FitSettings
-    var_dict['FitParameters'] = FitParameters
-    var_dict['params'] = params
-    var_dict['diff_files'] = diff_files
-    var_dict['calib_mod'] = calib_mod
-    var_dict['SaveFigs'] = SaveFigs
-    var_dict['refine'] = refine
-    var_dict['iterations'] = iterations
-    var_dict['debug'] = debug
-    
-
-
-
-
-
-
-def FitSubpatternParallel(args, kwargs):
-    return FitSubpattern(*args, **kwargs)
-    
-
-
-def FitSubpatternParallel2(args):
-    return FitSubpattern(*args)
-
-'''
-def FitSubpatternParallel(args):
-    print(args)
-    TwoThetaAndDspacings= args[0]
-    azimu= args[1] 
-    intens= args[2]
-    orders=None
-    PreviousParams=None
-    bounds=None
-                  
-    DetFuncs='DioptasFunctions'
-    SaveFit=None
-    debug=False
-    refine=True
-    iterations=1
-    fnam=None
-                  
-    fit_method=None
-    
-    
-    pass_through = FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders, PreviousParams, bounds, DetFuncs, SaveFit, debug, refine, iterations, fnam,                   fit_method)
-
-    return pass_through
-'''
 def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousParams=None, bounds=None,
                   DetFuncs='cpf.DioptasFunctions', SaveFit=None, debug=False, refine=True, iterations=1, fnam=None,
                   fit_method=None):

@@ -8,8 +8,10 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
+import multiprocessing as mp
+from itertools import product
 import importlib.util
-from cpf.XRD_FitSubpattern import FitSubpattern
+from cpf.XRD_FitSubpattern import FitSubpattern, FitSubpatternParallel, FitSubpatternParallel2, SubpatternParallel_init
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -452,6 +454,198 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
         Fitted_param = []
         lmfit_models = []
 
+
+
+        '''
+        if 'previous_fit' in locals():
+            params = previous_fit                   
+        else:
+            params = []
+
+        print(mp.cpu_count())
+        p = mp.Pool(processes=mp.cpu_count(), initializer=(SubpatternParallel_init), initargs=(SubpatternParallel_init([twotheta, dspace, parms_dict], azimu, intens, FitSettings, FitParameters, params, diff_files[j], calib_mod, SaveFigs, debug, refine, iterations))) 
+        
+        
+        stop
+        '''
+        
+        
+        
+        parallel_pile = [ ]
+
+        for i in range(n_subpats):
+            tthRange = FitSettings.fit_orders[i]['range'][0]
+            if hasattr(FitSettings, 'fit_orders'):  # FitSettings.fit_orders:
+                orders = FitSettings.fit_orders[i]
+            if hasattr(FitSettings, 'AziBins'):
+                orders['AziBins'] = FitSettings.AziBins
+            if 'fit_bounds' in FitParameters:
+                bounds = FitSettings.fit_bounds
+            else:
+                bounds = None
+            if 'previous_fit' in locals():
+                params = previous_fit[i]                    
+            else:
+                params = []
+                
+            #Track the position of the peak centroid 
+            #FIX ME; This is crude - the range doesnt change width. so cant account for massive change in stress. But does it need to?
+            if track is True and 'previous_fit' in locals():
+                print('tthRange', tthRange)
+                mid=[]
+                for k in range(len(params['peak'])):
+                    mid.append(params['peak'][k]['d-space'][0])
+                cent = det.Conversion(np.sum(mid)/(k+1), parms_dict, reverse=1, azm=None)
+                tthRange[0] = tthRange[0] - ((tthRange[1]+tthRange[0])/2) + cent
+                tthRange[1] = tthRange[1] - ((tthRange[1]+tthRange[0])/2) + cent
+                print('move by:' , ((tthRange[1]+tthRange[0])/2) + cent)
+                print('tthRange', tthRange)
+
+                # The PeakPositionSelections are only used if the fits are not being propagated
+                if 'PeakPositionSelection' in orders:
+                    for k in range(len(orders['PeakPositionSelection'])):
+                        orders['PeakPositionSelection'][k][2] = orders['PeakPositionSelection'][k][2] - ((tthRange[1]+tthRange[0])/2) + cent
+
+            # get subsections of data to pass
+            subpat = np.where((twotheta >= tthRange[0]) & (twotheta <= tthRange[1]))
+            twotheta_sub = twotheta[subpat]
+            dspacing_sub = dspace[subpat]
+            azimu_sub = azimu[subpat]
+            intens_sub = intens[subpat]
+
+
+            #Mask the subpattern by intensity if called for
+            if 'Imax' in orders:
+                intens_sub   = ma.masked_outside(intens_sub,0,int(orders['Imax']))
+                azimu_sub    = ma.array(azimu_sub, mask=intens_sub.mask)
+                twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
+                dspacing_sub = ma.array(dspacing_sub, mask=intens_sub.mask)
+            
+            
+            parallel_pile.append(([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds))
+
+        print(len(parallel_pile))   
+        
+        #job_args = [(item_a, parallel_pile[i]) for i, item_a in enumerate(parallel_pile)]
+        
+        
+        print(mp.cpu_count())
+        p = mp.Pool(processes=mp.cpu_count())#, initializer=(SubpatternParallel_init), initargs=(FitSettings, FitParameters, params, diff_files[j], calib_mod, SaveFigs, debug, refine, iterations))) 
+        
+        '''args = {'orders': orders, 'PreviousParams': None, 'bounds': None,
+                  'DetFuncs': 'cpf.DioptasFunctions', 'SaveFit': None, 'debug': False, 'refine': True, 'iterations': 1, 'fnam': None,
+                  'fit_method': None}
+        pool = [multiprocessing.Process(target=stretch, args= (shared_arr,slice(i, i+step)),kwargs=args) for i in range(len(parallel_pile))]
+        '''
+        
+        result = p.map(parallel_processing, parallel_pile)
+        #p.start()
+        #p.join()
+        '''   
+            print('START DATA FIT %i ' % i)
+            
+            args=[i, [twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders]
+            keywords = {'orders': orders, 'PreviousParams': None, 'bounds': None,
+                  'DetFuncs': 'cpf.DioptasFunctions', 'SaveFit': None, 'debug': False, 'refine': True, 'iterations': 1, 'fnam': None,
+                  'fit_method': None}#, calib_mod, SaveFigs, debug, refine, iterations, diff_files[j]]
+            #p = mp.Process(target=FitSubpattern, args=([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds,                                 
+            #                                           calib_mod, SaveFigs, debug, refine, iterations, diff_files[j]))
+            #p = p.map(FitSubpatternParallel, product([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds,                                 
+            #                                           calib_mod, SaveFigs, debug, refine, iterations, diff_files[j]))
+            p = p.map(FitSubpatternParallel, args)
+            #p = p.map(FitSubpattern, args)
+            p.start()
+            p.join()
+            print('JST PASSES POINT %i ' % i)
+        print(p)    
+        '''
+        
+        print(result)
+        stop
+
+
+
+
+
+
+
+
+
+        Parallel_pile = [ twotheta, dspace, azimu, intens, orders ]
+        
+        p = mp.Pool(mp.cpu_count(),initargs=(Parallel_pile,)) #initialise pool with all the common variables
+        #p = mp.Pool(mp.cpu_count()) 
+        
+        
+        p = p.map(FitSubpatternParallel2, range(n_subpats))   
+        
+        for i in range(n_subpats):
+            tthRange = FitSettings.fit_orders[i]['range'][0]
+            if hasattr(FitSettings, 'fit_orders'):  # FitSettings.fit_orders:
+                orders = FitSettings.fit_orders[i]
+            if hasattr(FitSettings, 'AziBins'):
+                orders['AziBins'] = FitSettings.AziBins
+            if 'fit_bounds' in FitParameters:
+                bounds = FitSettings.fit_bounds
+            else:
+                bounds = None
+            if 'previous_fit' in locals():
+                params = previous_fit[i]                    
+            else:
+                params = []
+                
+            #Track the position of the peak centroid 
+            #FIX ME; This is crude - the range doesnt change width. so cant account for massive change in stress. But does it need to?
+            if track is True and 'previous_fit' in locals():
+                print('tthRange', tthRange)
+                mid=[]
+                for k in range(len(params['peak'])):
+                    mid.append(params['peak'][k]['d-space'][0])
+                cent = det.Conversion(np.sum(mid)/(k+1), parms_dict, reverse=1, azm=None)
+                tthRange[0] = tthRange[0] - ((tthRange[1]+tthRange[0])/2) + cent
+                tthRange[1] = tthRange[1] - ((tthRange[1]+tthRange[0])/2) + cent
+                print('move by:' , ((tthRange[1]+tthRange[0])/2) + cent)
+                print('tthRange', tthRange)
+
+                # The PeakPositionSelections are only used if the fits are not being propagated
+                if 'PeakPositionSelection' in orders:
+                    for k in range(len(orders['PeakPositionSelection'])):
+                        orders['PeakPositionSelection'][k][2] = orders['PeakPositionSelection'][k][2] - ((tthRange[1]+tthRange[0])/2) + cent
+
+            # get subsections of data to pass
+            subpat = np.where((twotheta >= tthRange[0]) & (twotheta <= tthRange[1]))
+            twotheta_sub = twotheta[subpat]
+            dspacing_sub = dspace[subpat]
+            azimu_sub = azimu[subpat]
+            intens_sub = intens[subpat]
+
+
+            #Mask the subpattern by intensity if called for
+            if 'Imax' in orders:
+                intens_sub   = ma.masked_outside(intens_sub,0,int(orders['Imax']))
+                azimu_sub    = ma.array(azimu_sub, mask=intens_sub.mask)
+                twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
+                dspacing_sub = ma.array(dspacing_sub, mask=intens_sub.mask)
+            
+            print('START DATA FIT %i ' % i)
+            
+            args=[i, [twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders]
+            keywords = {'orders': orders, 'PreviousParams': None, 'bounds': None,
+                  'DetFuncs': 'cpf.DioptasFunctions', 'SaveFit': None, 'debug': False, 'refine': True, 'iterations': 1, 'fnam': None,
+                  'fit_method': None}#, calib_mod, SaveFigs, debug, refine, iterations, diff_files[j]]
+            #p = mp.Process(target=FitSubpattern, args=([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds,                                 
+            #                                           calib_mod, SaveFigs, debug, refine, iterations, diff_files[j]))
+            #p = p.map(FitSubpatternParallel, product([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds,                                 
+            #                                           calib_mod, SaveFigs, debug, refine, iterations, diff_files[j]))
+            p = p.map(FitSubpatternParallel, args)
+            #p = p.map(FitSubpattern, args)
+            p.start()
+            p.join()
+            print('JST PASSES POINT %i ' % i)
+        print(p)    
+        stop
+        p = Process(target=FitSubpatternParallel, args=([twotheta_sub, dspacing_sub, parms_dict]))
+
         for i in range(n_subpats):
             tthRange = FitSettings.fit_orders[i]['range'][0]
             if hasattr(FitSettings, 'fit_orders'):  # FitSettings.fit_orders:
@@ -528,6 +722,12 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
 
     # Write the output files.
     writeoutput(settings_file, FitSettings=FitSettings, parms_dict=parms_dict, det=det, outtype=FitSettings.Output_type)
+
+
+def parallel_processing(p):
+    
+    return FitSubpattern(*p)
+
 
 
 if __name__ == '__main__':

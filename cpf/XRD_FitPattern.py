@@ -510,6 +510,13 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
                 twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
                 dspacing_sub = ma.array(dspacing_sub, mask=intens_sub.mask)
                 
+            if debug:
+                #FIX ME: this plots the input data. perhaps it should have its own switch rather than being subservient to Debug. 
+                # It is not a debug it is a setup thing.
+                #plot the data and the mask.
+                det.plot(twotheta_sub, azimu_sub, intens_sub, dtype='mask')
+                
+            stop    
             # fit the subpattern
             # tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
             #                     DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,

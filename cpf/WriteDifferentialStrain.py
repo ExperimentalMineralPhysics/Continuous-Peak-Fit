@@ -80,13 +80,16 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     
     text_file.write("# Summary of fits produced by continuous_peak_fit for input file: %s.\n" % FitSettings.inputfile)
     text_file.write("# For more information: http://www.github.com/me/something\n" )
-    text_file.write("# File version: %i \n" % 1 )
+    text_file.write("# File version: %i \n" % 1.1 )
+    # version 1.1 has elasped time and reduced chi squared added to the output table.
     text_file.write("# \n")
     
     #write header
     col_width = 12
     text_file.write(("# {0:<"+str(col_width+5)+"}").format("Data File"+","))
     text_file.write(("{0:<"+str(col_width)+"}").format("Peak"+","))
+    text_file.write(("{0:<"+str(col_width)+"}").format("Elapsed Time"+","))
+    text_file.write(("{0:<"+str(col_width)+"}").format("Reduced ChiSq"+","))
     text_file.write(("{0:>"+str(col_width)+"}").format("d0"+","))
     text_file.write(("{0:>"+str(col_width)+"}").format("d0_err"+","))
     text_file.write(("{0:>"+str(col_width)+"}").format("d2cos"+","))
@@ -177,6 +180,10 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                 else:
                     out_peak = out_peak + ' ' + str(x)
                 
+                #time taken to fit.
+                time_elapsed  = fit[y]['FitProperties']['time-elapsed']
+                RedChiSq      = fit[y]['FitProperties']['ChiSq']/fit[y]['FitProperties']['degree-of-freedom']
+                
                 # d0
                 out_d0       = fit[y]['peak'][x]['d-space'][0]
                 out_d0err    = fit[y]['peak'][x]['d-space_err'][0]
@@ -261,6 +268,8 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                 dp = 5
                 text_file.write(("{0:<"+str(col_width+7)+"}").format(out_name+","))
                 text_file.write(("{0:<"+str(col_width)+"}").format(out_peak+","))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(time_elapsed))
+                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(RedChiSq))
                 text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_d0))
                 #text_file.write(" %10.5f," % out_d0)
                 text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_d0err))

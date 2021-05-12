@@ -516,7 +516,6 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
                 #plot the data and the mask.
                 det.plot(twotheta_sub, azimu_sub, intens_sub, dtype='mask')
                 
-            stop    
             # fit the subpattern
             # tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
             #                     DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,

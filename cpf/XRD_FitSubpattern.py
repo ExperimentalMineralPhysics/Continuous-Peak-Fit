@@ -38,6 +38,8 @@ def peak_string(orders, fname=False):
             p_str = p_str + "Peak"
         if fname is False:
             p_str = p_str + " ("
+        else:
+            p_str = p_str + "-"
         if 'hkl' in orders['peak'][x]:
             p_str = p_str + str(orders['peak'][x]['hkl'])
         else:

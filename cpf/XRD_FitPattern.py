@@ -668,16 +668,19 @@ def setup(settings_file=None, inputs=None, debug=False, refine=True, save_all=Fa
             twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
             dspacing_sub = ma.array(dspacing_sub, mask=intens_sub.mask)
             
+            
+        
+        filename = os.path.splitext(os.path.basename(diff_files[0]))[0] + '_'
+        filename = filename + peak_string(orders, fname=True)    
+            
         #FIX ME: this plots the input data. perhaps it should have its own switch rather than being subservient to Debug. 
         # It is not a debug it is a setup thing.
         #plot the data and the mask.
-        fig_1, fig_2 = det.plot(twotheta_sub, azimu_sub, intens_sub, dtype='mask')
+        fig_1 = det.plot(twotheta_sub, azimu_sub, intens_sub, dtype='mask', name=peak_string(orders))
         
     
-        # save figures without overwriting old names
-        filename = os.path.splitext(os.path.basename(diff_files[0]))[0] + '_'
-        filename = filename + peak_string(orders, fname=True)
     
+        # save figures without overwriting old names
         i = 0
         if os.path.exists('{}.png'.format(filename)):
             i+=1
@@ -685,10 +688,10 @@ def setup(settings_file=None, inputs=None, debug=False, refine=True, save_all=Fa
             i += 1
         if i == 0:
             fig_1.savefig('{}_mask.png'.format(filename))
-            fig_2.savefig('{}_CDF.png'.format(filename))
+            #fig_2.savefig('{}_CDF.png'.format(filename))
         else:
             fig_1.savefig('{}_{:d}.png'.format(filename, i))
-            fig_2.savefig('{}_{:d}.png'.format(filename, i))
+            #fig_2.savefig('{}_{:d}.png'.format(filename, i))
 
 
 if __name__ == '__main__':

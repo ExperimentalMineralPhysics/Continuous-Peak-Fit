@@ -8,6 +8,8 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
+import multiprocessing as mp
+from itertools import product
 import importlib.util
 from cpf.XRD_FitSubpattern import FitSubpattern, peak_string
 from cpf.Cosmics import cosmicsimage
@@ -318,7 +320,7 @@ def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=N
 
 
 def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1,
-            track=False, **kwargs):
+            track=False, parallel=True, **kwargs):
     """
     :param settings_file:
     :param inputs:
@@ -398,6 +400,13 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
         #plt.show()
         plt.close()
 
+
+    # if parallel processing start the pool
+    if parallel is True:  
+        p = mp.Pool(processes=mp.cpu_count())
+
+
+
     # Process the diffraction patterns #
 
     for j in range(n_diff_files):
@@ -470,6 +479,8 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
         n_subpats = len(FitSettings.fit_orders)
         Fitted_param = []
         lmfit_models = []
+        parallel_pile = []
+
 
         for i in range(n_subpats):
             tthRange = FitSettings.fit_orders[i]['range'][0]
@@ -518,16 +529,66 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
                 twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
                 dspacing_sub = ma.array(dspacing_sub, mask=intens_sub.mask)
                 
+
+            if debug:
+                #FIX ME: this plots the input data. perhaps it should have its own switch rather than being subservient to Debug. 
+                # It is not a debug it is a setup thing.
+                #plot the data and the mask.
+                det.plot(twotheta_sub, azimu_sub, intens_sub, dtype='mask')
+
             # fit the subpattern
             # tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
             #                     DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
             #                     iterations=iterations, fnam=diff_files[j])
-            tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds,
-                                DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
-                                iterations=iterations, fnam=diff_files[j])
-            Fitted_param.append(tmp[0])
-            lmfit_models.append(tmp[1])
+            
+            #tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds,
+            #                    DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
+            #                    iterations=iterations, fnam=diff_files[j])
+            #Fitted_param.append(tmp[0])
+            #lmfit_models.append(tmp[1])
 
+
+            if parallel is True:#setup parallel version
+                #parallel_pile.append(([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds))
+            
+                kwargs = {'DetFuncs': calib_mod, 'SaveFit': SaveFigs, 'debug': debug, 'refine': refine, 'iterations': iterations, 'fnam': diff_files[j]}
+                args = ([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds)
+                parallel_pile.append((args, kwargs))
+                
+                #parallel_pile.append(([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds))
+                
+            else: #non-parallel version.
+                # fit the subpattern
+                # tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
+                #                     DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
+                #                     iterations=iterations, fnam=diff_files[j])
+                tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds,
+                                    DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
+                                    iterations=iterations, fnam=diff_files[j])
+                Fitted_param.append(tmp[0])
+                lmfit_models.append(tmp[1])
+
+                
+
+  
+        if parallel is True:            
+            #print(mp.cpu_count())
+            #print(len(parallel_pile)) 
+            
+            '''
+            kwargs = {'DetFuncs': calib_mod, 'SaveFit': SaveFigs, 'debug': debug, 'refine': refine, 'iterations': iterations, 'fnam': diff_files[j]}           
+            result = mp.Process(target=parallel_processing, args=parallel_pile, kwargs=kwargs)
+            result.start()
+            result.join()
+            '''
+            #p = mp.Pool(processes=mp.cpu_count())#, initializer=(SubpatternParallel_init), initargs=(FitSettings, FitParameters, params, diff_files[j], calib_mod, SaveFigs, debug, refine, iterations))) 
+            #result = p.map(parallel_processing1, parallel_pile) #works for just args as parallelepile
+            tmp = p.map(parallel_processing, parallel_pile) 
+            for i in range(n_subpats):
+                Fitted_param.append(tmp[i][0])
+                lmfit_models.append(tmp[i][1])
+
+        
         # write output files
 
         # store the fit parameters information as a JSON file.
@@ -547,6 +608,16 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
 
     # Write the output files.
     writeoutput(settings_file, FitSettings=FitSettings, parms_dict=parms_dict, det=det, outtype=FitSettings.Output_type)
+
+    if parallel is True:     
+        p.close()
+
+#def parallel_processing1(p):
+#    return FitSubpattern(*p)
+
+def parallel_processing(p):
+    a, kw = p
+    return FitSubpattern(*a, **kw)
 
 
 

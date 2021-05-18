@@ -226,8 +226,9 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
     return master_params, dfour, hfour, wfour, pfour
 
 
+
 def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousParams=None, bounds=None,
-                  DetFuncs='DioptasFunctions', SaveFit=None, debug=False, refine=True, iterations=1, fnam=None,
+                  DetFuncs='cpf.DioptasFunctions', SaveFit=None, debug=False, refine=True, iterations=1, fnam=None,
                   fit_method=None):
     """
     Perform the various fitting stages to the data

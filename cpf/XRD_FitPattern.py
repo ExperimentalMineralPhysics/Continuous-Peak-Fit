@@ -423,12 +423,23 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
         if 'Image_prepare' in FitParameters:
             if 'cosmics' in FitSettings.Image_prepare:
                 print('Remove Cosmics')
+                #set defaults
+                gain = 2.2
+                sigclip = 1.5
+                objlim = 3.0
+                sigfrac = 0.3
                 if bool(FitSettings.Image_prepare['cosmics']) == True:
-                    print('Passing variables to the cosmic remover is not implemented. FIX ME')
-                    # FIX ME. Cant pass variables to the cosmic remover function. 
-                    stop
-                    
-                test = cosmicsimage(intens, sigclip=1.5, objlim=1.5, gain=2.2,sigfrac=0.6)
+                    if ('gain' in FitSettings.Image_prepare['cosmics']):
+                        gain=FitSettings.Image_prepare['cosmics']['gain']       
+                    if ('sigclip' in FitSettings.Image_prepare['cosmics']):
+                        sigclip=FitSettings.Image_prepare['cosmics']['sigclip']  
+                    if ('objlim' in FitSettings.Image_prepare['cosmics']):
+                        objlim=FitSettings.Image_prepare['cosmics']['objlim']   
+                    if ('sigfrac' in FitSettings.Image_prepare['cosmics']):
+                        sigfrac=FitSettings.Image_prepare['cosmics']['sigfrac'] 
+                    #FIX ME: use argparse or someway of passing any aguemnt into cosmics.      
+                        
+                test = cosmicsimage(intens, sigclip=sigclip, objlim=objlim, gain=gain,sigfrac=sigfrac)
                 num = 2
                 for i in range(num):
                     test.lacosmiciteration(True)
@@ -686,12 +697,23 @@ def setup(settings_file=None, inputs=None, debug=False, refine=True, save_all=Fa
     if 'Image_prepare' in FitParameters:
         if 'cosmics' in FitSettings.Image_prepare:
             print('Remove Cosmics')
+            #set defaults
+            gain = 2.2
+            sigclip = 1.5
+            objlim = 3.0
+            sigfrac = 0.3
             if bool(FitSettings.Image_prepare['cosmics']) == True:
-                print('Passing variables to the cosmic remover is not implemented. FIX ME')
-                # FIX ME. Cant pass variables to the cosmic remover function. 
-                stop
-                
-            test = cosmicsimage(intens, sigclip=1.5, objlim=1.5, gain=2.2,sigfrac=0.6)
+                if ('gain' in FitSettings.Image_prepare['cosmics']):
+                    gain=FitSettings.Image_prepare['cosmics']['gain']       
+                if ('sigclip' in FitSettings.Image_prepare['cosmics']):
+                    sigclip=FitSettings.Image_prepare['cosmics']['sigclip']  
+                if ('objlim' in FitSettings.Image_prepare['cosmics']):
+                    objlim=FitSettings.Image_prepare['cosmics']['objlim']   
+                if ('sigfrac' in FitSettings.Image_prepare['cosmics']):
+                    sigfrac=FitSettings.Image_prepare['cosmics']['sigfrac'] 
+                #FIX ME: use argparse or someway of passing any aguemnt into cosmics.      
+                                
+            test = cosmicsimage(intens, sigclip=sigclip, objlim=objlim, gain=gain,sigfrac=sigfrac)
             num = 2
             for i in range(num):
                 test.lacosmiciteration(True)

@@ -10,6 +10,7 @@ import numpy as np
 import numpy.ma as ma
 import importlib.util
 from cpf.XRD_FitSubpattern import FitSubpattern, peak_string
+from cpf.Cosmics import cosmicsimage
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -406,9 +407,27 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
         # Get diffraction pattern to process.
         im = det.ImportImage(diff_files[j])
 
+    
         # get intensity array and mask it
-        intens = ma.array(im, mask=azimu.mask)
-
+        intens = ma.array(im, mask=azimu.mask) 
+        # FIX ME: replace mask with image_prepare mask.
+        if 'Image_prepare' in FitParameters:
+            if 'cosmics' in FitSettings.Image_prepare:
+                print('Remove Cosmics')
+                if bool(FitSettings.Image_prepare['cosmics']) == True:
+                    print('Passing variables to the cosmic remover is not implemented. FIX ME')
+                    # FIX ME. Cant pass variables to the cosmic remover function. 
+                    stop
+                    
+                test = cosmicsimage(intens, sigclip=1.5, objlim=1.5, gain=2.2,sigfrac=0.6)
+                num = 2
+                for i in range(num):
+                    test.lacosmiciteration(True)
+                    #print(asdf["nnew"], asdf["niter"])
+                    test.clean()
+                    msk = np.logical_or(azimu.mask, np.array(test.mask, dtype='bool'))
+                intens = ma.array(im, mask=msk)
+       
         # plot input file
         if debug:
             fig = plt.figure()
@@ -587,64 +606,29 @@ def setup(settings_file=None, inputs=None, debug=False, refine=True, save_all=Fa
     twotheta = ma.array(twotheta, mask=intens.mask)
     dspace = ma.array(dspace, mask=intens.mask)
 
-
-
-    # plot calibration file
-    if debug:
-        fig = plt.figure()
-        if FitSettings.Calib_type == 'Med':
-            # plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
-            # vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
-            for x in range(9):
-                plt.plot(twotheta[x], intens[x] + 100 * x)  # Better for energy dispersive data. #FIX ME: need variable
-                # for vmax.
-            plt.xlabel('Energy (keV)')
-            plt.ylabel('Intensity')
-
-        else:
-            # plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)
-            # #Better for monochromatic data.             #FIX ME: need variable for vmax.
-            plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin=0)
-            # Better for monochromatic data.             #FIX ME: need variable for vmax.
-            plt.xlabel(r'2$\theta$')
-            plt.ylabel('Azimuth')
-            plt.colorbar()
-        plt.title('Calibration data')
-        plt.draw()
-        #plt.show()
-        plt.close()
-
-
     # Get diffraction pattern to process.
     im = det.ImportImage(diff_files[0])
 
     # get intensity array and mask it
-    intens = ma.array(im, mask=azimu.mask)
-
-    # plot input file
-    if debug:
-        fig = plt.figure()
-        if FitSettings.Calib_type == 'Med':
-            # plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
-            # vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
-            for x in range(9):
-                plt.plot(twotheta[x], intens[
-                    x] + 100 * x)  # Better for energy dispersive data.  #FIX ME: need variable for vmax.
-            plt.xlabel('Energy (keV)')
-            plt.ylabel('Intensity')
-
-        else:
-            # plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
-            # vmax = 1000)  #Better for monochromatic data.             #FIX ME: need variable for vmax.
-            plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin=0,
-                        vmax=4000)  # FIX ME: need variable for vmax.
-            plt.xlabel(r'2$\theta$')
-            plt.ylabel('Azimuth')
-            plt.colorbar()
-        plt.title(os.path.basename(diff_files[0]))
-        plt.draw()
-        plt.close()
-
+    intens = ma.array(im, mask=azimu.mask) 
+    # FIX ME: replace mask with image_prepare mask.
+    if 'Image_prepare' in FitParameters:
+        if 'cosmics' in FitSettings.Image_prepare:
+            print('Remove Cosmics')
+            if bool(FitSettings.Image_prepare['cosmics']) == True:
+                print('Passing variables to the cosmic remover is not implemented. FIX ME')
+                # FIX ME. Cant pass variables to the cosmic remover function. 
+                stop
+                
+            test = cosmicsimage(intens, sigclip=1.5, objlim=1.5, gain=2.2,sigfrac=0.6)
+            num = 2
+            for i in range(num):
+                test.lacosmiciteration(True)
+                #print(asdf["nnew"], asdf["niter"])
+                test.clean()
+                msk = np.logical_or(azimu.mask, np.array(test.mask, dtype='bool'))
+            intens = ma.array(im, mask=msk)
+   
     # Pass each sub-pattern to Fit_Subpattern for fitting in turn.
     # get number of sub-patterns to be fitted
     n_subpats = len(FitSettings.fit_orders)
@@ -660,7 +644,7 @@ def setup(settings_file=None, inputs=None, debug=False, refine=True, save_all=Fa
         dspacing_sub = dspace[subpat]
         azimu_sub = azimu[subpat]
         intens_sub = intens[subpat]
-
+        
         #Mask the subpattern by intensity if called for
         if 'Imax' in orders:
             intens_sub   = ma.masked_outside(intens_sub,0,int(orders['Imax']))
@@ -677,7 +661,7 @@ def setup(settings_file=None, inputs=None, debug=False, refine=True, save_all=Fa
         # It is not a debug it is a setup thing.
         #plot the data and the mask.
         fig_1 = det.plot(twotheta_sub, azimu_sub, intens_sub, dtype='mask', name=peak_string(orders))
-        
+        #fig_1 = det.plot(twotheta_sub, azimu_sub, intens_sub, dtype='mask', name=filename)
     
     
         # save figures without overwriting old names

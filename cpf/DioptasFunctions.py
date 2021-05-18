@@ -178,6 +178,9 @@ def plot(ImDispersion, ImAzimuths, ImIntensity, dtype='data', masked=True, ImInt
         plot_title = ['Data']
         plot_cmap = [plt.cm.jet]
         
+        spec = gridspec.GridSpec(ncols=x_plots, nrows=y_plots,
+                         width_ratios=[1], wspace=0.5,
+                         hspace=0.5, height_ratios=[1])
     elif dtype == 'model':
         x_plots = 3
         y_plots = 1
@@ -243,8 +246,9 @@ def plot(ImDispersion, ImAzimuths, ImIntensity, dtype='data', masked=True, ImInt
                 y2 = np.arange(np.size(x2)) / float(ma.count(x2))
                   
                 #ax1 = fig_1.add_subplot(1, 1, 1)   
-                ax1.plot(x1, y1, marker='.')
-                ax1.plot(x2, y2, marker='.')
+                ax1.plot(x1, y1, marker='.', ms=3, label='unmasked CDF')
+                ax1.plot(x2, y2, marker='.', ms=3, label='cleaned CDF')
+                #ax1.legend()
                 ax1.set_title('CDF of the intensities')
                 
             else:

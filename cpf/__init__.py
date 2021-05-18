@@ -1,6 +1,6 @@
 __all__ = ['XRD_FitPattern', 'XRD_FitSubpattern', 'DioptasFunctions', 'GSASIIFunctions', 'MedFunctions',
            'PeakFunctions', 'Plot85Functions',  'WriteMultiFit', 'WritePolydefixED', 'XRD_FitPattern',
-           'XRD_FitSubpattern', 'ImageMetaData', 'Mca', 'Med', 'generate_inputs']
+           'XRD_FitSubpattern', 'ImageMetaData', 'Mca', 'Med', 'generate_inputs', 'Cosmics']
 
 from . import XRD_FitPattern
 from . import XRD_FitSubpattern
@@ -15,6 +15,7 @@ from . import WritePolydefixED
 from . import WriteDifferentialStrain
 from . import Mca
 from . import Med
+from . import Cosmics
 
 
 def generate_inputs():

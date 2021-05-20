@@ -447,6 +447,9 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
                     test.clean()
                     msk = np.logical_or(azimu.mask, np.array(test.mask, dtype='bool'))
                 intens = ma.array(im, mask=msk)
+                azimu = ma.array(azimu, mask=intens.mask)
+                twotheta = ma.array(twotheta, mask=intens.mask)
+                dspace = ma.array(dspace, mask=intens.mask)
        
         # plot input file
         if debug:
@@ -541,7 +544,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
                 dspacing_sub = ma.array(dspacing_sub, mask=intens_sub.mask)
                 
 
-            if debug:
+            if 0:#debug:
                 #FIX ME: this plots the input data. perhaps it should have its own switch rather than being subservient to Debug. 
                 # It is not a debug it is a setup thing.
                 #plot the data and the mask.

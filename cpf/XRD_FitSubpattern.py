@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 from lmfit import Parameters, Model
-from lmfit.model import save_modelresult#, load_modelresult
+from lmfit.model import save_modelresult #, load_modelresult
 import importlib
 
 import cpf.PeakFunctions as ff
@@ -28,7 +28,7 @@ def peak_string(orders, fname=False):
     :param fname: str
     :return: string listing peak names
     """
-    #FIX ME: this will be a data type function so should probably more somewhere else in the end. 
+    # FIX ME: this will be a data-type function so should probably move somewhere else in the end.
     p_str = ''
     
     for x in range(len(orders['peak'])):
@@ -54,7 +54,8 @@ def peak_string(orders, fname=False):
     return p_str
 
 
-def run_initial_fit(azi, y_data, y_data_errs, params, param_str, comp, order, extras, method='leastsq', symm=1, value=None):
+def run_initial_fit(azi, y_data, y_data_errs, params, param_str, comp, order, extras, method='leastsq', symm=1,
+                    value=None):
     """
     Initiate parameter class and perform first Fourier fit
     :param azi: x-data arr float
@@ -83,7 +84,8 @@ def run_initial_fit(azi, y_data, y_data_errs, params, param_str, comp, order, ex
         value = np.zeros(orderr*2+1)
         value[0] = np.mean(y_data)
     # print('Initiate parms', expr)
-    params = ff.initiate_params(params, param_str, comp, orderr, limits=[new_max, new_min], expr=expr, ind_vars=azi, value=value)
+    params = ff.initiate_params(params, param_str, comp, orderr, limits=[new_max, new_min], expr=expr, ind_vars=azi,
+                                value=value)
     params = ff.unvary_params(params, param_str, comp)  # set other parameters to not vary
     params = ff.unvary_part_params(params, param_str, comp, order)  # set part of parameter not  to vary
     params.pretty_print()
@@ -94,7 +96,8 @@ def run_initial_fit(azi, y_data, y_data_errs, params, param_str, comp, order, ex
     return params
 
 
-def initial_component_fits(master_params, param_str, data_arrays, comp_lists, order_list, symm, limits, pfixed=None, method='leastsq'):
+def initial_component_fits(master_params, param_str, data_arrays, comp_lists, order_list, symm, limits, pfixed=None,
+                           method='leastsq'):
     """
     Perform initial Fourier fits to each component data in turn
     :param master_params: lmfit Parameter class object
@@ -149,9 +152,10 @@ def initial_component_fits(master_params, param_str, data_arrays, comp_lists, or
                                         comp=comp, order=p_order, extras=p_lims,
                                         method=method, symm=symm)
     else:
-        master_params = ff.initiate_params(master_params, param_str=param_str, comp=comp, value=pfixed, limits=[p_lims[0],p_lims[1]])
+        master_params = ff.initiate_params(master_params, param_str=param_str, comp=comp, value=pfixed,
+                                           limits=[p_lims[0],p_lims[1]])
     pfour.append(ff.gather_paramerrs_to_list(master_params, param_str, comp))
-    #master_params.pretty_print()
+    # master_params.pretty_print()
     # print('Initial fit output parms')
     # print(dfour, hfour, wfour, pfour)
     # master_params.pretty_print()
@@ -181,7 +185,8 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
     comp = 'd'
     master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
     master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
-    master_params = ff.unvary_part_params(master_params, param_str, comp, o['d-space'])  # set part of these parameters to not vary
+    master_params = ff.unvary_part_params(master_params, param_str, comp, o['d-space'])
+    # set part of these parameters to not vary
     out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),
                       num_peaks=len(Guesses['peak']), nterms_back=len(bgguess), Conv=conversion_factor,
                       fixed=pfixed, fit_method=None, weights=None, params=master_params)
@@ -191,7 +196,8 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
     comp = 'h'
     master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
     master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
-    master_params = ff.unvary_part_params(master_params, param_str, comp, o['height'])  # set part of these parameters to not vary
+    master_params = ff.unvary_part_params(master_params, param_str, comp, o['height'])
+    # set part of these parameters to not vary
     out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),
                       num_peaks=len(Guesses['peak']), nterms_back=len(bgguess), Conv=conversion_factor,
                       fixed=pfixed, fit_method=None, weights=None, params=master_params)
@@ -201,11 +207,12 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
     comp = 'w'
     master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
     master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
-    master_params = ff.unvary_part_params(master_params, param_str, comp, o['width'])  # set part of these parameters to not vary
+    master_params = ff.unvary_part_params(master_params, param_str, comp, o['width'])
+    # set part of these parameters to not vary
     out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),
                       num_peaks=len(Guesses['peak']), nterms_back=len(bgguess), Conv=conversion_factor,
                       fixed=pfixed, fit_method=None, weights=None, params=master_params)
-    #master_params = out.params
+    # master_params = out.params
     wfour.append(ff.gather_paramerrs_to_list(master_params, param_str, comp))
 
     comp = 'p'
@@ -213,7 +220,8 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
         # if 'profile_fixed' not in order_peak[0]: # orders['peak'][0]:
         master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
         master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
-        master_params = ff.unvary_part_params(master_params, param_str, comp, o['profile'])  # set part of these parameters to not vary
+        master_params = ff.unvary_part_params(master_params, param_str, comp, o['profile'])
+        # set part of these parameters to not vary
         out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),
                           num_peaks=len(Guesses['peak']), nterms_back=len(bgguess),
                           Conv=conversion_factor,
@@ -224,18 +232,17 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
     return master_params, dfour, hfour, wfour, pfour
 
 
-def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousParams=None, bounds=None,
-                  DetFuncs='DioptasFunctions', SaveFit=None, debug=False, refine=True, iterations=1, fnam=None,
-                  fit_method=None):
+def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, PreviousParams=None, bounds=None,
+                  SaveFit=None, debug=False, refine=True, iterations=1, fnam=None, fit_method=None):
     """
     Perform the various fitting stages to the data
+    :param new_data:
     :param TwoThetaAndDspacings:
     :param azimu:
     :param intens:
     :param orders:
     :param PreviousParams:
     :param bounds:
-    :param DetFuncs:
     :param SaveFit:
     :param debug:
     :param refine:
@@ -244,21 +251,11 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
     :return:
     """
     
-    # measure the elaspsed time during fitting.
-    # To help deide what is bad fit or if over fitting the data. 
+    # Measure the elapsed time during fitting.
+    # To help decide what is bad fit or if over fitting the data.
     t_start = time.time()
 
-    
-    # load detector functions to use where needed. Mostly for conversion of tth to d-spacing.
-    # This is loaded from detector functions file to avoid making any assumptions about the conversion between
-    # values (if indeed any is required).
-    # print(DetFuncs)
-    # if DetFuncs not in sys.modules:
-    det = importlib.import_module(DetFuncs)
-    # det = __import__(DetFuncs)
-
-    # sort inputs
-
+    # Sort inputs
     # two theta and d-spacing are both 'x' dimensions. therefore import them as single array.
     # split them up here if needed. 
     if np.shape(TwoThetaAndDspacings)[0] == 3:
@@ -273,7 +270,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         tthrange = [np.min(twotheta.flatten()), np.max(twotheta.flatten())]
 
     # set data type for the intensity data.
-    # This is needed for saving the fits using save_modelresult/ load_modelresult. 
+    # This is needed for saving the fits using save_moderesult/ load_modelresult.
     # load_modelresult fails if the data is a masked integer array.
     if isinstance(intens, int) or isinstance(intens, np.int32):
         intens = float(intens)
@@ -466,9 +463,9 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 dfour.append(ff.Fourier_fit_old(tthguess[:, 0], det.Conversion(tthguess, conversion_factor),
                                                 terms=orders['peak'][j]['d-space']))
                 '''
-        
-        # get chunks according to detector type. 
-        chunks, azichunks = det.bins(azimu, orders)
+
+        # Get chunks according to detector type.
+        chunks, azichunks = new_data.bins(azimu, orders)
 
         # Final output list of azimuths with corresponding twotheta_0,h,w
 
@@ -487,7 +484,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
         for j in range(len(chunks)):
 
-            #print('\nFiting to data chunk ' + str(j + 1) + ' of ' + str(len(chunks)) + '\n')
+            # print('\nFiting to data chunk ' + str(j + 1) + ' of ' + str(len(chunks)) + '\n')
             if debug:
                 print('\n')
             print('\rFitting to data chunk %s of %s ' % (str(j + 1), str(len(chunks))), end='\r')
@@ -539,7 +536,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                             print('dfour in locals')
                         # Guess returns tthguess from dfour then converts in into d-spacing.
                         tthguess = ff.Fourier_expand(np.mean(azimu.flatten()[chunks[j]]), dfour[k][0])
-                        dguess = det.Conversion(tthguess, conversion_factor, azm=np.mean(azimu.flatten()[chunks[j]]))
+                        dguess = new_data.Conversion(tthguess, conversion_factor,
+                                                     azm=np.mean(azimu.flatten()[chunks[j]]))
                         # Finds the index of the closest two-theta to the d-spacing input
                         idx = ((np.abs(twotheta.flatten()[chunks[j]] - tthguess)).argmin())
                         # FIX ME: The mean of a number of the smallest values would be more stable.
@@ -553,15 +551,19 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                             hguess = hguess - backg_guess[0][0]
                             
                         # # wguess is fractional width of the data range
-                        # wguess = (det.Conversion(np.max(dspace.flatten()[chunks[j]]), conversion_factor, reverse=1, azm=np.mean(azimu.flatten()[chunks[j]])) - 
-                        #           det.Conversion(np.min(dspace.flatten()[chunks[j]]), conversion_factor, reverse=1, azm=np.mean(azimu.flatten()[chunks[j]])) ) / wguess_fraction
+                        # wguess = (det.Conversion(np.max(dspace.flatten()[chunks[j]]), conversion_factor, reverse=1,
+                        # azm=np.mean(azimu.flatten()[chunks[j]])) -
+                        #           det.Conversion(np.min(dspace.flatten()[chunks[j]]), conversion_factor, reverse=1,
+                        #           azm=np.mean(azimu.flatten()[chunks[j]])) ) / wguess_fraction
                         # # FIX ME: This is very crude. Need a better way to do it. \
 
                         # pguess = 0.5  # guess half if solving for profile
                         # pfixed = 0  # set to 0 so solving unless profile_fixed exists.
                         # if 'profile_fixed' in orders['peak'][k]:
-                        #     # FIX ME: profile fixed is the switch 1/0/true/false and profile is the profile parameters. Make sure this is the case in the input files
-                        #     pguess = ff.Fourier_expand(np.mean(azimu.flatten()[chunks[j]]), param=orders['peak'][k]['profile_fixed']) 
+                        #     # FIX ME: profile fixed is the switch 1/0/true/false and profile is the profile
+                        #     parameters. Make sure this is the case in the input files
+                        #     pguess = ff.Fourier_expand(np.mean(azimu.flatten()[chunks[j]]),
+                        #     param=orders['peak'][k]['profile_fixed'])
                         #     pfixed = 1
 
                         # peaks.append({"d-space": [dguess],
@@ -580,38 +582,42 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                         # height guess is nth highest intensity - backgound guess at this position
                         hguess = (intens.flatten()[chunks[j]].compressed())[idx]                        
                         if len(backg_guess) > 1:
-                            hguess = hguess - (backg_guess[0][0] + backg_guess[1][0] * (twotheta.flatten()[chunks[j]].compressed()[idx] - twotheta.flatten()[chunks[j]].min() ))
+                            hguess = hguess - (backg_guess[0][0] + backg_guess[1][0] *
+                                               (twotheta.flatten()[chunks[j]].compressed()[idx] -
+                                                twotheta.flatten()[chunks[j]].min() ))
                         elif len(backg_guess) == 1:
                             hguess = hguess - backg_guess[0][0]
                             
-                        # d-spacing of highest nth intestity pixel
+                        # d-spacing of highest nth intensity pixel
                         dguess = dspace.flatten()[chunks[j]].compressed()[idx]
 
                     # wguess is fractional width of the data range
-                    wguess = (np.max(twotheta.flatten()[chunks[j]]) - np.min(twotheta.flatten()[chunks[j]])) / wguess_fraction / peeks
+                    wguess = (np.max(twotheta.flatten()[chunks[j]]) -
+                              np.min(twotheta.flatten()[chunks[j]])) / wguess_fraction / peeks
                     # FIX ME: This is a bit crude. Is there a better way to do it?
 
                     # If profile_fixed exists then set pguess to profile_fixed values and set pfixed to 1
                     pguess = 0.5  # Guess half if solving for profile
                     pfixed = 0  # Set to 0 so solving unless profile_fixed exists.
                     if 'profile_fixed' in orders['peak'][k]:
-                            # profile fixed is the list of coefficients if the profile is fixed. 
-                            # FIX ME: profile fixed must have the same number of coefficients as required by profile.
-                            pguess = ff.Fourier_expand(np.mean(azimu.flatten()[chunks[j]]) * orders['peak'][k]['symmetry'], param=orders['peak'][k]['profile_fixed']) 
-                            pfixed = 1
+                        # Profile fixed is the list of coefficients if the profile is fixed.
+                        # FIX ME: profile fixed must have the same number of coefficients as required by profile.
+                        pguess = ff.Fourier_expand(np.mean(azimu.flatten()[chunks[j]]) * orders['peak'][k]['symmetry'], param=orders['peak'][k]['profile_fixed'])
+                        pfixed = 1
     
-                    peaks.append({"d-space": [dguess],
-                                  "height": [hguess],
-                                  "width": [wguess],
-                                  "profile": [pguess]
-                                  })
+                    peaks.append({"d-space": [dguess], "height": [hguess], "width": [wguess], "profile": [pguess]})
                   
                     # DMF added needs checking - required to drive fit and avoid failures
-                    lims.append(ff.parse_bounds(bounds, dspace.flatten()[chunks[j]], intens.flatten()[chunks[j]], twotheta.flatten()[chunks[j]], param=['d-space', 'height', 'width', 'profile']))
-                    # lims.append({"d-space": [np.min(dspace.flatten()[chunks[j]]), np.max(dspace.flatten()[chunks[j]])],
+                    lims.append(ff.parse_bounds(bounds, dspace.flatten()[chunks[j]], intens.flatten()[chunks[j]],
+                                                twotheta.flatten()[chunks[j]],
+                                                param=['d-space', 'height', 'width', 'profile']))
+                    # lims.append({"d-space": [np.min(dspace.flatten()[chunks[j]]), np.max(dspace.flatten()[chunks[j]])]
+                    # ,
                     #              "height": [0, np.max(intens.flatten()[chunks[j]])],
-                    #              "width": [(np.max(twotheta.flatten()[chunks[j]]) - np.min(twotheta.flatten()[chunks[j]])) / 100 / peeks,
-                    #                        (np.max(twotheta.flatten()[chunks[j]]) - np.min(twotheta.flatten()[chunks[j]])) / 2 / peeks],
+                    #              "width": [(np.max(twotheta.flatten()[chunks[j]]) -
+                    #              np.min(twotheta.flatten()[chunks[j]])) / 100 / peeks,
+                    #                        (np.max(twotheta.flatten()[chunks[j]]) -
+                    #                        np.min(twotheta.flatten()[chunks[j]])) / 2 / peeks],
                     #              "profile": [0, 1]
                     #              })
                     # lims.append({"d-space": bounds["d-space"],
@@ -629,8 +635,9 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 # print(bgguess)
                 Guesses = {"background": backg_guess, #bgguess,
                            "peak": peaks}
-                limits = {"background": ff.parse_bounds(bounds, dspace.flatten()[chunks[j]], intens.flatten()[chunks[j]], twotheta.flatten()[chunks[j]], param=['background'])['background'],
-                          "peak": lims}
+                limits = {"background": ff.parse_bounds(bounds, dspace.flatten()[chunks[j]],
+                                                        intens.flatten()[chunks[j]], twotheta.flatten()[chunks[j]],
+                                                        param=['background'])['background'], "peak": lims}
                 
                 # Define parameters to pass to fit
                 params = Parameters()
@@ -642,7 +649,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 #     params.add('bg_c' + str(b) + '_f' + str(0), bgguess[b][0])
                 for b in range(len(backg_guess)):
                     if b is 0:
-                        params.add('bg_c' + str(b) + '_f' + str(0), backg_guess[b][0], min=limits['background'][0], max=limits['background'][1])
+                        params.add('bg_c' + str(b) + '_f' + str(0), backg_guess[b][0], min=limits['background'][0],
+                                   max=limits['background'][1])
                     else:
                         params.add('bg_c' + str(b) + '_f' + str(0), backg_guess[b][0])
 
@@ -665,7 +673,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
 
                     else:
-
                         # If using bounds/limits should be written as below:
                         params.add('peak_' + str(pk) + '_d0', Guesses['peak'][pk]['d-space'][0],
                                    min=limits['peak'][pk]['d-space'][0], max=limits['peak'][pk]['d-space'][1])
@@ -681,8 +688,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                             params.add('peak_' + str(pk) + '_p0', Guesses['peak'][pk]['profile'][0],
                                        min=limits['peak'][pk]['profile'][0], max=limits['peak'][pk]['profile'][1])
 
-
-                
                 if debug:
                     params.pretty_print()
                     print('\n')
@@ -716,9 +721,11 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     tth_plot = twotheta.flatten()[chunks[j]]
                     int_plot = intens.flatten()[chunks[j]]
                     azm_plot = np.tile(azimu.flatten()[chunks[j]][0], (300))
-                    azm_plot = ma.array(azm_plot, mask=(~np.isfinite(azm_plot))) #FIX ME: required for plotting energy dispersive data.
+                    azm_plot = ma.array(azm_plot, mask=(~np.isfinite(azm_plot)))
+                    # FIX ME: required for plotting energy dispersive data.
                     gmodel = Model(ff.PeaksModel, independent_vars=['twotheta', 'azi'])
-                    tth_range = np.linspace(np.min(twotheta.flatten()[chunks[j]]), np.max(twotheta.flatten()[chunks[j]]), azm_plot.size)
+                    tth_range = np.linspace(np.min(twotheta.flatten()[chunks[j]]),
+                                            np.max(twotheta.flatten()[chunks[j]]), azm_plot.size)
                     # mod_plot = gmodel.eval(params=params, twotheta=tth_range, azi=azm_plot,
                     #                        num_peaks=len(Guesses['peak']),
                     #                        nterms_back=len(backg_guess), Conv=conversion_factor, fixed=pfixed)
@@ -728,7 +735,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                     mod_plot = gmodel.eval(params=params, twotheta=tth_range, azi=azm_plot, Conv=conversion_factor)
                     guess_plot = gmodel.eval(params=guess, twotheta=tth_range, azi=azm_plot, Conv=conversion_factor)
                     plt.plot(tth_plot, int_plot, '.', label="data")
-                    plt.plot(tth_range, guess_plot, marker='', color='green', linewidth=2, linestyle='dashed', label='guess')
+                    plt.plot(tth_range, guess_plot, marker='', color='green', linewidth=2, linestyle='dashed',
+                             label='guess')
                     plt.plot(tth_range, mod_plot, marker='', color='red', linewidth=2, label='fit')
                     plt.xlim(tthrange)
                     plt.legend()
@@ -771,25 +779,28 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             # fit_limits = [[np.min(newd0),np.max(newd0),None], [0,None,None],
             #              [0,(np.max(newWall)+np.min(newWall))/2.,None], [0,1,None]] # min, max, expr in order d,
             # h, w, p
-            tmp_limits = ff.parse_bounds(bounds, dspace.flatten(), intens.flatten(), twotheta.flatten()) # replace fixed array with dynamic limits
-            fit_limits = [[tmp_limits['d-space'][0],tmp_limits['d-space'][1],None],# min, max, expr in order d, h, w, p
-                          [tmp_limits['height'][0],tmp_limits['height'][1],None], 
-                          [tmp_limits['width'][0],tmp_limits['width'][1],None], 
-                          [tmp_limits['profile'][0],tmp_limits['profile'][1],None]]
+            tmp_limits = ff.parse_bounds(bounds, dspace.flatten(), intens.flatten(), twotheta.flatten())
+            # replace fixed array with dynamic limits
+            fit_limits = [[tmp_limits['d-space'][0],tmp_limits['d-space'][1], None],
+                          # min, max, expr in order d, h, w, p
+                          [tmp_limits['height'][0],tmp_limits['height'][1], None],
+                          [tmp_limits['width'][0],tmp_limits['width'][1], None],
+                          [tmp_limits['profile'][0],tmp_limits['profile'][1], None]]
 
             master_params, dfour, hfour, wfour, pfour = initial_component_fits(master_params, param_str, data_arrays,
                                                                                [dfour, hfour, wfour, pfour],
                                                                                [d0_order, h_order, w_order, p_order],
                                                                                symm=symm, limits=fit_limits,
                                                                                pfixed=p_fixed)
-        #newBGall = np.array(newBGall)
-        #newBGallErr = np.array(newBGallErr)
+        # newBGall = np.array(newBGall)
+        # newBGallErr = np.array(newBGallErr)
         # Initiate background parameters
         comp = 'bg'
         for b in range(len(backg)):
             for f_b in range(len(backg[b])):
                 if b is 0 and f_b is 0:
-                    master_params.add('bg_c' + str(b) + '_f' + str(f_b), np.mean(newBGall[b]), min=tmp_limits['background'][0], max=tmp_limits['background'][1])
+                    master_params.add('bg_c' + str(b) + '_f' + str(f_b), np.mean(newBGall[b]),
+                                      min=tmp_limits['background'][0], max=tmp_limits['background'][1])
                 else:
                     master_params.add('bg_c' + str(b) + '_f' + str(f_b), value=0.)
         # Perform initial background Fourier fit
@@ -811,9 +822,9 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             
         # plot output of fourier fits....
         if debug:
-            #y_lims = np.array([np.min(newAziChunks), np.max(newAziChunks)])
-            #y_lims = np.around(y_lims / 180) * 180
-            #AziPlot = range(np.int(y_lims[0]), np.int(y_lims[1]), 2)
+            # y_lims = np.array([np.min(newAziChunks), np.max(newAziChunks)])
+            # y_lims = np.around(y_lims / 180) * 180
+            # AziPlot = range(np.int(y_lims[0]), np.int(y_lims[1]), 2)
             AziPlot = range(0, 360, 2)
             gmodel = Model(ff.Fourier_expand, independent_vars=['azimu'])
 
@@ -905,7 +916,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                                                                                       twotheta, param_str,
                                                                                       [dfour, hfour, wfour, pfour],
                                                                                       conversion_factor, backg_guess,
-                                                                                      Guesses, o=orders['peak'][j], pfixed=p_fixed)
+                                                                                      Guesses, o=orders['peak'][j],
+                                                                                      pfixed=p_fixed)
 
                 # refine background
                 param_str = 'bg_c'
@@ -913,7 +925,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
                 master_params = ff.unvary_params(master_params, param_str, '')
                 master_params = ff.vary_params(master_params, param_str, '')
                 for k in range(len(orders['background'])):
-                    master_params = ff.unvary_part_params(master_params, param_str+str(k), 'f', orders['background'][k])  # set part of these parameters to not vary
+                    master_params = ff.unvary_part_params(master_params, param_str+str(k), 'f', orders['background'][k])
+                    # set part of these parameters to not vary
                 out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(), num_peaks=len(Guesses['peak']),
                                   nterms_back=len(backg_guess), Conv=conversion_factor, fixed=pfixed, fit_method=None,
                                   weights=None, params=master_params)
@@ -936,7 +949,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         master_params = Parameters()  # initiate total Parameter class to add to
         # FIX ME: parameters initiated with no limits currently 
 
-        lims = ff.parse_bounds(bounds, dspace.flatten(), intens.flatten(), twotheta.flatten()) # replace fixed array with dynamic limits
+        lims = ff.parse_bounds(bounds, dspace.flatten(), intens.flatten(), twotheta.flatten())
+        # replace fixed array with dynamic limits
 
         for j in range(peeks):
 
@@ -959,12 +973,14 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             # initiate h
             comp = 'h'
             hfour = PreviousParams['peak'][j]['height']
-            master_params = ff.initiate_params(master_params, param_str, comp, orders['peak'][j]['height'], value=hfour, limits=lims['height'] )
+            master_params = ff.initiate_params(master_params, param_str, comp, orders['peak'][j]['height'], value=hfour,
+                                               limits=lims['height'] )
 
             # initiate w
             comp = 'w'
             wfour = PreviousParams['peak'][j]['width']
-            master_params = ff.initiate_params(master_params, param_str, comp, orders['peak'][j]['width'], value=wfour, limits=lims['width'] )
+            master_params = ff.initiate_params(master_params, param_str, comp, orders['peak'][j]['width'], value=wfour,
+                                               limits=lims['width'] )
 
             # initiate p
             comp = 'p'
@@ -974,7 +990,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             else:
                 pfour = PreviousParams['peak'][j]['profile']
                 pfixed = 0
-            master_params = ff.initiate_params(master_params, param_str, comp, orders['peak'][j]['profile'], value=pfour, limits=lims['profile'] )
+            master_params = ff.initiate_params(master_params, param_str, comp, orders['peak'][j]['profile'],
+                                               value=pfour, limits=lims['profile'] )
 
         # Initiate background parameters
         comp = 'bg'
@@ -982,7 +999,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             bg_four = PreviousParams['background'][b]
             for f_b in range(len(bg_four)):
                 if b is 0 and f_b is 0:
-                    master_params.add('bg_c' + str(b) + '_f' + str(f_b), bg_four[f_b], min=lims['background'][0], max=lims['background'][1])
+                    master_params.add('bg_c' + str(b) + '_f' + str(f_b), bg_four[f_b], min=lims['background'][0],
+                                      max=lims['background'][1])
                 else:
                     master_params.add('bg_c' + str(b) + '_f' + str(f_b), value=bg_four[f_b])
 
@@ -994,7 +1012,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         for i in range(len(backg)):
             singleBackg[i] = [backg[i][0]]
         backg_guess = singleBackg
-        #bgguess[0][0] = 5
+        # bgguess[0][0] = 5
 
         # def previous_params_to_params(PreviousParams):
 
@@ -1206,9 +1224,9 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         plt.close()
         print('Done with Figure')
 
-    #save lmfit structure
+    # Save lmfit structure
     if SaveFit:
-        if not fnam == None:
+        if fnam is not None:
             filename = os.path.splitext(os.path.basename(fnam))[0] + '_'
         else:
             filename = 'Fit2Peak_'
@@ -1232,22 +1250,13 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
 
     NewParams.update({'range': extent})
 
-    # elasped time for fitting 
+    # Elapsed time for fitting
     t_end = time.time()
     t_elapsed = t_end - t_start
 
-
-    FitStats = {"degree-of-freedom": deg_freedom,
-                "n-points": n_points,
-                "ChiSq": ChiSq,
-                "time-elapsed": t_elapsed,
-                }
-
+    FitStats = {"degree-of-freedom": deg_freedom, "n-points": n_points, "ChiSq": ChiSq, "time-elapsed": t_elapsed,}
     NewParams.update({'FitProperties': FitStats})
 
     # FIX ME: Need to put master_params into NewParams to return!
 
-
-
-
-    return [ NewParams, out]
+    return [NewParams, out]

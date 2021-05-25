@@ -1,7 +1,45 @@
 <component name="ProjectDictionaryState">
   <dictionary name="dmf">
     <words>
+      <w>azichunks</w>
+      <w>backg</w>
+      <w>bgguess</w>
+      <w>coeff</w>
+      <w>coeffs</w>
+      <w>dbounds</w>
+      <w>dfour</w>
+      <w>dguess</w>
+      <w>dioptas</w>
+      <w>dmax</w>
+      <w>dmin</w>
+      <w>dspc</w>
+      <w>fname</w>
+      <w>fout</w>
+      <w>gmodel</w>
+      <w>hfour</w>
+      <w>hguess</w>
+      <w>imax</w>
+      <w>imin</w>
+      <w>lenbg</w>
+      <w>lims</w>
+      <w>lmfit</w>
+      <w>ndat</w>
+      <w>newd</w>
+      <w>nexpr</w>
+      <w>nterms</w>
+      <w>parms</w>
+      <w>pfixed</w>
+      <w>pfour</w>
+      <w>pguess</w>
+      <w>scipy</w>
+      <w>singlelenbg</w>
+      <w>symm</w>
+      <w>tthguess</w>
+      <w>tthguesses</w>
       <w>twotheta</w>
+      <w>vals</w>
+      <w>wfour</w>
+      <w>wguess</w>
     </words>
   </dictionary>
 </component>

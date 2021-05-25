@@ -11,7 +11,9 @@ import numpy.ma as ma
 import importlib.util
 import cpf.DioptasFunctions as DioptasFunctions
 import cpf.GSASIIFunctions as GSASIIFunctions
+import cpf.MedFunctions as MedFunctions
 from cpf.XRD_FitSubpattern import FitSubpattern
+
 np.set_printoptions(threshold=sys.maxsize)
 
 
@@ -77,6 +79,9 @@ def detector_factory(calibration_param, calibration_type, fit_settings=None):
         return DetectorClass(calibration_param, fit_settings)
     if calibration_type == "GSASII":
         DetectorClass = GSASIIFunctions.GSASIIDetector
+        return DetectorClass(calibration_param, fit_settings)
+    if calibration_type == "Med":
+        DetectorClass = MedFunctions.MedDetector
         return DetectorClass(calibration_param, fit_settings)
     else:
         raise Exception("Unrecognized calibration type.")

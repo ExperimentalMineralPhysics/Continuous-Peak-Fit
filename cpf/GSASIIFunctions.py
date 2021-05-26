@@ -151,6 +151,14 @@ class GSASIIDetector:
         return None
 
     def conversion(self):
+        """
+        
+
+        Returns
+        -------
+        None.
+
+        """
 
 
     def GetMask(self, MSKfile, ImInts, ImTTH, ImAzi, file_name, pix, debug=False):
@@ -581,7 +589,7 @@ class GSASIIDetector:
         :return:
         """
         x, y = GetImSizeArr(calib_file, pix)
-        return GetTthAzmDsp(, data)[1]
+        return GetTthAzmDsp(x, y, data)[1]
 
 
 

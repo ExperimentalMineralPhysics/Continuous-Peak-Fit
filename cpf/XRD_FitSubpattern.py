@@ -536,7 +536,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                             print('dfour in locals')
                         # Guess returns tthguess from dfour then converts in into d-spacing.
                         tthguess = ff.Fourier_expand(np.mean(azimu.flatten()[chunks[j]]), dfour[k][0])
-                        dguess = new_data.Conversion(tthguess, conversion_factor,
+                        dguess = new_data.conversion(tthguess, conversion_factor,
                                                      azm=np.mean(azimu.flatten()[chunks[j]]))
                         # Finds the index of the closest two-theta to the d-spacing input
                         idx = ((np.abs(twotheta.flatten()[chunks[j]] - tthguess)).argmin())

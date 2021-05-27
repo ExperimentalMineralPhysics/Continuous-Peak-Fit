@@ -485,8 +485,8 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             if parallel is True:#setup parallel version
                 #parallel_pile.append(([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds))
             
-                kwargs = {'DetFuncs': calib_mod, 'SaveFit': SaveFigs, 'debug': debug, 'refine': refine, 'iterations': iterations, 'fnam': diff_files[j]}
-                args = ([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds)
+                kwargs = {'SaveFit': SaveFigs, 'debug': debug, 'refine': refine, 'iterations': iterations, 'fnam': diff_files[j]}
+                args = ([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, new_data, orders, params, bounds)
                 parallel_pile.append((args, kwargs))
                 
                 #parallel_pile.append(([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds))
@@ -496,9 +496,9 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
                 # tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
                 #                     DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
                 #                     iterations=iterations, fnam=diff_files[j])
-                tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds,
-                                    DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
-                                    iterations=iterations, fnam=diff_files[j])
+                tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, new_data, orders,
+                                    params, bounds, SaveFit=SaveFigs, debug=debug, refine=refine, iterations=iterations,
+                                    fnam=diff_files[j])
                 Fitted_param.append(tmp[0])
                 lmfit_models.append(tmp[1])
 

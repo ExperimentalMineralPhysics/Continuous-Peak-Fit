@@ -633,8 +633,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                 # bgguess = singleBackg
                 # bgguess[0][0] = 5 
                 # print(bgguess)
-                Guesses = {"background": backg_guess, #bgguess,
-                           "peak": peaks}
+                
+                # FIX ME: SAH, while making refine independent of the chunk fitting:: Guesses is a superfluous variable removing it
+                #Guesses = {"background": backg_guess, #bgguess,
+                #           "peak": peaks}
                 limits = {"background": ff.parse_bounds(bounds, dspace.flatten()[chunks[j]],
                                                         intens.flatten()[chunks[j]], twotheta.flatten()[chunks[j]],
                                                         param=['background'])['background'], "peak": lims}
@@ -654,38 +656,38 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                     else:
                         params.add('bg_c' + str(b) + '_f' + str(0), backg_guess[b][0])
 
-                for pk in range(len(Guesses['peak'])):
+                for pk in range(len(peaks)):
 
                     if 'dfour' in locals():
-                        params.add('peak_' + str(pk) + '_d0', Guesses['peak'][pk]['d-space'][0],
+                        params.add('peak_' + str(pk) + '_d0', peaks[pk]['d-space'][0],
                                    min=limits['peak'][pk]['d-space'][0], max=limits['peak'][pk]['d-space'][1])
-                        params.add('peak_' + str(pk) + '_h0', Guesses['peak'][pk]['height'][0],
+                        params.add('peak_' + str(pk) + '_h0', peaks[pk]['height'][0],
                                    min=limits['peak'][pk]['height'][0], max=limits['peak'][pk]['height'][1])
-                        params.add('peak_' + str(pk) + '_w0', Guesses['peak'][pk]['width'][0],
+                        params.add('peak_' + str(pk) + '_w0', peaks[pk]['width'][0],
                                    min=limits['peak'][pk]['width'][0], max=limits['peak'][pk]['width'][1])
                         if 'profile_fixed' in orders['peak'][pk]:
-                            params.add('peak_' + str(pk) + '_p0', Guesses['peak'][pk]['profile'][0],
+                            params.add('peak_' + str(pk) + '_p0', peaks[pk]['profile'][0],
                                        min=limits['peak'][pk]['profile'][0], max=limits['peak'][pk]['profile'][1],
                                        vary=False)
                         else:
-                            params.add('peak_' + str(pk) + '_p0', Guesses['peak'][pk]['profile'][0],
+                            params.add('peak_' + str(pk) + '_p0', peaks[pk]['profile'][0],
                                        min=limits['peak'][pk]['profile'][0], max=limits['peak'][pk]['profile'][1])
 
 
                     else:
                         # If using bounds/limits should be written as below:
-                        params.add('peak_' + str(pk) + '_d0', Guesses['peak'][pk]['d-space'][0],
+                        params.add('peak_' + str(pk) + '_d0', peaks[pk]['d-space'][0],
                                    min=limits['peak'][pk]['d-space'][0], max=limits['peak'][pk]['d-space'][1])
-                        params.add('peak_' + str(pk) + '_h0', Guesses['peak'][pk]['height'][0],
+                        params.add('peak_' + str(pk) + '_h0', peaks[pk]['height'][0],
                                    min=limits['peak'][pk]['height'][0], max=limits['peak'][pk]['height'][1])
-                        params.add('peak_' + str(pk) + '_w0', Guesses['peak'][pk]['width'][0],
+                        params.add('peak_' + str(pk) + '_w0', peaks[pk]['width'][0],
                                    min=limits['peak'][pk]['width'][0], max=limits['peak'][pk]['width'][1])
                         if 'profile_fixed' in orders['peak'][pk]:
-                            params.add('peak_' + str(pk) + '_p0', Guesses['peak'][pk]['profile'][0],
+                            params.add('peak_' + str(pk) + '_p0', peaks[pk]['profile'][0],
                                        min=limits['peak'][pk]['profile'][0], max=limits['peak'][pk]['profile'][1],
                                        vary=False)
                         else:
-                            params.add('peak_' + str(pk) + '_p0', Guesses['peak'][pk]['profile'][0],
+                            params.add('peak_' + str(pk) + '_p0', peaks[pk]['profile'][0],
                                        min=limits['peak'][pk]['profile'][0], max=limits['peak'][pk]['profile'][1])
 
                 if debug:
@@ -693,7 +695,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                     print('\n')
                     guess = params
                 out = ff.FitModel(intens.flatten()[chunks[j]], twotheta.flatten()[chunks[j]], azichunks[j],
-                                  num_peaks=len(Guesses['peak']), nterms_back=len(backg_guess), Conv=conversion_factor,
+                                  num_peaks=len(peaks), nterms_back=len(backg_guess), Conv=conversion_factor,
                                   fixed=pfixed, fit_method=fit_method, weights=None, params=params)
                 params = out.params
                 if debug:
@@ -887,57 +889,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         # put fits into NewParams data structure.
         NewParams = ff.create_newparams(peeks, dfour, hfour, wfour, pfour, bgfour, orders['peak'])
 
-        # Iterate over each fourier series in turn.
-
-        if refine:
-            print('\nRe-fitting for d, h, w, bg separately...\n')
-            # iterate through the variables.
-            for j in range(iterations):
-
-                dfour = []
-                hfour = []
-                wfour = []
-                pfour = []
-                # refine parameters for each peak.
-                for k in range(peeks):
-
-                    param_str = 'peak_' + str(k)
-                    if 'profile_fixed' in orders['peak'][k]:
-                        p_fixed = True
-                    else:
-                        p_fixed = False
-                    # if 'symmetry' in orders['peak'][k]:
-                    #     symm = orders['peak'][k]['symmetry']
-                    # else:
-                    #     symm = 1
-                    
-                    master_params, dfour, hfour, wfour, pfour = update_component_fits(master_params, intens, azimu,
-                                                                                      twotheta, param_str,
-                                                                                      [dfour, hfour, wfour, pfour],
-                                                                                      conversion_factor, backg_guess,
-                                                                                      Guesses, o=orders['peak'][j],
-                                                                                      pfixed=p_fixed)
-
-                # refine background
-                param_str = 'bg_c'
-                # print(param_str, lenbg, i)
-                master_params = ff.unvary_params(master_params, param_str, '')
-                master_params = ff.vary_params(master_params, param_str, '')
-                for k in range(len(orders['background'])):
-                    master_params = ff.unvary_part_params(master_params, param_str+str(k), 'f', orders['background'][k])
-                    # set part of these parameters to not vary
-                out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(), num_peaks=len(Guesses['peak']),
-                                  nterms_back=len(backg_guess), Conv=conversion_factor, fixed=pfixed, fit_method=None,
-                                  weights=None, params=master_params)
-                master_params = out.params
-                # Put fits into data structure.
-                NewParams = ff.create_newparams(peeks, dfour, hfour, wfour, pfour, bgfour, orders['peak'])
-        
-                if debug:
-                    print('Parameters after refining Fourier fits ' + str(j+1) + ' times')
-                    master_params.pretty_print()
-
-
     else:
         # FIX ME: This should load the saved lmfit Parameter class object. Need to initiate usage (save and load).
         # For now have propagated use of NewParams so re-instantiate the master_params object below, which is clunky.
@@ -1016,6 +967,57 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         # def previous_params_to_params(PreviousParams):
 
         # FIX ME: need to confirm the number of parameters matches the orders of the fits.
+
+    if refine:
+    # Iterate over each fourier series in turn.
+        print('\nRe-fitting for d, h, w, bg separately... will refine %i times\n' % iterations)
+        # iterate through the variables.
+        for j in range(iterations):
+
+            dfour = []
+            hfour = []
+            wfour = []
+            pfour = []
+            # refine parameters for each peak.
+            for k in range(peeks):
+
+                param_str = 'peak_' + str(k)
+                if 'profile_fixed' in orders['peak'][k]:
+                    p_fixed = True
+                else:
+                    p_fixed = False
+                # if 'symmetry' in orders['peak'][k]:
+                #     symm = orders['peak'][k]['symmetry']
+                # else:
+                #     symm = 1
+                master_params, dfour, hfour, wfour, pfour = update_component_fits(master_params, intens, azimu,
+                                                                                  twotheta, param_str,
+                                                                                  [dfour, hfour, wfour, pfour],
+                                                                                  conversion_factor, backg_guess,
+                                                                                  orders, o=orders['peak'][j],
+                                                                                  pfixed=p_fixed)
+                # FIX ME: (SAH) dfour, hfour, wfour, pfour appear to be used only for plotting . should they be removed from update_component_fits?
+
+            # refine background
+            param_str = 'bg_c'
+            # print(param_str, lenbg, i)
+            master_params = ff.unvary_params(master_params, param_str, '')
+            master_params = ff.vary_params(master_params, param_str, '')
+            for k in range(len(orders['background'])):
+                master_params = ff.unvary_part_params(master_params, param_str+str(k), 'f', orders['background'][k])
+                # set part of these parameters to not vary
+            out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(), num_peaks=len(orders['peak']),
+                              nterms_back=len(backg_guess), Conv=conversion_factor, fixed=pfixed, fit_method=None,
+                              weights=None, params=master_params)
+            master_params = out.params
+            # Put fits into data structure.
+            #NewParams = ff.create_newparams(peeks, dfour, hfour, wfour, pfour, bgfour, orders['peak'])
+    
+            if debug:
+                print('Parameters after refining Fourier fits ' + str(j+1) + ' times')
+                master_params.pretty_print()
+
+
 
     # FIX ME: Need to sort out use of lmfit parameters and NewParams, below will not work currently for loaded
     # parameters as master_params not created from NewParams yet. If possible use the json import/export within lmfit.

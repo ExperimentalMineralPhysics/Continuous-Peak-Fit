@@ -619,8 +619,6 @@ def FitModel(Intfit, twotheta, azimu, params, num_peaks, nterms_back, Conv=None,
     return out
 
 
-
-
 def CentroidConversion(Conv, args_in, azi):
     # Conv['DispersionType'] is the conversion type
     # Conv[...] are the values required for the conversion

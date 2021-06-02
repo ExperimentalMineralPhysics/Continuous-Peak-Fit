@@ -47,7 +47,7 @@ def lmfit_fix_int_data_type(fname):
     
 
     
-def WriteOutput(FitSettings, parms_dict, **kwargs):
+def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
 # writes some of the fitted coeficients to a table. With a focus on the differential strain coefficents
 
 
@@ -88,8 +88,6 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     col_width = 12
     text_file.write(("# {0:<"+str(col_width+5)+"}").format("Data File"+","))
     text_file.write(("{0:<"+str(col_width)+"}").format("Peak"+","))
-    text_file.write(("{0:<"+str(col_width)+"}").format("Elapsed Time"+","))
-    text_file.write(("{0:<"+str(col_width)+"}").format("Reduced ChiSq"+","))
     text_file.write(("{0:>"+str(col_width)+"}").format("d0"+","))
     text_file.write(("{0:>"+str(col_width)+"}").format("d0_err"+","))
     text_file.write(("{0:>"+str(col_width)+"}").format("d2cos"+","))
@@ -109,7 +107,19 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     text_file.write(("{0:>"+str(col_width)+"}").format("w0_err"+",")) 
     text_file.write(("{0:>"+str(col_width)+"}").format("p0"+","))
     text_file.write(("{0:>"+str(col_width)+"}").format("p0_err"+","))
+    if debug:
+        text_file.write(("{0:<"+str(col_width)+"}").format("Elapsed time"+","))
+        text_file.write(("{0:<"+str(col_width)+"}").format("Function evaluations"+","))
+        text_file.write(("{0:<"+str(col_width)+"}").format("Number variables"+","))
+        text_file.write(("{0:<"+str(col_width)+"}").format("Number data"+","))
+        text_file.write(("{0:<"+str(col_width)+"}").format("Degrees of freedom"+","))
+        text_file.write(("{0:<"+str(col_width)+"}").format("ChiSq"+","))
+        text_file.write(("{0:<"+str(col_width)+"}").format("Reduced ChiSq"+","))
+        #text_file.write(("{0:<"+str(col_width)+"}").format("Akaike Information Criterion"+","))
+        #text_file.write(("{0:<"+str(col_width)+"}").format("Bayesian Information Criterion"+","))
     text_file.write("\n")
+    
+    
     
     for z in range(n_diff_files):
         
@@ -179,10 +189,6 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                     out_peak = out_peak + ' (' + str(orders['peak'][x]['hkl']) + ')'
                 else:
                     out_peak = out_peak + ' ' + str(x)
-                
-                #time taken to fit.
-                time_elapsed  = fit[y]['FitProperties']['time-elapsed']
-                RedChiSq      = fit[y]['FitProperties']['ChiSq']/fit[y]['FitProperties']['degree-of-freedom']
                 
                 # d0
                 out_d0       = fit[y]['peak'][x]['d-space'][0]
@@ -262,14 +268,10 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                 if out_p0err is None:  #catch  'null' as an error 
                     out_p0err = np.nan
             
-            
-            
                 #write numbers to file
                 dp = 5
                 text_file.write(("{0:<"+str(col_width+7)+"}").format(out_name+","))
                 text_file.write(("{0:<"+str(col_width)+"}").format(out_peak+","))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(time_elapsed))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(RedChiSq))
                 text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_d0))
                 #text_file.write(" %10.5f," % out_d0)
                 text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_d0err))
@@ -290,6 +292,17 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                 text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_w0err))
                 text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_p0))
                 text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_p0err))
+                if debug:
+                    # include properties from the lmfit output that were passed with the fits.
+                    text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']['time-elapsed']))
+                    text_file.write(("{0:"+str(col_width-1)+"d},").format(fit[y]['FitProperties']['function-evaluations']))
+                    text_file.write(("{0:"+str(col_width-1)+"d},").format(fit[y]['FitProperties']["n-variables"]))
+                    text_file.write(("{0:"+str(col_width-1)+"d},").format(fit[y]['FitProperties']["n-data"]))
+                    text_file.write(("{0:"+str(col_width-1)+"d},").format(fit[y]['FitProperties']["degree-of-freedom"]))
+                    text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']["ChiSq"]))
+                    text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']['RedChiSq']))
+                    #text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']["aic"]))
+                    #text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']["bic"]))
                 text_file.write("\n")
             
             

@@ -1255,7 +1255,19 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
     t_end = time.time()
     t_elapsed = t_end - t_start
 
-    FitStats = {"degree-of-freedom": deg_freedom, "n-points": n_points, "ChiSq": ChiSq, "time-elapsed": t_elapsed,}
+    # get fit stats from the lmfit output.
+    FitStats = {"time-elapsed": t_elapsed,
+                "function-evaluations": out.nfev,
+                "n-variables": out.nvarys,
+                "n-data": out.ndata,
+                "degree-of-freedom": out.nfree, 
+                "ChiSq": out.chisqr, 
+                "RedChiSq": out.redchi, 
+                "aic": out.aic, 
+                "bic": out.bic,
+                }
+                
+    
     NewParams.update({'FitProperties': FitStats})
 
     # FIX ME: Need to put master_params into NewParams to return!

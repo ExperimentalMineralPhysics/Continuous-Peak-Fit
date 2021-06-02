@@ -256,7 +256,7 @@ def initiate(settings_file=None, inputs=None, out_type=None, **kwargs):
 
 
 def write_output(settings_file=None, FitSettings=None, FitParameters=None, parms_dict=None, out_type=None,
-                 det=None, use_bounds=False, differential_only=False, **kwargs):
+                 det=None, use_bounds=False, differential_only=False, debug=False, **kwargs):
     """
     :param FitParameters:
     :param use_bounds:
@@ -273,7 +273,7 @@ def write_output(settings_file=None, FitSettings=None, FitParameters=None, parms
         raise ValueError("Either the settings file or the parameter dictionary need to be specified.")
     # If no params_dict then initiate. Check all the output functions are present and valid.
     if parms_dict is None:
-        FitSettings, FitParameters, new_data, output_types = initiate(settings_file, outtype=out_type)
+        FitSettings, FitParameters, new_data = initiate(settings_file, outtype=out_type)
         parms_dict = new_data.get_calibration(os.path.abspath(FitSettings.Calib_param))
     if out_type is not None:
         output_mod = get_output_options(out_type)
@@ -285,7 +285,7 @@ def write_output(settings_file=None, FitSettings=None, FitParameters=None, parms
     for mod in output_mod:
         print('\nWrite output file(s) using', mod)
         wr = output_methods_modules[mod]
-        wr.WriteOutput(FitSettings, parms_dict, differential_only=differential_only)
+        wr.WriteOutput(FitSettings, parms_dict, differential_only=differential_only, debug=debug)
 
 
 def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1,
@@ -541,7 +541,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
 
     # Write the output files.
     write_output(settings_file, FitSettings=FitSettings, FitParameters=FitParameters, parms_dict=parms_dict,
-                 out_type=FitSettings.Output_type)
+                 out_type=FitSettings.Output_type, debug=debug)
 
     if parallel is True:     
         p.close()

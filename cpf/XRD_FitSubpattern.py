@@ -1128,6 +1128,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
     # get the rest of the fit stats from the lmfit output.
     FitStats = {"time-elapsed": t_elapsed,
                 "status": step,
+                "sum-residuals-squared": np.sum(out.residual**2),
                 "function-evaluations": out.nfev,
                 "n-variables": out.nvarys,
                 "n-data": out.ndata,

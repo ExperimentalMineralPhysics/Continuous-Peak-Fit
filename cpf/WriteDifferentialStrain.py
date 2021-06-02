@@ -85,41 +85,41 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
     text_file.write("# \n")
     
     #write header
-    col_width = 12
-    text_file.write(("# {0:<"+str(col_width+5)+"}").format("Data File"+","))
-    text_file.write(("{0:<"+str(col_width)+"}").format("Peak"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d0"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d0_err"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d2cos"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d2cos_err"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d2sin"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d2sin_err"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("corr coef"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("diff strain"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("diff s err"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("orientation"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("orient err"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d_max"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("d_min"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("h0"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("h0_err"+",")) 
-    text_file.write(("{0:>"+str(col_width)+"}").format("w0"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("w0_err"+",")) 
-    text_file.write(("{0:>"+str(col_width)+"}").format("p0"+","))
-    text_file.write(("{0:>"+str(col_width)+"}").format("p0_err"+","))
+    width_col = 12
+    width_fnam = 25
+    width_hkl = 15
+    text_file.write(("# {0:<"+str(width_fnam-2)+"}").format("Data File"+","))
+    text_file.write(("{0:<"+str(width_hkl)+"}").format("Peak"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("d0"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("d0_err"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("d2cos"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("d2cos_err"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("d2sin"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("d2sin_err"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("corr coef"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("diff strain"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("diff s err"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("orientation"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("orient err"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("d_max"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("d_min"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("h0"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("h0_err"+",")) 
+    text_file.write(("{0:>"+str(width_col)+"}").format("w0"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("w0_err"+",")) 
+    text_file.write(("{0:>"+str(width_col)+"}").format("p0"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("p0_err"+","))
     if debug:
-        text_file.write(("{0:<"+str(col_width)+"}").format("Elapsed time"+","))
-        text_file.write(("{0:<"+str(col_width)+"}").format("Function evaluations"+","))
-        text_file.write(("{0:<"+str(col_width)+"}").format("Number variables"+","))
-        text_file.write(("{0:<"+str(col_width)+"}").format("Number data"+","))
-        text_file.write(("{0:<"+str(col_width)+"}").format("Degrees of freedom"+","))
-        text_file.write(("{0:<"+str(col_width)+"}").format("ChiSq"+","))
-        text_file.write(("{0:<"+str(col_width)+"}").format("Reduced ChiSq"+","))
-        #text_file.write(("{0:<"+str(col_width)+"}").format("Akaike Information Criterion"+","))
-        #text_file.write(("{0:<"+str(col_width)+"}").format("Bayesian Information Criterion"+","))
+        text_file.write(("{0:>"+str(width_col)+"}").format("Time taken"+","))
+        text_file.write(("{0:>"+str(width_col)+"}").format("Func eval"+","))
+        text_file.write(("{0:>"+str(width_col)+"}").format("Num vars"+","))
+        text_file.write(("{0:>"+str(width_col)+"}").format("Num data"+","))
+        text_file.write(("{0:>"+str(width_col)+"}").format("Deg Freedom"+","))
+        text_file.write(("{0:>"+str(width_col)+"}").format("ChiSq"+","))
+        text_file.write(("{0:>"+str(width_col)+"}").format("Red. ChiSq"+","))
+        #text_file.write(("{0:<"+str(width_col)+"}").format("Akaike Information Criterion"+","))
+        #text_file.write(("{0:<"+str(width_col)+"}").format("Bayesian Information Criterion"+","))
     text_file.write("\n")
-    
-    
     
     for z in range(n_diff_files):
         
@@ -176,6 +176,8 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
             #file name
             out_name = os.path.splitext(os.path.basename(diff_files[z]))[0]
             
+            width_fnam = np.max((width_fnam, len(out_name)))
+            
             for x in range(len(orders['peak'])):
                 
                 out_peak = []
@@ -189,6 +191,8 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                     out_peak = out_peak + ' (' + str(orders['peak'][x]['hkl']) + ')'
                 else:
                     out_peak = out_peak + ' ' + str(x)
+                
+                width_hkl = np.max((width_hkl, len(out_peak)))
                 
                 # d0
                 out_d0       = fit[y]['peak'][x]['d-space'][0]
@@ -270,48 +274,48 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
             
                 #write numbers to file
                 dp = 5
-                text_file.write(("{0:<"+str(col_width+7)+"}").format(out_name+","))
-                text_file.write(("{0:<"+str(col_width)+"}").format(out_peak+","))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_d0))
+                text_file.write(("{0:<"+str(width_fnam)+"}").format(out_name+","))
+                text_file.write(("{0:<"+str(width_hkl)+"}").format(out_peak+","))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_d0))
                 #text_file.write(" %10.5f," % out_d0)
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_d0err))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dcos2))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dcos2err))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dsin2))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dsin2err))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dcorr))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dd))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dderr))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_ang))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_angerr))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dmax))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_dmin))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_h0))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_h0err))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_w0))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_w0err))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_p0))
-                text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(out_p0err))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_d0err))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_dcos2))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_dcos2err))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_dsin2))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_dsin2err))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_dcorr))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_dd))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_dderr))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_ang))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_angerr))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_dmax))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_dmin))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_h0))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_h0err))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_w0))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_w0err))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_p0))
+                text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_p0err))
                 if debug:
                     # include properties from the lmfit output that were passed with the fits.
-                    text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']['time-elapsed']))
-                    text_file.write(("{0:"+str(col_width-1)+"d},").format(fit[y]['FitProperties']['function-evaluations']))
-                    text_file.write(("{0:"+str(col_width-1)+"d},").format(fit[y]['FitProperties']["n-variables"]))
-                    text_file.write(("{0:"+str(col_width-1)+"d},").format(fit[y]['FitProperties']["n-data"]))
-                    text_file.write(("{0:"+str(col_width-1)+"d},").format(fit[y]['FitProperties']["degree-of-freedom"]))
-                    text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']["ChiSq"]))
-                    text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']['RedChiSq']))
-                    #text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']["aic"]))
-                    #text_file.write(("{0:"+str(col_width-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']["bic"]))
+                    text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']['time-elapsed']))
+                    text_file.write(("{0:"+str(width_col-1)+"d},").format(fit[y]['FitProperties']['function-evaluations']))
+                    text_file.write(("{0:"+str(width_col-1)+"d},").format(fit[y]['FitProperties']["n-variables"]))
+                    text_file.write(("{0:"+str(width_col-1)+"d},").format(fit[y]['FitProperties']["n-data"]))
+                    text_file.write(("{0:"+str(width_col-1)+"d},").format(fit[y]['FitProperties']["degree-of-freedom"]))
+                    text_file.write(("{0:"+str(width_col-1)+"."+str(dp-1)+"e},").format(fit[y]['FitProperties']["ChiSq"]))
+                    text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']['RedChiSq']))
+                    #text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']["aic"]))
+                    #text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']["bic"]))
                 text_file.write("\n")
             
             
             
-    # col_width = 10
-    # text_file.write(("# {0:<"+str(col_width+5)+"}").format("Data File"+","))
-    # text_file.write(("{0:<"+str(col_width)+"}").format("Peak"+","))
-    # text_file.write(("{0:<"+str(col_width)+"}").format("d0"+","))
-    # text_file.write(("{0:<"+str(col_width)+"}").format("d0_err"+","))
+    # width_col = 10
+    # text_file.write(("# {0:<"+str(width_col+5)+"}").format("Data File"+","))
+    # text_file.write(("{0:<"+str(width_col)+"}").format("Peak"+","))
+    # text_file.write(("{0:<"+str(width_col)+"}").format("d0"+","))
+    # text_file.write(("{0:<"+str(width_col)+"}").format("d0_err"+","))
             
     text_file.close()
             

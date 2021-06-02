@@ -661,7 +661,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         # for b in range(len(bgguess)):
                         #     params.add('bg_c' + str(b) + '_f' + str(0), bgguess[b][0])
                         for b in range(len(backg_guess)):
-                            if b is 0:
+                            if b == 0:
                                 params.add('bg_c' + str(b) + '_f' + str(0), backg_guess[b][0], min=limits['background'][0],
                                            max=limits['background'][1])
                             else:
@@ -986,7 +986,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
             
             if refine or step>=5:
             # Iterate over each fourier series in turn.
-                print('\nRe-fitting for d, h, w, bg separately... will refine %i times\n' % iterations)
+                print('\nRe-fitting for d, h, w, bg separately... will refine %i time(s)\n' % iterations)
                 # iterate through the variables.
                 for j in range(iterations):
         
@@ -1085,64 +1085,60 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
     
             
             if out.success == 1:
-                # it worked carry on
+                # it worked, carry on
                 step = step + 10
             elif out.success == 0 and refine==False and PreviousParams:
                 #refine the fourier series before tying again
                 step = 5
                 iterations = np.max(iterations, 3)
                 # FIX ME: could add another option for fixing the profile if this doesn't have the desired effect
-            elif out.success == 0 and refine==True:
+            elif out.success == 0 and refine==True and PreviousParams:
+                #if we refined the previous params and it didnt work then fit the chunks again.
                 step = 2
                 iterations = np.max(iterations, 3)
             else:
                 step = 9
                 
+            #FIX ME: we could make an option for output the chunks without any Fourier/global fitting. Would this be useful?
                 
     print('\nFinal Coefficients\n')
     # print(out.fit_report(min_correl=1))
     print(out.fit_report(show_correl=False))
-    #master_params.pretty_print()
-    # print('Final Coefficients\n', NewParams)
+    
+    # Print some stats
+    print('number data', out.ndata)
+    print('degrees of freedom', out.nfree)
+    print('ChiSquared', out.chisqr)
     
     # Write master_params to NewParams dict object
     NewParams = ff.params_to_newparams(master_params, num_peaks=peeks, num_bg=len(backg_guess),
                                        order_peak=orders['peak'])
 
-    # Stats now directly from lmfit info.
-    print('number data', out.ndata)
-    print('degrees of freedom', out.nfree)
-    print('ChiSquared', out.chisqr)
+    tth_min = twotheta.min()
+    tth_max = twotheta.max()
+    d_min = dspace.min()
+    d_max = dspace.max()
+    extent = [[tth_min, tth_max], [d_min, d_max]]  
+    # FIX ME: This is taking the maximum and the minimum of the data not the 'range' itself.
+    NewParams.update({'range': extent})
 
-    '''
-    # Calculate SSD for fit.
-    # inp, pen = ff.PeaksModel(twotheta.flatten(), azimu.flatten(), NewParams, Conv=conversion_factor)
-    SSD = np.sum((intens.flatten() - inp.flatten()) ** 2)
-    print('SSD', SSD)
+    # Elapsed time for fitting
+    t_end = time.time()
+    t_elapsed = t_end - t_start
+    # get the rest of the fit stats from the lmfit output.
+    FitStats = {"time-elapsed": t_elapsed,
+                "status": step,
+                "function-evaluations": out.nfev,
+                "n-variables": out.nvarys,
+                "n-data": out.ndata,
+                "degree-of-freedom": out.nfree, 
+                "ChiSq": out.chisqr, 
+                "RedChiSq": out.redchi, 
+                "aic": out.aic, 
+                "bic": out.bic,
+                }
+    NewParams.update({'FitProperties': FitStats})
 
-    # https://autarkaw.org/2008/07/05/finding-the-optimum-polynomial-order-to-use-for-regression/
-    # We choose the degree of polynomial for which the variance as computed by
-    # Sr(m)/(n-m-1)
-    # is a minimum or when there is no significant decrease in its value as the degree of polynomial is increased.
-    # In the above formula, Sr(m) = sum of the square of the residuals for the mth order polynomial
-    # n= number of data points
-    # m=order of polynomial (so m+1 is the number of constants of the model)
-
-    # number elements
-    n_points = intens.flatten().size
-    print('number data', n_points)
-
-    # degrees of freedom (number of parameters solved for).
-    deg_freedom = sum(ff.flatten(Chng))
-    print('degrees of freedom', deg_freedom)
-
-    SSD_var = SSD / (n_points + deg_freedom - 1)
-    print('variance', SSD_var)
-
-    # ChiSq is defined in the same way as GSAS. See GSAS manual page 165/166
-    ChiSq = SSD / (n_points - deg_freedom)
-    print('ChiSquared', ChiSq)
-    '''
 
     # Plot results to check
     view = 0
@@ -1274,35 +1270,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
             else:    
                 print("File doesn't exists!")
         
-    tth_min = twotheta.min()
-    tth_max = twotheta.max()
-    d_min = dspace.min()
-    d_max = dspace.max()
-    extent = [[tth_min, tth_max], [d_min, d_max]]  # FIX ME: This is taking the maximum and the minimum of the data
-    # not the 'range' itself.
 
-    NewParams.update({'range': extent})
-
-    # Elapsed time for fitting
-    t_end = time.time()
-    t_elapsed = t_end - t_start
-
-    # get fit stats from the lmfit output.
-    FitStats = {"time-elapsed": t_elapsed,
-                "status": step,
-                "function-evaluations": out.nfev,
-                "n-variables": out.nvarys,
-                "n-data": out.ndata,
-                "degree-of-freedom": out.nfree, 
-                "ChiSq": out.chisqr, 
-                "RedChiSq": out.redchi, 
-                "aic": out.aic, 
-                "bic": out.bic,
-                }
-                
-    
-    NewParams.update({'FitProperties': FitStats})
-
-    # FIX ME: Need to put master_params into NewParams to return!
-
+        
     return [NewParams, out]

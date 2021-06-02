@@ -111,6 +111,7 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
     text_file.write(("{0:>"+str(width_col)+"}").format("p0_err"+","))
     if debug:
         text_file.write(("{0:>"+str(width_col)+"}").format("Time taken"+","))
+        text_file.write(("{0:>"+str(width_col)+"}").format("Status"+","))
         text_file.write(("{0:>"+str(width_col)+"}").format("Func eval"+","))
         text_file.write(("{0:>"+str(width_col)+"}").format("Num vars"+","))
         text_file.write(("{0:>"+str(width_col)+"}").format("Num data"+","))
@@ -299,6 +300,7 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                 if debug:
                     # include properties from the lmfit output that were passed with the fits.
                     text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']['time-elapsed']))
+                    text_file.write(("{0:"+str(width_col-1)+"d},").format(fit[y]['FitProperties']['status']))
                     text_file.write(("{0:"+str(width_col-1)+"d},").format(fit[y]['FitProperties']['function-evaluations']))
                     text_file.write(("{0:"+str(width_col-1)+"d},").format(fit[y]['FitProperties']["n-variables"]))
                     text_file.write(("{0:"+str(width_col-1)+"d},").format(fit[y]['FitProperties']["n-data"]))

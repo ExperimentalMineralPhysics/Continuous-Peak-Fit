@@ -581,7 +581,7 @@ def ChangeParams(constants, *fitparam):
 
 
 def FitModel(Intfit, twotheta, azimu, params, num_peaks, nterms_back, Conv=None, fixed=None,
-             fit_method='leastsq', weights=None):
+             fit_method='leastsq', weights=None, max_nfev=None):
     # ChangeArray, Shapes, Conv=None, symm=None, fixed=None, method=None,
     # weights=None, bounds=None):
     """Initiate model of intensities at twotheta and azi given input parameters and fit
@@ -611,7 +611,7 @@ def FitModel(Intfit, twotheta, azimu, params, num_peaks, nterms_back, Conv=None,
     # result = minner.minimize()
     # out = gmodel.fit(Intfit, params, twotheta=twotheta, azi=azimu, num_peaks=num_peaks, nterms_back=nterms_back,
     #                  Conv=Conv, fixed=fixed, nan_policy='propagate')
-    out = gmodel.fit(Intfit, params, twotheta=twotheta, azi=azimu, Conv=Conv, nan_policy='propagate')
+    out = gmodel.fit(Intfit, params, twotheta=twotheta, azi=azimu, Conv=Conv, nan_policy='propagate', max_nfev=max_nfev)
     # print(out.fit_report())
     # print(out.params)
     # out.params.pretty_print()

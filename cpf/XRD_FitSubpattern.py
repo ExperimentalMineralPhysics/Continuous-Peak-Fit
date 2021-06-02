@@ -984,7 +984,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
             
         if step >= 4:
             
-            if refine or step>=5:
+            if refine or step>=5 or not PreviousParams:
             # Iterate over each fourier series in turn.
                 print('\nRe-fitting for d, h, w, bg separately... will refine %i time(s)\n' % iterations)
                 # iterate through the variables.

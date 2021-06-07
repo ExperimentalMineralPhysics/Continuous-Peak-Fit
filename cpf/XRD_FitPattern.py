@@ -364,9 +364,9 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
         print('Process ', diff_files[j])
 
         # Get diffraction pattern to process.
-        intens = new_data.ImportImage(diff_files[j], azimu.mask)
-
+        intens = new_data.ImportImage(diff_files[j], mask=azimu.mask, debug=debug)
         ### Replace this with call through to class structure
+        ## FIX ME: the mask call is needed here to pass the mask in. but should it inherit the mask from the preceeding data?
 
         # plot input file
         if debug:

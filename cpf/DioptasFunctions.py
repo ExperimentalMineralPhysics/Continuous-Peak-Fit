@@ -64,7 +64,7 @@ class DioptasDetector:
         :param calibration_mask:
         :return:
         """
-        im = self.ImportImage(calibration_data, debug)
+        im = self.ImportImage(calibration_data, debug=debug)
         intens = ma.array(im)
         # create mask from mask file if present. If not make all values valid
         if calibration_mask:
@@ -134,6 +134,7 @@ class DioptasDetector:
         :param debug: extra output for debugging - plot
         :return: intensity array
         """
+        # FIX ME: why is mask in here? should it ingerit from previous data if it exists?
         # im = Image.open(ImageName) ##always tiff?- no
         filename, file_extension = os.path.splitext(image_name)
         if file_extension == '.nxs':

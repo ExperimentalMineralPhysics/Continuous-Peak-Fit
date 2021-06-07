@@ -62,7 +62,7 @@ class MedDetector:
         :param calibration_mask:
         :return:
         """
-        im = self.ImportImage(calibration_data, debug)
+        im = self.ImportImage(calibration_data, debug=debug)
         intens = ma.array(im)
         # create mask from mask file if present. If not make all values valid
         if calibration_mask:
@@ -124,12 +124,13 @@ class MedDetector:
         return RequiredList
 
     @staticmethod
-    def ImportImage(ImageName, debug=False):
+    def ImportImage(ImageName, mask=None, debug=False):
         """
         :param ImageName:
         :param debug:
         :return:
         """
+        # FIX ME: why is mask in here? should it ingerit from previous data if it exists?
         filename, file_extension = os.path.splitext(ImageName)
         if file_extension == '.med':
             dat = Med.Med()

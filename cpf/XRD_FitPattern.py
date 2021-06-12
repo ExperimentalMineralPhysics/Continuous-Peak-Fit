@@ -318,7 +318,6 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
         use_mask = None
     new_data.fill_data(os.path.abspath(FitSettings.Calib_data), FitSettings.Calib_detector, debug=debug,
                        calibration_mask=use_mask)
-
     # Get calibration parameter file
     parms_dict = new_data.parameters
 
@@ -331,7 +330,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
 
     ### Replace this with call through to class structure
     # plot calibration file
-    if debug:
+    if 0:#debug:  #FIX ME: SAH - I have jsut removed this so that the debug runs without the calibration file.
         fig = plt.figure()
         if FitSettings.Calib_type == 'Med':
             # plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
@@ -390,6 +389,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             plt.title(os.path.basename(diff_files[j]))
             plt.draw()
             plt.close()
+
 
         # Get previous fit (if it exists and is required)
         if os.path.isfile(temporary_data_file) and propagate is True:
@@ -457,7 +457,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             dspacing_sub = dspace[subpat]
             azimu_sub = azimu[subpat]
             intens_sub = intens[subpat]
-
+            
             # Mask the subpattern by intensity if called for
             if 'Imax' in orders:
                 intens_sub = ma.masked_outside(intens_sub, 0, int(orders['Imax']))
@@ -465,7 +465,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
                 twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
                 dspacing_sub = ma.array(dspacing_sub, mask=intens_sub.mask)
                 
-            if debug:
+            if 0: #debug: #FIX ME SAH I have jsut removed this so the debug runs
                 #FIX ME: this plots the input data. perhaps it should have its own switch rather than being subservient to Debug. 
                 # It is not a debug it is a setup thing.
                 #plot the data and the mask.

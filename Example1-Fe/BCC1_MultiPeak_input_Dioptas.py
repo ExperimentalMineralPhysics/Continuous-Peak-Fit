@@ -27,12 +27,15 @@ fit_bounds = {
 fit_orders = [
         {
           "range": [[10.8, 11.67]],
-          "background": [0, 0],
+          "background": [2, 0],
+          #"background-type": "spline-cubic",
           "peak": [{
               "phase": "Other",
               "hkl": '000',
               "d-space": 3,
+              #"d-space-type": "spline-cubic",
               "height": 1,
+              #"height-type": "fourier",
               "profile": 0,
               "profile_fixed": 0.1,
               "width": 0,
@@ -42,6 +45,7 @@ fit_orders = [
               "hkl": 110,
               "d-space": 3,
               "height": 16,
+              "height-type": "spline-cubic",
               "profile": 0,
               #"profile_fixed": 1,
               "width": 0,
@@ -135,14 +139,6 @@ fit_orders = [
         },
     ]
 
-
-fit_bounds = {
-          "background": ['min', 'max'],
-          "d-space":    ['min', 'max'],
-          "height":     [0,     'max'],
-          "profile":    [0,      1],
-          "width":      ['range/(ndata/4)',  'range/4'],
-          }
 
 #Number of bins for initial fitting.
 AziBins = 90

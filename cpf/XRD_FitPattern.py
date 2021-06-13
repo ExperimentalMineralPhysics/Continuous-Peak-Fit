@@ -411,7 +411,6 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
         lmfit_models = []
         parallel_pile = []
 
-
         for i in range(n_subpats):
             tthRange = FitSettings.fit_orders[i]['range'][0]
             if hasattr(FitSettings, 'fit_orders'):  # FitSettings.fit_orders:

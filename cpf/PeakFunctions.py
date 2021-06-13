@@ -142,33 +142,45 @@ def params_to_newparams(params, num_peaks, num_bg, order_peak):
     for i in range(num_peaks):
         new_str = 'peak_'+str(i)+'_d'
         dspace = gather_paramerrs_to_list(params, new_str)
+        dspace_tp = get_series_type(params, new_str)
         new_str = 'peak_'+str(i)+'_h'
         hspace = gather_paramerrs_to_list(params, new_str)
+        h_tp = get_series_type(params, new_str)
         new_str = 'peak_'+str(i)+'_w'
         wspace = gather_paramerrs_to_list(params, new_str)
+        w_tp = get_series_type(params, new_str)
         new_str = 'peak_'+str(i)+'_p'
         pspace = gather_paramerrs_to_list(params, new_str)
-
+        p_tp = get_series_type(params, new_str)
+        
         if 'symmetry' in order_peak[i]:  # orders['peak'][j]:  # FIX ME: the symmetry part of this is a horrible
             # way of doing it.
-            peaks.append({"d-space":     dspace[0],
-                          "d-space_err": dspace[1],
-                          "height":      hspace[0],
-                          "height_err":  hspace[1],
-                          "width":       wspace[0],
-                          "width_err":   wspace[1],
-                          "profile":     pspace[0],
-                          "profile_err": pspace[1],
-                          "symmetry":    order_peak[i]['symmetry']})
+            peaks.append({"d-space":      dspace[0],
+                          "d-space_err":  dspace[1],
+                          "d-space-type": coefficient_string(dspace_tp),                         
+                          "height":       hspace[0],
+                          "height_err":   hspace[1],
+                          "height-type":  coefficient_string(h_tp),
+                          "width":        wspace[0],
+                          "width_err":    wspace[1],
+                          "width-type":   coefficient_string(w_tp),
+                          "profile":      pspace[0],
+                          "profile_err":  pspace[1],
+                          "profile-type": coefficient_string(p_tp),
+                          "symmetry":     order_peak[i]['symmetry']})
         else:
             peaks.append({"d-space": dspace[0],
-                          "d-space_err": dspace[1],
-                          "height":      hspace[0],
-                          "height_err":  hspace[1],
-                          "width":       wspace[0],
-                          "width_err":   wspace[1],
-                          "profile":     pspace[0],
-                          "profile_err": pspace[1]})
+                          "d-space_err":  dspace[1],
+                          "d-space-type": coefficient_string(dspace_tp),                         
+                          "height":       hspace[0],
+                          "height_err":   hspace[1],
+                          "height-type":  coefficient_string(h_tp),
+                          "width":        wspace[0],
+                          "width_err":    wspace[1],
+                          "width-type":   coefficient_string(w_tp),
+                          "profile":      pspace[0],
+                          "profile_err":  pspace[1],
+                          "profile-type": coefficient_string(p_tp)})
     # Get background parameters
     bgspace = []
     bgspace_err = []
@@ -177,11 +189,9 @@ def params_to_newparams(params, num_peaks, num_bg, order_peak):
         bgspc = gather_paramerrs_to_list(params, new_str)
         bgspace.append(bgspc[0])
         bgspace_err.append(bgspc[1])
-        # print('background', ff.gather_params_to_list(params, new_str))
-        # bgspace.append(ff.gather_params_to_list(params, new_str))
-
-    # NewParams = {"background": bgspace, "peak": peaks}
-    NewParams = {"background": bgspace, "background_err": bgspace_err, "peak": peaks}
+    bg_tp = coefficient_string(get_series_type(params, new_str))
+    
+    NewParams = {"background": bgspace, "background_err": bgspace_err, "background-type": bg_tp, "peak": peaks}
 
     return NewParams
 
@@ -285,16 +295,17 @@ def get_series_type(param, param_str, comp=None):
     :param comp: component to add to base string to select parameters
     :return: nested list of [parameters, errors] in alphanumerical order
     """
-    if comp:
+    if comp is not None:
         new_str = param_str + '_' + comp
     else:
         new_str = param_str
     new_str = new_str+'_tp'
-    if new_str in param:
+    if isinstance(param, dict) and new_str in param:
         out = param[new_str]
+    elif isinstance(param, dict) and new_str not in param:
+        out = 0
     else:
-        out=0
-    
+        out= None
     return out
 
 
@@ -384,9 +395,9 @@ def initiate_params(param, param_str, comp, coef_type=None, trig_orders=None, li
     else:
         new_min = -np.inf
         new_max = np.inf
-    if value==None and limits==None:
+    if value is None and limits is None:
         value = 0.01
-    elif value==None and limits:
+    elif value is None and limits:
         value = new_min + (new_max-new_min)*3/5#/2#*2/3
         #N.B. if seems the initiating the splines with values exactly half way between man and min doesn't work. Anywhere else in the middle of the range seems to do so.
     # else: value=value
@@ -734,6 +745,26 @@ def coefficient_type(coef_type):
         #    out = 2
     elif coef_type == 'spline_cubic' or coef_type == 'spline-cubic' or coef_type == 'cubic' or coef_type == 'spline' or coef_type==3:
         out = 3
+    else:
+        raise ValueError('Unrecognised coefficient series type, the valid options are ''fourier'', etc...')
+        #FIX ME: write out all the licit options in the error message.
+    return out
+    
+    
+
+def coefficient_string(series_type):
+    """
+    :series_type: numeric series type. 
+    :return: strong index for series type
+    """
+    if series_type == 'fourier' or series_type==0:
+        out = 'fourier'
+        #elif Coef_type == 'spline_linear' or Coef_type == 'linear':
+        #    out = 1
+        #elif Coef_type == 'spline_quadratic' or Coef_type == 'quadratic':
+        #    out = 2
+    elif series_type == 'spline_cubic' or series_type == 'spline-cubic' or series_type == 'cubic' or series_type == 'spline' or series_type==3:
+        out = 'spline_cubic'
     else:
         raise ValueError('Unrecognised coefficient series type, the valid options are ''fourier'', etc...')
         #FIX ME: write out all the licit options in the error message.

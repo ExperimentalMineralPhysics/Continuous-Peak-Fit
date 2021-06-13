@@ -973,40 +973,62 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         symm = orders['peak'][j]['symmetry']
                     else:
                         symm = 1
-                    master_params = ff.initiate_params(master_params, param_str, comp, 0, limits=[10, 1], value=np.array(symm))
+                    master_params = ff.initiate_params(master_params, param_str, comp, 0, limits=[10, 1], value=np.array(symm), vary=False)
         
                     # initiate d
                     comp = 'd'
-                    dfour = PreviousParams['peak'][j]['d-space']
-                    master_params = ff.initiate_params(master_params, param_str, comp, orders['peak'][j]['d-space'],
-                                                       value=np.array(dfour), limits=lims['d-space'] )
+                    master_params = ff.initiate_params(master_params, param_str, comp, #orders['peak'][j]['d-space'],
+                                                       coef_type=PreviousParams['peak'][j]['d-space-type'],
+                                                       value=PreviousParams['peak'][j]['d-space'], 
+                                                       limits=lims['d-space'] )
         
                     # initiate h
                     comp = 'h'
-                    hfour = PreviousParams['peak'][j]['height']
-                    master_params = ff.initiate_params(master_params, param_str, comp, orders['peak'][j]['height'], value=hfour,
+                    master_params = ff.initiate_params(master_params, param_str, comp,
+                                                       coef_type=PreviousParams['peak'][j]['height-type'],
+                                                       value=PreviousParams['peak'][j]['height'],
                                                        limits=lims['height'] )
         
                     # initiate w
                     comp = 'w'
-                    wfour = PreviousParams['peak'][j]['width']
-                    master_params = ff.initiate_params(master_params, param_str, comp, orders['peak'][j]['width'], value=wfour,
+                    master_params = ff.initiate_params(master_params, param_str, comp, 
+                                                       coef_type=PreviousParams['peak'][j]['width-type'],
+                                                       value=PreviousParams['peak'][j]['width'],
                                                        limits=lims['width'] )
         
                     # initiate p
                     comp = 'p'
                     if orders and 'profile_fixed' in orders['peak'][j]:
-                        pfour = orders['peak'][j]['profile_fixed']
+                        pvals = orders['peak'][j]['profile_fixed']
                         pfixed = 1
                     else:
-                        pfour = PreviousParams['peak'][j]['profile']
+                        pvals = PreviousParams['peak'][j]['profile']
                         pfixed = 0
-                    master_params = ff.initiate_params(master_params, param_str, comp, orders['peak'][j]['profile'],
-                                                       value=pfour, limits=lims['profile'] )
+                    master_params = ff.initiate_params(master_params, param_str, comp,
+                                                       coef_type=PreviousParams['peak'][j]['profile-type'],
+                                                       value=pvals, 
+                                                       limits=lims['profile'] )
         
                 # Initiate background parameters
                 comp = 'bg'
                 for b in range(len(PreviousParams['background'])):
+                    param_str= 'bg_c'+str(b)
+                    comp = 'f'
+                    if b==0:
+                        limits = lims['background']
+                    else:
+                        limits = None
+                    master_params = ff.initiate_params(master_params, param_str, comp,
+                                                       value=PreviousParams['background'][b],
+                                                       coef_type=PreviousParams['background-type'],
+                                                       limits=limits)
+                    
+                    '''
+                    
+                    
+                    
+                    
+                    
                     bg_four = PreviousParams['background'][b]
                     for f_b in range(len(bg_four)):
                         if b is 0 and f_b is 0:
@@ -1014,7 +1036,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                                               max=lims['background'][1])
                         else:
                             master_params.add('bg_c' + str(b) + '_f' + str(f_b), value=bg_four[f_b])
-        
+                    '''
                 # master_params.pretty_print()
         
                 # Guess for background, if orders and therefore no guess input, choose appropriate
@@ -1156,12 +1178,12 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
             elif out.success == 0 and refine==False and PreviousParams:
                 #refine the fourier series before tying again
                 step = 5
-                iterations = np.max(iterations, 3)
+                iterations = np.max((iterations, 3))
                 # FIX ME: could add another option for fixing the profile if this doesn't have the desired effect
             elif out.success == 0 and refine==True and PreviousParams:
                 #if we refined the previous params and it didnt work then fit the chunks again.
                 step = 2
-                iterations = np.max(iterations, 3)
+                iterations = np.max((iterations, 3))
             else:
                 step = 9
                 
@@ -1221,7 +1243,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         # fullfit_intens = inp
         # Set the maximum to the n+1th value in the array
         # FIX ME: the max find is not necessarily efficient. A quicker way should be found if it exists.
-        max_pos = 5
+        max_pos = 0
 
         ValMax1 = -np.sort(-intens.flatten())[max_pos]  # np.max(intens.flatten())
         ValMax2 = -np.sort(-fullfit_intens.flatten())[max_pos]  # np.max(fullfit_intens.flatten())
@@ -1336,7 +1358,5 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                 os.remove(filename+'.sav')
             else:    
                 print("File doesn't exists!")
-        
 
-    stop 
     return [NewParams, out]

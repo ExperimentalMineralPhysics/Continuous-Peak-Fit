@@ -86,6 +86,7 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
     
     #write header
     width_col = 12
+    dp = 5 #used later or the number of decial places in the numbers -- but set here so all settings are in the same place.
     width_fnam = 25
     width_hkl = 15
     text_file.write(("# {0:<"+str(width_fnam-2)+"}").format("Data File"+","))
@@ -103,11 +104,11 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
     text_file.write(("{0:>"+str(width_col)+"}").format("orient err"+","))
     text_file.write(("{0:>"+str(width_col)+"}").format("d_max"+","))
     text_file.write(("{0:>"+str(width_col)+"}").format("d_min"+","))
-    text_file.write(("{0:>"+str(width_col)+"}").format("h0"+","))
-    text_file.write(("{0:>"+str(width_col)+"}").format("h0_err"+",")) 
-    text_file.write(("{0:>"+str(width_col)+"}").format("w0"+","))
-    text_file.write(("{0:>"+str(width_col)+"}").format("w0_err"+",")) 
-    text_file.write(("{0:>"+str(width_col)+"}").format("p0"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("mean h"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("h_err"+",")) 
+    text_file.write(("{0:>"+str(width_col)+"}").format("mean w"+","))
+    text_file.write(("{0:>"+str(width_col)+"}").format("w_err"+",")) 
+    text_file.write(("{0:>"+str(width_col)+"}").format("mean p"+","))
     text_file.write(("{0:>"+str(width_col)+"}").format("p0_err"+","))
     if debug:
         text_file.write(("{0:>"+str(width_col)+"}").format("Time taken"+","))
@@ -184,6 +185,9 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                 
                 out_peak = []
                 
+                if fit[y]['peak'][x]['d-space-type'] != 'fourier':
+                    raise ValueError('This output type is not setup to process non-Fourier peak centroids.')
+                
                 #peak
                 if 'phase' in orders['peak'][x]:
                     out_peak = orders['peak'][x]['phase']
@@ -253,29 +257,51 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                 out_dmin    = out_dd * np.cos(2*3*np.pi/4 - np.deg2rad(out_ang)) + out_d0
                 
                 #height mean
-                out_h0    = fit[y]['peak'][x]['height'][0]
+                if fit[y]['peak'][x]['height-type'] == 'fourier':
+                    out_h0    = fit[y]['peak'][x]['height'][0]
+                    out_h0err = fit[y]['peak'][x]['height_err'][0]
+                else:
+                    tot    = np.sum(fit[y]['peak'][x]['height'])
+                    errsum = np.sqrt(np.sum(np.array(fit[y]['peak'][x]['height_err'])**2))
+                    num    = np.shape(fit[y]['peak'][x]['height'])
+                    out_h0 = float(tot/num)
+                    out_h0err = float(errsum/num)
                 if out_h0 is None:  #catch  'null' as an error 
                     out_h0 = np.nan
-                out_h0err = fit[y]['peak'][x]['height_err'][0]
                 if out_h0err is None:  #catch  'null' as an error 
                     out_h0err = np.nan
+                    
                 #width mean
-                out_w0    = fit[y]['peak'][x]['width'][0]
+                if fit[y]['peak'][x]['width-type'] == 'fourier':
+                    out_w0    = fit[y]['peak'][x]['width'][0]
+                    out_w0err = fit[y]['peak'][x]['width_err'][0]
+                else:
+                    tot    = np.sum(fit[y]['peak'][x]['width'])
+                    errsum = np.sqrt(np.sum(np.array(fit[y]['peak'][x]['width_err'])**2))
+                    num    = np.shape(fit[y]['peak'][x]['width'])
+                    out_w0 = float(tot/num)
+                    out_w0err = float(errsum/num)
                 if out_w0 is None:  #catch  'null' as an error 
                     out_w0 = np.nan
-                out_w0err = fit[y]['peak'][x]['width_err'][0]
                 if out_w0err is None:  #catch  'null' as an error 
                     out_w0err = np.nan
+           
                 #profile mean
-                out_p0    = fit[y]['peak'][x]['profile'][0]
+                if fit[y]['peak'][x]['profile-type'] == 'fourier':
+                    out_p0    = fit[y]['peak'][x]['profile'][0]
+                    out_p0err = fit[y]['peak'][x]['profile_err'][0]
+                else:
+                    tot    = np.sum(fit[y]['peak'][x]['profile'])
+                    errsum = np.sqrt(np.sum(np.array(fit[y]['peak'][x]['profile_err'])**2))
+                    num    = np.shape(fit[y]['peak'][x]['profile'])
+                    out_p0 = float(tot/num)
+                    out_p0err = float(errsum/num)
                 if out_p0 is None:  #catch  'null' as an error 
                     out_p0 = np.nan
-                out_p0err = fit[y]['peak'][x]['profile_err'][0]
                 if out_p0err is None:  #catch  'null' as an error 
                     out_p0err = np.nan
             
                 #write numbers to file
-                dp = 5
                 text_file.write(("{0:<"+str(width_fnam)+"}").format(out_name+","))
                 text_file.write(("{0:<"+str(width_hkl)+"}").format(out_peak+","))
                 text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_d0))
@@ -314,19 +340,4 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                 text_file.write("\n")
             
             
-            
-    # width_col = 10
-    # text_file.write(("# {0:<"+str(width_col+5)+"}").format("Data File"+","))
-    # text_file.write(("{0:<"+str(width_col)+"}").format("Peak"+","))
-    # text_file.write(("{0:<"+str(width_col)+"}").format("d0"+","))
-    # text_file.write(("{0:<"+str(width_col)+"}").format("d0_err"+","))
-            
     text_file.close()
-            
-            
-
-
-            
-            
-            
-

@@ -32,7 +32,7 @@ fit_orders = [
           "peak": [{
               "phase": "Other_f",
               "hkl": '000',
-              "d-space": 3,
+              "d-space": 2,
               #"d-space-type": "spline-cubic",
               "height": 1,
               #"height-type": "fourier",
@@ -43,7 +43,7 @@ fit_orders = [
             }, {
               "phase": "Fe-BCC_f",
               "hkl": 110,
-              "d-space": 3,
+              "d-space": 2,
               "height": 16,
               #"height-type": "spline-cubic",
               "profile": 0,
@@ -81,7 +81,7 @@ fit_orders = [
           "peak": [{
               "phase": "Other_f",
               "hkl": '000',
-              "d-space": 3,
+              "d-space": 2,
               #"d-space-type": "spline-cubic",
               "height": 1,
               #"height-type": "fourier",
@@ -92,7 +92,7 @@ fit_orders = [
             }, {
               "phase": "Fe-BCC_s",
               "hkl": 110,
-              "d-space": 3,
+              "d-space": 2,
               "height": 16,
               "height-type": "spline-cubic",
               "profile": 0,
@@ -194,7 +194,7 @@ AziBins = 90
 
 #Output settings
 Output_directory   = './'
-Output_type        = 'Polydefix'
+Output_type        = ['DifferentialStrain', 'Polydefix']
 Output_NumAziWrite = 90
 phase              = 'Fe-BCC'
 Output_ElasticProperties = 'Properties_Fe-BCC.txt'

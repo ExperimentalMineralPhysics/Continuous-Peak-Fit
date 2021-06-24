@@ -362,43 +362,46 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                 # elif x ==4:
                 #    Parm = 'profile_fixed'
                 '''
-                if np.max(orders['peak'][y][Parm]) > ff.Fourier_order(PreviousParams['peak'][y][Parm]):
-                    # print 'longer'
-                    change_by = np.max(orders['peak'][y][Parm]) * 2 + 1 - np.size(PreviousParams['peak'][y][Parm])
-                    # PreviousParams['peak'][y][Parm] = np.pad(PreviousParams['peak'][y][Parm], (0,change_by),
-                    # mode='constant', constant_values=0)
-                    PreviousParams['peak'][y][Parm] = (PreviousParams['background'][y] + [0] * change_by)
-                elif np.max(orders['peak'][y][Parm]) < ff.Fourier_order(PreviousParams['peak'][y][Parm]):
-                    # print 'smaller'
-                    change_by = np.size(PreviousParams['peak'][y][Parm]) - (np.max(orders['peak'][y][Parm]) * 2 + 1)
-                    PreviousParams['peak'][y][Parm] = PreviousParams['peak'][y][Parm][1:-(change_by - 1)]
+                coef_type = ff.params_get_type(PreviousParams, Parm, peak=y)
+                if coef_type != 5: #if parameters are not independent 
+                    if np.max(orders['peak'][y][Parm]) > ff.Fourier_order(PreviousParams['peak'][y][Parm]):
+                        # print 'longer'
+                        change_by = np.max(orders['peak'][y][Parm]) * 2 + 1 - np.size(PreviousParams['peak'][y][Parm])
+                        # PreviousParams['peak'][y][Parm] = np.pad(PreviousParams['peak'][y][Parm], (0,change_by),
+                        # mode='constant', constant_values=0)
+                        PreviousParams['peak'][y][Parm] = (PreviousParams['background'][y] + [0] * change_by)
+                    elif np.max(orders['peak'][y][Parm]) < ff.Fourier_order(PreviousParams['peak'][y][Parm]):
+                        # print 'smaller'
+                        change_by = np.size(PreviousParams['peak'][y][Parm]) - (np.max(orders['peak'][y][Parm]) * 2 + 1)
+                        PreviousParams['peak'][y][Parm] = PreviousParams['peak'][y][Parm][1:-(change_by - 1)]
             if 'profile_fixed' in orders['peak'][y]:
                 PreviousParams['peak'][y]['profile'] = orders['peak'][y]['profile_fixed']
             elif 'profile_fixed' in PreviousParams['peak'][y][Parm]:
                 del PreviousParams['peak'][y]['profile_fixed']
 
         # loop for background orders/size
-        for y in range(np.max([len(orders['background']), len(PreviousParams['background'])])):
-            # loop over the degree of the background
-            if len(PreviousParams['background']) - 1 >= y and len(orders['background']) - 1 >= y:
-                # if present in both arrays make sure it is the right size.
-                if np.max(orders['background'][y]) > ff.Fourier_order(PreviousParams['background'][y]):
-                    # print 'longer'
-                    change_by = np.max(orders['background'][y]) * 2 + 1 - np.size(PreviousParams['background'][y])
-                    # print change_by
-                    # PreviousParams['background'][y] = np.pad(PreviousParams['background'][y], (0,change_by),
-                    # mode='constant', constant_values=0)
-                    PreviousParams['background'][y] = (PreviousParams['background'][y] + [0] * change_by)
-                elif np.max(orders['background'][y]) < ff.Fourier_order(PreviousParams['background'][y]):
-                    # print 'smaller'
-                    change_by = np.size(PreviousParams['background'][y]) - (np.max(orders['background'][y]) * 2 + 1)
-                    PreviousParams['background'][y] = PreviousParams['background'][y][:-change_by]
-            elif len(PreviousParams['background']) - 1 >= y > len(orders['background']) - 1:
-                # if previous params has too many degrees remove the higher ones
-                PreviousParams['background'][y] = []
-            elif len(PreviousParams['background']) - 1 < y <= len(orders['background']) - 1:
-                # if previous parameters does not have enough degrees add more.
-                PreviousParams['background'].append([0] * (np.max(orders['background'][y]) * 2 + 1))
+        if ff.params_get_type(PreviousParams, 'background') != 5: #if parameters are not independent 
+            for y in range(np.max([len(orders['background']), len(PreviousParams['background'])])):
+                # loop over the degree of the background
+                if len(PreviousParams['background']) - 1 >= y and len(orders['background']) - 1 >= y:
+                    # if present in both arrays make sure it is the right size.
+                    if np.max(orders['background'][y]) > ff.Fourier_order(PreviousParams['background'][y]):
+                        # print 'longer'
+                        change_by = np.max(orders['background'][y]) * 2 + 1 - np.size(PreviousParams['background'][y])
+                        # print change_by
+                        # PreviousParams['background'][y] = np.pad(PreviousParams['background'][y], (0,change_by),
+                        # mode='constant', constant_values=0)
+                        PreviousParams['background'][y] = (PreviousParams['background'][y] + [0] * change_by)
+                    elif np.max(orders['background'][y]) < ff.Fourier_order(PreviousParams['background'][y]):
+                        # print 'smaller'
+                        change_by = np.size(PreviousParams['background'][y]) - (np.max(orders['background'][y]) * 2 + 1)
+                        PreviousParams['background'][y] = PreviousParams['background'][y][:-change_by]
+                elif len(PreviousParams['background']) - 1 >= y > len(orders['background']) - 1:
+                    # if previous params has too many degrees remove the higher ones
+                    PreviousParams['background'][y] = []
+                elif len(PreviousParams['background']) - 1 < y <= len(orders['background']) - 1:
+                    # if previous parameters does not have enough degrees add more.
+                    PreviousParams['background'].append([0] * (np.max(orders['background'][y]) * 2 + 1))
 
         # tidy up from reductions in length of PreviousParams
         PreviousParams['background'] = [x for x in PreviousParams['background'] if x != []]
@@ -793,11 +796,13 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
 
                     # initiate d
                     comp = 'd'
-                    if 'd-space-type' in orders['peak'][j]:
-                        coef_type = orders['peak'][j]['d-space-type']
-                    else:
-                        coef_type = 'fourier'
-                    master_params = ff.initiate_params(master_params, param_str, comp, coef_type=coef_type, trig_orders=orders['peak'][j]['d-space'], limits=lims['d-space']) 
+                    coef_type = ff.params_get_type(orders, comp, peak=j)
+                    n_coef    = ff.params_get_number_coef(orders, comp, peak=j, azims=np.array(newAziChunks))
+                    master_params = ff.initiate_params(master_params, param_str, comp, coef_type=coef_type, num_coef=n_coef, trig_orders=orders['peak'][j]['d-space'], limits=lims['d-space'], value=np.array(newd0[j])) 
+                    master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
+                    master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
+                    if isinstance(orders['peak'][k]['d-space'], list): # set part of these parameters to not vary
+                        master_params = ff.unvary_part_params(master_params, param_str, comp, orders['peak'][k]['d-space'])
                     fout = ff.coefficient_fit(azimu=np.array(newAziChunks), ydata=np.array(newd0[j]), param=master_params, param_str=param_str + '_' + comp, symm=1,  errs=np.array(newd0Err[j]), fit_method='leastsq')
                     master_params = fout.params
                     # FIX ME. Check which params should be varying and which should not. Need to incorporate var y and unnvary params as well as partial vary
@@ -805,47 +810,52 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                     
                     # initiate h
                     comp = 'h'
-                    if 'height-type' in orders['peak'][j]:
-                        coef_type = orders['peak'][j]['height-type']
-                    else:
-                        coef_type = 'fourier'
-                    master_params = ff.initiate_params(master_params, param_str, comp, coef_type=coef_type, trig_orders=orders['peak'][j]['height'], limits=lims['height']) 
+                    coef_type = ff.params_get_type(orders, comp, peak=j)
+                    n_coef    = ff.params_get_number_coef(orders, comp, peak=j, azims=np.array(newAziChunks))
+                    master_params = ff.initiate_params(master_params, param_str, comp, coef_type=coef_type, num_coef=n_coef, trig_orders=orders['peak'][j]['height'], limits=lims['height'], value=np.array(newHall[j]))
+                    master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
+                    master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
+                    if isinstance(orders['peak'][k]['height'], list): # set part of these parameters to not vary
+                        master_params = ff.unvary_part_params(master_params, param_str, comp, orders['peak'][k]['height'])
+                    master_params.pretty_print()
+                    print(np.array(newAziChunks))
                     fout = ff.coefficient_fit(azimu=np.array(newAziChunks), ydata=np.array(newHall[j]), param=master_params, param_str=param_str + '_' + comp, symm=symm,  errs=np.array(newHallErr[j]), fit_method='leastsq')
                     master_params = fout.params
                     
                     # initiate w
                     comp = 'w'
-                    if 'width-type' in orders['peak'][j]:
-                        coef_type = orders['peak'][j]['width-type']
-                    else:
-                        coef_type = 'fourier'
-                    master_params = ff.initiate_params(master_params, param_str, comp, coef_type=coef_type, trig_orders=orders['peak'][j]['width'], limits=lims['width']) 
+                    coef_type = ff.params_get_type(orders, comp, peak=j)
+                    n_coef    = ff.params_get_number_coef(orders, comp, peak=j, azims=np.array(newAziChunks))
+                    master_params = ff.initiate_params(master_params, param_str, comp, coef_type=coef_type, num_coef=n_coef, trig_orders=orders['peak'][j]['width'], limits=lims['width'], value=np.array(newWall[j]))
+                    master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
+                    master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
+                    if isinstance(orders['peak'][k]['width'], list): # set part of these parameters to not vary
+                        master_params = ff.unvary_part_params(master_params, param_str, comp, orders['peak'][k]['width'])
                     fout = ff.coefficient_fit(azimu=np.array(newAziChunks), ydata=np.array(newWall[j]), param=master_params, param_str=param_str + '_' + comp, symm=symm,  errs=np.array(newWallErr[j]), fit_method='leastsq')
                     master_params = fout.params
                     
                     # initiate p
                     comp = 'p'
+                    coef_type = ff.params_get_type(orders, comp, peak=j)
+                    n_coef    = ff.params_get_number_coef(orders, comp, peak=j, azims=np.array(newAziChunks))
                     if 'profile_fixed' in orders['peak'][j]:
                         p_vals = orders['peak'][j]['profile_fixed']
                         pfixed = 1
                     else:
                         p_vals = None
                         pfixed = 0
-                    if 'profile-type' in orders['peak'][j]:
-                        coef_type = orders['peak'][j]['profile-type']
-                    else:
-                        coef_type = 'fourier'
-                    master_params = ff.initiate_params(master_params, param_str, comp, coef_type=coef_type, trig_orders=orders['peak'][j]['profile'], limits=lims['profile'], value=p_vals)
+                    master_params = ff.initiate_params(master_params, param_str, comp, coef_type=coef_type, num_coef=n_coef, trig_orders=orders['peak'][j]['profile'], limits=lims['profile'], value=p_vals)
+                    master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
+                    master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
+                    if isinstance(orders['peak'][k]['profile'], list): # set part of these parameters to not vary
+                        master_params = ff.unvary_part_params(master_params, param_str, comp, orders['peak'][k]['profile'])
                     if pfixed == 0:
                         fout = ff.coefficient_fit(azimu=np.array(newAziChunks), ydata=np.array(newPall[j]), param=master_params, param_str=param_str + '_' + comp, symm=symm,  errs=np.array(newPallErr[j]), fit_method='leastsq')
                         master_params = fout.params
                     
                 # Initiate background parameters and perform an initial fit
                 comp = 'bg'
-                if 'background-type' in orders:
-                    coef_type = orders['background-type']
-                else:
-                    coef_type = 'fourier'
+                coef_type = ff.params_get_type(orders, comp, peak=j)
                 for b in range(len(backg)):
                     param_str= 'bg_c'+str(b)
                     comp = 'f'
@@ -853,9 +863,15 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         limits = lims['background']
                     else:
                         limits = None
-                    master_params = ff.initiate_params(master_params, param_str, comp, coef_type=coef_type, trig_orders=orders['background'][b], limits=limits)
+                    n_coef    = ff.params_get_number_coef(orders, comp, peak=b, azims=np.array(newAziChunks))
+                    master_params = ff.initiate_params(master_params, param_str, comp, coef_type=coef_type, num_coef=n_coef, trig_orders=orders['background'][b], limits=limits)
+                    master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
+                    master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
+                    if isinstance(orders['background'][b], list): # set part of these parameters to not vary
+                        master_params = ff.unvary_part_params(master_params, param_str, comp, orders['background'][b])
                     fout = ff.coefficient_fit(azimu=np.array(newAziChunks), ydata=np.array(newBGall[b]), param=master_params, param_str=param_str + '_' + comp, symm=symm,  errs=np.array(newBGallErr[b]), fit_method='leastsq')
                     master_params = fout.params
+                    
                 
                 if debug:
                     print('Parameters after initial Fourier fits')
@@ -877,9 +893,13 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         comp='d'
                         temp = ff.gather_paramerrs_to_list(master_params, param_str, comp)
                         temp_tp = ff.get_series_type(master_params, param_str, comp)
-                        gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AziPlot), param=temp[0], coef_type=temp_tp)
+                        if temp_tp==5:
+                            AzPlt = np.array(newAziChunks)
+                        else:
+                            AzPlt=AziPlot
+                        gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AzPlt), param=temp[0], coef_type=temp_tp)
                         ax1.scatter(newAziChunks, newd0[j], s=10)
-                        ax1.plot(AziPlot, gmod_plot)
+                        ax1.plot(AzPlt, gmod_plot)
         
                     # plt.subplot(512)
                     ax2 = fig.add_subplot(5, 1, 2)
@@ -893,9 +913,13 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         comp='h'
                         temp = ff.gather_paramerrs_to_list(master_params, param_str, comp)
                         temp_tp = ff.get_series_type(master_params, param_str, comp)
-                        gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AziPlot)*symm, param=temp[0], coef_type=temp_tp)
+                        if temp_tp==5:
+                            AzPlt = np.array(newAziChunks)
+                        else:
+                            AzPlt=AziPlot
+                        gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AzPlt)*symm, param=temp[0], coef_type=temp_tp)
                         ax2.scatter(newAziChunks, newHall[j], s=10)
-                        ax2.plot(AziPlot, gmod_plot)
+                        ax2.plot(AzPlt, gmod_plot)
         
                     ax3 = fig.add_subplot(5, 1, 3)
                     # plt.subplot(513)
@@ -909,9 +933,13 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         comp='w'
                         temp = ff.gather_paramerrs_to_list(master_params, param_str, comp)
                         temp_tp = ff.get_series_type(master_params, param_str, comp)
-                        gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AziPlot)*symm, param=temp[0], coef_type=temp_tp)
+                        if temp_tp==5:
+                            AzPlt = np.array(newAziChunks)
+                        else:
+                            AzPlt=AziPlot
+                        gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AzPlt)*symm, param=temp[0], coef_type=temp_tp)
                         ax3.scatter(newAziChunks, newWall[j], s=10)
-                        ax3.plot(AziPlot, gmod_plot)
+                        ax3.plot(AzPlt, gmod_plot)
         
                     ax4 = fig.add_subplot(5, 1, 4)
                     # plt.subplot(514)
@@ -925,9 +953,13 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         comp='p'
                         temp = ff.gather_paramerrs_to_list(master_params, param_str, comp)
                         temp_tp = ff.get_series_type(master_params, param_str, comp)
-                        gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AziPlot)*symm, param=temp[0], coef_type=temp_tp)
+                        if temp_tp==5:
+                            AzPlt = np.array(newAziChunks)
+                        else:
+                            AzPlt=AziPlot
+                        gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AzPlt)*symm, param=temp[0], coef_type=temp_tp)
                         ax4.scatter(newAziChunks, newPall[j], s=10)
-                        ax4.plot(AziPlot, gmod_plot)
+                        ax4.plot(AzPlt, gmod_plot)
         
                     for k in range(len(lenbg)):
                         x_plt = len(lenbg)
@@ -939,9 +971,13 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         comp='f'
                         temp = ff.gather_paramerrs_to_list(master_params, param_str, comp)
                         temp_tp = ff.get_series_type(master_params, param_str, comp)
-                        gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AziPlot), param=temp[0], coef_type=temp_tp)
+                        if temp_tp==5:
+                            AzPlt = np.array(newAziChunks)
+                        else:
+                            AzPlt=AziPlot
+                        gmod_plot = gmodel.eval(params=master_params, azimu=np.array(AzPlt), param=temp[0], coef_type=temp_tp)
                         ax5.scatter(newAziChunks, newBGall[k], s=10)
-                        ax5.plot(AziPlot, gmod_plot)
+                        ax5.plot(AzPlt, gmod_plot)
         
                     fig.suptitle(peak_string(orders) + '; Fits to Chunks')
                     plt.show()

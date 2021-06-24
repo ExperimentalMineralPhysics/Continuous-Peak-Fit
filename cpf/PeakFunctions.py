@@ -157,30 +157,30 @@ def params_to_newparams(params, num_peaks, num_bg, order_peak):
             # way of doing it.
             peaks.append({"d-space":      dspace[0],
                           "d-space_err":  dspace[1],
-                          "d-space-type": coefficient_string(dspace_tp),                         
+                          "d-space-type": coefficient_type_as_string(dspace_tp),                         
                           "height":       hspace[0],
                           "height_err":   hspace[1],
-                          "height-type":  coefficient_string(h_tp),
+                          "height-type":  coefficient_type_as_string(h_tp),
                           "width":        wspace[0],
                           "width_err":    wspace[1],
-                          "width-type":   coefficient_string(w_tp),
+                          "width-type":   coefficient_type_as_string(w_tp),
                           "profile":      pspace[0],
                           "profile_err":  pspace[1],
-                          "profile-type": coefficient_string(p_tp),
+                          "profile-type": coefficient_type_as_string(p_tp),
                           "symmetry":     order_peak[i]['symmetry']})
         else:
             peaks.append({"d-space": dspace[0],
                           "d-space_err":  dspace[1],
-                          "d-space-type": coefficient_string(dspace_tp),                         
+                          "d-space-type": coefficient_type_as_string(dspace_tp),                         
                           "height":       hspace[0],
                           "height_err":   hspace[1],
-                          "height-type":  coefficient_string(h_tp),
+                          "height-type":  coefficient_type_as_string(h_tp),
                           "width":        wspace[0],
                           "width_err":    wspace[1],
-                          "width-type":   coefficient_string(w_tp),
+                          "width-type":   coefficient_type_as_string(w_tp),
                           "profile":      pspace[0],
                           "profile_err":  pspace[1],
-                          "profile-type": coefficient_string(p_tp)})
+                          "profile-type": coefficient_type_as_string(p_tp)})
     # Get background parameters
     bgspace = []
     bgspace_err = []
@@ -189,7 +189,7 @@ def params_to_newparams(params, num_peaks, num_bg, order_peak):
         bgspc = gather_paramerrs_to_list(params, new_str)
         bgspace.append(bgspc[0])
         bgspace_err.append(bgspc[1])
-    bg_tp = coefficient_string(get_series_type(params, new_str))
+    bg_tp = coefficient_type_as_string(get_series_type(params, new_str))
     
     NewParams = {"background": bgspace, "background_err": bgspace_err, "background-type": bg_tp, "peak": peaks}
 
@@ -377,7 +377,7 @@ def gather_params_from_dict(param, param_str, comp):
     return param_list
 
 
-def initiate_params(param, param_str, comp, coef_type=None, trig_orders=None, limits=None, expr=None, value=None, ind_vars=None, vary=True):
+def initiate_params(param, param_str, comp, coef_type=None, num_coef=None, trig_orders=None, limits=None, expr=None, value=None, ind_vars=None, vary=True):
     """
     Create all required coefficients for no. terms
     :param param: lmfit Parameter class (can be empty)
@@ -402,21 +402,40 @@ def initiate_params(param, param_str, comp, coef_type=None, trig_orders=None, li
         #N.B. if seems the initiating the splines with values exactly half way between man and min doesn't work. Anywhere else in the middle of the range seems to do so.
     # else: value=value
     value = np.array(value)  # force input to be array so that can be iterated over
-    if trig_orders is None:
+    
+    coef_type=coefficient_type_as_number(coef_type)
+    #if coef_type == 5: #if the values at each azimuth are independent
+    #    num_coef = value.shape
+    if coef_type == 5: #if the values at each azimuth are independent we have to have a number of coefficients given. 
+        if num_coef is not None:
+            num_coef = num_coef
+        elif value is not None:
+            try:
+                #trig_orders = int((len(value) - 1)/2) #FIX ME: coefficiennt series length -- make into separate function.
+                num_coef = len(value)
+            except:
+                #trig_orders = int((value.size - 1)/2) #FIX ME: I dont know why the try except is needed but it is. it arose during the spline development
+                num_coef = value.size  
+        else:
+            print(value)
+            raise ValueError('Cannot define independent values without a number of coefficients.')
+            
+    elif trig_orders is None:
         try:
-            trig_orders = int((len(value) - 1)/2) #FIX ME: coefficiennt series length -- make into separate function. 
+            #trig_orders = int((len(value) - 1)/2) #FIX ME: coefficiennt series length -- make into separate function.
+            num_coef = len(value)
         except:
-            trig_orders = int((value.size - 1)/2) #FIX ME: I dont know why the try except is needed but it is. it arose during the spline development
-                
+            #trig_orders = int((value.size - 1)/2) #FIX ME: I dont know why the try except is needed but it is. it arose during the spline development
+            num_coef = value.size    
+    else:
+        num_coef = np.max(trig_orders)*2+1     
         # leave the spline with the 2n+1 coefficients so that it matches the equivalnet fourier series.
         # FIX ME: should we change this to make it more natural to understand?
-
-    coef_type=coefficient_type(coef_type)
-
     # First loop to add all the parameters so can be used in expressions
     #parm_list = []
-    for t in range(2 * np.max(trig_orders) + 1):
-        if value.size == trig_orders and value.size>1:
+    #for t in range(2 * np.max(trig_orders) + 1):
+    for t in range(num_coef):
+        if value.size == num_coef and value.size>1:
             v = value.item(t)
         elif coef_type != 0 or t==0:
             v = value.item(0)
@@ -428,7 +447,7 @@ def initiate_params(param, param_str, comp, coef_type=None, trig_orders=None, li
         	param.add(param_str + '_' + comp + str(t), v, expr=expr, vary=vary)
     
     if comp != 's':
-        param.add(param_str + '_' + comp + '_tp', coefficient_type(coef_type), expr=expr, vary=False)
+        param.add(param_str + '_' + comp + '_tp', coefficient_type_as_number(coef_type), expr=expr, vary=False)
     
     return param
 
@@ -680,7 +699,7 @@ def FitModel(Intfit, twotheta, azimu, params, num_peaks, nterms_back, Conv=None,
     # result = minner.minimize()
     # out = gmodel.fit(Intfit, params, twotheta=twotheta, azi=azimu, num_peaks=num_peaks, nterms_back=nterms_back,
     #                  Conv=Conv, fixed=fixed, nan_policy='propagate')
-    out = gmodel.fit(Intfit, params, twotheta=twotheta, azi=azimu, Conv=Conv, nan_policy='propagate', max_nfev=max_nfev)
+    out = gmodel.fit(Intfit, params, twotheta=twotheta, azi=azimu, Conv=Conv, nan_policy='propagate', max_nfev=max_nfev, xtol=1E-5)
     # print(out.fit_report())
     # print(out.params)
     # out.params.pretty_print()
@@ -732,19 +751,104 @@ def CentroidConversion(Conv, args_in, azi):
     return args_out
 
 
-def coefficient_type(coef_type):
+def expand_comp_string(comp):
+    
+    if comp=='d':
+        out = 'd-space'
+    elif comp=='h':
+        out = 'height'
+    elif comp=='w':
+        out='width'
+    elif comp=='p':
+        out='profile'
+    elif comp=='bg' or 'f':
+        out='background'
+    else:
+        raise ValueError('Unrecognised peak property type')
+    return out
+
+
+def params_get_type(orders, comp, peak=0):
+    """
+    Parameters
+    ----------
+    orders : TYPE
+        DESCRIPTION.
+    comp : TYPE
+        DESCRIPTION.
+    peak : TYPE, optional
+        DESCRIPTION. The default is 1.
+
+    Returns
+    -------
+    None.
+
+    """
+    comp_str = expand_comp_string(comp)+'-type'
+    if comp_str in orders:
+        coef_type = orders[comp_str]
+    elif comp_str in orders['peak'][peak]:
+        coef_type = orders['peak'][peak][comp_str]
+    else:
+        coef_type = 'fourier'
+        
+    return coef_type
+
+
+def params_get_number_coef(orders, comp, peak=0, azims=None):
+    
+    parm_str = params_get_type(orders, comp, peak)
+    parm_num = coefficient_type_as_number(parm_str)
+    print(comp, parm_str, parm_num)
+    if parm_num==5: #independent
+        if azims is None:
+            raise ValueError('Cannot define number of independent values without a number of coefficients.')
+        else:  
+            n_param = azims.shape[0]
+        
+    elif comp=='bg' or comp=='background' or comp=='f':
+        n_param = np.max(orders['background'][peak])*2+1
+        
+    else: #everything else.
+        n_param = np.max(orders['peak'][peak][expand_comp_string(comp)])*2+1
+        
+    return n_param
+    
+    
+def Fourier_order(params):
+    # Given list of Fourier coefficients return order (n) of the Fourier series.
+
+    if isinstance(params, (list,)):
+        order = int((len(params) - 1) / 2)
+    elif isinstance(params, (float,)):
+        order = int((np.size(params) - 1) / 2)
+    elif isinstance(params, (int,)):
+        order = 0
+    else:
+        print(params)
+        print(type(params))
+        raise ValueError('Parameter list is not list or float.')
+
+    return order
+
+
+def coefficient_type_as_number(coef_type):
     """
     :param series_type: string name of series. 
     :return: numerical index for series type
     """
     if coef_type == 'fourier' or coef_type==0:
         out = 0
-        #elif Coef_type == 'spline_linear' or Coef_type == 'linear':
-        #    out = 1
-        #elif Coef_type == 'spline_quadratic' or Coef_type == 'quadratic':
-        #    out = 2
-    elif coef_type == 'spline_cubic' or coef_type == 'spline-cubic' or coef_type == 'cubic' or coef_type == 'spline' or coef_type==3:
+    elif coef_type == 'spline_linear' or coef_type == 'linear' or coef_type==1:
+        out = 1
+    elif coef_type == 'spline_quadratic' or coef_type == 'quadratic' or coef_type==2:
+        out = 2
+    elif coef_type == 'spline_cubic_closed' or coef_type == 'spline_cubic' or coef_type == 'spline-cubic' or coef_type == 'cubic' or coef_type == 'spline' or coef_type==3:
         out = 3
+    elif coef_type == 'spline_cubic_open' or coef_type == 4:
+        out = 4
+    elif coef_type == 'independent' or coef_type == 5:
+        out = 5
     else:
         raise ValueError('Unrecognised coefficient series type, the valid options are ''fourier'', etc...')
         #FIX ME: write out all the licit options in the error message.
@@ -752,19 +856,23 @@ def coefficient_type(coef_type):
     
     
 
-def coefficient_string(series_type):
+def coefficient_type_as_string(series_type):
     """
     :series_type: numeric series type. 
     :return: strong index for series type
     """
-    if series_type == 'fourier' or series_type==0:
+    if series_type == 0:# or series_type=='fourier':
         out = 'fourier'
-        #elif Coef_type == 'spline_linear' or Coef_type == 'linear':
-        #    out = 1
-        #elif Coef_type == 'spline_quadratic' or Coef_type == 'quadratic':
-        #    out = 2
-    elif series_type == 'spline_cubic' or series_type == 'spline-cubic' or series_type == 'cubic' or series_type == 'spline' or series_type==3:
+    elif series_type == 1: # or series_type == 'spline_linear' or series_type == 'linear':
+        out = 'spline_linear'
+    elif series_type == 2: # or series_type == 'spline_quadratic' or series_type == 'quadratic':
+        out = 'spline_quadratic'
+    elif series_type==3: # or series_type == 'spline_cubic_closed' or series_type == 'spline_cubic' or series_type == 'spline-cubic' or series_type == 'cubic' or series_type == 'spline':
         out = 'spline_cubic'
+    elif series_type==4: #series_type == 'spline_cubic_open' or series_type == 'spline-cubic-open' or series_type == 'cubic-open' or series_type == 'spline-open':
+        out = 'spline_cubic_open'
+    elif series_type == 5: #or series_type == 'independent': 
+        out = 5
     else:
         raise ValueError('Unrecognised coefficient series type, the valid options are ''fourier'', etc...')
         #FIX ME: write out all the licit options in the error message.
@@ -774,17 +882,23 @@ def coefficient_string(series_type):
 
 def coefficient_expand(azimu, param=None, coef_type='fourier', comp_str=None, **params):
     
-    coef_type = coefficient_type(coef_type)
+    coef_type = coefficient_type_as_number(coef_type)
+    se = [0, 360]
+    
     #print('param, coef expand', param)
     #print('param, coef expand', coef_type)
     if coef_type==0:
         out = Fourier_expand(azimu, param=param, comp_str=comp_str, **params)
-    #elif Coef_type == 'spline_linear' or Coef_type == 'linear':
-    #    out = Spline_expand(azimu, param=None, comp_str=None, StartEnd = [0, 360], wrap=True, kind='linear', **params)
-    #elif Coef_type == 'spline_quadratic' or Coef_type == 'quadratic':
-    #    out = Spline_expand(azimu, param=None, comp_str=None, StartEnd = [0, 360], wrap=True, kind='quadratic', **params)
+    elif coef_type==1:
+        out = Spline_expand(azimu, param=param, comp_str=comp_str, StartEnd = se, bc_type='natural', kind='linear', **params)
+    elif coef_type==2:
+        out = Spline_expand(azimu, param=param, comp_str=comp_str, StartEnd = se, bc_type='natural', kind='quadratic', **params)
     elif coef_type==3:
-        out = Spline_expand(azimu, param=param, comp_str=comp_str, StartEnd = [0, 360], wrap=True, kind='cubic', **params)
+        out = Spline_expand(azimu, param=param, comp_str=comp_str, StartEnd = se, bc_type='periodic', kind='cubic', **params)
+    elif coef_type==4:
+        out = Spline_expand(azimu, param=param, comp_str=comp_str, StartEnd = se, bc_type='natural',  kind='cubic', **params)
+    elif coef_type==5:
+        out = Spline_expand(azimu, param=param, comp_str=comp_str, StartEnd = se, bc_type='natural',  kind='independent', **params)
     else:
         raise ValueError('Unrecognised coefficient series type, the valid options are ''fourier'', etc...')
         #FIX ME: write out all the licit options in the error message.
@@ -836,7 +950,7 @@ def coefficient_fit(ydata, azimu, param, terms=None, errs=None, param_str='peak_
     return out
 
 # spline expansion function
-def Spline_expand(azimu, param=None, comp_str=None, StartEnd = [0, 360], wrap=True, kind='cubic', **params):
+def Spline_expand(azimu, param=None, comp_str=None, StartEnd = [0, 360], bc_type='periodic', kind='cubic', **params):
     """Calculate Spline interpolation given input coefficients. 
     :param azimu: arr data array float
     :param param: list of values at spline tie points
@@ -861,22 +975,24 @@ def Spline_expand(azimu, param=None, comp_str=None, StartEnd = [0, 360], wrap=Tr
         for j in range(len(str_keys)):
             param.append(params[comp_str + str(j)])
 
-    if wrap == True:
+    if kind=='independent':
+        points = np.unique(azimu)
+        #points = np.linspace(StartEnd[0], StartEnd[1], np.size(param)+1)
+    elif bc_type == 'periodic':
         points = np.linspace(StartEnd[0], StartEnd[1], np.size(param)+1)
         param = np.append(param, param[0])
         #param.append(param[0])
-    elif isinstance(wrap, (list, tuple, np.ndarray)):
-        points = wrap
+    elif isinstance(bc_type, (list, tuple, np.ndarray)):
+        points = bc_type
     else:
         points = np.linspace(StartEnd[0], StartEnd[1], np.size(param))
 
-    #if kind=='linear':
-    #    k=1
-    #elif kind=='quadratic':
-    #    k=3
-    #el
-    if kind=='cubic' and wrap==True:
+    if kind=='cubic':# and bc_type=='periodic':
         k=3
+    elif kind=='quadratic':
+        k=2
+    elif kind=='linear' or kind=='independent':
+        k=1
     else:
         raise ValueError('Unknown spline type.')
             
@@ -891,11 +1007,11 @@ def Spline_expand(azimu, param=None, comp_str=None, StartEnd = [0, 360], wrap=Tr
         fout[:] = param[0]
     # essentially d_0, h_0 or w_0
     if not isinstance(param, np.float64) and np.size(param) > 1:  
-        if k==3 and wrap==True:
-            spl = CubicSpline(points, param, bc_type='periodic', extrapolate='periodic')
+        if k==3:
+            spl = CubicSpline(points, param, bc_type=bc_type, extrapolate='periodic')
         else:
             spl = make_interp_spline(points, param, k=k)
-            spl = interp1d(points, param, kind=kind)    
+            #spl = interp1d(points, param, kind=kind)    
         
         fout = spl(azimu)
 

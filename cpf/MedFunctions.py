@@ -46,9 +46,9 @@ class MedDetector:
         # self.detector = self.detector_check(calibration_data, detector)
         self.get_detector(calibration_data, detector)
         self.intensity = self.get_masked_calibration(calibration_data, debug, calibration_mask)
-        self.tth = self.GetTth(self.parameters, self.detector, self.intensity.mask)
-        self.azm = self.GetAzm(self.parameters, self.detector, self.intensity.mask)
-        self.dspace = self.GetDsp(self.parameters, self.detector, self.intensity.mask)
+        self.tth = self.GetTth(self.detector, self.parameters, self.intensity.mask)
+        self.azm = self.GetAzm(self.detector, self.parameters, self.intensity.mask)
+        self.dspace = self.GetDsp(self.detector, self.parameters, self.intensity.mask)
 
     def get_detector(self, calibration_data, detector=None):
         self.detector = self.detector_check(calibration_data, detector)
@@ -138,6 +138,10 @@ class MedDetector:
             im_all = []
             for x in range(dat.n_detectors):
                 im_all.append(dat.mcas[x].get_data())
+            if mask is not None:
+                im_all = ma.array(im_all, mask=mask)
+            else:
+                im_all = ma.array(im_all)
         else:
             sys.exit('Unknown file type. A *.med file is required')
         return im_all
@@ -203,7 +207,7 @@ class MedDetector:
         return dspc_out
 
 
-    def GetMask(self, MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx, debug=False):
+    def GetMask(self, MSK, ImInts=None, ImTTH=None, ImAzi=None, Imy=None, Imx=None, debug=False):
         """
         :param MSKfile:
         :param ImInts:
@@ -215,12 +219,10 @@ class MedDetector:
         :return:
         """
         # Masks for 10 element detector are either for full detector or for an energy range.
-        # Currently this just works by removing  single detector.
-
-        ImMsk = MSKfile
+        # Currently this just works by removing complete detectors.
         ImMsk = ma.zeros(ImInts.shape)
-        for x in range(len(MSKfile)):
-            ImMsk[MSKfile[x] - 1] = 1
+        for x in range(len(MSK)):
+            ImMsk[MSK[x] - 1] = 1
 
         if debug:
             # Plot mask.
@@ -288,7 +290,7 @@ class MedDetector:
             chunks.append(azichunk)
         return chunks, bin_vals
 
-    def GetTth(self, cali_file, parms_dict, pix=None, det=None):
+    def GetTth(self, cali_file, parms_dict, imask=None, pix=None, det=None):
         """
         Called get two theta but it is really getting the energy.
         :param cali_file:
@@ -301,9 +303,13 @@ class MedDetector:
         en = []
         for x in range(parms_dict['calibs'].n_detectors):
             en.append(parms_dict['calibs'].mcas[x].channel_to_energy(channels))
+        if imask is not None:
+            en = ma.array(en, mask=imask)
+        else:
+            en = ma.array(en)
         return en
 
-    def GetAzm(self, cali_file, parms_dict, pix=None, det=None):
+    def GetAzm(self, cali_file, parms_dict, imask=None, pix=None, det=None):
         """
         Give azimuth value for detector x,y position; have to assume geometry of the detectors
         :param cali_file:
@@ -314,9 +320,13 @@ class MedDetector:
         """
         l = parms_dict['calibs'].mcas[0].data.shape
         azi = np.tile(parms_dict['azimuths'], [l[0], 1]).T
+        if imask is not None:
+            azi = ma.array(azi, mask=imask)
+        else:
+            azi = ma.array(azi)
         return azi
 
-    def GetDsp(self, cali_file, parms_dict, pix=None, det=None):
+    def GetDsp(self, cali_file, parms_dict, imask=None, pix=None, det=None):
         """
         Give d-spacing value for detector x,y position; calibration info in data
         :param cali_file:
@@ -329,4 +339,8 @@ class MedDetector:
         dspc = []
         for x in range(parms_dict['calibs'].n_detectors):
             dspc.append(parms_dict['calibs'].mcas[x].channel_to_d(channels))
-        return dspc
+        if imask is not None:
+            dpsc = ma.array(dspc, mask=imask)
+        else:
+            dpsc = ma.array(dspc)
+        return dpsc

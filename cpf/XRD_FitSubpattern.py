@@ -817,8 +817,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                     master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
                     if isinstance(orders['peak'][k]['height'], list): # set part of these parameters to not vary
                         master_params = ff.unvary_part_params(master_params, param_str, comp, orders['peak'][k]['height'])
-                    master_params.pretty_print()
-                    print(np.array(newAziChunks))
                     fout = ff.coefficient_fit(azimu=np.array(newAziChunks), ydata=np.array(newHall[j]), param=master_params, param_str=param_str + '_' + comp, symm=symm,  errs=np.array(newHallErr[j]), fit_method='leastsq')
                     master_params = fout.params
                     
@@ -1164,7 +1162,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                 for cp in range(len(comp_list)):
                     master_params = ff.vary_params(master_params, param_str, comp_list[cp])
                     if isinstance(orders['peak'][k][comp_names[cp]], list): # set part of these parameters to not vary
-                        master_params = ff.unvary_part_params(master_params, param_str, comp, orders['peak'][k][comp_names[cp]])
+                        master_params = ff.unvary_part_params(master_params, param_str, comp_list[cp], orders['peak'][k][comp_names[cp]])
             for k in range(len(backg)):
                 param_str = 'bg_c'+str(k)
                 comp = 'f'
@@ -1205,7 +1203,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
             out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(), num_peaks=peeks,
                               nterms_back=len(backg_guess), Conv=conversion_factor, fixed=pfixed, fit_method=None,
                               weights=None, params=master_params, max_nfev=max_nfev)
-            #master_params = out.params
+            master_params = out.params
     
             if out.success == 1:
                 # it worked, carry on
@@ -1221,7 +1219,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                 step = 2
                 iterations = np.max((iterations, 3))
             else:
-                step = 9
+                step = step + 1
                 
             #FIX ME: we could make an option for output the chunks without any Fourier/global fitting. Would this be useful?
                 

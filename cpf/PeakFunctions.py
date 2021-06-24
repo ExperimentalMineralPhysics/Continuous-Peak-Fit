@@ -799,7 +799,6 @@ def params_get_number_coef(orders, comp, peak=0, azims=None):
     
     parm_str = params_get_type(orders, comp, peak)
     parm_num = coefficient_type_as_number(parm_str)
-    print(comp, parm_str, parm_num)
     if parm_num==5: #independent
         if azims is None:
             raise ValueError('Cannot define number of independent values without a number of coefficients.')

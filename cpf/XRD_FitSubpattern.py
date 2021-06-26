@@ -20,30 +20,6 @@ import cpf.PeakFunctions as ff
 np.set_printoptions(threshold=sys.maxsize)
 
 
-
-def AnyTermsNull(obj_to_inspect, val_to_find="Null", indexpath="", clean=None):
-    ''' This function accepts a nested dictionary and list as argument
-        and iterates over all values of nested dictionaries and lists.
-        If any of the values are "Null" it returns 0
-    '''  
-    # copied from https://python-forum.io/thread-24856.html
-    # on 26th June 2021
-    if clean == None:
-        clean=1
-    if isinstance(obj_to_inspect, dict):
-        for key, value in obj_to_inspect.items():
-            clean = AnyTermsNull(value, val_to_find, indexpath + f"['{key}']", clean=clean)
-    if isinstance(obj_to_inspect, list):
-        for key, value in enumerate(obj_to_inspect):
-            clean = AnyTermsNull(value, val_to_find, indexpath + f"[{key}]", clean=clean)
-    if isinstance(obj_to_inspect, str):
-        if obj_to_inspect == val_to_find:
-            #print(f"Value {val_to_find} found at {indexpath}")
-            clean=0
-    return clean
-
-
-
 # FIX ME;
 # The script should not need to know what the limits are - it should only see the data that it needs to fit.
 def peak_string(orders, fname=False):
@@ -364,23 +340,12 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                 if not isinstance(orders['peak'][y]['profile_fixed'], list):
                     orders['peak'][y]['profile_fixed'] = [orders['peak'][y]['profile_fixed']]
 
-    if PreviousParams:
-        #check if the previous fit was 'good' i.e. contrains no 'null' values.
-        clean = AnyTermsNull(PreviousParams, val_to_find="Null")
-        if clean == 0:
-            #the previous fit has problems so discard it
-            print('Propagated fit has problems so discarding it and doing fit from scratch')
-            PreviousParams=None
-            
-            
     if PreviousParams and orders:
-        
-        choice_list = ['d-space', 'height', 'width', 'profile']
-        
         # need to check sizes of both arrays here.
         # orders takes precedence over PreviousParams so we add or remove coefficients as necessary
         for y in range(peeks):
             # loop over parameters
+            choice_list = ['d-space', 'height', 'width', 'profile']
             for Parm in choice_list:
                 '''
                 for x in range(4):

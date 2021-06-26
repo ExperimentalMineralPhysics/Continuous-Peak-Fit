@@ -75,6 +75,8 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     text_file.write("# Number of detector positions\n")
     text_file.write("%6i\n" % len(parms_dict['azimuths']))
     text_file.write("# Angles for detector positions: Number. Use (1/0). Angle. \n")
+    
+    az_used = []
     for x in range(len(parms_dict['azimuths'])):
         
         # determine if detector masked
@@ -83,6 +85,7 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                 use = 0
             else:
                 use = 1
+                az_used.append(parms_dict['azimuths'][x])
                 
         # print detector number, if it is being used, then angle, lastly just a number.
         text_file.write("%6i  %i  %7.3f  %i \n" % (x+1, use, parms_dict['azimuths'][x], 1))
@@ -323,28 +326,32 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                     sym = FitSettings.fit_orders[x]['peak'][y]['symmetry']
                 else:
                     sym = 1
-                    
+                
+                   
+                az = parms_dict['azimuths']
+                coef_type = ff.params_get_type(fit[x], 'd', peak=y)
+                peak_d = ff.coefficient_expand(np.array(az), fit[x]['peak'][y]['d-space'], coef_type=coef_type)
+                #peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
+                coef_type = ff.params_get_type(fit[x], 'h', peak=y)
+                peak_i = ff.coefficient_expand(np.array(az_used)*sym, fit[x]['peak'][y]['height'], coef_type=coef_type) 
+                n=-1
                 for w in range(len(parms_dict['calibs'].mcas)):
-                    
                     # determine if detector masked
                     if FitSettings.Calib_mask:
                         if w+1 in FitSettings.Calib_mask:
                             use = 0
                         else:
                             use = 1
+                            n=n+1
                     else:
                             use = 1
-                            
-                    #only write output for unmasked detectors
-                    if use == 1:
-                        az = parms_dict['azimuths'][w]
+                            n=n+1
+                    
+                    if use == 1: # write output for unmasked detectors
+                        text_file.write("%8i        %s   %s   %s   %8.4f  %10.3f       %3i           %3i\n" % (peak, h, k, l, peak_d[w], peak_i[n], w+1,  z+1))
+                    else: # if the detetor is masked fill with zeor heights
+                        text_file.write("%8i        %s   %s   %s   %8.4f  %10.3f       %3i           %3i\n" % (peak, h, k, l, peak_d[w], 0, w+1,  z+1))
                         
-                        peak_d = ff.Fourier_expand((az), fit[x]['peak'][y]['d-space'])
-                        #peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
-                        peak_i = ff.Fourier_expand((az)*sym, fit[x]['peak'][y]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
-                        #peak_w = ff.Fourier_expand((az)*sym, fit['peak'][y]['width'])   #FIX ME - is this the correct half width?
-                        #peak_p = ff.Fourier_expand((az)*sym, fit['peak'][y]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
-                        text_file.write("%8i        %s   %s   %s   %8.4f  %10.3f       %3i           %3i\n" % (peak, h, k, l, peak_d, peak_i, w+1,  z+1))
                 
                 peak = peak+1
         

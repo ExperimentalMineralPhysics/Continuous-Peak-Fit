@@ -392,6 +392,7 @@ def initiate_params(param, param_str, comp, coef_type=None, num_coef=None, trig_
     """
     if limits:
         new_max, new_min = limits
+        half_range = (new_max-new_min)/2
     else:
         new_min = -np.inf
         new_max = np.inf
@@ -444,7 +445,8 @@ def initiate_params(param, param_str, comp, coef_type=None, num_coef=None, trig_
         if t == 0 or coef_type != 0:
         	param.add(param_str + '_' + comp + str(t), v, max=new_max, min=new_min, expr=expr, vary=vary)
         else:
-        	param.add(param_str + '_' + comp + str(t), v, expr=expr, vary=vary)
+        	#param.add(param_str + '_' + comp + str(t), v, expr=expr, vary=vary)
+        	param.add(param_str + '_' + comp + str(t), v, max=half_range, min=-half_range, expr=expr, vary=vary)
     
     if comp != 's':
         param.add(param_str + '_' + comp + '_tp', coefficient_type_as_number(coef_type), expr=expr, vary=False)

@@ -457,14 +457,17 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
     lenbg = np.array(lenbg)
     singlelenbg = np.array(singlelenbg)
 
-
-    step = 1
-    while step <= 10: #10 is arbitrarily large number and does not (currently) reflect the number of actual steps/stages in nthe process
-        #use while loops so that if the fit is rubbish we can go back and improve it by repeatingn earlier steps. 
-        # for chunks step <= 3 and for refine <= 6
-        # we are using increments of 3 so that it is possible to utilise different states after the final fit.  
+    if not PreviousParams:
+        step = 0
+    else:
+        step = 5
         
-        if step <= 3:
+    while step <= 100: #10 is arbitrarily large number and does not (currently) reflect the number of actual steps/stages in nthe process
+        #use while loops so that if the fit is rubbish we can go back and improve it by repeatingn earlier steps. 
+        # for chunks step <= 9 and for refine <= 19
+        # we are using increments of 10 so that it is possible to utilise different states after the final fit.  
+        
+        if step <= 9:
             # generate chunks and initial fits
             # or parse previous fits into correct data structure
         
@@ -1094,22 +1097,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                                                        value=PreviousParams['background'][b],
                                                        coef_type=PreviousParams['background-type'],
                                                        limits=limits)
-                    
-                    '''
-                    
-                    
-                    
-                    
-                    
-                    bg_four = PreviousParams['background'][b]
-                    for f_b in range(len(bg_four)):
-                        if b is 0 and f_b is 0:
-                            master_params.add('bg_c' + str(b) + '_f' + str(f_b), bg_four[f_b], min=lims['background'][0],
-                                              max=lims['background'][1])
-                        else:
-                            master_params.add('bg_c' + str(b) + '_f' + str(f_b), value=bg_four[f_b])
-                    '''
-                # master_params.pretty_print()
         
                 # Guess for background, if orders and therefore no guess input, choose appropriate
                 # copied from above to allow the code to run. FIX ME: doesn't need all this code.
@@ -1123,12 +1110,13 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         
                 # FIX ME: need to confirm the number of parameters matches the orders of the fits.
                 
-            step = step + 3
+            step = step + 10
             
             
-        if step >= 4:
+        if step >= 10:
             
-            if refine or step>=5 or not PreviousParams:
+            #if refine or step>=10 or not PreviousParams:
+            if refine or step!=10 or step!=15:
                 # Iterate over each parameter series in turn.
                 print('\nRe-fitting for d, h, w, bg separately... will refine %i time(s)\n' % iterations)
                 for j in range(iterations):
@@ -1169,23 +1157,26 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         print('Parameters after refining seires fits ' + str(j+1) + ' time(s)')
                         master_params.pretty_print()
                 
+                step = step + 10
+            else:
+                step = step + 11
                 
-            step = step + 3
         
-        if step >= 7:
+        if step >= 20:
             # FIX ME: Need to sort out use of lmfit parameters and NewParams, below will not work currently for loaded
             # parameters as master_params not created from NewParams yet. If possible use the json import/export within lmfit.
         
             # Refit through full equation with all data for d,h,w,bg independently
             print('\nFinal fit solving for all parms...\n')
         
-            if step == 7:
+            if any(x == step for x in [20,21,22,25,26,27]):  # if we are on the first go round of the fitting. 
                 max_nfev = 500
-            elif step == 9:
-                max_nfev = None
-            else: 
+            elif any(x == step for x in [23,28]):
                 max_nfev = 1000
-                
+            elif any(x == step for x in [24,29]):
+                max_nfev = np.inf
+            else: 
+                raise ValueError('The value of step here is not possible. Ooops.')
         
             # set all parameters to vary
             for k in range(peeks):
@@ -1245,8 +1236,23 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
     
             if out.success == 1:
                 # it worked, carry on
-                step = step + 10
+                step = step + 100
                 master_params = out.params
+            elif step == 24 and out.success == 0:
+                raise ValueError('Oh Dear. It should not be possible to get here. Something has gone very wrong with the fitting.') 
+            elif step == 29 and out.success == 0:
+                step = 0 # go back to the start, discard PreviousParams and do chunks for this data set. 
+            elif any(x == step for x in [20,25]) and out.success == 0:
+                step = step - 7
+            elif any(x == step for x in [21,22,23,26,27,28]) and out.success == 0:
+                step = step - 9
+                if any(x == step for x in [23,28]):
+                    iterations = np.max((iterations, 3))
+            else: 
+                raise ValueError('The value of step here is not possible. Ooops.')
+                
+            '''    
+            elif not PreviousParams and 
             elif out.success == 0 and refine==False and PreviousParams:
                 #refine the fourier series before tying again
                 step = 5
@@ -1258,7 +1264,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                 iterations = np.max((iterations, 3))
             else:
                 step = step + 1
-                
+            '''    
             #FIX ME: we could make an option for output the chunks without any Fourier/global fitting. Would this be useful?
                 
     print('\nFinal Coefficients\n')

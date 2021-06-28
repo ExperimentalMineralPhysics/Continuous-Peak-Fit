@@ -21,7 +21,7 @@ np.set_printoptions(threshold=sys.maxsize)
 
 
 
-def AnyTermsNull(obj_to_inspect, val_to_find="Null", indexpath="", clean=None):
+def AnyTermsNull(obj_to_inspect, val_to_find = None, indexpath="", clean=None):
     ''' This function accepts a nested dictionary and list as argument
         and iterates over all values of nested dictionaries and lists.
         If any of the values are "Null" it returns 0
@@ -30,16 +30,19 @@ def AnyTermsNull(obj_to_inspect, val_to_find="Null", indexpath="", clean=None):
     # on 26th June 2021
     if clean == None:
         clean=1
+        
     if isinstance(obj_to_inspect, dict):
         for key, value in obj_to_inspect.items():
             clean = AnyTermsNull(value, val_to_find, indexpath + f"['{key}']", clean=clean)
+    
     if isinstance(obj_to_inspect, list):
         for key, value in enumerate(obj_to_inspect):
             clean = AnyTermsNull(value, val_to_find, indexpath + f"[{key}]", clean=clean)
-    if isinstance(obj_to_inspect, str):
-        if obj_to_inspect == val_to_find:
-            #print(f"Value {val_to_find} found at {indexpath}")
-            clean=0
+              
+    if obj_to_inspect == val_to_find:
+        clean = 0
+        print(f"Value {val_to_find} found at {indexpath}")
+
     return clean
 
 
@@ -366,12 +369,12 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
 
     if PreviousParams:
         #check if the previous fit was 'good' i.e. contrains no 'null' values.
-        clean = AnyTermsNull(PreviousParams, val_to_find="Null")
+        #N.B. null values in json file are read in as None 
+        clean = AnyTermsNull(PreviousParams, val_to_find=None)
         if clean == 0:
             #the previous fit has problems so discard it
             print('Propagated fit has problems so discarding it and doing fit from scratch')
             PreviousParams=None
-            
             
     if PreviousParams and orders:
         

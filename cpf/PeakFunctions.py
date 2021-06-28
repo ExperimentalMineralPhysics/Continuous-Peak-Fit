@@ -396,6 +396,7 @@ def initiate_params(param, param_str, comp, coef_type=None, num_coef=None, trig_
     else:
         new_min = -np.inf
         new_max = np.inf
+        half_range = np.inf
     if value is None and limits is None:
         value = 0.01
     elif value is None and limits:
@@ -789,7 +790,7 @@ def params_get_type(orders, comp, peak=0):
     comp_str = expand_comp_string(comp)+'-type'
     if comp_str in orders:
         coef_type = orders[comp_str]
-    elif comp_str in orders['peak'][peak]:
+    elif len(orders['peak'])>peak and comp_str in orders['peak'][peak]:
         coef_type = orders['peak'][peak][comp_str]
     else:
         coef_type = 'fourier'

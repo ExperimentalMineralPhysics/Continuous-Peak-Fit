@@ -1,5 +1,13 @@
 
 *.pyx
 *.pyc
+
+*.json 
+*.png 
+*.sav 
+*.dat 
+*.fit 
+*.exp
+
 .DS_Store
 venv

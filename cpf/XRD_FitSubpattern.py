@@ -1306,6 +1306,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                 }
     NewParams.update({'FitProperties': FitStats})
 
+    #add peak names to NewParams
+    NewParams.update({'PeakLabel': peak_string(orders)})
 
     # Plot results to check
     view = 0

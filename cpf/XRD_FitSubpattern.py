@@ -1171,7 +1171,11 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
         locs, labels = plt.xticks()
         plt.setp(labels, rotation=90)
         plt.colorbar()
-        plt.suptitle(peak_string(orders) + '; final fit')
+        if 'note' in orders:
+            ttlstr = peak_string(orders) + '; final fit; '+ orders['note']
+        else:
+            ttlstr = peak_string(orders) + '; final fit'
+        plt.suptitle(ttlstr)
         plt.tight_layout()
 
         #        # make a second figure with the Q-Q plot of the data and fit.
@@ -1191,6 +1195,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, orders=None, PreviousPara
             else:
                 filename = 'Fit2Peak_'
             filename = filename + peak_string(orders, fname=True)
+            if 'note' in orders:
+                filename = filename+"".join(x for x in orders['note'] if x.isalnum())
+            else:
+                ttlstr = peak_string(orders) + '; final fit'
 
             i = 0
             if os.path.exists('{}.png'.format(filename)):

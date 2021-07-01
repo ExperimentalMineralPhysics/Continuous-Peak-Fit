@@ -163,7 +163,7 @@ def GetMask(MSKfile, ImInts, ImTTH, ImAzi, Imy, Imx, debug=False):
 
 
 
-def plot(ImDispersion, ImAzimuths, ImIntensity, dtype='data', masked=True, ImIntensity2=None, name=None):
+def plot(ImDispersion, ImAzimuths, ImIntensity, dtype='data', masked=True, ImIntensity2=None, name=''):
     # Plot data.
     # possibilities:
     #   1. just plotting the data or model - with or without mask: label 'data'

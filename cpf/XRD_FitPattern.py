@@ -5,6 +5,7 @@ __all__ = ['execute', 'writeoutput']
 import json
 import os
 import sys
+from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
@@ -279,7 +280,96 @@ def initiate(settings_file=None, inputs=None, outtype=None, initiateData=True, *
 
 
 
-def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=None, det=None, use_bounds=False,
+def setrange(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1,
+            track=False, parallel=True, subpattern='all', **kwargs):
+    
+    
+    FitSettings, FitParameters = initiate(settings_file, inputs)
+
+    # search over the first file only
+    # strip file list to first file
+    if not 'datafile_Files' in FitParameters:
+        FitSettings.datafile_EndNum = FitSettings.datafile_StartNum
+    else:
+        FitSettings.datafile_Files = FitSettings.datafile_Files[0]
+    
+    # restrict to subpatterns listed
+    if subpattern=='all':
+        subpats = list(range(0, len(FitSettings.fit_orders)))
+    elif isinstance(subpattern,list):
+        subpats = subpattern
+    else:
+        subpats = list(subpattern)
+        
+    # make new order search list
+    orders_tmp = []
+    for i in range(len(subpats)):
+        j = subpats[i]
+        orders_tmp.append(FitSettings.fit_orders[j])
+           
+    FitSettings.fit_orders = orders_tmp
+    
+    execute(FitSettings=FitSettings, FitParameters=FitParameters, 
+            debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
+            parallel=parallel,
+            mode='setrange')
+
+
+
+def ordersearch(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1,
+            track=False, parallel=True, search_parameter='height', search_over=[0,20], subpattern='all', search_peak=0, **kwargs):
+    """
+    :param settings_file:
+    :param inputs:
+    :param debug:
+    :param refine:
+    :param iterations:
+    :return:
+    """
+    FitSettings, FitParameters = initiate(settings_file, inputs)
+
+    # search over the first file only
+    # strip file list to first file
+    if not 'datafile_Files' in FitParameters:
+        FitSettings.datafile_EndNum = FitSettings.datafile_StartNum
+    else:
+        FitSettings.datafile_Files = FitSettings.datafile_Files[0]
+    
+    # restrict to subpatterns listed
+    if subpattern=='all':
+        subpats = list(range(0, len(FitSettings.fit_orders)))
+    elif isinstance(subpattern,list):
+        subpats = subpattern
+    else:
+        subpats = list(subpattern)
+    
+    # make new order search list
+    order_search = []
+    for i in range(len(subpats)):
+        j = subpats[i]
+        tmp_order = FitSettings.fit_orders[j]
+        search = list(range(search_over[0], search_over[1]))
+        for k in range(len(search)):
+            orders_s = deepcopy(tmp_order)
+            if search_parameter != 'background':
+                orders_s['peak'][search_peak][search_parameter] = search[k]  
+            else:
+                orders_s['background'][search_peak] = search[k]
+            orders_s['note'] = search_parameter+'='+str(search[k])
+            order_search.append(orders_s)
+    FitSettings.fit_orders = order_search
+    
+    execute(FitSettings=FitSettings, FitParameters=FitParameters, 
+            debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
+            parallel=parallel)
+    
+    #write a differential strain output file
+    writeoutput(FitSettings=FitSettings, FitParameters=FitParameters, outtype='DifferentialStrain')
+
+    
+
+
+def writeoutput(settings_file=None, FitSettings=None, FitParameters=None, parms_dict=None, outtype=None, det=None, use_bounds=False,
                 differential_only=False, **kwargs):
     """
     :param settings_file:
@@ -290,7 +380,7 @@ def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=N
     :return:
     """
     # if no params_dict then initiate. Check all the output functions are present and valid.
-    if parms_dict is None:
+    if FitSettings is None:
         FitSettings, FitParameters = initiate(settings_file, outtype=outtype, initiateData=False)
             
     if det is None:
@@ -319,8 +409,12 @@ def writeoutput(settings_file=None, FitSettings=None, parms_dict=None, outtype=N
         wr.WriteOutput(FitSettings, parms_dict, differential_only=differential_only)
 
 
-def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1,
-            track=False, parallel=True, **kwargs):
+
+def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=None, debug=False, refine=True, save_all=False, 
+            propagate=True, iterations=1,
+            track=False, parallel=True, 
+            mode='fit',
+            **kwargs):
     """
     :param settings_file:
     :param inputs:
@@ -329,8 +423,9 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
     :param iterations:
     :return:
     """
-
-    FitSettings, FitParameters = initiate(settings_file, inputs)
+    
+    if FitSettings == None:
+        FitSettings, FitParameters = initiate(settings_file, inputs)
 
     # load detector
     calib_mod = 'cpf.' + FitSettings.Calib_type + 'Functions'
@@ -476,7 +571,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             plt.close()
 
         # get previous fit (if exists and required)
-        if os.path.isfile(temporary_data_file) and propagate is True:
+        if os.path.isfile(temporary_data_file) and propagate is True and mode=='fit':
             # Read JSON data from file
             print('Loading previous fit results from %s' % temporary_data_file)
             with open(temporary_data_file) as json_data:
@@ -506,7 +601,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
                 bounds = FitSettings.fit_bounds
             else:
                 bounds = None
-            if 'previous_fit' in locals():
+            if 'previous_fit' in locals() and mode=='fit':
                 params = previous_fit[i]                    
             else:
                 params = []
@@ -544,11 +639,25 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
                 dspacing_sub = ma.array(dspacing_sub, mask=intens_sub.mask)
                 
 
-            if 0:#debug:
+            if mode=='setrange':
                 #FIX ME: this plots the input data. perhaps it should have its own switch rather than being subservient to Debug. 
                 # It is not a debug it is a setup thing.
                 #plot the data and the mask.
-                det.plot(twotheta_sub, azimu_sub, intens_sub, dtype='mask')
+                fig_1 = det.plot(twotheta_sub, azimu_sub, intens_sub, dtype='mask', name=peak_string(orders))
+                
+                # save figures without overwriting old names
+                filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
+                filename = filename + peak_string(orders, fname=True)
+                
+                i = 0
+                if os.path.exists('{}.png'.format(filename)):
+                    i+=1
+                while os.path.exists('{}_{:d}.png'.format(filename, i)):
+                    i += 1
+                if i == 0:
+                    fig_1.savefig('{}_mask.png'.format(filename))
+                else:
+                    fig_1.savefig('{}_{:d}.png'.format(filename, i))
 
             # fit the subpattern
             # tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
@@ -561,67 +670,69 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, save_all=
             #Fitted_param.append(tmp[0])
             #lmfit_models.append(tmp[1])
 
-
-            if parallel is True:#setup parallel version
-                #parallel_pile.append(([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds))
-            
-                kwargs = {'DetFuncs': calib_mod, 'SaveFit': SaveFigs, 'debug': debug, 'refine': refine, 'iterations': iterations, 'fnam': diff_files[j]}
-                args = ([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds)
-                parallel_pile.append((args, kwargs))
+            else:
+                if parallel is True:#setup parallel version
+                    #parallel_pile.append(([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds))
                 
-                #parallel_pile.append(([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds))
-                
-            else: #non-parallel version.
-                # fit the subpattern
-                # tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
-                #                     DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
-                #                     iterations=iterations, fnam=diff_files[j])
-                tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds,
-                                    DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
-                                    iterations=iterations, fnam=diff_files[j])
-                Fitted_param.append(tmp[0])
-                lmfit_models.append(tmp[1])
+                    kwargs = {'DetFuncs': calib_mod, 'SaveFit': SaveFigs, 'debug': debug, 'refine': refine, 'iterations': iterations, 'fnam': diff_files[j]}
+                    args = ([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds)
+                    parallel_pile.append((args, kwargs))
+                    
+                    #parallel_pile.append(([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds))
+                    
+                else: #non-parallel version.
+                    # fit the subpattern
+                    # tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
+                    #                     DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
+                    #                     iterations=iterations, fnam=diff_files[j])
+                    tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds,
+                                        DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
+                                        iterations=iterations, fnam=diff_files[j])
+                    Fitted_param.append(tmp[0])
+                    lmfit_models.append(tmp[1])
 
                 
-
+        # write output files
+        if mode=='fit':
   
-        if parallel is True:            
-            #print(mp.cpu_count())
-            #print(len(parallel_pile)) 
-            
-            '''
-            kwargs = {'DetFuncs': calib_mod, 'SaveFit': SaveFigs, 'debug': debug, 'refine': refine, 'iterations': iterations, 'fnam': diff_files[j]}           
-            result = mp.Process(target=parallel_processing, args=parallel_pile, kwargs=kwargs)
-            result.start()
-            result.join()
-            '''
-            #p = mp.Pool(processes=mp.cpu_count())#, initializer=(SubpatternParallel_init), initargs=(FitSettings, FitParameters, params, diff_files[j], calib_mod, SaveFigs, debug, refine, iterations))) 
-            #result = p.map(parallel_processing1, parallel_pile) #works for just args as parallelepile
-            tmp = p.map(parallel_processing, parallel_pile) 
-            for i in range(n_subpats):
-                Fitted_param.append(tmp[i][0])
-                lmfit_models.append(tmp[i][1])
+            if parallel is True:            
+                #print(mp.cpu_count())
+                #print(len(parallel_pile)) 
+                
+                '''
+                kwargs = {'DetFuncs': calib_mod, 'SaveFit': SaveFigs, 'debug': debug, 'refine': refine, 'iterations': iterations, 'fnam': diff_files[j]}           
+                result = mp.Process(target=parallel_processing, args=parallel_pile, kwargs=kwargs)
+                result.start()
+                result.join()
+                '''
+                #p = mp.Pool(processes=mp.cpu_count())#, initializer=(SubpatternParallel_init), initargs=(FitSettings, FitParameters, params, diff_files[j], calib_mod, SaveFigs, debug, refine, iterations))) 
+                #result = p.map(parallel_processing1, parallel_pile) #works for just args as parallelepile
+                tmp = p.map(parallel_processing, parallel_pile) 
+                for i in range(n_subpats):
+                    Fitted_param.append(tmp[i][0])
+                    lmfit_models.append(tmp[i][1])
 
         
-        # write output files
 
-        # store the fit parameters information as a JSON file.
-        filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
-        filename = filename + '.json'
-        # print(filename)
-        with open(filename, 'w') as TempFile:
-            # Write a JSON string into the file.
-            json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
-
-        # if propagating the fits write them to a temporary file
-        if propagate:
-            # print json_string
-            with open(temporary_data_file, 'w') as TempFile:
+            # store the fit parameters information as a JSON file.
+            filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
+            filename = filename + '.json'
+            # print(filename)
+            with open(filename, 'w') as TempFile:
                 # Write a JSON string into the file.
                 json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
+    
+            # if propagating the fits write them to a temporary file
+            if propagate:
+                # print json_string
+                with open(temporary_data_file, 'w') as TempFile:
+                    # Write a JSON string into the file.
+                    json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
 
-    # Write the output files.
-    writeoutput(settings_file, FitSettings=FitSettings, parms_dict=parms_dict, det=det, outtype=FitSettings.Output_type)
+
+    if mode=='fit':
+        # Write the output files.
+        writeoutput(settings_file, FitSettings=FitSettings, parms_dict=parms_dict, det=det, outtype=FitSettings.Output_type)
 
     if parallel is True:     
         p.close()
@@ -635,144 +746,7 @@ def parallel_processing(p):
 
 
 
-def setup(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1,
-            track=False, parallel=True, **kwargs):
-    """
-    :param settings_file:
-    :param inputs:
-    :param debug:
-    :param refine:
-    :param iterations:
-    :return:
-    """
-
-    FitSettings, FitParameters = initiate(settings_file, inputs)
-
-    # load detector
-    calib_mod = 'cpf.' + FitSettings.Calib_type + 'Functions'
-    det = importlib.import_module('cpf.' + FitSettings.Calib_type + 'Functions')
-
-    # define locally required names.
-    temporary_data_file = 'PreviousFit_JSON.dat'
-
-    # calibration parameter file #
-    parms_dict = det.GetCalibration(os.path.abspath(FitSettings.Calib_param))
-
-    # get list of diffraction patterns #
-    diff_files, n_diff_files = FileList(FitParameters, FitSettings)
-        
-    # get calibration for image set.
-    # get array for azimuth, two theta and d-space the same size as the image.
-    azimu = det.GetAzm(os.path.abspath(FitSettings.Calib_data), parms_dict, FitSettings.Calib_pixels,
-                       FitSettings.Calib_detector)
-    twotheta = det.GetTth(os.path.abspath(FitSettings.Calib_data), parms_dict, FitSettings.Calib_pixels,
-                          FitSettings.Calib_detector)
-    dspace = det.GetDsp(os.path.abspath(FitSettings.Calib_data), parms_dict, FitSettings.Calib_pixels,
-                        FitSettings.Calib_detector)
-    # FIX ME: Should be able to send diffraction patter, mask and calibration parameters to a function and get back
-    # three masked arrays.
-
-    # load calibration data/image -- to get intensities for mask.
-    im = det.ImportImage(os.path.abspath(FitSettings.Calib_data), debug=debug)
-    intens = ma.array(im)
-
-    # create mask from mask file if present.
-    # if not make all values valid
-    if 'Calib_mask' in FitParameters:
-        intens = det.GetMask(FitSettings.Calib_mask, intens, twotheta, azimu, os.path.abspath(FitSettings.Calib_data),
-                             FitSettings.Calib_pixels, debug=debug)
-    else:
-        ImMask = np.zeros_like(intens)
-        intens = ma.array(intens, mask=ImMask)
-        intens = ma.masked_outside(intens, 0, np.inf)
-
-    # apply mask to arrays
-    azimu = ma.array(azimu, mask=intens.mask)
-    twotheta = ma.array(twotheta, mask=intens.mask)
-    dspace = ma.array(dspace, mask=intens.mask)
-
-    # Get diffraction pattern to process.
-    im = det.ImportImage(diff_files[0])
-
-    # get intensity array and mask it
-    intens = ma.array(im, mask=azimu.mask) 
-    # FIX ME: replace mask with image_prepare mask.
-    if 'Image_prepare' in FitParameters:
-        if 'cosmics' in FitSettings.Image_prepare:
-            print('Remove Cosmics')
-            #set defaults
-            gain = 2.2
-            sigclip = 1.5
-            objlim = 3.0
-            sigfrac = 0.3
-            if bool(FitSettings.Image_prepare['cosmics']) == True:
-                if ('gain' in FitSettings.Image_prepare['cosmics']):
-                    gain=FitSettings.Image_prepare['cosmics']['gain']       
-                if ('sigclip' in FitSettings.Image_prepare['cosmics']):
-                    sigclip=FitSettings.Image_prepare['cosmics']['sigclip']  
-                if ('objlim' in FitSettings.Image_prepare['cosmics']):
-                    objlim=FitSettings.Image_prepare['cosmics']['objlim']   
-                if ('sigfrac' in FitSettings.Image_prepare['cosmics']):
-                    sigfrac=FitSettings.Image_prepare['cosmics']['sigfrac'] 
-                #FIX ME: use argparse or someway of passing any aguemnt into cosmics.      
-                                
-            test = cosmicsimage(intens, sigclip=sigclip, objlim=objlim, gain=gain,sigfrac=sigfrac)
-            num = 2
-            for i in range(num):
-                test.lacosmiciteration(True)
-                #print(asdf["nnew"], asdf["niter"])
-                test.clean()
-                msk = np.logical_or(azimu.mask, np.array(test.mask, dtype='bool'))
-            intens = ma.array(im, mask=msk)
-   
-    # Pass each sub-pattern to Fit_Subpattern for fitting in turn.
-    # get number of sub-patterns to be fitted
-    n_subpats = len(FitSettings.fit_orders)
-
-    for i in range(n_subpats):
-        tthRange = FitSettings.fit_orders[i]['range'][0]
-        if hasattr(FitSettings, 'fit_orders'):  # FitSettings.fit_orders:
-            orders = FitSettings.fit_orders[i]
-        
-        # get subsections of data to pass
-        subpat = np.where((twotheta >= tthRange[0]) & (twotheta <= tthRange[1]))
-        twotheta_sub = twotheta[subpat]
-        dspacing_sub = dspace[subpat]
-        azimu_sub = azimu[subpat]
-        intens_sub = intens[subpat]
-        
-        #Mask the subpattern by intensity if called for
-        if 'Imax' in orders:
-            intens_sub   = ma.masked_outside(intens_sub,0,int(orders['Imax']))
-            azimu_sub    = ma.array(azimu_sub, mask=intens_sub.mask)
-            twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
-            dspacing_sub = ma.array(dspacing_sub, mask=intens_sub.mask)
-            
-            
-        
-        filename = os.path.splitext(os.path.basename(diff_files[0]))[0] + '_'
-        filename = filename + peak_string(orders, fname=True)    
-            
-        #FIX ME: this plots the input data. perhaps it should have its own switch rather than being subservient to Debug. 
-        # It is not a debug it is a setup thing.
-        #plot the data and the mask.
-        fig_1 = det.plot(twotheta_sub, azimu_sub, intens_sub, dtype='mask', name=peak_string(orders))
-        #fig_1 = det.plot(twotheta_sub, azimu_sub, intens_sub, dtype='mask', name=filename)
     
-    
-        # save figures without overwriting old names
-        i = 0
-        if os.path.exists('{}.png'.format(filename)):
-            i+=1
-        while os.path.exists('{}_{:d}.png'.format(filename, i)):
-            i += 1
-        if i == 0:
-            fig_1.savefig('{}_mask.png'.format(filename))
-            #fig_2.savefig('{}_CDF.png'.format(filename))
-        else:
-            fig_1.savefig('{}_{:d}.png'.format(filename, i))
-            #fig_2.savefig('{}_{:d}.png'.format(filename, i))
-
 
 if __name__ == '__main__':
     # Load settings fit settings file.

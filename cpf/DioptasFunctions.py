@@ -408,14 +408,14 @@ class DioptasDetector:
 
 
 
-    def plot(ImDispersion, ImAzimuths, ImIntensity, dtype='data', masked=True, ImIntensity2=None, name=''):
+    def plot(self, ImDispersion, ImAzimuths, ImIntensity, plottype='data', masked=True, ImIntensity2=None, name=''):
         # Plot data.
         # possibilities:
         #   1. just plotting the data or model - with or without mask: label 'data'
         #   2. plot of data, model and differences: label 'model'
         #   3. plot of all data, mask and masked data. label 'mask'
         to_plot = []
-        if dtype == 'data':
+        if plottype == 'data':
             x_plots = 1
             y_plots = 1
             to_plot.append(ImIntensity)
@@ -426,7 +426,7 @@ class DioptasDetector:
             spec = gridspec.GridSpec(ncols=x_plots, nrows=y_plots,
                              width_ratios=[1], wspace=0.5,
                              hspace=0.5, height_ratios=[1])
-        elif dtype == 'model':
+        elif plottype == 'model':
             x_plots = 3
             y_plots = 1
             to_plot.append(ImIntensity)
@@ -436,7 +436,7 @@ class DioptasDetector:
             plot_title = ['Data', 'Model', 'Residuals']
             plot_cmap = ['jet', 'jet', 'jet']
             
-        elif dtype == 'mask':
+        elif plottype == 'mask':
             x_plots = 3
             y_plots = 2
             to_plot.append(ImIntensity)
@@ -480,7 +480,7 @@ class DioptasDetector:
         if y_plots > 1:
             for i in range(x_plots):
                 ax1 = fig_1.add_subplot(spec[i+x_plots])
-                if dtype == 'mask' and i==1:
+                if plottype == 'mask' and i==1:
                     #plot cdf of the intensities.
                     # sort the data in ascending order
                     x1 = np.sort(ImIntensity.data)
@@ -514,21 +514,4 @@ class DioptasDetector:
         plt.show()
         plt.close()
         
-        '''
-        if dtype == 'mask':
-        
-            #plot cdf of the intensities.
-            # sort the data in ascending order
-            x1 = np.sort(ImIntensity)
-              
-            # get the cdf values of y
-            y1 = np.arange(np.size(x1)) / float(np.size(x1))
-              
-            fig_2 = plt.figure()   
-            ax1 = fig_2.add_subplot(1, 1, 1)   
-            ax1.plot(x1, y1, marker='o')
-            ax1.set_title('CDF of the intensities')
-            
-            plt.show()
-        '''
         return fig_1

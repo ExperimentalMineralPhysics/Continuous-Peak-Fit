@@ -263,8 +263,8 @@ def setrange(settings_file=None, inputs=None, debug=False, refine=True, save_all
             track=False, parallel=True, subpattern='all', **kwargs):
     
     
-    FitSettings, FitParameters = initiate(settings_file, inputs)
-
+    FitSettings, FitParameters, new_data = initiate(settings_file, inputs=inputs)
+    
     # search over the first file only
     # strip file list to first file
     if not 'datafile_Files' in FitParameters:
@@ -288,7 +288,7 @@ def setrange(settings_file=None, inputs=None, debug=False, refine=True, save_all
            
     FitSettings.fit_orders = orders_tmp
     
-    execute(FitSettings=FitSettings, FitParameters=FitParameters, 
+    execute(FitSettings=FitSettings, FitParameters=FitParameters, inputs=new_data, 
             debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
             parallel=parallel,
             mode='setrange')
@@ -304,7 +304,7 @@ def ordersearch(settings_file=None, inputs=None, debug=False, refine=True, save_
     :param iterations:
     :return:
     """
-    FitSettings, FitParameters = initiate(settings_file, inputs)
+    FitSettings, FitParameters, new_data = initiate(settings_file, inputs=inputs)
 
     # search over the first file only
     # strip file list to first file
@@ -319,8 +319,7 @@ def ordersearch(settings_file=None, inputs=None, debug=False, refine=True, save_
     elif isinstance(subpattern,list):
         subpats = subpattern
     else:
-        subpats = list(subpattern)
-    
+        subpats = [int(x) for x in str(subpattern)]
     # make new order search list
     order_search = []
     for i in range(len(subpats)):
@@ -337,7 +336,7 @@ def ordersearch(settings_file=None, inputs=None, debug=False, refine=True, save_
             order_search.append(orders_s)
     FitSettings.fit_orders = order_search
     
-    execute(FitSettings=FitSettings, FitParameters=FitParameters, 
+    execute(FitSettings=FitSettings, FitParameters=FitParameters, inputs=new_data, 
             debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
             parallel=parallel)
     
@@ -397,7 +396,9 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
     :return:
     """
     if FitSettings == None:
-        FitSettings, FitParameters = initiate(settings_file, inputs)
+        FitSettings, FitParameters, new_data = initiate(settings_file)
+    else:
+        new_data = inputs
 
     # Define locally required names
     temporary_data_file = 'PreviousFit_JSON.dat'
@@ -461,8 +462,6 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
         ### Replace this with call through to class structure
         ## FIX ME: the mask call is needed here to pass the mask in. but should it inherit the mask from the preceeding data?
 
-        # get intensity array and mask it
-        intens = ma.array(im, mask=azimu.mask) 
         # FIX ME: replace mask with image_prepare mask.
         if 'Image_prepare' in FitParameters:
             if 'cosmics' in FitSettings.Image_prepare:
@@ -595,7 +594,7 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
                 #FIX ME: this plots the input data. perhaps it should have its own switch rather than being subservient to Debug. 
                 # It is not a debug it is a setup thing.
                 #plot the data and the mask.
-                fig_1 = det.plot(twotheta_sub, azimu_sub, intens_sub, dtype='mask', name=peak_string(orders))
+                fig_1 = new_data.plot(twotheta_sub, azimu_sub, intens_sub, plottype='mask', name=peak_string(orders))
                 
                 # save figures without overwriting old names
                 filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
@@ -625,8 +624,8 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
                 if parallel is True:#setup parallel version
                     #parallel_pile.append(([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds))
                 
-                    kwargs = {'DetFuncs': calib_mod, 'SaveFit': SaveFigs, 'debug': debug, 'refine': refine, 'iterations': iterations, 'fnam': diff_files[j]}
-                    args = ([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds)
+                    kwargs = {'SaveFit': SaveFigs, 'debug': debug, 'refine': refine, 'iterations': iterations, 'fnam': diff_files[j]}
+                    args = ([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, new_data, orders, params, bounds)
                     parallel_pile.append((args, kwargs))
                     
                     #parallel_pile.append(([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds))
@@ -636,9 +635,9 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
                     # tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
                     #                     DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
                     #                     iterations=iterations, fnam=diff_files[j])
-                    tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds,
-                                        DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine,
-                                        iterations=iterations, fnam=diff_files[j])
+                    tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, new_data, orders,
+                                        params, bounds, SaveFit=SaveFigs, debug=debug, refine=refine, iterations=iterations,
+                                        fnam=diff_files[j])
                     Fitted_param.append(tmp[0])
                     lmfit_models.append(tmp[1])
                 

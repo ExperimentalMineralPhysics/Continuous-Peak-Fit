@@ -65,6 +65,8 @@ def peak_string(orders, fname=False):
             p_str = p_str + "Peak"
         if fname is False:
             p_str = p_str + " ("
+        else:
+            p_str = p_str + "-"
         if 'hkl' in orders['peak'][x]:
             p_str = p_str + str(orders['peak'][x]['hkl'])
         else:
@@ -1385,7 +1387,11 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         locs, labels = plt.xticks()
         plt.setp(labels, rotation=90)
         plt.colorbar()
-        plt.suptitle(peak_string(orders) + '; final fit')
+        if 'note' in orders:
+            ttlstr = peak_string(orders) + '; final fit; '+ orders['note']
+        else:
+            ttlstr = peak_string(orders) + '; final fit'
+        plt.suptitle(ttlstr)
         plt.tight_layout()
 
         #        # make a second figure with the Q-Q plot of the data and fit.
@@ -1405,6 +1411,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
             else:
                 filename = 'Fit2Peak_'
             filename = filename + peak_string(orders, fname=True)
+            if 'note' in orders:
+                filename = filename+"".join(x for x in orders['note'] if x.isalnum())
+            else:
+                ttlstr = peak_string(orders) + '; final fit'
 
             i = 0
             if os.path.exists('{}.png'.format(filename)):

@@ -472,9 +472,17 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         if step <= 9:
             # generate chunks and initial fits
             # or parse previous fits into correct data structure
-        
+                
+            # Measure the time taken to do the chunks.the elapsed time during fitting.
+            # To help decide which is the best peak parameters.
+            chunks_start = time.time()
+                
             # If there is not previous fit -- Fit data in azimuthal chunks for d.
             if not PreviousParams:
+                
+                
+
+                
                 if 'PeakPositionSelection' not in orders:
                     # DMF changed print statement to include number peaks in inputs file
                     if peeks > 1:
@@ -1112,6 +1120,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         
                 # FIX ME: need to confirm the number of parameters matches the orders of the fits.
                 
+            chunks_end = time.time()
             step = step + 10
             
             
@@ -1293,8 +1302,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
     # Elapsed time for fitting
     t_end = time.time()
     t_elapsed = t_end - t_start
+    chunks_time = chunks_start - chunks_end
     # get the rest of the fit stats from the lmfit output.
     FitStats = {"time-elapsed": t_elapsed,
+                "chunks time": chunks_time,
                 "status": step,
                 "sum-residuals-squared": np.sum(out.residual**2),
                 "function-evaluations": out.nfev,

@@ -112,6 +112,7 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
     text_file.write(("{0:>"+str(width_col)+"}").format("p0_err"+","))
     if debug:
         text_file.write(("{0:>"+str(width_col)+"}").format("Time taken"+","))
+        text_file.write(("{0:>"+str(width_col)+"}").format("Chunk time"+","))
         text_file.write(("{0:>"+str(width_col)+"}").format("Sum Resid^2"+","))
         text_file.write(("{0:>"+str(width_col)+"}").format("Status"+","))
         text_file.write(("{0:>"+str(width_col)+"}").format("Func eval"+","))
@@ -120,8 +121,8 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
         text_file.write(("{0:>"+str(width_col)+"}").format("Deg Freedom"+","))
         text_file.write(("{0:>"+str(width_col)+"}").format("ChiSq"+","))
         text_file.write(("{0:>"+str(width_col)+"}").format("Red. ChiSq"+","))
-        #text_file.write(("{0:<"+str(width_col)+"}").format("Akaike Information Criterion"+","))
-        #text_file.write(("{0:<"+str(width_col)+"}").format("Bayesian Information Criterion"+","))
+        text_file.write(("{0:<"+str(width_col)+"}").format("Akaike Information Criterion"+","))
+        text_file.write(("{0:<"+str(width_col)+"}").format("Bayesian Information Criterion"+","))
     text_file.write("\n")
     
     for z in range(n_diff_files):
@@ -135,24 +136,31 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
             with open(filename) as json_data:
                 fit = json.load(json_data)
             
-            num_subpatterns = len(FitSettings.fit_orders)
+            num_subpatterns = len(fit)
             for y in range(num_subpatterns):
                 
-                orders = FitSettings.fit_orders[y]
+                try:
+                    orders = FitSettings.fit_orders[y]
+                except:
+                    orders = []    
                 
                 subfilename = os.path.splitext(os.path.basename(diff_files[z]))[0] + '_'
                 
-                for x in range(len(orders['peak'])):
-                    if 'phase' in orders['peak'][x]:
+                for x in range(len(fit[y]['peak'])):
+                    if 'phase' in fit[y]['peak'][x]:
+                        subfilename = subfilename + fit[y]['peak'][x]['phase']
+                    elif 'phase' in orders['peak'][x]:
                         subfilename = subfilename + orders['peak'][x]['phase']
                     else:
                         subfilename = subfilename + "Peak"
-                    if 'hkl' in orders['peak'][x]:
-                        subfilename = subfilename + str(orders['peak'][x]['hkl'])
+                    if 'hkl' in fit[y]['peak'][x]:
+                        subfilename = subfilename + str(fit[y]['peak'][x]['hkl'])
+                    elif 'hkl' in orders['peak'][x]:
+                        subfilename = subfilename + orders['peak'][x]['hkl']
                     else:
                         subfilename = subfilename + x
                             
-                    if x < len(orders['peak']) - 1 and len(orders['peak']) > 1:
+                    if x < len(fit[y]['peak']) - 1 and len(fit[y]['peak']) > 1:
                         subfilename = subfilename + '_'
                             
                 print('  Incorporating ' + subfilename)
@@ -183,7 +191,7 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
 
                 width_fnam = np.max((width_fnam, len(out_name)))
             
-                for x in range(len(orders['peak'])):
+                for x in range(len(fit[y]['peak'])):
                     
                     out_peak = []
                     
@@ -191,12 +199,16 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                         raise ValueError('This output type is not setup to process non-Fourier peak centroids.')
                     
                     #peak
-                    if 'phase' in orders['peak'][x]:
+                    if 'phase' in fit[y]['peak'][x]:
+                        out_peak = fit[y]['peak'][x]['phase']
+                    elif 'phase' in orders['peak'][x]:
                         out_peak = orders['peak'][x]['phase']
                     else:
                         out_peak = out_peak + "Peak"
-                    if 'hkl' in orders['peak'][x]:
-                        out_peak = out_peak + ' (' + str(orders['peak'][x]['hkl']) + ')'
+                    if 'hkl' in fit[y]['peak'][x]:
+                        out_peak = out_peak + ' (' + str(fit[y]['peak'][x]['hkl']) + ')'
+                    elif 'hkl' in orders['peak'][x]:
+                        out_peak = out_peak + orders['peak'][x]['hkl']
                     else:
                         out_peak = out_peak + ' ' + str(x)
                     
@@ -307,7 +319,6 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                     text_file.write(("{0:<"+str(width_fnam)+"}").format(out_name+","))
                     text_file.write(("{0:<"+str(width_hkl)+"}").format(out_peak+","))
                     text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_d0))
-                    #text_file.write(" %10.5f," % out_d0)
                     text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_d0err))
                     text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_dcos2))
                     text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_dcos2err))
@@ -329,6 +340,7 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                     if debug:
                         # include properties from the lmfit output that were passed with the fits.
                         text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']['time-elapsed']))
+                        text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']['chunks-time']))
                         text_file.write(("{0:"+str(width_col-1)+"."+str(dp-1)+"e},").format(fit[y]['FitProperties']["sum-residuals-squared"]))
                         text_file.write(("{0:"+str(width_col-1)+"d},").format(fit[y]['FitProperties']['status']))
                         text_file.write(("{0:"+str(width_col-1)+"d},").format(fit[y]['FitProperties']['function-evaluations']))
@@ -337,8 +349,8 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                         text_file.write(("{0:"+str(width_col-1)+"d},").format(fit[y]['FitProperties']["degree-of-freedom"]))
                         text_file.write(("{0:"+str(width_col-1)+"."+str(dp-1)+"e},").format(fit[y]['FitProperties']["ChiSq"]))
                         text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']['RedChiSq']))
-                        #text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']["aic"]))
-                        #text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']["bic"]))
+                        text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']["aic"]))
+                        text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']["bic"]))
                     text_file.write("\n")
                 
             

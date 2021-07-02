@@ -321,11 +321,15 @@ def ordersearch(settings_file=None, inputs=None, debug=False, refine=True, save_
     else:
         subpats = [int(x) for x in str(subpattern)]
     # make new order search list
+    if isinstance(search_over,list) and len(search_over) == 2:
+        search = list(range(search_over[0], search_over[1]))
+    else:
+        search = [int(x) for x in str(search_over)]
+        
     order_search = []
     for i in range(len(subpats)):
         j = subpats[i]
         tmp_order = FitSettings.fit_orders[j]
-        search = list(range(search_over[0], search_over[1]))
         for k in range(len(search)):
             orders_s = deepcopy(tmp_order)
             if search_parameter != 'background':
@@ -341,7 +345,7 @@ def ordersearch(settings_file=None, inputs=None, debug=False, refine=True, save_
             parallel=parallel)
     
     #write a differential strain output file
-    writeoutput(FitSettings=FitSettings, FitParameters=FitParameters, outtype='DifferentialStrain')
+    write_output(FitSettings=FitSettings, FitParameters=FitParameters, outtype='DifferentialStrain')
 
 
 
@@ -359,7 +363,7 @@ def write_output(settings_file=None, FitSettings=None, FitParameters=None, parms
     :return:
     """
     # Fail gracefully
-    if parms_dict is None and settings_file is None:
+    if parms_dict is None and settings_file is None and FitSettings is None and FitParameters is None:
         raise ValueError("Either the settings file or the parameter dictionary need to be specified.")
     # If no params_dict then initiate. Check all the output functions are present and valid.
     if parms_dict is None:
@@ -678,7 +682,7 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
 
     if mode=='fit':
         # Write the output files.
-        writeoutput(settings_file, FitSettings=FitSettings, parms_dict=parms_dict, det=det, outtype=FitSettings.Output_type)
+        write_output(settings_file, FitSettings=FitSettings, FitParameters=FitParameters, parms_dict=parms_dict, outtype=FitSettings.Output_type)
 
     if parallel is True:     
         p.close()

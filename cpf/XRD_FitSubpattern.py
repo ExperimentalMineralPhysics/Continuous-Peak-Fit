@@ -1302,10 +1302,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
     # Elapsed time for fitting
     t_end = time.time()
     t_elapsed = t_end - t_start
-    chunks_time = chunks_start - chunks_end
+    chunks_time = chunks_end - chunks_start
     # get the rest of the fit stats from the lmfit output.
     FitStats = {"time-elapsed": t_elapsed,
-                "chunks time": chunks_time,
+                "chunks-time": chunks_time,
                 "status": step,
                 "sum-residuals-squared": np.sum(out.residual**2),
                 "function-evaluations": out.nfev,

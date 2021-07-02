@@ -153,34 +153,28 @@ def params_to_newparams(params, num_peaks, num_bg, order_peak):
         pspace = gather_paramerrs_to_list(params, new_str)
         p_tp = get_series_type(params, new_str)
         
-        if 'symmetry' in order_peak[i]:  # orders['peak'][j]:  # FIX ME: the symmetry part of this is a horrible
-            # way of doing it.
-            peaks.append({"d-space":      dspace[0],
-                          "d-space_err":  dspace[1],
-                          "d-space-type": coefficient_type_as_string(dspace_tp),                         
-                          "height":       hspace[0],
-                          "height_err":   hspace[1],
-                          "height-type":  coefficient_type_as_string(h_tp),
-                          "width":        wspace[0],
-                          "width_err":    wspace[1],
-                          "width-type":   coefficient_type_as_string(w_tp),
-                          "profile":      pspace[0],
-                          "profile_err":  pspace[1],
-                          "profile-type": coefficient_type_as_string(p_tp),
-                          "symmetry":     order_peak[i]['symmetry']})
-        else:
-            peaks.append({"d-space": dspace[0],
-                          "d-space_err":  dspace[1],
-                          "d-space-type": coefficient_type_as_string(dspace_tp),                         
-                          "height":       hspace[0],
-                          "height_err":   hspace[1],
-                          "height-type":  coefficient_type_as_string(h_tp),
-                          "width":        wspace[0],
-                          "width_err":    wspace[1],
-                          "width-type":   coefficient_type_as_string(w_tp),
-                          "profile":      pspace[0],
-                          "profile_err":  pspace[1],
-                          "profile-type": coefficient_type_as_string(p_tp)})
+        tmp_peaks = {}
+        if 'phase' in order_peak[i]:
+            tmp_peaks["phase"] = order_peak[i]['phase']
+        if 'hkl' in order_peak[i]:
+            tmp_peaks["hkl"] = order_peak[i]['hkl']
+        tmp_peaks["d-space"] =      dspace[0]
+        tmp_peaks["d-space_err"] =  dspace[1]
+        tmp_peaks["d-space-type"] = coefficient_type_as_string(dspace_tp)
+        tmp_peaks["height"] =       hspace[0]
+        tmp_peaks["height_err"] =   hspace[1]
+        tmp_peaks["height-type"] =  coefficient_type_as_string(h_tp)
+        tmp_peaks["width"] =        wspace[0]
+        tmp_peaks["width_err"] =    wspace[1]
+        tmp_peaks["width-type"] =   coefficient_type_as_string(w_tp)
+        tmp_peaks["profile"] =      pspace[0]
+        tmp_peaks["profile_err"] =  pspace[1]
+        tmp_peaks["profile-type"] = coefficient_type_as_string(p_tp)
+        if 'symmetry' in order_peak[i]:
+            tmp_peaks["symmetry"] = order_peak[i]['symmetry']
+            
+        peaks.append(tmp_peaks)
+        
     # Get background parameters
     bgspace = []
     bgspace_err = []

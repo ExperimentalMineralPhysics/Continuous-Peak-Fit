@@ -295,7 +295,7 @@ def setrange(settings_file=None, inputs=None, debug=False, refine=True, save_all
 
 
 def ordersearch(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1,
-            track=False, parallel=True, search_parameter='height', search_over=[0,20], subpattern='all', search_peak=0, **kwargs):
+            track=False, parallel=True, search_parameter='height', search_over=[0,20], subpattern='all', search_peak=0, search_series=['fourier', 'spline'], **kwargs):
     """
     :param settings_file:
     :param inputs:
@@ -305,6 +305,9 @@ def ordersearch(settings_file=None, inputs=None, debug=False, refine=True, save_
     :return:
     """
     FitSettings, FitParameters, new_data = initiate(settings_file, inputs=inputs)
+
+    #force it to write the required output type.
+    FitSettings.Output_type = 'DifferentialStrain'    
 
     # search over the first file only
     # strip file list to first file
@@ -325,19 +328,23 @@ def ordersearch(settings_file=None, inputs=None, debug=False, refine=True, save_
         search = list(range(search_over[0], search_over[1]))
     else:
         search = [int(x) for x in str(search_over)]
-        
+    
     order_search = []
     for i in range(len(subpats)):
-        j = subpats[i]
-        tmp_order = FitSettings.fit_orders[j]
-        for k in range(len(search)):
-            orders_s = deepcopy(tmp_order)
-            if search_parameter != 'background':
-                orders_s['peak'][search_peak][search_parameter] = search[k]  
-            else:
-                orders_s['background'][search_peak] = search[k]
-            orders_s['note'] = search_parameter+'='+str(search[k])
-            order_search.append(orders_s)
+        
+        for j in range(len(search_series)):
+            tmp_order = FitSettings.fit_orders[subpats[i]]
+            
+            for k in range(len(search)):
+                orders_s = deepcopy(tmp_order)
+                if search_parameter != 'background':
+                    orders_s['peak'][search_peak][search_parameter] = search[k]  
+                    orders_s['peak'][search_peak][search_parameter+'-type'] = search_series[j]  
+                    
+                else:
+                    orders_s['background'][search_peak] = search[k]
+                orders_s['note'] = search_parameter+'='+str(search[k])+'; type='+search_series[j]
+                order_search.append(orders_s)
     FitSettings.fit_orders = order_search
     
     execute(FitSettings=FitSettings, FitParameters=FitParameters, inputs=new_data, 
@@ -345,7 +352,9 @@ def ordersearch(settings_file=None, inputs=None, debug=False, refine=True, save_
             parallel=parallel)
     
     #write a differential strain output file
-    write_output(FitSettings=FitSettings, FitParameters=FitParameters, outtype='DifferentialStrain')
+    #FIX ME: using debug as a switch to get all info in file. 
+    #should probably use another switch
+    write_output(settings_file, FitSettings=FitSettings, FitParameters=FitParameters, debug=True, outtype='DifferentialStrain')
 
 
 
@@ -366,8 +375,11 @@ def write_output(settings_file=None, FitSettings=None, FitParameters=None, parms
     if parms_dict is None and settings_file is None and FitSettings is None and FitParameters is None:
         raise ValueError("Either the settings file or the parameter dictionary need to be specified.")
     # If no params_dict then initiate. Check all the output functions are present and valid.
-    if parms_dict is None:
+    if parms_dict is None and FitSettings==None and FitParameters==None:
         FitSettings, FitParameters, new_data = initiate(settings_file, outtype=out_type)
+        parms_dict = new_data.get_calibration(os.path.abspath(FitSettings.Calib_param))
+    elif parms_dict is None: 
+        _, _, new_data = initiate(settings_file, outtype=out_type)
         parms_dict = new_data.get_calibration(os.path.abspath(FitSettings.Calib_param))
     if out_type is not None:
         output_mod = get_output_options(out_type)

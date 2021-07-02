@@ -315,9 +315,11 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                     if out_p0err is None:  #catch  'null' as an error 
                         out_p0err = np.nan
                 
+                    print(fit[y])
+                                         
                     #write numbers to file
                     text_file.write(("{0:<"+str(width_fnam)+"}").format(out_name+","))
-                    text_file.write(("{0:<"+str(width_hkl)+"}").format(out_peak+","))
+                    text_file.write(("{0:<"+str(width_hkl)+"}").format(out_peak+","))                        
                     text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_d0))
                     text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_d0err))
                     text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(out_dcos2))
@@ -351,6 +353,9 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                         text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']['RedChiSq']))
                         text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']["aic"]))
                         text_file.write(("{0:"+str(width_col-1)+"."+str(dp)+"f},").format(fit[y]['FitProperties']["bic"]))
+                    if 'note' in fit[y]:
+                        text_file.write(("{0:<"+str(width_hkl)+"}").format(fit[y]['note']))
+                        
                     text_file.write("\n")
                 
             

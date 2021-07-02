@@ -1298,6 +1298,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
     extent = [[tth_min, tth_max], [d_min, d_max]]  
     # FIX ME: This is taking the maximum and the minimum of the data not the 'range' itself.
     NewParams.update({'range': extent})
+    if 'note' in orders:
+        NewParams.update({'note': orders['note']})
 
     # Elapsed time for fitting
     t_end = time.time()

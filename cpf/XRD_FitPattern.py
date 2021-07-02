@@ -613,6 +613,8 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
                     fig_1.savefig('{}_mask.png'.format(filename))
                 else:
                     fig_1.savefig('{}_{:d}.png'.format(filename, i))
+                    
+                step=1000
 
             # fit the subpattern
             # tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,

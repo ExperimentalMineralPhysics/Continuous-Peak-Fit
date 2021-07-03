@@ -278,7 +278,7 @@ def setrange(settings_file=None, inputs=None, debug=False, refine=True, save_all
     elif isinstance(subpattern,list):
         subpats = subpattern
     else:
-        subpats = list(subpattern)
+        subpats = [int(x) for x in str(subpattern)]
         
     # make new order search list
     orders_tmp = []
@@ -449,7 +449,7 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
 
     ### Replace this with call through to class structure
     # plot calibration file
-    if 0:#debug:  #FIX ME: SAH - I have jsut removed this so that the debug runs without the calibration file.
+    if 0:#debug and 'Calib_data' in FitParameters:  #FIX ME: SAH - I have jsut removed this so that the debug runs without the calibration file.
         fig = plt.figure()
         if FitSettings.Calib_type == 'Med':
             # plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,

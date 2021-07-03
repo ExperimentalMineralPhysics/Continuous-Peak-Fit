@@ -65,8 +65,9 @@ class DioptasDetector:
         :param calibration_mask:
         :return:
         """
-        im = self.ImportImage(calibration_data, debug=debug)
-        intens = ma.array(im)
+        im = fabio.open(calibration_data)
+        #im = im_a.data #self.ImportImage(calibration_data, debug=debug)
+        intens = ma.array(im.data)
         # create mask from mask file if present. If not make all values valid
         if calibration_mask:
             intens = self.GetMask(calibration_mask, intens)

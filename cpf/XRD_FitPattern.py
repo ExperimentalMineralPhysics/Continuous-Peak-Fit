@@ -427,8 +427,16 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
         use_mask = FitSettings.Calib_mask
     else:
         use_mask = None
-    new_data.fill_data(os.path.abspath(FitSettings.Calib_data), FitSettings.Calib_detector, debug=debug,
-                       calibration_mask=use_mask)
+        
+    # new_data.fill_data(os.path.abspath(FitSettings.Calib_data), FitSettings.Calib_detector, debug=debug,
+    #                    calibration_mask=use_mask)
+    if 'Calib_data' in FitParameters:
+        new_data.fill_data(os.path.abspath(FitSettings.Calib_data), FitSettings.Calib_detector, debug=debug,
+                           calibration_mask=use_mask)
+    else:
+        new_data.fill_data(os.path.abspath(diff_files[0]), FitSettings.Calib_detector, debug=debug,
+                           calibration_mask=use_mask)
+            
     # Get calibration parameter file
     parms_dict = new_data.parameters
 
@@ -505,7 +513,7 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
                     #print(asdf["nnew"], asdf["niter"])
                     test.clean()
                     msk = np.logical_or(azimu.mask, np.array(test.mask, dtype='bool'))
-                intens = ma.array(im, mask=msk)
+                intens = ma.array(intens, mask=msk)
                 azimu = ma.array(azimu, mask=intens.mask)
                 twotheta = ma.array(twotheta, mask=intens.mask)
                 dspace = ma.array(dspace, mask=intens.mask)

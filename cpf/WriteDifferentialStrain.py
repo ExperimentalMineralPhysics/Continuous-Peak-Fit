@@ -314,8 +314,6 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                         out_p0 = np.nan
                     if out_p0err is None:  #catch  'null' as an error 
                         out_p0err = np.nan
-                
-                    print(fit[y])
                                          
                     #write numbers to file
                     text_file.write(("{0:<"+str(width_fnam)+"}").format(out_name+","))

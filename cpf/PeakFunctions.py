@@ -479,8 +479,14 @@ def unvary_part_params(param, param_str, comp, order=None):
     :param order: order of the coefficients. parts missing are set to vary=False
     :return: updated lmfit Parameter class
     """
+    if comp:
+        new_str = param_str + '_' + comp
+    else:
+        new_str = param_str
+    str_keys = [key for key, val in param.items() if new_str in key and 'tp' not in key]
+    orderr = int((len(str_keys)-1)/2)
     if isinstance(order, list):
-        orderr = max(order)
+        #orderr = max(order)
         for i in range(orderr):
             if not np.isin(i,order):
                 param = unvary_single_param(param, param_str, comp, 2*i)
@@ -792,7 +798,7 @@ def params_get_type(orders, comp, peak=0):
     return coef_type
 
 
-def params_get_number_coef(orders, comp, peak=0, azims=None):
+def get_number_coef(orders, comp, peak=0, azims=None):
     
     parm_str = params_get_type(orders, comp, peak)
     parm_num = coefficient_type_as_number(parm_str)
@@ -810,7 +816,44 @@ def params_get_number_coef(orders, comp, peak=0, azims=None):
         
     return n_param
     
+
+def get_order_from_coef(n_coef, parm_num=0, azims=None):
     
+    if parm_num==5: #independent
+        if azims is None:
+            raise ValueError('Cannot define number of independent values without a number of coefficients.')
+        else:  
+            order = azims.shape[0]
+    
+    else: #everything else.
+        order = (n_coef-1)/2
+        
+    return order
+    
+
+def get_order_from_params(params, comp=None, peak=0):
+    # Given list of Fourier coefficients return order (n)
+    if isinstance(params, (list,)):
+        l = len(params)
+    elif isinstance(params, (float,)):
+        l = np.size(params)
+    elif isinstance(params, (dict,)):
+        parm_str = params_get_type(params, comp, peak)
+        if comp=='bg' or comp=='background' or comp=='f':
+            l = np.max(params['background'][peak])
+        else: #everything else.
+            l = np.max(params['peak'][peak][expand_comp_string(comp)])
+    elif isinstance(params, (int,)):
+        l = 1
+    else:
+        print(params)
+        print(type(params))
+        raise ValueError('Parameter list is not list or float.')
+
+    order = get_order_from_coef(l)
+        
+    return order
+
 def Fourier_order(params):
     # Given list of Fourier coefficients return order (n) of the Fourier series.
 

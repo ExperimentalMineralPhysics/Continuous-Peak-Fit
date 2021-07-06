@@ -344,12 +344,12 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
     # new_data.fill_data(os.path.abspath(FitSettings.Calib_data), FitSettings.Calib_detector, debug=debug,
     #                    calibration_mask=use_mask)
     if 'Calib_data' in FitParameters:
-        new_data.fill_data(os.path.abspath(FitSettings.Calib_data), FitSettings.Calib_detector, debug=debug,
-                           calibration_mask=use_mask)
+        #new_data.fill_data(os.path.abspath(FitSettings.Calib_data), FitSettings.Calib_detector, debug=debug,
+        #                   calibration_mask=use_mask)
+        new_data.fill_data(os.path.abspath(FitSettings.Calib_data), settings=FitSettings, debug=debug, calibration_mask=use_mask)
     else:
-        new_data.fill_data(os.path.abspath(diff_files[0]), FitSettings.Calib_detector, debug=debug,
-                           calibration_mask=use_mask)
-            
+        new_data.fill_data(os.path.abspath(diff_files[0]), settings=FitSettings, debug=debug, calibration_mask=use_mask)
+                    
     # Get calibration parameter file
     parms_dict = new_data.parameters
 

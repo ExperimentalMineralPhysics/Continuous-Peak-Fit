@@ -39,7 +39,7 @@ class DioptasDetector:
         self.azm = None
         self.dspace = None
 
-    def fill_data(self, calibration_data, detector=None, debug=None, calibration_mask=None):
+    def fill_data(self, diff_file, settings=None, debug=None, calibration_mask=None):
         """
         :param calibration_data:
         :param detector:
@@ -47,14 +47,41 @@ class DioptasDetector:
         :param calibration_mask:
         """
         # self.detector = self.detector_check(calibration_data, detector)
-        self.get_detector(calibration_data, detector)
-        self.intensity = self.get_masked_calibration(calibration_data, debug, calibration_mask)
-        self.tth = self.GetTth(self.parameters, self.detector, self.intensity.mask)
-        self.azm = self.GetAzm(self.parameters, self.detector, self.intensity.mask)
-        self.dspace = self.GetDsp(self.parameters, self.detector, self.intensity.mask)
+#        print(settings.Calib_param)
+        self.calibration = self.get_calibration(settings.Calib_param)
+        self.get_detector(diff_file, settings)
+        
+        self.intensity = self.get_masked_calibration(diff_file, debug, calibration_mask)
+        self.tth = self.GetTth(mask=self.intensity.mask)
+        self.azm = self.GetAzm(mask=self.intensity.mask)
+        self.dspace = self.GetDsp(mask=self.intensity.mask)
 
-    def get_detector(self, calibration_data, detector=None):
-        self.detector = self.detector_check(calibration_data, detector)
+
+    def get_detector(self, diff_file, settings=None):
+        
+        if hasattr(settings, 'Calib_detector'): 
+            self.detector = pyFAI.detector_factory(settings.Calib_detector)
+        else: 
+            #if settings is None or detector == 'unknown' or detector == 'other' or detector == 'blank':
+            im_all = fabio.open(diff_file)
+            if 'pixelsize1' in self.calibration:
+                sz1 = self.calibration['pixelsize1']
+                sz2 = self.calibration['pixelsize2']
+            elif hasattr(settings, 'Calib_pixels'):
+                sz1 = settings.Calib_pixels * 1e-6
+                sz2 = settings.Calib_pixels * 1e-6
+            else:
+                err_str = 'The pixel size or the detctor are is not defined. Add to inputs.'
+                raise ValueError(err_str)
+            #sz = calibration_data.Calib_pixels  # Pixel_size
+            #if sz > 1:
+            #    sz = sz*1e-6
+                
+            self.detector = pyFAI.detectors.Detector(pixel1=sz1, pixel2=sz2, splineFile=None, max_shape=im_all.shape)
+        # FIX ME: check the detector type is valid.    
+        #self.detector = self.detector_check(calibration_data, detector=None)
+        
+        #return detector
 
     def get_masked_calibration(self, calibration_data, debug, calibration_mask=None):
         """
@@ -160,7 +187,7 @@ class DioptasDetector:
             return ma.array(im)
 
     @staticmethod
-    def detector_check(calibration_data, detector=None):
+    def detector_check(calibration_data, settings=None):
         """
         Get detector information
         :param detector: Choose detector on initiation
@@ -171,8 +198,12 @@ class DioptasDetector:
         # FIX ME: we should try importing the image and reading the detector type from it.
         # The image is now imported and read but this means that the detector type in settings
         # is no longer necessary and could be removed.
-        if detector is None or detector == 'unknown' or detector == 'other' or detector == 'blank':
-            im_all = fabio.open(calibration_data.Calib_data)
+        if 'Calib_detector' in settings:
+            detector = pyFAI.detector_factory(settings.Calib_detector)
+            
+        else: 
+            #if settings is None or detector == 'unknown' or detector == 'other' or detector == 'blank':
+            im_all = fabio.open(calibration_data)
             sz = calibration_data.Calib_pixels  # Pixel_size
             if sz > 1:
                 sz = sz*1e-6
@@ -349,8 +380,9 @@ class DioptasDetector:
             azichunks.append(((end - start) / 2) + start)
             chunks.append(azichunk)
         return chunks, azichunks
+    
 
-    def GetTth(self, poni, det=None, imask=None):
+    def GetTth(self, poni=None, det=None, mask=None):
         """
         Give 2-theta value for detector x,y position; calibration info in data
         :param cali_file:
@@ -360,16 +392,16 @@ class DioptasDetector:
         :param imask:
         :return:
         """
-
-        ai = AzimuthalIntegrator(poni['distance'], poni['poni1'], poni['poni2'], poni['rot1'], poni['rot2'],
-                                 poni['rot3'], pixel1=poni['pixelsize1'], pixel2=poni['pixelsize2'], detector=det,
-                                 wavelength=poni['wavelength'])
-        if imask is not None:
-            return ma.array(np.degrees(ai.twoThetaArray()), mask=imask)
+        
+        ai = AzimuthalIntegrator(self.calibration['distance'], self.calibration['poni1'], self.calibration['poni2'], self.calibration['rot1'], self.calibration['rot2'],
+                                 self.calibration['rot3'], pixel1=self.calibration['pixelsize1'], pixel2=self.calibration['pixelsize2'], detector=self.detector,
+                                 wavelength=self.calibration['wavelength'])
+        if mask is not None:
+            return ma.array(np.degrees(ai.twoThetaArray()), mask=mask)
         else:
             return ma.array(np.degrees(ai.twoThetaArray()))
 
-    def GetAzm(self, poni, det=None, imask=None):
+    def GetAzm(self, poni=None, det=None, mask=None):
         """
         Give azimuth value for detector x,y position; calibration info in data
         :param cali_file:
@@ -379,15 +411,15 @@ class DioptasDetector:
         :param imask:
         :return:
         """
-        ai = AzimuthalIntegrator(poni['distance'], poni['poni1'], poni['poni2'], poni['rot1'], poni['rot2'],
-                                 poni['rot3'], pixel1=poni['pixelsize1'], pixel2=poni['pixelsize2'], detector=det,
-                                 wavelength=poni['wavelength'])
-        if imask is not None:
-            return ma.array(np.degrees(ai.chiArray()), mask=imask)
+        ai = AzimuthalIntegrator(self.calibration['distance'], self.calibration['poni1'], self.calibration['poni2'], self.calibration['rot1'], self.calibration['rot2'],
+                                 self.calibration['rot3'], pixel1=self.calibration['pixelsize1'], pixel2=self.calibration['pixelsize2'], detector=self.detector,
+                                 wavelength=self.calibration['wavelength'])
+        if mask is not None:
+            return ma.array(np.degrees(ai.chiArray()), mask=mask)
         else:
             return ma.array(np.degrees(ai.chiArray()))
 
-    def GetDsp(self, poni, det=None, imask=None):
+    def GetDsp(self, poni=None, det=None, mask=None):
         """
         Give d-spacing value for detector x,y position; calibration info in data
         Get as thetheta and then convert into d-spacing
@@ -398,13 +430,13 @@ class DioptasDetector:
         :param imask:
         :return:
         """
-        ai = AzimuthalIntegrator(poni['distance'], poni['poni1'], poni['poni2'], poni['rot1'], poni['rot2'],
-                                 poni['rot3'], pixel1=poni['pixelsize1'], pixel2=poni['pixelsize2'], detector=det,
-                                 wavelength=poni['wavelength'])
-        if imask is not None:
-            return ma.array(poni['wavelength'] * 1E10 / 2 / np.sin(ai.twoThetaArray() / 2), mask=imask)
+        ai = AzimuthalIntegrator(self.calibration['distance'], self.calibration['poni1'], self.calibration['poni2'], self.calibration['rot1'], self.calibration['rot2'],
+                                 self.calibration['rot3'], pixel1=self.calibration['pixelsize1'], pixel2=self.calibration['pixelsize2'], detector=self.detector,
+                                 wavelength=self.calibration['wavelength'])
+        if mask is not None:
+            return ma.array(self.calibration['wavelength'] * 1E10 / 2 / np.sin(ai.twoThetaArray() / 2), mask=mask)
         else:
-            return ma.array(poni['wavelength'] * 1E10 / 2 / np.sin(ai.twoThetaArray() / 2))
+            return ma.array(self.calibration['wavelength'] * 1E10 / 2 / np.sin(ai.twoThetaArray() / 2))
 
 
 

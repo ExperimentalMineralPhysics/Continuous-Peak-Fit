@@ -681,7 +681,11 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                             if 'profile_fixed' in orders['peak'][k]:
                                 # Profile fixed is the list of coefficients if the profile is fixed.
                                 # FIX ME: profile fixed must have the same number of coefficients as required by profile.
-                                pguess = ff.Fourier_expand(np.mean(azimu.flatten()[chunks[j]]) * orders['peak'][k]['symmetry'], param=orders['peak'][k]['profile_fixed'])
+                                if 'symmetry' in orders['peak'][k]:
+                                    symm = orders['peak'][k]['symmetry']
+                                else:
+                                    symm = 1
+                                pguess = ff.Fourier_expand(np.mean(azimu.flatten()[chunks[j]]) * symm, param=orders['peak'][k]['profile_fixed'])
                                 pfixed = 1
             
                             peaks.append({"d-space": [dguess], "height": [hguess], "width": [wguess], "profile": [pguess]})

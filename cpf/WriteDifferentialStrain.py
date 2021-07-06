@@ -9,7 +9,9 @@ import cpf.PeakFunctions as ff
 import json
 import lmfit
 from lmfit.model import load_modelresult
-import cpf.XRD_FitPattern as XRD_FP
+#import cpf.XRD_FitPattern as XRD_FP
+from cpf.IO_functions import ReplaceNullTerms, FileList, lmfit_fix_int_data_type
+
 
 def Requirements():
     #List non-universally required parameters for writing this output type.
@@ -26,26 +28,6 @@ def Requirements():
     return RequiredParams
     
 
-def lmfit_fix_int_data_type(fname):
-    """
-    fixes problem with lmfit save/load model. 
-    lmfit load model cannot read int32 data with nulls in it. 
-    if replace 'int32' with 'float32' it will read. 
-    """
-            
-    ObjRead = open(fname, "r")   
-    txtContent = ObjRead.read();
-    ObjRead.close()
-    
-    txtContent = txtContent.replace('uint', 'float')
-    txtContent = txtContent.replace('int', 'float')
-    
-    print('    Rewriting', fname)
-    ObjRead = open(fname, "w")
-    ObjRead.write(txtContent)
-    ObjRead.close()
-    
-
     
 def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
 # writes some of the fitted coeficients to a table. With a focus on the differential strain coefficents
@@ -57,7 +39,7 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
     base_file_name = FitSettings.datafile_Basename
     
     # diffraction patterns 
-    diff_files, n_diff_files = XRD_FP.FileList(FitParameters, FitSettings)
+    diff_files, n_diff_files = FileList(FitParameters, FitSettings)
     if 'Output_directory' in FitParameters:
         out_dir = FitSettings.Output_directory
     else:
@@ -135,6 +117,8 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
             # Read JSON data from file
             with open(filename) as json_data:
                 fit = json.load(json_data)
+            
+            fit = ReplaceNullTerms(fit)
             
             num_subpatterns = len(fit)
             for y in range(num_subpatterns):

@@ -6,7 +6,7 @@ import os
 import numpy as np
 import cpf.PeakFunctions as ff
 import json
-import cpf.XRD_FitPattern as XRD_FP
+from cpf.IO_functions import FileList
 
 
 def Requirements():
@@ -35,7 +35,7 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
     base_file_name = FitSettings.datafile_Basename
     
     # diffraction patterns 
-    diff_files, n_diff_files = XRD_FP.FileList(FitParameters, FitSettings)
+    diff_files, n_diff_files = FileList(FitParameters, FitSettings)
     if 'Output_directory' in FitParameters:
         out_dir = FitSettings.Output_directory
     else:

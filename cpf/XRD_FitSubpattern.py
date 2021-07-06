@@ -16,34 +16,10 @@ from lmfit.model import save_modelresult #, load_modelresult
 import importlib
 
 import cpf.PeakFunctions as ff
+from cpf.IO_functions import AnyTermsNull
 
 np.set_printoptions(threshold=sys.maxsize)
 
-
-
-def AnyTermsNull(obj_to_inspect, val_to_find = None, indexpath="", clean=None):
-    ''' This function accepts a nested dictionary and list as argument
-        and iterates over all values of nested dictionaries and lists.
-        If any of the values are "Null" it returns 0
-    '''  
-    # copied from https://python-forum.io/thread-24856.html
-    # on 26th June 2021
-    if clean == None:
-        clean=1
-        
-    if isinstance(obj_to_inspect, dict):
-        for key, value in obj_to_inspect.items():
-            clean = AnyTermsNull(value, val_to_find, indexpath + f"['{key}']", clean=clean)
-    
-    if isinstance(obj_to_inspect, list):
-        for key, value in enumerate(obj_to_inspect):
-            clean = AnyTermsNull(value, val_to_find, indexpath + f"[{key}]", clean=clean)
-              
-    if obj_to_inspect == val_to_find:
-        clean = 0
-        print(f"Value {val_to_find} found at {indexpath}")
-
-    return clean
 
 
 

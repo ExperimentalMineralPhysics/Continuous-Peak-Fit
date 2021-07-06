@@ -6,7 +6,7 @@ import os
 
 import numpy as np
 import cpf.PeakFunctions as ff
-import cpf.XRD_FitPattern as XRD_FP
+from cpf.IO_functions import FileList
 import json
 import re
 import datetime
@@ -38,7 +38,7 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     base_file_name = FitSettings.datafile_Basename
     
     # get diffration file names and number.
-    diff_files, n_diff_files = XRD_FP.FileList(FitParameters, FitSettings)
+    diff_files, n_diff_files = FileList(FitParameters, FitSettings)
 
     if 'Output_directory' in FitParameters:
         out_dir = FitSettings.Output_directory

@@ -855,34 +855,41 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         symm = 1
                     master_params = ff.initiate_params(master_params, param_str, comp, 0, limits=[10, 1], value=np.array(symm), vary=False)
                     
-                    comp_list = ['d', 'h', 'w'] # always need to iterate over d, height and width
+                    comp_list = ['d', 'h', 'w', 'p'] 
                     comp_names = ['d-space','height','width','profile']
                     arr_names = ['newd0','newHall','newWall','newPall']
                     arr_err_names = ['newd0Err','newHallErr','newWallErr','newPallErr']                   
                     
-                    if 'profile_fixed' in orders['peak'][k]:
-                        pfixed=1
-                    else:
-                        pfixed=0
-                        comp_list.append('p') # if the profile is not fixed iterate over this as well.
                     for cp in range(len(comp_list)):
                         comp = comp_list[cp]
                         if comp == 'd':
                             symmetry = 1
                         else:
                             symmetry = symm
+                        name = comp_names[cp]+'_fixed'
+                        if comp_names[cp]+'_fixed' in orders['peak'][k]:
+                            fixed = 1
+                            vals = orders['peak'][j][comp_names[cp]+'_fixed'] #values if fixed.
+                        else:
+                            fixed = 0
+                            vals = np.array(vars()[arr_names[cp]])[j]
+                            print(vals)
+                            vals_err = np.array(vars()[arr_err_names[cp]])[j]
+                            # FIX ME: this was not checked properly.the values it feeds are not necessarily correct and the fixed parametersmight be fit for.
                         coef_type = ff.params_get_type(orders, comp, peak=j)
                         n_coef    = ff.get_number_coef(orders, comp, peak=j, azims=np.array(newAziChunks))
-                        master_params = ff.initiate_params(master_params, param_str, comp, coef_type=coef_type, num_coef=n_coef, trig_orders=orders['peak'][j][comp_names[cp]], limits=lims[comp_names[cp]], value=np.array(vars()[arr_names[cp]][j])) 
+                        master_params = ff.initiate_params(master_params, param_str, comp, coef_type=coef_type, num_coef=n_coef, trig_orders=orders['peak'][j][comp_names[cp]], limits=lims[comp_names[cp]], value=vals) 
                         master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
-                        master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
-                        if isinstance(orders['peak'][k][comp_names[cp]], list): # set part of these parameters to not vary
-                            master_params = ff.unvary_part_params(master_params, param_str, comp, orders['peak'][k][comp_names[cp]])
-                        if n_coef > len(np.unique(newAziChunks)): # catch me make sure there are not more coefficients than chunks
-                            o = int(np.floor(len(np.unique(newAziChunks))/2-1))
-                            unvary = [x for x in range(0,o)]
-                            master_params = ff.unvary_part_params(master_params, param_str, comp, unvary)
-                        fout = ff.coefficient_fit(azimu=np.array(newAziChunks), ydata=np.array(vars()[arr_names[cp]][j]), param=master_params, param_str=param_str + '_' + comp, symm=symmetry,  errs=np.array(vars()[arr_err_names[cp]][j]), fit_method='leastsq')
+                        if fixed==0:
+                            master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
+                            if isinstance(orders['peak'][k][comp_names[cp]], list): # set part of these parameters to not vary
+                                master_params = ff.unvary_part_params(master_params, param_str, comp, orders['peak'][k][comp_names[cp]])
+                            if n_coef > len(np.unique(newAziChunks)): # catch me make sure there are not more coefficients than chunks
+                                o = int(np.floor(len(np.unique(newAziChunks))/2-1))
+                                unvary = [x for x in range(0,o)]
+                                master_params = ff.unvary_part_params(master_params, param_str, comp, unvary)
+                            fout = ff.coefficient_fit(azimu=np.array(newAziChunks), ydata=vals, param=master_params, param_str=param_str + '_' + comp, symm=symmetry,  errs=vals_err, fit_method='leastsq')
+                            
                         master_params = fout.params
                         # FIX ME. Check which params should be varying and which should not. Need to incorporate var y and unnvary params as well as partial vary
                         

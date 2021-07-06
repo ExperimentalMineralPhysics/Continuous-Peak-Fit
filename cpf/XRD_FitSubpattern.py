@@ -1382,12 +1382,24 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
     if SaveFit == 1 or view == 1 or debug:
         print('\nPlotting results for fit...\n')
 
+        y_lims = np.array([np.min(azimu.flatten()), np.max(azimu.flatten())])
+        y_lims = np.around(y_lims / 180) * 180
+
+
         gmodel = Model(ff.PeaksModel, independent_vars=['twotheta', 'azi'])
         # fullfit_intens = gmodel.eval(params=master_params, twotheta=twotheta.flatten(), azi=azimu.flatten(),
         #                              num_peaks=num_peaks, nterms_back=len(backg_guess), Conv=conversion_factor,
         #                              fixed=pfixed)
         fullfit_intens = gmodel.eval(params=master_params, twotheta=twotheta.flatten(), azi=azimu.flatten(),
                                      Conv=conversion_factor)
+        
+        AziPlot = np.array(list(range(np.int(y_lims[0]), np.int(y_lims[1]), 2)))
+        centroid = []
+        for i in range(peeks):
+            param = NewParams['peak'][i]['d-space']
+            param_type = NewParams['peak'][i]['d-space-type']
+            centroid.append(ff.CentroidConversion(conversion_factor, ff.coefficient_expand(AziPlot, param=param, coef_type=param_type), AziPlot))
+        
         # fullfit_intens = inp
         # Set the maximum to the n+1th value in the array
         # FIX ME: the max find is not necessarily efficient. A quicker way should be found if it exists.
@@ -1402,9 +1414,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         ValMin2 = np.min(fullfit_intens.flatten())
         ValMin3 = np.min((intens.flatten() - fullfit_intens.flatten()))
         ValMin = np.min([ValMin1, ValMin2])
-
-        y_lims = np.array([np.min(azimu.flatten()), np.max(azimu.flatten())])
-        y_lims = np.around(y_lims / 180) * 180
 
         if conversion_factor['DispersionType'] == 'EnergyDispersive':
             xlabel_str = 'Energy (keV)'
@@ -1433,6 +1442,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         # plt.scatter(twotheta, azimu, s=1, c=np.log(fullfit_intens), edgecolors='none', cmap=plt.cm.jet)
         plt.scatter(twotheta.flatten(), azimu.flatten(), s=dot_size, c=(fullfit_intens.flatten()), edgecolors='none',
                     cmap=plt.cm.magma_r, vmin=ValMin, vmax=ValMax)
+        for i in range(peeks):
+            plt.plot(centroid[i], AziPlot, 'k--', linewidth=0.5)
         plt.colorbar()
         axO2.set_title('Model')
         axO2.set_xlabel(xlabel_str)
@@ -1445,6 +1456,8 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         # plt.scatter(twotheta, azimu, s=1, c=np.log(intens-fullfit_intens), edgecolors='none', cmap=plt.cm.jet)
         plt.scatter(twotheta.flatten(), azimu.flatten(), s=dot_size, c=(intens.flatten() - fullfit_intens.flatten()),
                     edgecolors='none', cmap=plt.cm.coolwarm, vmin=ValMin3, vmax=ValMax3)
+        for i in range(peeks):
+            plt.plot(centroid[i], AziPlot, 'k--', linewidth=0.5)
         axO3.set_title('Residuals (data - model)')
         axO3.set_xlabel(xlabel_str)
         axO3.set_ylabel('Azimuth (deg)')

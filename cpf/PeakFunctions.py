@@ -36,7 +36,7 @@ def parse_bounds(bounds, dspace, intens, twotheta, ndat=None, npeaks=1, param=No
         bounds = {
               "background": ['min', 'max'],
               "d-space":    ['min', 'max'],
-              "height":     [ 0,    '2*max'],
+              "height":     [ 0,    'max-min'],
               "profile":    [ 0,     1],
               "width":      [ 'range/(ndata)',  'range/2/npeaks'],
               }

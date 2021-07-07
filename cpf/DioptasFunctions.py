@@ -543,8 +543,5 @@ class DioptasDetector:
                     ax1.set_xlabel(r'$2\theta$ ($^\circ$)')
                     
         plt.suptitle(name + '; masking')
-                    
-        plt.show()
-        plt.close()
         
         return fig_1

@@ -511,10 +511,9 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         param_str = 'peak_' + str(j)
                         comp = 'd'
                         lims = ff.parse_bounds(bounds, twotheta.flatten(), 0, 0,  param=['d-space'])
-                        
                         # confirm that peak position selections are within the bounds. If not fail as gracefully as possible.
-                        lims_tth = ff.CentroidConversion(conversion_factor, np.array(lims['d-space']),0)
-                        if np.min(tthguess) < lims_tth[0] or np.max(tthguess) > lims_tth[1]:
+                        lims_tth = np.array(lims['d-space'])
+                        if np.min(tthguess[:,1]) < lims_tth[0] or np.max(tthguess[:,1]) > lims_tth[1]:
                             raise ValueError('At least one of the ''PeakPositionSelection'' vales is outside of the bounds. Check values in ''range'' and ''PeakPositionSelection''.')
                         
                         if 'd-space-type' in orders['peak'][j]:

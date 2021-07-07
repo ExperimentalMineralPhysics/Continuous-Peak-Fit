@@ -95,7 +95,7 @@ def detector_factory(calibration_param, calibration_type, fit_settings=None):
 
 
 
-def initiate(settings_file=None, inputs=None, out_type=None, initiateData=True, **kwargs):
+def initiate(settings_file=None, inputs=None, out_type=None, initiateData=True, report=False, **kwargs):
     """
     Run checks on input files, initiate data class and check output options
     :param settings_file:
@@ -151,6 +151,66 @@ def initiate(settings_file=None, inputs=None, out_type=None, initiateData=True, 
                 else:
                     possible[x][y].append(0)
     # exit if all parameters are not present
+
+    #check the peak fitting options in the input file are not illicit.
+    missing = []
+    extras = []
+    for i in range(len(FitSettings.fit_orders)):
+        #FIX ME: we should check for incorrect or unneeded options
+        required = ['background', 'peak', 'range']
+        possible = ['PeakPositionSelection', 'Imax']
+        peak_required = ['d-space', 'width', 'height', 'profile']
+        
+        #check range and background
+        if not 'range' in FitSettings.fit_orders[i]:
+            missing.append('fit_orders '+str(i)+' is missing a ''range''')
+        elif not isinstance(FitSettings.fit_orders[i]['range'], list) and len(FitSettings.fit_orders[i]['range'])!=2:
+            missing.append('fit_orders '+str(i)+' has an incorrectly formatted ''range''')
+            
+        if not 'background' in FitSettings.fit_orders[i]:
+            missing.append('fit_orders '+str(i)+' is missing a ''background''')
+        elif not isinstance(FitSettings.fit_orders[i]['background'], list):
+            missing.append('fit_orders '+str(i)+' has an incorrectly formatted ''background''')
+        
+        #check peaks
+        if not 'peak' in FitSettings.fit_orders[i]:
+            missing.append('fit_orders'+str(i) + 'has no ''peak''')
+        else:
+            for j in range(len(FitSettings.fit_orders[i]['peak'])):
+                for k in range(len(peak_required)):
+                    if not peak_required[k] in FitSettings.fit_orders[i]['peak'][j]:
+                        missing.append('fit_orders '+str(i)+', peak ' +str(j)+' has no '+peak_required[k])
+                    elif not isinstance(FitSettings.fit_orders[i]['peak'][j][peak_required[k]], list) and not isinstance( FitSettings.fit_orders[i]['peak'][j][peak_required[k]],int):
+                        missing.append('fit_orders '+str(i)+', peak ' +str(j)+' incorrectly formatted '''+peak_required[k]+' '' ')
+                        
+        #if PeakPositionSelection - check within range
+        if "PeakPositionSelection" in FitSettings.fit_orders[i]:
+            # how many peaks in list
+            tthguesses = np.array(FitSettings.fit_orders[i]['PeakPositionSelection'])
+            
+            if max(tthguesses[:,0]) > len(FitSettings.fit_orders[i]['peak'][j]):
+                missing.append('fit_orders '+str(i)+': PeakPositionSelection contains too many peaks')
+                
+            # if positions outside of range.    
+            if np.min(tthguesses[:,2]) < FitSettings.fit_orders[i]['range'][0][0]:
+                missing.append('fit_order s'+str(i)+': PeakPositionSelection has at least one two theta value that is too small')
+            if np.max(tthguesses[:,2]) > FitSettings.fit_orders[i]['range'][0][1]:
+                missing.append('fit_orders '+str(i)+': PeakPositionSelection has at least one two theta value that is too large')
+        else:
+            if len(FitSettings.fit_orders[i]['peak']) > 1:
+                missing.append('fit_orders '+str(i)+': There are more peaks than listed in ''PeakPositionSelection'' than peaks listed')
+        
+        #list unrecognised entries
+    
+    if missing:
+        print('\nMissing Values:')
+        for i in range(len(missing)):
+            print(missing[i])
+        raise ValueError('The problems listed above will prevent the scripts running')
+    else:
+        print('Fit_orders appears to be correct')
+        
+    # FIX ME: do we need to check fitbounds?
 
     # Load output function(s) and check output options are present and valid
     if out_type is not None:

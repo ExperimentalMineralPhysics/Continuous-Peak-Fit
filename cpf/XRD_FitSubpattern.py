@@ -1396,13 +1396,16 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         fullfit_intens = gmodel.eval(params=master_params, twotheta=twotheta.flatten(), azi=azimu.flatten(),
                                      Conv=conversion_factor)
         
-        AziPlot = np.array(list(range(np.int(y_lims[0]), np.int(y_lims[1]), 2)))
+        if conversion_factor['DispersionType'] == 'EnergyDispersive':
+            AziPlot = np.unique(azimu.flatten())
+        elif conversion_factor['DispersionType'] == 'AngleDispersive':
+            AziPlot = np.array(list(range(np.int(y_lims[0]), np.int(y_lims[1]), 2)))
         centroid = []
         for i in range(peeks):
             param = NewParams['peak'][i]['d-space']
             param_type = NewParams['peak'][i]['d-space-type']
             centroid.append(ff.CentroidConversion(conversion_factor, ff.coefficient_expand(AziPlot, param=param, coef_type=param_type), AziPlot))
-        
+            
         # fullfit_intens = inp
         # Set the maximum to the n+1th value in the array
         # FIX ME: the max find is not necessarily efficient. A quicker way should be found if it exists.

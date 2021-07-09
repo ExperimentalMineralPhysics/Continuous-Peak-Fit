@@ -36,7 +36,7 @@ class MedDetector:
         self.azm = None
         self.dspace = None
 
-    def fill_data(self, calibration_data, detector=None, debug=None, calibration_mask=None):
+    def fill_data(self, diff_file, settings=None, debug=None, calibration_mask=None):
         """
         :param calibration_data:
         :param detector:
@@ -44,11 +44,14 @@ class MedDetector:
         :param calibration_mask:
         """
         # self.detector = self.detector_check(calibration_data, detector)
-        self.get_detector(calibration_data, detector)
-        self.intensity = self.get_masked_calibration(calibration_data, debug, calibration_mask)
-        self.tth = self.GetTth(self.detector, self.parameters, self.intensity.mask)
-        self.azm = self.GetAzm(self.detector, self.parameters, self.intensity.mask)
-        self.dspace = self.GetDsp(self.detector, self.parameters, self.intensity.mask)
+        self.calibration = self.get_calibration(settings.Calib_param)
+        self.get_detector(diff_file, settings)
+        
+        self.intensity = self.get_masked_calibration(diff_file, debug, calibration_mask)
+        self.tth = self.GetTth(mask=self.intensity.mask)
+        self.azm = self.GetAzm(mask=self.intensity.mask)
+        self.dspace = self.GetDsp(mask=self.intensity.mask)
+        
 
     def get_detector(self, calibration_data, detector=None):
         self.detector = self.detector_check(calibration_data, detector)
@@ -290,7 +293,7 @@ class MedDetector:
             chunks.append(azichunk)
         return chunks, bin_vals
 
-    def GetTth(self, cali_file, parms_dict, imask=None, pix=None, det=None):
+    def GetTth(self, mask=None, pix=None, det=None):
         """
         Called get two theta but it is really getting the energy.
         :param cali_file:
@@ -299,17 +302,18 @@ class MedDetector:
         :param det:
         :return:
         """
-        channels = np.arange(parms_dict['calibs'].mcas[0].data.shape[0])
+        channels = np.arange(self.calibration['calibs'].mcas[0].data.shape[0])
+        #channels = np.arange(parms_dict['calibs'].mcas[0].data.shape[0])
         en = []
-        for x in range(parms_dict['calibs'].n_detectors):
-            en.append(parms_dict['calibs'].mcas[x].channel_to_energy(channels))
-        if imask is not None:
-            en = ma.array(en, mask=imask)
+        for x in range(self.calibration['calibs'].n_detectors):
+            en.append(self.calibration['calibs'].mcas[x].channel_to_energy(channels))
+        if mask is not None:
+            en = ma.array(en, mask=mask)
         else:
             en = ma.array(en)
         return en
 
-    def GetAzm(self, cali_file, parms_dict, imask=None, pix=None, det=None):
+    def GetAzm(self, mask=None, pix=None, det=None):
         """
         Give azimuth value for detector x,y position; have to assume geometry of the detectors
         :param cali_file:
@@ -318,15 +322,15 @@ class MedDetector:
         :param det:
         :return:
         """
-        l = parms_dict['calibs'].mcas[0].data.shape
-        azi = np.tile(parms_dict['azimuths'], [l[0], 1]).T
-        if imask is not None:
-            azi = ma.array(azi, mask=imask)
+        l = self.calibration['calibs'].mcas[0].data.shape
+        azi = np.tile(self.calibration['azimuths'], [l[0], 1]).T
+        if mask is not None:
+            azi = ma.array(azi, mask=mask)
         else:
-            azi = ma.array(azi)
+            azi = ma.array(azi, mask=None)
         return azi
 
-    def GetDsp(self, cali_file, parms_dict, imask=None, pix=None, det=None):
+    def GetDsp(self, mask=None, pix=None, det=None):
         """
         Give d-spacing value for detector x,y position; calibration info in data
         :param cali_file:
@@ -335,12 +339,12 @@ class MedDetector:
         :param det:
         :return:
         """
-        channels = np.arange(parms_dict['calibs'].mcas[0].data.shape[0])
+        channels = np.arange(self.calibration['calibs'].mcas[0].data.shape[0])
         dspc = []
-        for x in range(parms_dict['calibs'].n_detectors):
-            dspc.append(parms_dict['calibs'].mcas[x].channel_to_d(channels))
-        if imask is not None:
-            dpsc = ma.array(dspc, mask=imask)
+        for x in range(self.calibration['calibs'].n_detectors):
+            dspc.append(self.calibration['calibs'].mcas[x].channel_to_d(channels))
+        if mask is not None:
+            dpsc = ma.array(dspc, mask=mask)
         else:
             dpsc = ma.array(dspc)
         return dpsc

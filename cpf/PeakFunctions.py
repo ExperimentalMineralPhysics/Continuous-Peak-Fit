@@ -738,14 +738,20 @@ def CentroidConversion(Conv, args_in, azi):
                 args_out.append(
                     12.398 / (2 * args_in * np.sin(np.radians(Conv['calibs'].mcas[a].calibration.two_theta / 2))))
             else:
-                #                print type(azi)
-                #                print azi.mask[x]
-                if not azi.mask[x]:
-                    a = (np.where(Conv['azimuths'] == azi[x])[0][0])
+                try:
+                    a = np.array(np.where(Conv['azimuths'] == azi[x])[0][0])
                     args_out.append(12.398 / (
                             2 * args_in[x] * np.sin(np.radians(Conv['calibs'].mcas[a].calibration.two_theta / 2))))
-                else:
+                except:
                     args_out.append(0)
+                # print(azi)
+                # if not azi.mask.all():
+                #     print(Conv['azimuths'] == azi[x])
+                #     a = np.array(np.where(Conv['azimuths'] == azi[x])[0][0])
+                #     args_out.append(12.398 / (
+                #             2 * args_in[x] * np.sin(np.radians(Conv['calibs'].mcas[a].calibration.two_theta / 2))))
+                # else:
+                #     args_out.append(0)
         if isinstance(azi, np.ma.MaskedArray):
             args_out = ma.array(args_out, mask=azi.mask)
     else:

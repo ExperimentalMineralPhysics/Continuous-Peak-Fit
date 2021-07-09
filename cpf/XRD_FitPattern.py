@@ -193,7 +193,7 @@ def initiate(settings_file=None, inputs=None, out_type=None, initiateData=True, 
                 
             # if positions outside of range.    
             if np.min(tthguesses[:,2]) < FitSettings.fit_orders[i]['range'][0][0]:
-                missing.append('fit_order s'+str(i)+': PeakPositionSelection has at least one two theta value that is too small')
+                missing.append('fit_orders '+str(i)+': PeakPositionSelection has at least one two theta value that is too small')
             if np.max(tthguesses[:,2]) > FitSettings.fit_orders[i]['range'][0][1]:
                 missing.append('fit_orders '+str(i)+': PeakPositionSelection has at least one two theta value that is too large')
         else:
@@ -465,8 +465,8 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
                 print('Remove Cosmics')
                 #set defaults
                 gain = 2.2
-                sigclip = 1.5
-                objlim = 3.0
+                sigclip = 1.5 # 3 is dioptas default
+                objlim = 3.0 # 3 is dioptas default
                 sigfrac = 0.3
                 if bool(FitSettings.Image_prepare['cosmics']) == True:
                     if ('gain' in FitSettings.Image_prepare['cosmics']):

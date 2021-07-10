@@ -83,7 +83,7 @@ fit_orders = [
               "d-space": 3,
               "height": 8,
               "profile": 0,
-              #"profile_fixed": 1,
+              "profile_fixed": 1,
               "width": 0,
               "symmetry": 2
             }],

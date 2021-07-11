@@ -14,7 +14,7 @@ import numpy.ma as ma
 from lmfit import Parameters, Model
 from lmfit.model import save_modelresult #, load_modelresult
 import importlib
-
+import json
 import cpf.PeakFunctions as ff
 from cpf.IO_functions import AnyTermsNull
 
@@ -1356,7 +1356,18 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
     # Write master_params to NewParams dict object
     NewParams = ff.params_to_newparams(master_params, num_peaks=peeks, num_bg=len(backg_guess),
                                        order_peak=orders['peak'])
-
+    
+    # get all correlation coefficients
+    # FIX ME: this lists all the coefficients rather than just the unique half -- ie.e. it contains corr(a,b) and corr(b,a)
+    # FIX ME: should probably be a function
+    # N.B. converted to a string so that it does not take up so many times in output file. Also why new lines are removed.
+    correl={}
+    for key in master_params.keys():
+        correl[key] = master_params[key].correl
+    correl_str = json.dumps(correl)
+    correl_str = correl_str.replace("\n", "")
+    NewParams.update({"correlation_coeffs": correl_str})
+    
     tth_min = twotheta.min()
     tth_max = twotheta.max()
     d_min = dspace.min()

@@ -418,6 +418,7 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
     azimu = new_data.azm
     twotheta = new_data.tth
     dspace = new_data.dspace
+    OriginalMask = np.copy(new_data.azm.mask)
     # print(azimu, twotheta, dspace)
 
     ### Replace this with call through to class structure
@@ -485,11 +486,14 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
                     test.lacosmiciteration(True)
                     #print(asdf["nnew"], asdf["niter"])
                     test.clean()
-                    msk = np.logical_or(azimu.mask, np.array(test.mask, dtype='bool'))
+                    msk = np.logical_or(OriginalMask, np.array(test.mask, dtype='bool'))
+                    # need to keep original mask and keep refernceing to it because we overwrite the mask in azimu below.
                 intens = ma.array(intens, mask=msk)
                 azimu = ma.array(azimu, mask=intens.mask)
                 twotheta = ma.array(twotheta, mask=intens.mask)
                 dspace = ma.array(dspace, mask=intens.mask)
+                # FIX ME: applying a mask to the data should mask all the arrays. This should be a class function.  
+                # FIX ME: I think these calls shoudl all be class applications rather than as it is now. -- but it seems to work
        
         # plot input file
         if debug:

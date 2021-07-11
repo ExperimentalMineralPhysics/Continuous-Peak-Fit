@@ -249,6 +249,8 @@ class DioptasDetector:
         ImInts = ma.array(ImInts, mask=ImMsk)
 
         # TALK TO SIMON ABOUT WHAT TO DO WITH THIS
+        # SAH. !! July 2021: -- we need a  mask function that makes usre all the arrays have the same mask applied to them. 
+        #     == and possibly one that returns just the mask.
 
         '''
         if debug:

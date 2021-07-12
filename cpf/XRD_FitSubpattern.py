@@ -1207,12 +1207,15 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                             master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
                             if isinstance(orders['peak'][k][comp_names[cp]], list): # set part of these parameters to not vary
                                 master_params = ff.unvary_part_params(master_params, param_str, comp, orders['peak'][k][comp_names[cp]])
+                            if comp == 'h':
+                                refine_maxfeval = 5*default_maxfeval
+                            else:
+                                refine_maxfeval = default_maxfeval
                             fout = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),
                                           num_peaks=peeks, nterms_back=len(backg), Conv=conversion_factor,
-                                          fixed=pfixed, fit_method=None, weights=None, params=master_params, max_nfev=default_maxfeval)
+                                          fixed=pfixed, fit_method=None, weights=None, params=master_params, max_nfev=refine_maxfeval)
                             #print(fout.success, fout.nfev)
-                            if fout.success == 1:
-                                master_params = fout.params
+                            master_params = fout.params
                             
                     for k in range(len(backg)):
                         param_str = 'bg_c'+str(k)

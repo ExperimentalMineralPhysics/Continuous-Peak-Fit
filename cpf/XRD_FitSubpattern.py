@@ -788,7 +788,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                             
                         out = ff.FitModel(intens.flatten()[chunks[j]], twotheta.flatten()[chunks[j]], azichunks[j],
                                           num_peaks=len(peaks), nterms_back=len(backg_guess), Conv=conversion_factor,
-                                          fixed=pfixed, fit_method=fit_method, weights=None, params=params, max_nfev=default_maxfeval)
+                                          fixed=pfixed, fit_method=fit_method, weights=None, params=params, max_nfev=peeks*default_maxfeval)
                         params = out.params
                         if debug:
                             params.pretty_print()
@@ -875,7 +875,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         else:
                             symmetry = symm
                         name = comp_names[cp]+'_fixed'
-                        if comp_names[cp]+'_fixed' in orders['peak'][k]:
+                        if comp_names[cp]+'_fixed' in orders['peak'][j]:
                             fixed = 1
                             vals = orders['peak'][j][comp_names[cp]+'_fixed'] #values if fixed.
                         else:
@@ -1208,7 +1208,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                             if isinstance(orders['peak'][k][comp_names[cp]], list): # set part of these parameters to not vary
                                 master_params = ff.unvary_part_params(master_params, param_str, comp, orders['peak'][k][comp_names[cp]])
                             if comp == 'h':
-                                refine_maxfeval = 5*default_maxfeval
+                                refine_maxfeval = 5*peeks*default_maxfeval
                             else:
                                 refine_maxfeval = default_maxfeval
                             fout = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),

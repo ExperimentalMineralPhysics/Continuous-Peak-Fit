@@ -8,7 +8,7 @@ import numpy as np
 #import cpf.PeakFunctions as ff
 import cpf.WriteMultiFit as WriteMultiFit
 import json
-from cpf.IO_functions import FileList
+import cpf.IO_functions as IO 
 #import re
 #import datetime
 
@@ -41,22 +41,37 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
     FitParameters = dir(FitSettings)
     
     #Parse the required inputs. 
-    base_file_name = FitSettings.datafile_Basename
-    diff_files, n_diff_files = FileList(FitParameters, FitSettings)
-    if 'Output_directory' in FitParameters:
-        out_dir = FitSettings.Output_directory
-    else:
-        out_dir = './'
-            
-    # create output file name from passed name
-    path, filename = os.path.split(base_file_name)
-    base, ext = os.path.splitext(filename)
-    if base[-1:] == '_': #if the base file name ends in an '_' remove it. 
-        base = base[0:-1]
+    #base_file_name = FitSettings.datafile_Basename
     
+    # diffraction patterns 
+    diff_files, n_diff_files = IO.FileList(FitParameters, FitSettings)
+    
+    base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
+    if not base:
+        print("No base filename, using input filename instead.")
+        base =  os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
     if differential_only is not False:
         base = base+'_DiffOnly'
-    out_file = out_dir + base + '.exp'
+    out_file = IO.make_outfile_name(base, directory=FitSettings.Output_directory, extension='.exp', overwrite=True)
+
+
+    # #Parse the required inputs. 
+    # base_file_name = FitSettings.datafile_Basename
+    # diff_files, n_diff_files = FileList(FitParameters, FitSettings)
+    # if 'Output_directory' in FitParameters:
+    #     out_dir = FitSettings.Output_directory
+    # else:
+    #     out_dir = './'
+            
+    # # create output file name from passed name
+    # path, filename = os.path.split(base_file_name)
+    # base, ext = os.path.splitext(filename)
+    # if base[-1:] == '_': #if the base file name ends in an '_' remove it. 
+    #     base = base[0:-1]
+    
+    # if differential_only is not False:
+    #     base = base+'_DiffOnly'
+    # out_file = out_dir + base + '.exp'
 
     text_file = open(out_file, "w")
     print('Writing', out_file)
@@ -114,8 +129,11 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
                     
                 #check if the d-spacing fits are NaN or not. if NaN switch off (0) otherwise use (1).
                 # Got first file name        
-                filename = os.path.splitext(os.path.basename(diff_files[0]))[0]
-                filename = filename+'.json'
+                #filename = os.path.splitext(os.path.basename(diff_files[0]))[0]
+                #filename = filename+'.json'
+                
+                filename = IO.make_outfile_name(diff_files[0], directory=FitSettings.Output_directory, extension='.json', overwrite=True) #overwrite =false to get the file name without incrlemeting it. 
+                
                 # Read JSON data from file
                 with open(filename) as json_data:
                     fit = json.load(json_data)

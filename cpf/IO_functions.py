@@ -150,6 +150,96 @@ def ReplaceNullTerms(obj_to_inspect, val_to_find = None, indexpath="", clean=Non
 
 
 
+def peak_string(orders, fname=False):
+    """
+    :param orders: list of peak orders which should include peak names/hkls
+    :param fname: str
+    :return: string listing peak names
+    """
+    # FIX ME: this will be a data-type function so should probably move somewhere else in the end.
+    p_str = ''
+    
+    for x in range(len(orders['peak'])):
+        if 'phase' in orders['peak'][x]:
+            p_str = p_str + orders['peak'][x]['phase']
+        else:
+            p_str = p_str + "Peak"
+        if fname is False:
+            p_str = p_str + " ("
+        else:
+            p_str = p_str + "-"
+        if 'hkl' in orders['peak'][x]:
+            p_str = p_str + str(orders['peak'][x]['hkl'])
+        else:
+            p_str = p_str + str(x+1)
+        if fname is False:
+            p_str = p_str + ")"
+                
+        if x < len(orders['peak']) - 1 and len(orders['peak']) > 1:
+            if fname is False:
+                p_str = p_str + " & "
+            else:
+                p_str = p_str + '_'
+
+    return p_str
+
+
+
+def make_outfile_name(basefilename, directory=None, additional_text=None, extension=None, orders=None, overwrite=True):
+    ''' Make file names for output files.
+    Needs to account for different file name formats 
+    '''
+        
+    # strip directory if it is in the name and there is a new directory
+    if directory:
+        basefilename = os.path.basename(basefilename)
+        
+    if basefilename: # catch incase the string does not exist.
+        filename,ending = os.path.splitext(basefilename)   
+        #filename = os.path.splitext(os.path.basename(fnam))[0] + '_'
+    else:
+        filename = 'Fit2Peak'
+        ending = ''
+        
+    if filename[-1:] == '_': #if the base file name ends in an '_' remove it. 
+        filename = filename[0:-1]
+    
+    # check the iteration is not in the file ending.
+    # another way to do this would be to check in the file ending in the input file is empty.
+    try:
+        int(ending[1:])
+        in_ending = True  #the file ending is convertable to a number -- therefore assume the extension contains the iterating parameter.
+    except:
+        in_ending = False
+    if in_ending:
+        filename = filename + '_' + ending[1:]
+    
+    if orders: # add phase and hkl to file name
+        filename = filename + '__'+ peak_string(orders, fname=True)
+    if additional_text: # add additional text -- i.e. notes from orders
+        filename = filename + '__' + additional_text
+    if directory:
+        filename = os.path.join(directory, filename)
+    
+    if extension and extension[0]==".":
+        extension = extension[1:]
+    
+    if overwrite==False:
+        i = 0
+        if os.path.exists('{}.{}'.format(filename, extension)):
+            i+=1
+        while os.path.exists('{}_{:d}.{}'.format(filename, i, extension)):
+            i += 1
+        if i == 0:
+            filename = ('{}.{}'.format(filename, extension))
+        else:
+            filename = ('{}_{:d}.{}'.format(filename, i, extension))
+    else: 
+        filename = ('{}.{}'.format(filename, extension))
+    
+    return filename
+
+
 
 def lmfit_fix_int_data_type(fname):
     """

@@ -10,7 +10,8 @@ import json
 import lmfit
 from lmfit.model import load_modelresult
 #import cpf.XRD_FitPattern as XRD_FP
-from cpf.IO_functions import ReplaceNullTerms, FileList, lmfit_fix_int_data_type
+#from cpf.IO_functions import ReplaceNullTerms, FileList, lmfit_fix_int_data_type
+import cpf.IO_functions as IO 
 
 
 def Requirements():
@@ -36,26 +37,33 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
     FitParameters = dir(FitSettings)
     
     #Parse the required inputs. 
-    base_file_name = FitSettings.datafile_Basename
+    #base_file_name = FitSettings.datafile_Basename
     
     # diffraction patterns 
-    diff_files, n_diff_files = FileList(FitParameters, FitSettings)
-    if 'Output_directory' in FitParameters:
-        out_dir = FitSettings.Output_directory
-    else:
-        out_dir = './'
+    diff_files, n_diff_files = IO.FileList(FitParameters, FitSettings)
+    # if 'Output_directory' in FitParameters:
+    #     out_dir = FitSettings.Output_directory
+    # else:
+    #     out_dir = './'
 
-    # create output file name from passed name
-    path, filename = os.path.split(base_file_name)
-    base, ext = os.path.splitext(filename)
+    # # create output file name from passed name
+    # path, filename = os.path.split(base_file_name)
+    # base, ext = os.path.splitext(filename)
+    # if not base:
+    #     print("No base filename, using input filename instead.")
+    #     base =  os.path.splitext(FitSettings.inputfile)[0]
+        
+    # if base[-1:] == '_': #if the base file name ends in an '_' remove it. 
+    #     base = base[0:-1]
+        
+    # out_file = out_dir + base + '.dat'
+    
+    
+    base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
     if not base:
         print("No base filename, using input filename instead.")
-        base =  os.path.splitext(FitSettings.inputfile)[0]
-        
-    if base[-1:] == '_': #if the base file name ends in an '_' remove it. 
-        base = base[0:-1]
-        
-    out_file = out_dir + base + '.dat'
+        base =  os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
+    out_file = IO.make_outfile_name(base, directory=FitSettings.Output_directory, extension='.dat', overwrite=True)
 
     text_file = open(out_file, "w")
     print('Writing', out_file)
@@ -118,7 +126,7 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
             with open(filename) as json_data:
                 fit = json.load(json_data)
             
-            fit = ReplaceNullTerms(fit)
+            fit = IO.ReplaceNullTerms(fit)
             
             num_subpatterns = len(fit)
             for y in range(num_subpatterns):
@@ -152,7 +160,7 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                     try:
                         gmodel = load_modelresult(subfilename+'.sav', funcdefs={'PeaksModel': ff.PeaksModel})
                     except:
-                        lmfit_fix_int_data_type(subfilename+'.sav')
+                        IO.lmfit_fix_int_data_type(subfilename+'.sav')
                         try:
                             gmodel = load_modelresult(subfilename+'.sav', funcdefs={'PeaksModel': ff.PeaksModel})
                         except:

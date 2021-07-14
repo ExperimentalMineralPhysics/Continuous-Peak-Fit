@@ -15,9 +15,10 @@ import importlib.util
 import cpf.DioptasFunctions as DioptasFunctions
 import cpf.GSASIIFunctions as GSASIIFunctions
 import cpf.MedFunctions as MedFunctions
-from cpf.XRD_FitSubpattern import FitSubpattern, peak_string
+from cpf.XRD_FitSubpattern import FitSubpattern
 from cpf.Cosmics import cosmicsimage
-from cpf.IO_functions import json_numpy_serialzer, FileList
+#from cpf.IO_functions import json_numpy_serialzer, FileList, peak_string
+import cpf.IO_functions as IO 
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -126,12 +127,19 @@ def initiate(settings_file=None, inputs=None, out_type=None, initiateData=True, 
         raise ImportError('The data directory ' + FitSettings.datafile_directory + ' does not exist.')
     else:
         print('The data directory exists.')
-    diff_files, n_diff_files = FileList(FitParameters, FitSettings)
+    diff_files, n_diff_files = IO.FileList(FitParameters, FitSettings)
     for j in range(n_diff_files):
         if os.path.isfile(diff_files[j]) is False:
             raise ImportError('The data file ' + diff_files[j] + ' does not exist. Check the input file.')
     print('All the data files exist.')
 
+    #Confirm that an output directory is listed.
+    if 'Output_directory' not in FitParameters:
+        FitSettings.Output_directory = ''
+        FitParameters.append('Output_directory')
+    if not os.path.isdir(FitSettings.Output_directory):
+        raise ValueError('Output directory not found')
+            
     # Load the detector class here to access relevant functions and check required parameters are present
     if 'Calib_type' not in FitParameters:
         raise ValueError("There is no 'Calib_type' in the settings. The fitting cannot proceed until a recognised "
@@ -390,10 +398,11 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
         new_data = inputs
 
     # Define locally required names
-    temporary_data_file = 'PreviousFit_JSON.dat'
+    temporary_data_file = IO.make_outfile_name('PreviousFit_JSON', directory=FitSettings.Output_directory, extension='.dat', overwrite=True)
+    #temporary_data_file = IO.make_outfile_name('PreviousFit_JSON', extension='dat', overwrite=True)
 
     # Get list of diffraction patterns #
-    diff_files, n_diff_files = FileList(FitParameters, FitSettings)
+    diff_files, n_diff_files = IO.FileList(FitParameters, FitSettings)
 
     # Initiate data in data class with appropriate detector class
     if 'Calib_mask' in FitParameters:
@@ -595,21 +604,25 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
                 #FIX ME: this plots the input data. perhaps it should have its own switch rather than being subservient to Debug. 
                 # It is not a debug it is a setup thing.
                 #plot the data and the mask.
-                fig_1 = new_data.plot(twotheta_sub, azimu_sub, intens_sub, plottype='mask', name=peak_string(orders))
+                fig_1 = new_data.plot(twotheta_sub, azimu_sub, intens_sub, plottype='mask', name=IO.peak_string(orders))
                 
                 # save figures without overwriting old names
-                filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
-                filename = filename + peak_string(orders, fname=True)
+                #filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
+                #filename = filename + IO.peak_string(orders, fname=True)
                 
-                i = 0
-                if os.path.exists('{}.png'.format(filename)):
-                    i+=1
-                while os.path.exists('{}_{:d}.png'.format(filename, i)):
-                    i += 1
-                if i == 0:
-                    fig_1.savefig('{}_mask.png'.format(filename))
-                else:
-                    fig_1.savefig('{}_{:d}.png'.format(filename, i))
+                filename = IO.make_outfile_name(diff_files[j], directory=FitSettings.Output_directory, additional_text='mask', orders=orders, extension='.png', overwrite=False)
+                
+                fig_1.savefig(filename)
+                
+                # i = 0
+                # if os.path.exists('{}.png'.format(filename)):
+                #     i+=1
+                # while os.path.exists('{}_{:d}.png'.format(filename, i)):
+                #     i += 1
+                # if i == 0:
+                #     fig_1.savefig('{}_mask.png'.format(filename))
+                # else:
+                #     fig_1.savefig('{}_{:d}.png'.format(filename, i))
                 
                 if debug:
                     plt.show()
@@ -631,7 +644,7 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
                 if parallel is True:#setup parallel version
                     #parallel_pile.append(([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds))
                 
-                    kwargs = {'SaveFit': SaveFigs, 'debug': debug, 'refine': refine, 'iterations': iterations, 'fnam': diff_files[j]}
+                    kwargs = {'SaveFit': SaveFigs, 'debug': debug, 'refine': refine, 'iterations': iterations, 'fnam': diff_files[j], 'fdir': FitSettings.Output_directory}
                     args = ([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, new_data, orders, params, bounds)
                     parallel_pile.append((args, kwargs))
                     
@@ -644,7 +657,7 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
                     #                     iterations=iterations, fnam=diff_files[j])
                     tmp = FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, new_data, orders,
                                         params, bounds, SaveFit=SaveFigs, debug=debug, refine=refine, iterations=iterations,
-                                        fnam=diff_files[j])
+                                        fnam=diff_files[j], fdir=FitSettings.Output_directory)
                     Fitted_param.append(tmp[0])
                     lmfit_models.append(tmp[1])
                 
@@ -668,19 +681,21 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
                     lmfit_models.append(tmp[i][1])
         
             # store the fit parameters information as a JSON file.
-            filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
-            filename = filename + '.json'
+            #filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
+            #filename = filename + '.json'
             # print(filename)
+            
+            filename = IO.make_outfile_name(diff_files[j], directory=FitSettings.Output_directory, extension='.json', overwrite=True)
             with open(filename, 'w') as TempFile:
                 # Write a JSON string into the file.
-                json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
+                json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=IO.json_numpy_serialzer)
     
             # if propagating the fits write them to a temporary file
             if propagate:
                 # print json_string
                 with open(temporary_data_file, 'w') as TempFile:
                     # Write a JSON string into the file.
-                    json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
+                    json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=IO.json_numpy_serialzer)
 
 
     if mode=='fit':

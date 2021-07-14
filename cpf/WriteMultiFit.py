@@ -6,7 +6,7 @@ import os
 import numpy as np
 import cpf.PeakFunctions as ff
 import json
-from cpf.IO_functions import FileList
+import cpf.IO_functions as IO
 
 
 def Requirements():
@@ -35,7 +35,7 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
     base_file_name = FitSettings.datafile_Basename
     
     # diffraction patterns 
-    diff_files, n_diff_files = FileList(FitParameters, FitSettings)
+    diff_files, n_diff_files = IO.FileList(FitParameters, FitSettings)
     if 'Output_directory' in FitParameters:
         out_dir = FitSettings.Output_directory
     else:
@@ -53,9 +53,11 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
     for z in range(n_diff_files):
         
         #read file to write output for
-        filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
-        filename = filename+'.json'
+        #filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
+        #filename = filename+'.json'
                 
+        filename = IO.make_outfile_name(diff_files[z], directory=FitSettings.Output_directory, extension='.json', overwrite=True) #overwrite =false to get the file name without incrlemeting it. 
+        print(filename)
         # Read JSON data from file
         with open(filename) as json_data:
             data_to_write = json.load(json_data)
@@ -68,7 +70,14 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
             base = base+'_DiffOnly'
         out_file = out_dir + base + '.fit'
         
-        print('Writing', out_dir + base + '.fit')
+        base, ext = os.path.splitext(os.path.split(diff_files[z])[1])
+    if not base:
+        print("No base filename, using input filename instead.")
+        base =  os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
+        out_file = IO.make_outfile_name(base, directory=FitSettings.Output_directory, extension='.fit', overwrite=True)
+
+        
+        print('Writing', out_file)
     
     
         text_file = open(out_file, "w")

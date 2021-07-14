@@ -16,7 +16,8 @@ from lmfit.model import save_modelresult #, load_modelresult
 import importlib
 import json
 import cpf.PeakFunctions as ff
-from cpf.IO_functions import AnyTermsNull
+import cpf.IO_functions as IO 
+#from cpf.IO_functions import AnyTermsNull, peak_string
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -25,40 +26,6 @@ np.set_printoptions(threshold=sys.maxsize)
 
 # FIX ME;
 # The script should not need to know what the limits are - it should only see the data that it needs to fit.
-def peak_string(orders, fname=False):
-    """
-    :param orders: list of peak orders which should include peak names/hkls
-    :param fname: str
-    :return: string listing peak names
-    """
-    # FIX ME: this will be a data-type function so should probably move somewhere else in the end.
-    p_str = ''
-    
-    for x in range(len(orders['peak'])):
-        if 'phase' in orders['peak'][x]:
-            p_str = p_str + orders['peak'][x]['phase']
-        else:
-            p_str = p_str + "Peak"
-        if fname is False:
-            p_str = p_str + " ("
-        else:
-            p_str = p_str + "-"
-        if 'hkl' in orders['peak'][x]:
-            p_str = p_str + str(orders['peak'][x]['hkl'])
-        else:
-            p_str = p_str + str(x+1)
-        if fname is False:
-            p_str = p_str + ")"
-                
-        if x < len(orders['peak']) - 1 and len(orders['peak']) > 1:
-            if fname is False:
-                p_str = p_str + " & "
-            else:
-                p_str = p_str + '_'
-
-    return p_str
-
-
 def run_initial_fit(azi, y_data, y_data_errs, params, param_str, comp, order, extras, coef_type=0, method='leastsq', symm=1,
                     value=None):
     """
@@ -237,7 +204,7 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
 
 
 def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, PreviousParams=None, bounds=None,
-                  SaveFit=None, debug=False, refine=True, iterations=2, fnam=None, fit_method=None):
+                  SaveFit=None, debug=False, refine=True, iterations=2, fnam=None, fdir=None, fit_method=None):
     """
     Perform the various fitting stages to the data
     :param new_data:
@@ -352,7 +319,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
     if PreviousParams:
         #check if the previous fit was 'good' i.e. contrains no 'null' values.
         #N.B. null values in json file are read in as None 
-        clean = AnyTermsNull(PreviousParams, val_to_find=None)
+        clean = IO.AnyTermsNull(PreviousParams, val_to_find=None)
         if clean == 0:
             #the previous fit has problems so discard it
             print('Propagated fit has problems so discarding it and doing fit from scratch')
@@ -834,7 +801,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                                 plt.plot(tth_range, mod_plot, marker='', color='red', linewidth=2, label='fit')
                                 plt.xlim(tthrange)
                                 plt.legend()
-                                plt.title(peak_string(orders) + '; Chunk ' + str(j + 1))
+                                plt.title(IO.peak_string(orders) + '; Chunk ' + str(j + 1))
                                 plt.show()
         
                 # Feed each d_0,h,w into Fourier expansion function to get fit for fourier component
@@ -1088,7 +1055,33 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         ax5.scatter(newAziChunks, newBGall[k], s=10)
                         ax5.plot(AzPlt, gmod_plot)
         
-                    fig.suptitle(peak_string(orders) + '; Fits to Chunks')
+                    fig.suptitle(IO.peak_string(orders) + '; Fits to Chunks')
+                    
+                    if SaveFit:
+                        filename = IO.make_outfile_name(fnam, directory=fdir, additional_text='ChunksFit', orders=orders, extension='.png', overwrite=False)
+                        fig.savefig(filename)
+                        
+                        # if not fnam == None:
+                        #     filename = os.path.splitext(os.path.basename(fnam))[0] + '_'
+                        # else:
+                        #     filename = 'Fit2Peak_'
+                        # filename = filename + IO.peak_string(orders, fname=True)
+                        # if 'note' in orders:
+                        #     filename = filename+"".join(x for x in orders['note'] if x.isalnum())
+                        # else:
+                        #     ttlstr = IO.peak_string(orders) + '; final fit'
+                        # filename= filename+'_ChunksFit'
+            
+                        # i = 0
+                        # if os.path.exists('{}.png'.format(filename)):
+                        #     i+=1
+                        # while os.path.exists('{}_{:d}.png'.format(filename, i)):
+                        #     i += 1
+                        # if i == 0:
+                        #     fig.savefig('{}.png'.format(filename))
+                        # else:
+                        #     fig.savefig('{}_{:d}.png'.format(filename, i))
+
                     plt.show()
                     plt.close()
         
@@ -1402,7 +1395,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
     NewParams.update({'FitProperties': FitStats})
 
     #add peak names to NewParams
-    NewParams.update({'PeakLabel': peak_string(orders)})
+    NewParams.update({'PeakLabel': IO.peak_string(orders)})
 
     # Plot results to check
     view = 0
@@ -1497,9 +1490,9 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         plt.setp(labels, rotation=90)
         plt.colorbar()
         if 'note' in orders:
-            ttlstr = peak_string(orders) + '; final fit; '+ orders['note']
+            ttlstr = IO.peak_string(orders) + '; final fit; '+ orders['note']
         else:
-            ttlstr = peak_string(orders) + '; final fit'
+            ttlstr = IO.peak_string(orders) + '; final fit'
         plt.suptitle(ttlstr)
         plt.tight_layout()
 
@@ -1515,25 +1508,28 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
 
         # save figures without overwriting old names
         if SaveFit:
-            if not fnam == None:
-                filename = os.path.splitext(os.path.basename(fnam))[0] + '_'
-            else:
-                filename = 'Fit2Peak_'
-            filename = filename + peak_string(orders, fname=True)
-            if 'note' in orders:
-                filename = filename+"".join(x for x in orders['note'] if x.isalnum())
-            else:
-                ttlstr = peak_string(orders) + '; final fit'
+            filename = IO.make_outfile_name(fnam, directory=fdir, orders=orders, extension='.png', overwrite=False)
+            plt.savefig(filename)
+                        
+            # if not fnam == None:
+            #     filename = os.path.splitext(os.path.basename(fnam))[0] + '_'
+            # else:
+            #     filename = 'Fit2Peak_'
+            # filename = filename + IO.peak_string(orders, fname=True)
+            # if 'note' in orders:
+            #     filename = filename+"".join(x for x in orders['note'] if x.isalnum())
+            # else:
+            #     ttlstr = IO.peak_string(orders) + '; final fit'
 
-            i = 0
-            if os.path.exists('{}.png'.format(filename)):
-                i+=1
-            while os.path.exists('{}_{:d}.png'.format(filename, i)):
-                i += 1
-            if i == 0:
-                plt.savefig('{}.png'.format(filename))
-            else:
-                plt.savefig('{}_{:d}.png'.format(filename, i))
+            # i = 0
+            # if os.path.exists('{}.png'.format(filename)):
+            #     i+=1
+            # while os.path.exists('{}_{:d}.png'.format(filename, i)):
+            #     i += 1
+            # if i == 0:
+            #     plt.savefig('{}.png'.format(filename))
+            # else:
+            #     plt.savefig('{}_{:d}.png'.format(filename, i))
 
         if view == 1 or debug:
             plt.show()
@@ -1543,18 +1539,20 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
 
     # Save lmfit structure
     if SaveFit:
-        if fnam is not None:
-            filename = os.path.splitext(os.path.basename(fnam))[0] + '_'
-        else:
-            filename = 'Fit2Peak_'
-        filename = filename + peak_string(orders, fname=True)
+        filename = IO.make_outfile_name(fnam, directory=fdir, orders=orders, extension='.sav', overwrite=True)
+        # if fnam is not None:
+        #     filename = os.path.splitext(os.path.basename(fnam))[0] + '_'
+        # else:
+        #     filename = 'Fit2Peak_'
+        # filename = filename + IO.peak_string(orders, fname=True)
                 
         try:
-            save_modelresult(out, filename+'.sav')
+            save_modelresult(out, filename)
         except:
-            print('Cannot save lmfit object')
-            if os.path.isfile(filename+'.sav'):
-                os.remove(filename+'.sav')
+            print('Cannot save lmfit object, trying again')
+            if os.path.isfile(filename):
+                os.remove(filename)
+                save_modelresult(out, filename)
             else:    
                 print("File doesn't exists!")
 

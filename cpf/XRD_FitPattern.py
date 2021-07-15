@@ -625,7 +625,7 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
                 #     fig_1.savefig('{}_{:d}.png'.format(filename, i))
                 
                 if debug:
-                    plt.show()
+                    plt.draw()
                 plt.close()
                     
                 step=1000

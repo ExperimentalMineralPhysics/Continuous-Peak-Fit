@@ -57,27 +57,27 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
         #filename = filename+'.json'
                 
         filename = IO.make_outfile_name(diff_files[z], directory=FitSettings.Output_directory, extension='.json', overwrite=True) #overwrite =false to get the file name without incrlemeting it. 
-        print(filename)
+        
         # Read JSON data from file
         with open(filename) as json_data:
             data_to_write = json.load(json_data)
         
-        
         # create output file name from passed name
-        path, filename = os.path.split(diff_files[z])
-        base, ext = os.path.splitext(filename)
-        if differential_only is not False:
-            base = base+'_DiffOnly'
-        out_file = out_dir + base + '.fit'
+        out_file = IO.make_outfile_name(diff_files[z], directory=FitSettings.Output_directory, extension='.fit', overwrite=True)
+        # path, filename = os.path.split(diff_files[z])
+        # base, ext = os.path.splitext(filename)
+        # if differential_only is not False:
+        #     base = base+'_DiffOnly'
+        # out_file = out_dir + base + '.fit'
         
-        base, ext = os.path.splitext(os.path.split(diff_files[z])[1])
-    if not base:
-        print("No base filename, using input filename instead.")
-        base =  os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
-        out_file = IO.make_outfile_name(base, directory=FitSettings.Output_directory, extension='.fit', overwrite=True)
+        # base, ext = os.path.splitext(os.path.split(diff_files[z])[1])
+        # if not base:
+        #     print("No base filename, using input filename instead.")
+        #     base =  os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
+        
 
         
-        print('Writing', out_file)
+        print('Writing:', out_file)
     
     
         text_file = open(out_file, "w")

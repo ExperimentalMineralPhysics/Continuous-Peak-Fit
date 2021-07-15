@@ -196,6 +196,7 @@ def make_outfile_name(basefilename, directory=None, additional_text=None, extens
         
     if basefilename: # catch incase the string does not exist.
         filename,ending = os.path.splitext(basefilename)   
+        ending = ending[1:]
         #filename = os.path.splitext(os.path.basename(fnam))[0] + '_'
     else:
         filename = 'Fit2Peak'
@@ -207,12 +208,12 @@ def make_outfile_name(basefilename, directory=None, additional_text=None, extens
     # check the iteration is not in the file ending.
     # another way to do this would be to check in the file ending in the input file is empty.
     try:
-        int(ending[1:])
+        int(ending)
         in_ending = True  #the file ending is convertable to a number -- therefore assume the extension contains the iterating parameter.
     except:
         in_ending = False
     if in_ending:
-        filename = filename + '_' + ending[1:]
+        filename = filename + '_' + ending
     
     if orders: # add phase and hkl to file name
         filename = filename + '__'+ peak_string(orders, fname=True)

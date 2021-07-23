@@ -275,6 +275,125 @@ def setrange(settings_file=None, inputs=None, debug=False, refine=True, save_all
             mode='setrange')
 
 
+def initialpeakposition(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1,
+            track=False, parallel=True, subpattern='all', **kwargs):
+    
+    # see https://matplotlib.org/stable/users/event_handling.html for how to make work
+    FitSettings, FitParameters, new_data = initiate(settings_file, inputs=inputs)
+    
+    # search over the first file only
+    # strip file list to first file
+    if not 'datafile_Files' in FitParameters:
+        FitSettings.datafile_EndNum = FitSettings.datafile_StartNum
+    else:
+        FitSettings.datafile_Files = FitSettings.datafile_Files[0]
+    
+    # restrict to subpatterns listed
+    if subpattern=='all':
+        subpats = list(range(0, len(FitSettings.fit_orders)))
+    elif isinstance(subpattern,list):
+        subpats = subpattern
+    else:
+        subpats = [int(x) for x in str(subpattern)]
+        
+    # make new order search list
+    orders_tmp = []
+    for i in range(len(subpats)):
+        j = subpats[i]
+        orders_tmp.append(FitSettings.fit_orders[j])
+           
+    FitSettings.fit_orders = orders_tmp
+    
+    execute(FitSettings=FitSettings, FitParameters=FitParameters, inputs=new_data, 
+            debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
+            parallel=parallel,
+            mode='setguess')
+ 
+class PointBuilder:
+    # cpied from https://matplotlib.org/stable/users/event_handling.html on 21 July 2021
+    def __init__(self, points,fig):
+        self.points = points
+        self.lines = []
+        self.ax = fig
+        self.xs = list(points.get_xdata())
+        self.ys = list(points.get_ydata())
+        self.ks = list([])
+        self.cid1 = points.figure.canvas.mpl_connect('button_press_event', self)
+        self.cid2 = points.figure.canvas.mpl_connect('key_press_event', self)
+
+    def __call__(self, event):
+        #print('click', event)
+        if event.inaxes!=self.points.axes: return
+        self.xs.append(event.xdata)
+        self.ys.append(event.ydata)
+        
+        try:
+            evnt = event.button
+        except:
+            evnt = event.key
+        # replace mouse clicks with numbers and make string numbers in to numbers.
+        # left mouse --> 1
+        # right mouse --> 2
+        # number (0-9) --> number 0-9 as number not string
+        # other characters (a-z, etc...) --> ASCII equivalent.
+        if isinstance(evnt, str): #keyboard button press
+            try:
+                evnt = int(evnt)
+            except:
+                evnt = ord(evnt) #replace letter with its ASCII value
+        elif evnt == 1: #left mouse button
+            evnt = 1
+        elif evnt == 3: #right mouse button
+            evnt = 2
+        self.ks.append(evnt)
+      
+        order = np.argsort(np.array(self.ys))
+        self.xs = [self.xs[i] for i in order]
+        self.ys = [self.ys[i] for i in order]
+        self.ks = [self.ks[i] for i in order]
+        
+        sets = list(set(self.ks))
+        self.lines = []
+        for i in range(len(sets)):
+            index = []
+            j = 0             
+            while j < len(self.ks):
+                if sets[i] == self.ks[j]:
+                    index.append(j)
+                j+= 1
+            index=np.array(index, dtype='int_')
+            self.lines = self.ax.scatter([self.xs[j] for j in index],[self.ys[j] for j in index])
+            #self.ax.plot(px,py, linewidth=2, marker='o')
+             
+        self.lines.figure.canvas.draw()
+        
+    def array(self):
+        # make array for input file -- and sort it
+                    
+        # replace mouse clicks with numbers and make string numbers in to numbers.
+        # left mouse --> 1
+        # right mouse --> 2
+        # number (0-9) --> number 0-9 as number not string
+        # other characters (a-z, etc...) --> ASCII equivalent.
+        for i in range(len(self.ks)):
+            if isinstance(self.ks[i], str): #keyboard button press
+                try:
+                    self.ks[i] = int(self.ks[i])
+                except:
+                    self.ks[i] = ord(self.ks[i]) #replace letter with its ASCII value
+            elif self.ks[i] == 1: #left mouse button
+                self.ks[i] = 1
+            elif self.ks[i] == 3: #right mouse button
+                self.ks[i] = 2  
+                
+        self.array = []
+        for i in range(len(self.xs)):
+            self.array.append([self.ks[i], self.ys[i], self.xs[i]])
+        self.array.sort()
+            
+        return self.array
+        
+
 def ordersearch(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1,
             track=False, parallel=True, search_parameter='height', search_over=[0,20], subpattern='all', search_peak=0, search_series=['fourier', 'spline'], **kwargs):
     """
@@ -640,6 +759,23 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
             #Fitted_param.append(tmp[0])
             #lmfit_models.append(tmp[1])
 
+            elif mode=='setguess':
+                
+                fig_1 = new_data.plot(twotheta_sub, azimu_sub, intens_sub, plottype='data', name=IO.peak_string(orders))
+                points, = fig_1.get_axes()[0].plot([], [])
+                pointbuilder = PointBuilder(points, fig_1.get_axes()[0])
+                plt.show(block=True)
+                
+                selection_arr = pointbuilder.array()
+                #print(selection_arr)
+                print ('')
+                print('Selected points, %s:' % IO.peak_string(orders) )
+                print('[')                
+                for i in range(len(selection_arr)):
+                    print(json.dumps(selection_arr[i])+',')
+                print(']')
+                print('')  
+                step=1000
             else:
                 if parallel is True:#setup parallel version
                     #parallel_pile.append(([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params, bounds))

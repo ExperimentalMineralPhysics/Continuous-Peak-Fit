@@ -71,9 +71,14 @@ def FileList(FitParameters, FitSettings):
     """
     # Define step
     if 'datafile_Step' not in FitParameters:
-        Step = 1
+        if FitSettings.datafile_EndNum > FitSettings.datafile_StartNum:
+            Step = 1
+        else:
+            Step = -1
     else:
         Step = FitSettings.datafile_Step
+    if not 'datafile_NumDigit' in FitParameters:
+        FitSettings.datafile_NumDigit = 1
     
     # Diffraction patterns -- make list of files
     if 'datafile_Files' not in FitParameters:

@@ -150,16 +150,21 @@ def ReplaceNullTerms(obj_to_inspect, val_to_find = None, indexpath="", clean=Non
 
 
 
-def peak_string(orders, fname=False):
+def peak_string(orders, fname=False, peak='all'):
     """
     :param orders: list of peak orders which should include peak names/hkls
-    :param fname: str
+    :param fname: switch indicting if the string is to be a file name or not.
+    :param peak: switch to add restricted peaks to the output string
     :return: string listing peak names
     """
-    # FIX ME: this will be a data-type function so should probably move somewhere else in the end.
+    if peak=='all':
+        peek = list(range(len(orders['peak'])))
+    elif not isinstance(peak, list):
+        peek = [int(x) for x in str(peak)]
+    else:
+        peek=peak
     p_str = ''
-    
-    for x in range(len(orders['peak'])):
+    for x in peek:
         if 'phase' in orders['peak'][x]:
             p_str = p_str + orders['peak'][x]['phase']
         else:
@@ -175,12 +180,11 @@ def peak_string(orders, fname=False):
         if fname is False:
             p_str = p_str + ")"
                 
-        if x < len(orders['peak']) - 1 and len(orders['peak']) > 1:
+        if peak=='all' and x < len(orders['peak']) - 1 and len(orders['peak']) > 1:
             if fname is False:
                 p_str = p_str + " & "
             else:
                 p_str = p_str + '_'
-
     return p_str
 
 
@@ -191,7 +195,7 @@ def make_outfile_name(basefilename, directory=None, additional_text=None, extens
     '''
         
     # strip directory if it is in the name and there is a new directory
-    if directory:
+    if directory or directory=='':
         basefilename = os.path.basename(basefilename)
         
     if basefilename: # catch incase the string does not exist.
@@ -231,11 +235,18 @@ def make_outfile_name(basefilename, directory=None, additional_text=None, extens
             i+=1
         while os.path.exists('{}_{:d}.{}'.format(filename, i, extension)):
             i += 1
-        if i == 0:
-            filename = ('{}.{}'.format(filename, extension))
-        else:
-            filename = ('{}_{:d}.{}'.format(filename, i, extension))
-    else: 
+        #if i == 0:
+        #    #filename = ('{}.{}'.format(filename, extension))
+        #    filename = filename
+        #else:
+        #    #filename = ('{}_{:d}.{}'.format(filename, i, extension))
+        #    filename = ('{}_{:d}'.format(filename, i))
+        if i != 0:
+            filename = ('{}_{:d}'.format(filename, i))
+    #else: 
+    #    filename = ('{}'.format(filename, extension))
+    
+    if extension:
         filename = ('{}.{}'.format(filename, extension))
     
     return filename

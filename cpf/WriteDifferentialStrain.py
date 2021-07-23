@@ -31,6 +31,25 @@ def Requirements():
 
     
 def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
+    """
+    
+
+    Parameters
+    ----------
+    FitSettings : TYPE
+        DESCRIPTION.
+    parms_dict : TYPE
+        DESCRIPTION.
+    debug : TYPE, optional
+        DESCRIPTION. The default is True.
+    **kwargs : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
 # writes some of the fitted coeficients to a table. With a focus on the differential strain coefficents
 
 
@@ -117,8 +136,9 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
     
     for z in range(n_diff_files):
         
-        filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
-        filename = filename+'.json'
+        #filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
+        #filename = filename+'.json'
+        filename = IO.make_outfile_name(diff_files[z], directory=FitSettings.Output_directory, extension='.json', overwrite=True)
         
         
         if os.path.isfile(filename):
@@ -136,33 +156,40 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                 except:
                     orders = []    
                 
-                subfilename = os.path.splitext(os.path.basename(diff_files[z]))[0] + '_'
+                # subfilename = os.path.splitext(os.path.basename(diff_files[z]))[0] + '_'
                 
-                for x in range(len(fit[y]['peak'])):
-                    if 'phase' in fit[y]['peak'][x]:
-                        subfilename = subfilename + fit[y]['peak'][x]['phase']
-                    elif 'phase' in orders['peak'][x]:
-                        subfilename = subfilename + orders['peak'][x]['phase']
-                    else:
-                        subfilename = subfilename + "Peak"
-                    if 'hkl' in fit[y]['peak'][x]:
-                        subfilename = subfilename + str(fit[y]['peak'][x]['hkl'])
-                    elif 'hkl' in orders['peak'][x]:
-                        subfilename = subfilename + orders['peak'][x]['hkl']
-                    else:
-                        subfilename = subfilename + x
+                
+                # for x in range(len(fit[y]['peak'])):
+                #     if 'phase' in fit[y]['peak'][x]:
+                #         subfilename = subfilename + fit[y]['peak'][x]['phase']
+                #     elif 'phase' in orders['peak'][x]:
+                #         subfilename = subfilename + orders['peak'][x]['phase']
+                #     else:
+                #         subfilename = subfilename + "Peak"
+                #     if 'hkl' in fit[y]['peak'][x]:
+                #         subfilename = subfilename + str(fit[y]['peak'][x]['hkl'])
+                #     elif 'hkl' in orders['peak'][x]:
+                #         subfilename = subfilename + orders['peak'][x]['hkl']
+                #     else:
+                #         subfilename = subfilename + x
                             
-                    if x < len(fit[y]['peak']) - 1 and len(fit[y]['peak']) > 1:
-                        subfilename = subfilename + '_'
-                            
-                print('  Incorporating ' + subfilename)
-                if os.path.isfile(subfilename+'.sav'):
+                #     if x < len(fit[y]['peak']) - 1 and len(fit[y]['peak']) > 1:
+                #         subfilename = subfilename + '_'
+                
+                
+                out_name = IO.make_outfile_name(diff_files[z], directory='', overwrite=True)        
+                
+                #print('  Incorporating ' + subfilename)
+                print('  Incorporating: ' + out_name +', '+IO.peak_string(fit[y]))
+                
+                savfilename = IO.make_outfile_name(diff_files[z], directory=FitSettings.Output_directory, orders=fit[y], extension='.sav', overwrite=True)
+                if os.path.isfile(savfilename):
                     try:
-                        gmodel = load_modelresult(subfilename+'.sav', funcdefs={'PeaksModel': ff.PeaksModel})
+                        gmodel = load_modelresult(savfilename, funcdefs={'PeaksModel': ff.PeaksModel})
                     except:
-                        IO.lmfit_fix_int_data_type(subfilename+'.sav')
+                        IO.lmfit_fix_int_data_type(savfilename)
                         try:
-                            gmodel = load_modelresult(subfilename+'.sav', funcdefs={'PeaksModel': ff.PeaksModel})
+                            gmodel = load_modelresult(savfilename, funcdefs={'PeaksModel': ff.PeaksModel})
                         except:
                             raise FileNotFoundError  
                     # FIX ME: this will only work for one peak. Needs fixing if more then one peak in subpattern
@@ -179,7 +206,9 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
             
                 #get parameters to write to output file.
                 #file name
-                out_name = os.path.splitext(os.path.basename(diff_files[z]))[0]
+                #out_name = os.path.splitext(os.path.basename(diff_files[z]))[0]
+                #out_name = IO.make_outfile_name(diff_files[z], directory='', overwrite=True)
+                #print(out_name)
 
                 width_fnam = np.max((width_fnam, len(out_name)))
             
@@ -191,18 +220,21 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                         raise ValueError('This output type is not setup to process non-Fourier peak centroids.')
                     
                     #peak
-                    if 'phase' in fit[y]['peak'][x]:
-                        out_peak = fit[y]['peak'][x]['phase']
-                    elif 'phase' in orders['peak'][x]:
-                        out_peak = orders['peak'][x]['phase']
-                    else:
-                        out_peak = out_peak + "Peak"
-                    if 'hkl' in fit[y]['peak'][x]:
-                        out_peak = out_peak + ' (' + str(fit[y]['peak'][x]['hkl']) + ')'
-                    elif 'hkl' in orders['peak'][x]:
-                        out_peak = out_peak + orders['peak'][x]['hkl']
-                    else:
-                        out_peak = out_peak + ' ' + str(x)
+                    # if 'phase' in fit[y]['peak'][x]:
+                    #     out_peak = fit[y]['peak'][x]['phase']
+                    # elif 'phase' in orders['peak'][x]:
+                    #     out_peak = orders['peak'][x]['phase']
+                    # else:
+                    #     out_peak = out_peak + "Peak"
+                    # if 'hkl' in fit[y]['peak'][x]:
+                    #     out_peak = out_peak + ' (' + str(fit[y]['peak'][x]['hkl']) + ')'
+                    # elif 'hkl' in orders['peak'][x]:
+                    #     out_peak = out_peak + orders['peak'][x]['hkl']
+                    # else:
+                    #     out_peak = out_peak + ' ' + str(x)
+                    # print('old', out_peak)
+                    out_peak = IO.peak_string(fit[y], peak=[x])
+                    # print('new', out_peak)
                     
                     width_hkl = np.max((width_hkl, len(out_peak)))
                     

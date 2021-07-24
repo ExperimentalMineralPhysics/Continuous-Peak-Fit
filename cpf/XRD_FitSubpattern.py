@@ -559,11 +559,18 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                                 backg_guess[j] = ff.Fourier_expand(np.mean(azimu.flatten()[chunks[j]]),
                                                                    param=orders['peak']['background'][k])
                         elif backg_type == 'order':
-                            # first value (offset) is mean of left hand values
-                            backg_guess[0][0] = np.mean(intens.flatten()[chunks[j]].compressed()[tth_ord[:n]])
-                            # if there are more then calculate a gradient guess. 
-                            # leave all higher order terms as 0 -- assume they are small.
-                            if len(orders['background']) > 1:
+                            if len(orders['background']) == 1:
+                                # assume back ground is present either at the left or right edges of the region.
+                                backg_guess[0][0] = np.min([
+                                                np.mean(intens.flatten()[chunks[j]].compressed()[tth_ord[:n]]),
+                                                np.mean(intens.flatten()[chunks[j]].compressed()[tth_ord[-n:]])
+                                                ])
+                                print(backg_guess[0][0])
+                            else: # len(orders['background']) > 1:
+                                # first value (offset) is mean of left hand values
+                                backg_guess[0][0] = np.mean(intens.flatten()[chunks[j]].compressed()[tth_ord[:n]])
+                                # if there are more then calculate a gradient guess. 
+                                # leave all higher order terms as 0 -- assume they are small.
                                 backg_guess[1][0] = (np.mean(intens.flatten()[chunks[j]].compressed()[tth_ord[-n:]]) - np.mean(
                                     intens.flatten()[chunks[j]].compressed()[tth_ord[:n]])) / (
                                                             twotheta.flatten()[chunks[j]].compressed()[tth_ord[-1]] -

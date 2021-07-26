@@ -144,11 +144,13 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
                     use = 1
                     
                 #check if the phase name matches the material (if exists)
-                if 'Phase' or 'Output_ElasticProperties' in FitParameters: # FIX ME: should catch differences between output elastic properties and phases. 
+                if ('Phase' in FitParameters) or ('Output_ElasticProperties' in FitParameters): # FIX ME: should catch differences between output elastic properties and phases. 
                     if FitSettings.phase == FitSettings.fit_orders[x]['peak'][y]['phase']:
                         use = use
                     else:
                         use = 0
+                else:
+                    use = 0
             else:
                 hkl = '000'
                 use = 0

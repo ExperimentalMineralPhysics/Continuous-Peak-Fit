@@ -565,7 +565,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                                                 np.mean(intens.flatten()[chunks[j]].compressed()[tth_ord[:n]]),
                                                 np.mean(intens.flatten()[chunks[j]].compressed()[tth_ord[-n:]])
                                                 ])
-                                print(backg_guess[0][0])
                             else: # len(orders['background']) > 1:
                                 # first value (offset) is mean of left hand values
                                 backg_guess[0][0] = np.mean(intens.flatten()[chunks[j]].compressed()[tth_ord[:n]])
@@ -762,54 +761,53 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                             
                         out = ff.FitModel(intens.flatten()[chunks[j]], twotheta.flatten()[chunks[j]], azichunks[j],
                                           num_peaks=len(peaks), nterms_back=len(backg_guess), Conv=conversion_factor,
-                                          fixed=pfixed, fit_method=fit_method, weights=None, params=params, max_nfev=peeks*default_maxfeval)
+                                          fixed=pfixed, fit_method=fit_method, weights=None, params=params) #, max_nfev=peeks*default_maxfeval)
                         params = out.params
                         if debug:
                             params.pretty_print()
-                        if out.success==1:
-                            for i in range(peeks):
-                                newd0[i].append(params['peak_' + str(i) + '_d0'].value)
-                                newd0Err[i].append(params['peak_' + str(i) + '_d0'].stderr)
-                                newHall[i].append(params['peak_' + str(i) + '_h0'].value)
-                                newHallErr[i].append(params['peak_' + str(i) + '_h0'].stderr)
-                                newWall[i].append(params['peak_' + str(i) + '_w0'].value)
-                                newWallErr[i].append(params['peak_' + str(i) + '_w0'].stderr)
-                                # profile should now be bound by the settings in the parameter
-                                newPall[i].append(params['peak_' + str(i) + '_p0'].value)
-                                newPallErr[i].append(params['peak_' + str(i) + '_p0'].stderr)
-                                # may have to set profile error when initiate params so have appropriate error value if fixed
-                            for i in range(len(backg_guess)):
-                                newBGall[i].append(params['bg_c' + str(i) + '_f0'].value)
-                                newBGallErr[i].append(params['bg_c' + str(i) + '_f0'].stderr)
+                        for i in range(peeks):
+                            newd0[i].append(params['peak_' + str(i) + '_d0'].value)
+                            newd0Err[i].append(params['peak_' + str(i) + '_d0'].stderr)
+                            newHall[i].append(params['peak_' + str(i) + '_h0'].value)
+                            newHallErr[i].append(params['peak_' + str(i) + '_h0'].stderr)
+                            newWall[i].append(params['peak_' + str(i) + '_w0'].value)
+                            newWallErr[i].append(params['peak_' + str(i) + '_w0'].stderr)
+                            # profile should now be bound by the settings in the parameter
+                            newPall[i].append(params['peak_' + str(i) + '_p0'].value)
+                            newPallErr[i].append(params['peak_' + str(i) + '_p0'].stderr)
+                            # may have to set profile error when initiate params so have appropriate error value if fixed
+                        for i in range(len(backg_guess)):
+                            newBGall[i].append(params['bg_c' + str(i) + '_f0'].value)
+                            newBGallErr[i].append(params['bg_c' + str(i) + '_f0'].stderr)
             
-                            newAziChunks.append(azichunks[j])
+                        newAziChunks.append(azichunks[j])
         
-                            # plot the fits.
-                            if debug:
-                                tth_plot = twotheta.flatten()[chunks[j]]
-                                int_plot = intens.flatten()[chunks[j]]
-                                azm_plot = np.tile(azimu.flatten()[chunks[j]][0], (300))
-                                azm_plot = ma.array(azm_plot, mask=(~np.isfinite(azm_plot)))
-                                # FIX ME: required for plotting energy dispersive data.
-                                gmodel = Model(ff.PeaksModel, independent_vars=['twotheta', 'azi'])
-                                tth_range = np.linspace(np.min(twotheta.flatten()[chunks[j]]),
-                                                        np.max(twotheta.flatten()[chunks[j]]), azm_plot.size)
-                                # mod_plot = gmodel.eval(params=params, twotheta=tth_range, azi=azm_plot,
-                                #                        num_peaks=len(Guesses['peak']),
-                                #                        nterms_back=len(backg_guess), Conv=conversion_factor, fixed=pfixed)
-                                # guess_plot = gmodel.eval(params=guess, twotheta=tth_range, azi=azm_plot,
-                                #                        num_peaks=len(Guesses['peak']),
-                                #                        nterms_back=len(backg_guess), Conv=conversion_factor, fixed=pfixed)
-                                mod_plot = gmodel.eval(params=params, twotheta=tth_range, azi=azm_plot, Conv=conversion_factor)
-                                guess_plot = gmodel.eval(params=guess, twotheta=tth_range, azi=azm_plot, Conv=conversion_factor)
-                                plt.plot(tth_plot, int_plot, '.', label="data")
-                                plt.plot(tth_range, guess_plot, marker='', color='green', linewidth=2, linestyle='dashed',
-                                         label='guess')
-                                plt.plot(tth_range, mod_plot, marker='', color='red', linewidth=2, label='fit')
-                                plt.xlim(tthrange)
-                                plt.legend()
-                                plt.title(IO.peak_string(orders) + '; Chunk ' + str(j + 1))
-                                plt.show()
+                        # plot the fits.
+                        if debug:
+                            tth_plot = twotheta.flatten()[chunks[j]]
+                            int_plot = intens.flatten()[chunks[j]]
+                            azm_plot = np.tile(azimu.flatten()[chunks[j]][0], (300))
+                            azm_plot = ma.array(azm_plot, mask=(~np.isfinite(azm_plot)))
+                            # FIX ME: required for plotting energy dispersive data.
+                            gmodel = Model(ff.PeaksModel, independent_vars=['twotheta', 'azi'])
+                            tth_range = np.linspace(np.min(twotheta.flatten()[chunks[j]]),
+                                                    np.max(twotheta.flatten()[chunks[j]]), azm_plot.size)
+                            # mod_plot = gmodel.eval(params=params, twotheta=tth_range, azi=azm_plot,
+                            #                        num_peaks=len(Guesses['peak']),
+                            #                        nterms_back=len(backg_guess), Conv=conversion_factor, fixed=pfixed)
+                            # guess_plot = gmodel.eval(params=guess, twotheta=tth_range, azi=azm_plot,
+                            #                        num_peaks=len(Guesses['peak']),
+                            #                        nterms_back=len(backg_guess), Conv=conversion_factor, fixed=pfixed)
+                            mod_plot = gmodel.eval(params=params, twotheta=tth_range, azi=azm_plot, Conv=conversion_factor)
+                            guess_plot = gmodel.eval(params=guess, twotheta=tth_range, azi=azm_plot, Conv=conversion_factor)
+                            plt.plot(tth_plot, int_plot, '.', label="data")
+                            plt.plot(tth_range, guess_plot, marker='', color='green', linewidth=2, linestyle='dashed',
+                                     label='guess')
+                            plt.plot(tth_range, mod_plot, marker='', color='red', linewidth=2, label='fit')
+                            plt.xlim(tthrange)
+                            plt.legend()
+                            plt.title(IO.peak_string(orders) + '; Chunk ' + str(j + 1))
+                            plt.show()
         
                 # Feed each d_0,h,w into Fourier expansion function to get fit for fourier component
                 # parameters as output.
@@ -1191,10 +1189,23 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                 # Iterate over each parameter series in turn.
                 print('\nRe-fitting for d, h, w, +/-p, bg separately... will refine %i time(s)\n' % iterations)
                 for j in range(iterations):
+                    for k in range(len(backg)):
+                        param_str = 'bg_c'+str(k)
+                        comp = 'f'
+                        master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
+                        master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
+                        #master_params = ff.unvary_part_params(master_params, param_str, comp, orders['background'][k])
+                        # set part of these parameters to not vary
+                        fout = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),
+                                      num_peaks=peeks, nterms_back=len(backg), Conv=conversion_factor,
+                                      fit_method=None, weights=None, params=master_params, max_nfev=default_maxfeval)
+                        if fout.success == 1:
+                            master_params = fout.params
+                            
                     for k in range(peeks):
                         param_str = 'peak_'+str(k)
-                        comp_list = ['d', 'h', 'w'] # always need to iterate over d, height and width
-                        comp_names = ['d-space','height','width','profile']
+                        comp_list = ['h', 'd', 'w'] # always need to iterate over d, height and width
+                        comp_names = ['height','d-space','width','profile']
                         if 'profile_fixed' in orders['peak'][k]:
                             pfixed=1
                         else:
@@ -1215,21 +1226,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                                           num_peaks=peeks, nterms_back=len(backg), Conv=conversion_factor,
                                           fixed=pfixed, fit_method=None, weights=None, params=master_params, max_nfev=refine_maxfeval)
                             #print(fout.success, fout.nfev)
-                            master_params = fout.params
-                            
-                    for k in range(len(backg)):
-                        param_str = 'bg_c'+str(k)
-                        comp = 'f'
-                        print(param_str, '_',comp)
-                        master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
-                        master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
-                        #master_params = ff.unvary_part_params(master_params, param_str, comp, orders['background'][k])
-                        # set part of these parameters to not vary
-                        fout = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),
-                                      num_peaks=peeks, nterms_back=len(backg), Conv=conversion_factor,
-                                      fit_method=None, weights=None, params=master_params, max_nfev=default_maxfeval)
-                        print(fout.success, fout.nfev)
-                        if fout.success == 1:
                             master_params = fout.params
                         
                     if debug:

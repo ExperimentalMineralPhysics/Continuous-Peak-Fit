@@ -214,7 +214,10 @@ def initiate(settings_file=None, inputs=None, out_type=None, initiateData=True, 
         print('\nMissing Values:')
         for i in range(len(missing)):
             print(missing[i])
-        raise ValueError('The problems listed above will prevent the scripts running')
+        if report == False:
+            raise ValueError('The problems listed above will prevent the data fitting.')
+        else:
+            print('The problems listed above will prevent the data fitting and need to be rectified before execution')
     else:
         print('Fit_orders appears to be correct')
         
@@ -244,7 +247,7 @@ def setrange(settings_file=None, inputs=None, debug=False, refine=True, save_all
             track=False, parallel=True, subpattern='all', **kwargs):
     
     
-    FitSettings, FitParameters, new_data = initiate(settings_file, inputs=inputs)
+    FitSettings, FitParameters, new_data = initiate(settings_file, inputs=inputs, report=True)
     
     # search over the first file only
     # strip file list to first file
@@ -272,14 +275,14 @@ def setrange(settings_file=None, inputs=None, debug=False, refine=True, save_all
     execute(FitSettings=FitSettings, FitParameters=FitParameters, inputs=new_data, 
             debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
             parallel=parallel,
-            mode='setrange')
+            mode='setrange', report=True)
 
 
 def initialpeakposition(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1,
             track=False, parallel=True, subpattern='all', **kwargs):
     
     # see https://matplotlib.org/stable/users/event_handling.html for how to make work
-    FitSettings, FitParameters, new_data = initiate(settings_file, inputs=inputs)
+    FitSettings, FitParameters, new_data = initiate(settings_file, inputs=inputs, report=True)
     
     # search over the first file only
     # strip file list to first file
@@ -498,7 +501,7 @@ def write_output(settings_file=None, FitSettings=None, FitParameters=None, parms
 def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=None, debug=False, refine=True, save_all=False, 
             propagate=True, iterations=1,
             track=False, parallel=True, 
-            mode='fit',
+            mode='fit', report=False,
             **kwargs):
     """
     :param track:
@@ -512,7 +515,7 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
     :return:
     """
     if FitSettings == None:
-        FitSettings, FitParameters, new_data = initiate(settings_file)
+        FitSettings, FitParameters, new_data = initiate(settings_file, report=report)
     else:
         new_data = inputs
 
@@ -713,8 +716,14 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
             intens_sub = intens[subpat]
             
             # Mask the subpattern by intensity if called for
-            if 'Imax' in orders:
-                intens_sub = ma.masked_outside(intens_sub, 0, int(orders['Imax']))
+            if 'Imax' in orders or 'Imin' in orders:
+                Imax = np.inf
+                Imin = 0
+                if 'Imax' in orders:
+                    Imax = int(orders['Imax'])
+                if 'Imin' in orders:
+                    Imin = int(orders['Imin'])
+                intens_sub = ma.masked_outside(intens_sub, Imin, Imax)
                 azimu_sub = ma.array(azimu_sub, mask=intens_sub.mask)
                 twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
                 dspacing_sub = ma.array(dspacing_sub, mask=intens_sub.mask)
@@ -729,7 +738,7 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
                 #filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
                 #filename = filename + IO.peak_string(orders, fname=True)
                 
-                filename = IO.make_outfile_name(diff_files[j], directory=FitSettings.Output_directory, additional_text='mask', orders=orders, extension='.png', overwrite=False)
+                filename = IO.make_outfile_name(diff_files[j], directory=FitSettings.Output_directory, additional_text='mask', orders=orders, extension='.png', overwrite=True)
                 
                 fig_1.savefig(filename)
                 

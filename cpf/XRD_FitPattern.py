@@ -135,7 +135,7 @@ def initiate(settings_file=None, inputs=None, out_type=None, initiateData=True, 
 
     #Confirm that an output directory is listed.
     if 'Output_directory' not in FitParameters:
-        FitSettings.Output_directory = ''
+        FitSettings.Output_directory = '.'
         FitParameters.append('Output_directory')
     if not os.path.isdir(FitSettings.Output_directory):
         raise ValueError('Output directory not found')

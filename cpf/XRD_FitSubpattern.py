@@ -153,17 +153,6 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
 
     dfour, hfour, wfour, pfour = comp_lists
 
-    comp = 'd'
-    master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
-    master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
-    master_params = ff.unvary_part_params(master_params, param_str, comp, o['d-space'])
-    # set part of these parameters to not vary
-    out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),
-                      num_peaks=len(Guesses['peak']), nterms_back=len(bgguess), Conv=conversion_factor,
-                      fixed=pfixed, fit_method=None, weights=None, params=master_params)
-    # master_params = out.params
-    dfour.append(ff.gather_paramerrs_to_list(master_params, param_str, comp))
-
     comp = 'h'
     master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
     master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
@@ -174,6 +163,17 @@ def update_component_fits(master_params, intens, azimu, twotheta, param_str, com
                       fixed=pfixed, fit_method=None, weights=None, params=master_params)
     #master_params = out.params
     hfour.append(ff.gather_paramerrs_to_list(master_params, param_str, comp))
+    
+    comp = 'd'
+    master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
+    master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
+    master_params = ff.unvary_part_params(master_params, param_str, comp, o['d-space'])
+    # set part of these parameters to not vary
+    out = ff.FitModel(intens.flatten(), twotheta.flatten(), azimu.flatten(),
+                      num_peaks=len(Guesses['peak']), nterms_back=len(bgguess), Conv=conversion_factor,
+                      fixed=pfixed, fit_method=None, weights=None, params=master_params)
+    # master_params = out.params
+    dfour.append(ff.gather_paramerrs_to_list(master_params, param_str, comp))
 
     comp = 'w'
     master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
@@ -669,12 +669,12 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                                 pguess = ff.Fourier_expand(np.mean(azimu.flatten()[chunks[j]]) * symm, param=orders['peak'][k]['profile_fixed'])
                                 pfixed = 1
             
-                            peaks.append({"d-space": [dguess], "height": [hguess], "width": [wguess], "profile": [pguess]})
+                            peaks.append({"height": [hguess], "d-space": [dguess], "width": [wguess], "profile": [pguess]})
                           
                             # DMF added needs checking - required to drive fit and avoid failures
                             lims.append(ff.parse_bounds(bounds, dspace.flatten()[chunks[j]], intens.flatten()[chunks[j]],
                                                         twotheta.flatten()[chunks[j]],
-                                                        param=['d-space', 'height', 'width', 'profile']))
+                                                        param=['height', 'd-space', 'width', 'profile']))
                             # lims.append({"d-space": [np.min(dspace.flatten()[chunks[j]]), np.max(dspace.flatten()[chunks[j]])]
                             # ,
                             #              "height": [0, np.max(intens.flatten()[chunks[j]])],
@@ -723,10 +723,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         for pk in range(len(peaks)):
         
                             if 'dfour' in locals():
-                                params.add('peak_' + str(pk) + '_d0', peaks[pk]['d-space'][0],
-                                           min=limits['peak'][pk]['d-space'][0], max=limits['peak'][pk]['d-space'][1])
                                 params.add('peak_' + str(pk) + '_h0', peaks[pk]['height'][0],
                                            min=limits['peak'][pk]['height'][0], max=limits['peak'][pk]['height'][1])
+                                params.add('peak_' + str(pk) + '_d0', peaks[pk]['d-space'][0],
+                                           min=limits['peak'][pk]['d-space'][0], max=limits['peak'][pk]['d-space'][1])
                                 params.add('peak_' + str(pk) + '_w0', peaks[pk]['width'][0],
                                            min=limits['peak'][pk]['width'][0], max=limits['peak'][pk]['width'][1])
                                 if 'profile_fixed' in orders['peak'][pk]:
@@ -740,10 +740,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         
                             else:
                                 # If using bounds/limits should be written as below:
-                                params.add('peak_' + str(pk) + '_d0', peaks[pk]['d-space'][0],
-                                           min=limits['peak'][pk]['d-space'][0], max=limits['peak'][pk]['d-space'][1])
                                 params.add('peak_' + str(pk) + '_h0', peaks[pk]['height'][0],
                                            min=limits['peak'][pk]['height'][0], max=limits['peak'][pk]['height'][1])
+                                params.add('peak_' + str(pk) + '_d0', peaks[pk]['d-space'][0],
+                                           min=limits['peak'][pk]['d-space'][0], max=limits['peak'][pk]['d-space'][1])
                                 params.add('peak_' + str(pk) + '_w0', peaks[pk]['width'][0],
                                            min=limits['peak'][pk]['width'][0], max=limits['peak'][pk]['width'][1])
                                 if 'profile_fixed' in orders['peak'][pk]:
@@ -765,20 +765,20 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         params = out.params
                         if debug:
                             params.pretty_print()
+                        for i in range(len(backg_guess)):
+                            newBGall[i].append(params['bg_c' + str(i) + '_f0'].value)
+                            newBGallErr[i].append(params['bg_c' + str(i) + '_f0'].stderr)
                         for i in range(peeks):
-                            newd0[i].append(params['peak_' + str(i) + '_d0'].value)
-                            newd0Err[i].append(params['peak_' + str(i) + '_d0'].stderr)
                             newHall[i].append(params['peak_' + str(i) + '_h0'].value)
                             newHallErr[i].append(params['peak_' + str(i) + '_h0'].stderr)
+                            newd0[i].append(params['peak_' + str(i) + '_d0'].value)
+                            newd0Err[i].append(params['peak_' + str(i) + '_d0'].stderr)
                             newWall[i].append(params['peak_' + str(i) + '_w0'].value)
                             newWallErr[i].append(params['peak_' + str(i) + '_w0'].stderr)
                             # profile should now be bound by the settings in the parameter
                             newPall[i].append(params['peak_' + str(i) + '_p0'].value)
                             newPallErr[i].append(params['peak_' + str(i) + '_p0'].stderr)
                             # may have to set profile error when initiate params so have appropriate error value if fixed
-                        for i in range(len(backg_guess)):
-                            newBGall[i].append(params['bg_c' + str(i) + '_f0'].value)
-                            newBGallErr[i].append(params['bg_c' + str(i) + '_f0'].stderr)
             
                         newAziChunks.append(azichunks[j])
         
@@ -819,10 +819,30 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                 wfour = []
                 pfour = []
                 master_params = Parameters()  # Initiate total Parameter class to add to
-                        
+                
                 lims = ff.parse_bounds(bounds, dspace.flatten(), intens.flatten(), twotheta.flatten())
                 # replace fixed array with dynamic limits
-        
+                
+                # Initiate background parameters and perform an initial fit
+                comp = 'bg'
+                coef_type = ff.params_get_type(orders, comp, peak=j)
+                for b in range(len(backg)):
+                    param_str= 'bg_c'+str(b)
+                    comp = 'f'
+                    if b==0:
+                        limits = lims['background']
+                    else:
+                        limits = None
+                    n_coef    = ff.get_number_coef(orders, comp, peak=b, azims=np.array(newAziChunks))
+                    master_params = ff.initiate_params(master_params, param_str, comp, coef_type=coef_type, num_coef=n_coef, trig_orders=orders['background'][b], limits=limits)
+                    master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
+                    master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
+                    if isinstance(orders['background'][b], list): # set part of these parameters to not vary
+                        master_params = ff.unvary_part_params(master_params, param_str, comp, orders['background'][b])
+                    fout = ff.coefficient_fit(azimu=np.array(newAziChunks), ydata=np.array(newBGall[b]), param=master_params, param_str=param_str + '_' + comp, symm=symm,  errs=np.array(newBGallErr[b]), fit_method='leastsq')
+                    master_params = fout.params
+                    
+                # initiate peak(s)
                 for j in range(peeks):
         
                     param_str = 'peak_' + str(j)  # defines peak string to start parameter name
@@ -835,10 +855,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         symm = 1
                     master_params = ff.initiate_params(master_params, param_str, comp, 0, limits=[10, 1], value=np.array(symm), vary=False)
                     
-                    comp_list = ['d', 'h', 'w', 'p'] 
-                    comp_names = ['d-space','height','width','profile']
-                    arr_names = ['newd0','newHall','newWall','newPall']
-                    arr_err_names = ['newd0Err','newHallErr','newWallErr','newPallErr']                   
+                    comp_list = ['h', 'd', 'w', 'p'] 
+                    comp_names = ['height', 'd-space', 'width','profile']
+                    arr_names = ['newHall','newd0','newWall','newPall']
+                    arr_err_names = ['newHallErr','newd0Err','newWallErr','newPallErr']                   
                     
                     for cp in range(len(comp_list)):
                         comp = comp_list[cp]
@@ -934,26 +954,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                         fout = ff.coefficient_fit(azimu=np.array(newAziChunks), ydata=np.array(newPall[j]), param=master_params, param_str=param_str + '_' + comp, symm=symm,  errs=np.array(newPallErr[j]), fit_method='leastsq')
                         master_params = fout.params
                     '''
-                # Initiate background parameters and perform an initial fit
-                comp = 'bg'
-                coef_type = ff.params_get_type(orders, comp, peak=j)
-                for b in range(len(backg)):
-                    param_str= 'bg_c'+str(b)
-                    comp = 'f'
-                    if b==0:
-                        limits = lims['background']
-                    else:
-                        limits = None
-                    n_coef    = ff.get_number_coef(orders, comp, peak=b, azims=np.array(newAziChunks))
-                    master_params = ff.initiate_params(master_params, param_str, comp, coef_type=coef_type, num_coef=n_coef, trig_orders=orders['background'][b], limits=limits)
-                    master_params = ff.unvary_params(master_params, param_str, comp)  # set other parameters to not vary
-                    master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
-                    if isinstance(orders['background'][b], list): # set part of these parameters to not vary
-                        master_params = ff.unvary_part_params(master_params, param_str, comp, orders['background'][b])
-                    fout = ff.coefficient_fit(azimu=np.array(newAziChunks), ydata=np.array(newBGall[b]), param=master_params, param_str=param_str + '_' + comp, symm=symm,  errs=np.array(newBGallErr[b]), fit_method='leastsq')
-                    master_params = fout.params
                     
-                
                 if debug:
                     print('Parameters after initial Fourier fits')
                     master_params.pretty_print()
@@ -1101,57 +1102,10 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         
                 # FIX ME: should this be some def or subfunction?
                 master_params = Parameters()  # initiate total Parameter class to add to
-                # FIX ME: parameters initiated with no limits currently 
         
                 lims = ff.parse_bounds(bounds, dspace.flatten(), intens.flatten(), twotheta.flatten())
                 # replace fixed array with dynamic limits
-        
-                for j in range(peeks):
-        
-                    param_str = 'peak_' + str(j)  # defines peak string to start parameter name
-        
-                    # initiate symmetry
-                    comp = 's'
-                    if 'symmetry' in orders['peak'][j].keys():
-                        symm = orders['peak'][j]['symmetry']
-                    else:
-                        symm = 1
-                    master_params = ff.initiate_params(master_params, param_str, comp, 0, limits=[10, 1], value=np.array(symm), vary=False)
-        
-                    # initiate d
-                    comp = 'd'
-                    master_params = ff.initiate_params(master_params, param_str, comp, #orders['peak'][j]['d-space'],
-                                                       coef_type=PreviousParams['peak'][j]['d-space-type'],
-                                                       value=PreviousParams['peak'][j]['d-space'], 
-                                                       limits=lims['d-space'] )
-        
-                    # initiate h
-                    comp = 'h'
-                    master_params = ff.initiate_params(master_params, param_str, comp,
-                                                       coef_type=PreviousParams['peak'][j]['height-type'],
-                                                       value=PreviousParams['peak'][j]['height'],
-                                                       limits=lims['height'] )
-        
-                    # initiate w
-                    comp = 'w'
-                    master_params = ff.initiate_params(master_params, param_str, comp, 
-                                                       coef_type=PreviousParams['peak'][j]['width-type'],
-                                                       value=PreviousParams['peak'][j]['width'],
-                                                       limits=lims['width'] )
-        
-                    # initiate p
-                    comp = 'p'
-                    if orders and 'profile_fixed' in orders['peak'][j]:
-                        pvals = orders['peak'][j]['profile_fixed']
-                        pfixed = 1
-                    else:
-                        pvals = PreviousParams['peak'][j]['profile']
-                        pfixed = 0
-                    master_params = ff.initiate_params(master_params, param_str, comp,
-                                                       coef_type=PreviousParams['peak'][j]['profile-type'],
-                                                       value=pvals, 
-                                                       limits=lims['profile'] )
-        
+                
                 # Initiate background parameters
                 comp = 'bg'
                 for b in range(len(PreviousParams['background'])):
@@ -1165,6 +1119,51 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                                                        value=PreviousParams['background'][b],
                                                        coef_type=PreviousParams['background-type'],
                                                        limits=limits)
+        
+        
+        
+                for j in range(peeks):
+        
+                    param_str = 'peak_' + str(j)  # defines peak string to start parameter name
+        
+                    # initiate symmetry
+                    comp = 's'
+                    if 'symmetry' in orders['peak'][j].keys():
+                        symm = orders['peak'][j]['symmetry']
+                    else:
+                        symm = 1
+                    master_params = ff.initiate_params(master_params, param_str, comp, 0, limits=[10, 1], value=np.array(symm), vary=False)
+        
+                    # initiate h
+                    comp = 'h'
+                    master_params = ff.initiate_params(master_params, param_str, comp,
+                                                       coef_type=PreviousParams['peak'][j]['height-type'],
+                                                       value=PreviousParams['peak'][j]['height'],
+                                                       limits=lims['height'] )
+                    # initiate d
+                    comp = 'd'
+                    master_params = ff.initiate_params(master_params, param_str, comp, #orders['peak'][j]['d-space'],
+                                                       coef_type=PreviousParams['peak'][j]['d-space-type'],
+                                                       value=PreviousParams['peak'][j]['d-space'], 
+                                                       limits=lims['d-space'] )
+                    # initiate w
+                    comp = 'w'
+                    master_params = ff.initiate_params(master_params, param_str, comp, 
+                                                       coef_type=PreviousParams['peak'][j]['width-type'],
+                                                       value=PreviousParams['peak'][j]['width'],
+                                                       limits=lims['width'] )
+                    # initiate p
+                    comp = 'p'
+                    if orders and 'profile_fixed' in orders['peak'][j]:
+                        pvals = orders['peak'][j]['profile_fixed']
+                        pfixed = 1
+                    else:
+                        pvals = PreviousParams['peak'][j]['profile']
+                        pfixed = 0
+                    master_params = ff.initiate_params(master_params, param_str, comp,
+                                                       coef_type=PreviousParams['peak'][j]['profile-type'],
+                                                       value=pvals, 
+                                                       limits=lims['profile'] )
         
                 # Guess for background, if orders and therefore no guess input, choose appropriate
                 # copied from above to allow the code to run. FIX ME: doesn't need all this code.
@@ -1254,6 +1253,12 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                 raise ValueError('The value of step here is not possible. Ooops.')
         
             # set all parameters to vary
+            for k in range(len(backg)):
+                param_str = 'bg_c'+str(k)
+                comp = 'f'
+                master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
+                #master_params = ff.unvary_part_params(master_params, param_str, comp, orders['background'][k])
+                # set part of these parameters to not vary
             for k in range(peeks):
                 param_str = 'peak_'+str(k)
                 comp_list = ['d', 'h', 'w'] # always need to iterate over d, height and width
@@ -1267,12 +1272,6 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                     master_params = ff.vary_params(master_params, param_str, comp_list[cp])
                     if isinstance(orders['peak'][k][comp_names[cp]], list): # set part of these parameters to not vary
                         master_params = ff.unvary_part_params(master_params, param_str, comp_list[cp], orders['peak'][k][comp_names[cp]])
-            for k in range(len(backg)):
-                param_str = 'bg_c'+str(k)
-                comp = 'f'
-                master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
-                #master_params = ff.unvary_part_params(master_params, param_str, comp, orders['background'][k])
-                # set part of these parameters to not vary
                         
             
             '''

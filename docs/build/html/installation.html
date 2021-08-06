@@ -1,0 +1,159 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download and Install &#8212; Continuous-Peak-Fit 0.0 alpha documentation</title>
+    <link rel="stylesheet" href="_static/agogo.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Continuous peak fit, via the command line" href="running cpf.html" />
+    <link rel="prev" title="Algorithm" href="algorithm.html" /> 
+  </head><body>
+    <div class="header-wrapper" role="banner">
+      <div class="header">
+        <div class="headertitle"><a
+          href="index.html">Continuous-Peak-Fit 0.0 alpha documentation</a></div>
+        <div class="rel" role="navigation" aria-label="related navigation">
+          <a href="algorithm.html" title="Algorithm"
+             accesskey="P">previous</a> |
+          <a href="running cpf.html" title="Continuous peak fit, via the command line"
+             accesskey="N">next</a> |
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="download-and-install">
+<h1>Download and Install<a class="headerlink" href="#download-and-install" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="prerequisits">
+<h2>Prerequisits<a class="headerlink" href="#prerequisits" title="Permalink to this headline">¶</a></h2>
+<p>Continuous peak fit works with Python 3.7.</p>
+<dl class="simple">
+<dt>Continuous peak fit requires the following Python packages:</dt><dd><ul class="simple">
+<li><p><a class="reference external" href="http://numpy.org/">NumPy</a> version 1.10 or higher.</p></li>
+<li><p>scipy version 1.6.1 or higher.</p></li>
+<li><p>matplotlib version 3.3.4 or higher.</p></li>
+<li><p><a class="reference external" href="https://lmfit.github.io/lmfit-py/index.html">lmfit</a> version 1.0.2 or higher.</p></li>
+<li><p>pyFAI version 0.20.0 or higher.</p></li>
+<li><p><a class="reference external" href="https://github.com/silx-kit/fabio">Fabio</a> version 0.11.0 or higher.</p></li>
+<li><p>setuptools</p></li>
+<li><p>pycairo</p></li>
+<li><p>h5py</p></li>
+<li><p>pillow – no longer required [I THINK]</p></li>
+<li><p>pyopencl</p></li>
+</ul>
+</dd>
+</dl>
+<p>These are avaliable on PyPI, and are installed automatically if installing with pypi.
+Note that many of these packages are interdependent so not all of them will have to be installed as separate events.</p>
+</div>
+<div class="section" id="download">
+<h2>Download<a class="headerlink" href="#download" title="Permalink to this headline">¶</a></h2>
+<p>The latest release version of continuous peak fit is 0.0 alpha and is avaliable from [ADD LINK].</p>
+<p>However, it has been significantly updated since 0.0 alpha was made.  The latest version of <em>continuous-peak-fit</em> is avaliable from GitHub at:</p>
+<p><a class="reference external" href="https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit">https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit</a></p>
+</div>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>It is easiest to install cpf with:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">cpf</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>However, if <cite>cpf</cite> has been downloaded directly from GitHub, add the cpf directory to the python path or make the active directory and import the package:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Import</span> <span class="n">cpf</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>For the import to complete, additional packages are needed are (see above). The import will fail if all the packages are not present and it will tell you which ones are missing.</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          
+          <h3>Table of Contents</h3>
+          <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="algorithm.html">Algorithm</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Download and Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisits">Prerequisits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#download">Download</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="running cpf.html"><em>Continuous peak fit</em>, via the command line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input file.html">Input file structure (long)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input file short.html">Input file structure (short)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whatsnew.html">Release Notes</a></li>
+</ul>
+
+          <div role="search">
+            <h3 style="margin-top: 1.5em;">Search</h3>
+            <form class="search" action="search.html" method="get">
+                <input type="text" name="q" />
+                <input type="submit" value="Go" />
+            </form>
+          </div>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+          <div role="navigation" aria-label="related navigaton">
+            <a href="algorithm.html" title="Algorithm"
+              >previous</a> |
+            <a href="running cpf.html" title="Continuous peak fit, via the command line"
+              >next</a> |
+            <a href="genindex.html" title="General Index"
+              >index</a>
+          </div>
+          <div role="note" aria-label="source link">
+              <br/>
+              <a href="_sources/installation.rst.txt"
+                rel="nofollow">Show Source</a>
+          </div>
+        </div>
+
+        <div class="right">
+          
+    <div class="footer" role="contentinfo">
+        &#169; Copyright Simon Hunt &amp; Danielle Fenech, 2020.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.2.
+    </div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+  </body>
+</html>

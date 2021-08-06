@@ -839,7 +839,7 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
                     master_params = ff.vary_params(master_params, param_str, comp)  # set these parameters to vary
                     if isinstance(orders['background'][b], list): # set part of these parameters to not vary
                         master_params = ff.unvary_part_params(master_params, param_str, comp, orders['background'][b])
-                    fout = ff.coefficient_fit(azimu=np.array(newAziChunks), ydata=np.array(newBGall[b]), param=master_params, param_str=param_str + '_' + comp, symm=symm,  errs=np.array(newBGallErr[b]), fit_method='leastsq')
+                    fout = ff.coefficient_fit(azimu=np.array(newAziChunks), ydata=np.array(newBGall[b]), param=master_params, param_str=param_str + '_' + comp, symm=1,  errs=np.array(newBGallErr[b]), fit_method='leastsq')
                     master_params = fout.params
                     
                 # initiate peak(s)

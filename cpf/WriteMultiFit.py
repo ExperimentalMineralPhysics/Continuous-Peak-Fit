@@ -196,13 +196,12 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
                         d_coef[2] = 0
                     peak_d = ff.Fourier_expand((az), d_coef)
                     peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
-                    peak_i = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
-                    peak_w = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
-                    peak_p = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
-                    peak_i = ff.coefficient_expand((az)*sym, param=data_to_write[j]['peak'][k]['height'], coef_type=data_to_write[j]['peak'][k]['height-type']) #FIX ME - Is this the height of the peak or the integral under it?
+                    #peak_i = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
+                    #peak_w = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
+                    #peak_p = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
+                    peak_i = np.max([0, ff.coefficient_expand((az)*sym, param=data_to_write[j]['peak'][k]['height'], coef_type=data_to_write[j]['peak'][k]['height-type']) ]) #FIX ME - Is this the height of the peak or the integral under it?
                     peak_w = ff.coefficient_expand((az)*sym, param=data_to_write[j]['peak'][k]['width'], coef_type=data_to_write[j]['peak'][k]['width-type']) #FIX ME - is this the correct half width?
                     peak_p = ff.coefficient_expand((az)*sym, param=data_to_write[j]['peak'][k]['profile'], coef_type=data_to_write[j]['peak'][k]['profile-type'])  #FIX ME - is this 1 or 0 for Gaussian?
-    
     
                     text_file.write("%13.4f %13.4f %13.4f %13.4f\n" % (peak_tth, peak_i, peak_w, peak_p))
     

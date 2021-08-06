@@ -118,11 +118,19 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
         text_file.write("     %s/\n" %  os.path.abspath(os.getcwd() + '/' + FitSettings.Output_directory) ) 
         text_file.write("# Basename for FIT files\n" )
         #if last symbol in the file name is '_' then we need to strip it from the name
-        text_file.write("     %s\n" %  FitSettings.datafile_Basename.strip('_') )
+        text_file.write("     %s\n" %  FitSettings.datafile_Basename.strip('_').strip('.') )
+        print(FitSettings.datafile_StartNum, FitSettings.datafile_EndNum, FitSettings.datafile_StartNum>FitSettings.datafile_EndNum)
+        if FitSettings.datafile_StartNum > FitSettings.datafile_EndNum:
+            print('start<end')
+            strt = FitSettings.datafile_EndNum
+            eend = FitSettings.datafile_StartNum
+        else:
+            strt = FitSettings.datafile_StartNum 
+            eend = FitSettings.datafile_EndNum
         text_file.write("# First index for FIT files\n" )
-        text_file.write("     %i\n" %  FitSettings.datafile_StartNum )
+        text_file.write("     %i\n" %  strt )
         text_file.write("# Last index for FIT files\n" )
-        text_file.write("     %i\n" %  FitSettings.datafile_EndNum ) 
+        text_file.write("     %i\n" %  eend ) 
         text_file.write("# Number of digits for FIT files\n" )
         text_file.write("     %i\n" %  FitSettings.datafile_NumDigit )
         text_file.write("# Wavelength\n" )

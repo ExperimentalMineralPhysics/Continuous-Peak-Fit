@@ -23,7 +23,7 @@ The input file is a single python file with the following required settings:
 |   # properties of the data files.                   |                                                                    |
 |   datafile_directory = drive + 'Another_dir_name/', | datafile_Step is optional -- if absent is assumed to be +/-1.      |
 |   datafile_Basename = "Pixium_",                    |                                                                    |
-|   datafile_Ending = ".tif",                         |                                                                    |
+|   datafile_Ending = ".tif",                         | For full description see: :ref:`datafile_definitions`              |
 |   datafile_StartNum = 1,                            |                                                                    |
 |   datafile_EndNum = 1,                              |                                                                    |
 |   datafile_NumDigit = 5,                            |                                                                    |
@@ -32,16 +32,13 @@ The input file is a single python file with the following required settings:
 +-----------------------------------------------------+--------------------------------------------------------------------+
 | .. code-block:: python                              |  Detector Mask and Calibration.                                    |
 |                                                     |                                                                    |
-|   # Calibration and masking.                        |                                                                    |
+|   # Calibration and masking.                        | For full description see: :ref:`calibration_definitions`           |
 |   Calib_type = "Dioptas",                           |                                                                    |
 |   Calib_detector = 'unknown',                       |                                                                    |
-|   Calib_data = drive + '/pixi_00001.tif',           |  AziBins is the number of bins for inital fitting [LINK]           |
-|   Calib_param = 'DLS_CeO2_1200mm.poni',             |      -- should be set as default somewhere                         |
+|   Calib_data = drive + '/pixi_00001.tif',           |                                                                    |
+|   Calib_param = 'DLS_CeO2_1200mm.poni',             |                                                                    |
 |   Calib_mask = 'DLS_CeO2_1200mm.mask',              |                                                                    |
 |   Calib_pixels = 296,                               |                                                                    |
-|                                                     |                                                                    |
-|   #Number of bins for initial fitting.              |                                                                    |
-|   AziBins = 90,                                     |                                                                    |
 +-----------------------------------------------------+--------------------------------------------------------------------+
 | .. code-block:: python                              |                                                                    |
 |                                                     |                                                                    |
@@ -100,5 +97,6 @@ The input file is a single python file with the following required settings:
 |   Output_directory = './'                           | No further options are needed for differential strain.             |
 |   Output_type = 'DifferentialStrain'                | But an elastic strain tensor should be provided for the others.    |
 |                                                     |                                                                    |
+|                                                     | For full description see: :ref:`output_definitions`                |
 +-----------------------------------------------------+--------------------------------------------------------------------+
 

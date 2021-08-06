@@ -72,6 +72,7 @@ The input file is a single python file with the following required settings:</p>
 ‘datafile_Files’ which is a list of the files names without
 endings.</p>
 <p>datafile_Step is optional – if absent is assumed to be +/-1.</p>
+<p>For full description see: <a class="reference internal" href="input file.html#datafile-definitions"><span class="std std-ref">Data file definitions</span></a></p>
 </td>
 </tr>
 <tr class="row-even"><td><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Calibration and masking.</span>
@@ -81,17 +82,13 @@ endings.</p>
 <span class="n">Calib_param</span> <span class="o">=</span> <span class="s1">&#39;DLS_CeO2_1200mm.poni&#39;</span><span class="p">,</span>
 <span class="n">Calib_mask</span> <span class="o">=</span> <span class="s1">&#39;DLS_CeO2_1200mm.mask&#39;</span><span class="p">,</span>
 <span class="n">Calib_pixels</span> <span class="o">=</span> <span class="mi">296</span><span class="p">,</span>
-
-<span class="c1">#Number of bins for initial fitting.</span>
-<span class="n">AziBins</span> <span class="o">=</span> <span class="mi">90</span><span class="p">,</span>
 </pre></div>
 </div>
 </td>
-<td><p>Detector Mask and Calibration.</p>
-<dl class="simple">
-<dt>AziBins is the number of bins for inital fitting [LINK]</dt><dd><p>– should be set as default somewhere</p>
-</dd>
-</dl>
+<td><blockquote>
+<div><p>Detector Mask and Calibration.</p>
+</div></blockquote>
+<p>For full description see: <a class="reference internal" href="input file.html#calibration-definitions"><span class="std std-ref">Calibration definitions</span></a></p>
 </td>
 </tr>
 <tr class="row-odd"><td><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Fitting properties for peaks.,</span>
@@ -176,6 +173,7 @@ provided here: <a class="reference internal" href="subpattern structure.html"><s
 ‘multifit’ and ‘PolyDefixED’.</p>
 <p>No further options are needed for differential strain.
 But an elastic strain tensor should be provided for the others.</p>
+<p>For full description see: <a class="reference internal" href="input file.html#output-definitions"><span class="std std-ref">Output settings</span></a></p>
 </td>
 </tr>
 </tbody>

@@ -46,7 +46,7 @@
 <h1>Input file structure (long)<a class="headerlink" href="#input-file-structure-long" title="Permalink to this headline">¶</a></h1>
 <p>The input file for continuous peak fit is a python file that lists and defines most of the parameters needed to run and package on a data set. The settings are as follows:</p>
 <div class="section" id="data-file-definitions">
-<h2>Data file definitions<a class="headerlink" href="#data-file-definitions" title="Permalink to this headline">¶</a></h2>
+<span id="datafile-definitions"></span><h2>Data file definitions<a class="headerlink" href="#data-file-definitions" title="Permalink to this headline">¶</a></h2>
 <p>The file names are assumed to consist of a root or basename (e.g. <code class="docutils literal notranslate"><span class="pre">`BCC1_...`</span></code>, an incrementing number that is systematically formatted and a file ‘ending’ (e.g. .tif).</p>
 <p>The options are listed here:</p>
 <table class="docutils align-default">
@@ -177,7 +177,7 @@
 </div>
 </div>
 <div class="section" id="calibration-definitions">
-<h2>Calibration definitions<a class="headerlink" href="#calibration-definitions" title="Permalink to this headline">¶</a></h2>
+<span id="id1"></span><h2>Calibration definitions<a class="headerlink" href="#calibration-definitions" title="Permalink to this headline">¶</a></h2>
 <p>A calibration type and file are required. Other requirements are possible depending on the detector type. <code class="docutils literal notranslate"><span class="pre">`cpf.XRD_FitPattern.initiate`</span></code> (LINK) will inform you if needed definitions are missing.</p>
 <table class="docutils align-default">
 <colgroup>
@@ -224,11 +224,11 @@
 <p>A full description of the structure required for each subpattern is given here: <a class="reference internal" href="subpattern structure.html"><span class="doc">Subpatterns and peaks</span></a></p>
 </div>
 <div class="section" id="output-settings">
-<h2>Output settings<a class="headerlink" href="#output-settings" title="Permalink to this headline">¶</a></h2>
+<span id="output-definitions"></span><h2>Output settings<a class="headerlink" href="#output-settings" title="Permalink to this headline">¶</a></h2>
 <p>blah balh balh</p>
 </div>
 <div class="section" id="additional-optional-settings">
-<h2>Additional (Optional) Settings<a class="headerlink" href="#additional-optional-settings" title="Permalink to this headline">¶</a></h2>
+<span id="optional-definitions"></span><h2>Additional (Optional) Settings<a class="headerlink" href="#additional-optional-settings" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="azimuthal-bins">
 <h3>Azimuthal Bins<a class="headerlink" href="#azimuthal-bins" title="Permalink to this headline">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">AziBins</span></code> is the number of bins used in the inital fitting of the data (LINK). For angle dispersive data the default number of bins is 90. This value gives 4 degree azimuthal bins for complete Debye-Scherer rings. For partial diffraction rings a smaller number maybe a better chice. This is set in input file by:</p>
@@ -239,7 +239,7 @@
 </div></blockquote>
 </div>
 <div class="section" id="limits">
-<h3>Limits<a class="headerlink" href="#limits" title="Permalink to this headline">¶</a></h3>
+<span id="optional-limits-definitions"></span><h3>Limits<a class="headerlink" href="#limits" title="Permalink to this headline">¶</a></h3>
 <p>The paramters in the fits are bounded (see LINK for details). The default limits are:</p>
 <blockquote>
 <div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">limits</span> <span class="o">=</span> <span class="p">[]</span>

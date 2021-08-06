@@ -11,6 +11,7 @@ Input file structure (long)
 The input file for continuous peak fit is a python file that lists and defines most of the parameters needed to run and package on a data set. The settings are as follows:
 
 
+.. _datafile_definitions:
 
 Data file definitions
 =====================================
@@ -102,6 +103,7 @@ Example file name structures:
     F:\\remote_server_location\M1234.0115
 
 
+.. _calibration_definitions:
 
 Calibration definitions
 =====================================
@@ -128,6 +130,7 @@ Subpattern definitions
 A full description of the structure required for each subpattern is given here: :doc:`subpattern structure`
 
 
+.. _output_definitions:
 
 Output settings
 =====================================
@@ -137,6 +140,7 @@ Output settings
 
 blah balh balh
 
+.. _optional_definitions:
 
 Additional (Optional) Settings 
 =====================================
@@ -150,6 +154,7 @@ Azimuthal Bins
   AziBins = 45 
 
 
+.. _optional_limits_definitions:
 
 Limits
 -------------------------------------

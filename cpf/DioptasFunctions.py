@@ -368,9 +368,12 @@ class DioptasDetector:
         :param orders:
         :return:
         """
-        bins = orders['AziBins']
         azmax = azimu.max()
         azmin = azimu.min()
+        if 'AziBins' in orders:
+            bins = orders['AziBins']
+        else:
+            bins = 90
         binsize = (azmax - azmin) / bins
         chunks = []
         azichunks = []

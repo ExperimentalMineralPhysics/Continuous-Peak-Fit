@@ -32,11 +32,15 @@ Parameter                    Compulsary?      Description
 ``datafile_Files``           style b, yes.    a list of the incrementing part of the file names. It is assumed to be numberic and is zero padded if 'datafile_NumDigit' is present.
 ===========================  ==============   ================================
 
+File name construction does not add underscores or fullstops between the components. A fullstop must be contained within the strings used to construct the file name for the file extension to be present. 
+
+Whilst both ``datafile_Basename`` and ``datafile_Ending`` are required, it is permitted for them to be empty strings. See examples 2 and 3 below. 
+
 
 Example file name structures:
 -----------------------------
 
-- Example 1: style a, from [LINK to Example 1] :
+- Example 1: style a, from [LINK to Example 1]:
 
  .. code-block:: python
 
@@ -77,51 +81,29 @@ Example file name structures:
     ./3_diffraction.tif
 
 
-- Example 3, style a:
+- Example 3, style b:
 
  .. code-block:: python
 
     datafile_directory = 'F:\\remote_server_location\'
     datafile_Basename  = 'M1234.' 
     datafile_Ending    = ''  
-    datafile_StartNum  = 1   
-    datafile_EndNum    = 30    
+    datafile_Files.    = [6,7, 9,10, 12,13, 115]
     datafile_NumDigit  = 4     
 
  - Makes file names::
 
-    F:\\remote_server_location\M1234.0001
-    F:\\remote_server_location\M1234.0002
-    F:\\remote_server_location\M1234.0003
-    ...
-    F:\\remote_server_location\M1234.0028
-    F:\\remote_server_location\M1234.0029
-    F:\\remote_server_location\M1234.0030
+    F:\\remote_server_location\M1234.0006
+    F:\\remote_server_location\M1234.0007
+    F:\\remote_server_location\M1234.0009
+    F:\\remote_server_location\M1234.0010
+    F:\\remote_server_location\M1234.0012
+    F:\\remote_server_location\M1234.0013
+    F:\\remote_server_location\M1234.0115
 
 
 
-- Example 4, style b:
-
- .. code-block:: python
-
-    datafile_directory = '../another/directory/'  
-    datafile_Basename  = 'D654_'   
-    datafile_Ending    = '.nxs'   
-    datafile_Files.    = [6,7, 9,10, 12,13, 115]   
-    datafile_NumDigit  = 4     
-
- - Makes file names::
-
-    ../another/directory/D654_0006.nxs
-    ../another/directory/D654_0007.nxs
-    ../another/directory/D654_0009.nxs
-    ../another/directory/D654_0010.nxs
-    ../another/directory/D654_0012.nxs
-    ../another/directory/D654_0013.nxs
-    ../another/directory/D654_0115.nxs
-
-
-Calibarion definitions
+Calibration definitions
 =====================================
 
 A calibration type and file are required. Other requirements are possible depending on the detector type. ```cpf.XRD_FitPattern.initiate``` (LINK) will inform you if needed definitions are missing. 
@@ -140,77 +122,50 @@ Parameter                Required?            Description
 
 
 
-Peak definitions and limits
+Subpattern definitions
 =====================================
 
-Each subpattern is defined by number of parameters contained within a python dictionary. The dictionary for each subpattern is contained with in a list called 'fit_orders'. e.g.:
+A full description of the structure required for each subpattern is given here: :doc:`subpattern structure`
 
- .. code-block:: python
-
-  fit_orders = [
-         {
-           "range": [[3.5,3.8]],
-           "background": [1,0],
-           "peak": [{
-               "phase": "Steel",
-               "hkl": '111',
-               "d-space": 2,
-               "height": 12,
-               "profile": 0,
-               #"profile_fixed": 1,
-               "width": 0,
-               #"symmetry": 2
-             }],
-           },
-         {
-           "range": [[4.1,4.4]],
-           "background": [1,0],
-           "peak": [{
-               "phase": "Steel",
-               "hkl": '200',
-               "d-space": 2,
-               "height": 12,
-               "profile": 0,
-               #"profile_fixed": 1,
-               "width": 0,
-               #"symmetry": 2
-             }],
-         },
-         ]
-
-
-With in each subpattern dictionary the following parameters are possible or needed: 
-
-==========================  ==========================   ================================
-Parameter                   Required?                    Description
-==========================  ==========================   ================================
-``range``                   yes                          Defines the maximum and minimum of the range to fit with peak in. For angle dispersive diffraction data this is the maximum and minimum two theta angle (in degrees), for energy disperdive diffraction it is the maximum and minimum energy (in keV). The format is ``[[min, max]]``. 
-``background``              yes                          This is a list of numbers, see LINK. The length of the list is the order 
-``Imax``                    no                           Crops the maximum intensity within the range at this value. Formatted as a single number. 
-``Imin``                    no                           Crops the minimum intensity within the range at this value. Formatted as a single number. 
-``PeakPositionSelection``   only for multiple peaks
-``peak``                    yes                          List of dictionaries. See 
-==========================  ==========================   ================================
-
-
-Peak definition
-------------------------------
 
 
 Output settings
 =====================================
 
 
+
+
 blah balh balh
 
 
-Optional Extras. 
+Additional (Optional) Settings 
 =====================================
 
-Azi_bins
+Azimuthal Bins
+-------------------------------------
+``AziBins`` is the number of bins used in the inital fitting of the data (LINK). For angle dispersive data the default number of bins is 90. This value gives 4 degree azimuthal bins for complete Debye-Scherer rings. For partial diffraction rings a smaller number maybe a better chice. This is set in input file by:
+
+ .. code-block:: python
+
+  AziBins = 45 
+
 
 
 Limits
+-------------------------------------
+The paramters in the fits are bounded (see LINK for details). The default limits are:
+
+ .. code-block:: python
+
+  limits = []
+
+
+These can be changed by .... 
+
+
+
+
+
 
 
 

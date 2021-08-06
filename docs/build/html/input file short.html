@@ -16,17 +16,17 @@
     <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Release Notes" href="whatsnew.html" />
-    <link rel="prev" title="Input file structure (long)" href="input file.html" /> 
+    <link rel="next" title="Input file structure (long)" href="input file.html" />
+    <link rel="prev" title="Continuous peak fit, via the command line" href="running cpf.html" /> 
   </head><body>
     <div class="header-wrapper" role="banner">
       <div class="header">
         <div class="headertitle"><a
           href="index.html">Continuous-Peak-Fit 0.0 alpha documentation</a></div>
         <div class="rel" role="navigation" aria-label="related navigation">
-          <a href="input file.html" title="Input file structure (long)"
+          <a href="running cpf.html" title="Continuous peak fit, via the command line"
              accesskey="P">previous</a> |
-          <a href="whatsnew.html" title="Release Notes"
+          <a href="input file.html" title="Input file structure (long)"
              accesskey="N">next</a> |
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a>
@@ -74,15 +74,15 @@ endings.</p>
 <p>datafile_Step is optional – if absent is assumed to be +/-1.</p>
 </td>
 </tr>
-<tr class="row-even"><td><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Calibration and masking.,</span>
-<span class="n">Calib_type</span><span class="p">,</span><span class="o">=</span> <span class="s2">&quot;Dioptas&quot;</span><span class="p">,</span>
+<tr class="row-even"><td><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Calibration and masking.</span>
+<span class="n">Calib_type</span> <span class="o">=</span> <span class="s2">&quot;Dioptas&quot;</span><span class="p">,</span>
 <span class="n">Calib_detector</span> <span class="o">=</span> <span class="s1">&#39;unknown&#39;</span><span class="p">,</span>
-<span class="n">Calib_data</span><span class="p">,</span><span class="o">=</span> <span class="n">drive</span> <span class="o">+</span> <span class="s1">&#39;/pixi_00001.tif&#39;</span><span class="p">,</span>
-<span class="n">Calib_param</span><span class="p">,</span><span class="o">=</span> <span class="s1">&#39;DLS_CeO2_1200mm.poni&#39;</span><span class="p">,</span>
-<span class="n">Calib_mask</span><span class="p">,</span><span class="o">=</span> <span class="s1">&#39;DLS_CeO2_1200mm.mask&#39;</span><span class="p">,</span>
+<span class="n">Calib_data</span> <span class="o">=</span> <span class="n">drive</span> <span class="o">+</span> <span class="s1">&#39;/pixi_00001.tif&#39;</span><span class="p">,</span>
+<span class="n">Calib_param</span> <span class="o">=</span> <span class="s1">&#39;DLS_CeO2_1200mm.poni&#39;</span><span class="p">,</span>
+<span class="n">Calib_mask</span> <span class="o">=</span> <span class="s1">&#39;DLS_CeO2_1200mm.mask&#39;</span><span class="p">,</span>
 <span class="n">Calib_pixels</span> <span class="o">=</span> <span class="mi">296</span><span class="p">,</span>
 
-<span class="c1">#Number of bins for initial fitting.,</span>
+<span class="c1">#Number of bins for initial fitting.</span>
 <span class="n">AziBins</span> <span class="o">=</span> <span class="mi">90</span><span class="p">,</span>
 </pre></div>
 </div>
@@ -145,9 +145,14 @@ endings.</p>
 </pre></div>
 </div>
 </td>
-<td><p>Orders of the fourier series for each parameter in each peak.</p>
-<p>Number of coefficients is 2*n+1,
-‘profile_fixed’ will fix the pseudo-voigt peak profile to
+<td><p><cite>fit_orders</cite> is a list containing all the parameters needed to fit
+each subpattern in the data. Each subpattern is described by a set
+of parameters which are contained within a python dictionary.</p>
+<p>Each subpattern covers at least one diffraction peak, the
+numbers for each of the peak properties are the orders of the
+fourier series or splines for that parameter.
+The number of coefficients is 2*n+1.</p>
+<p>‘profile_fixed’ will fix the pseudo-voigt peak profile to
 the value in profile.</p>
 <p>Range is in two theta.</p>
 <p>For additional peaks just add more dictionaries to the list.</p>
@@ -155,7 +160,10 @@ the value in profile.</p>
 <code class="docutils literal notranslate"><span class="pre">PeakPositionSelection</span></code> is required.
 [[ peak, azimuth, two theta],
 …
-]</p>
+]
+A routine exists for making this array, see <a class="reference internal" href="running cpf.html#initial-guess"><span class="std std-ref">Initial guess selection for multiple, weak or obscured peaks</span></a></p>
+<p>A full descrption of the paramters for each subpattern is
+provided here: <a class="reference internal" href="subpattern structure.html"><span class="doc">Subpatterns and peaks</span></a></p>
 </td>
 </tr>
 <tr class="row-even"><td><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#Output settings</span>
@@ -166,7 +174,7 @@ the value in profile.</p>
 </td>
 <td><p>Outputs.  The types are ‘DifferentialStrain’, ‘Polydefix’,
 ‘multifit’ and ‘PolyDefixED’.</p>
-<p>No further options are needed for differential strain
+<p>No further options are needed for differential strain.
 But an elastic strain tensor should be provided for the others.</p>
 </td>
 </tr>
@@ -187,8 +195,9 @@ But an elastic strain tensor should be provided for the others.</p>
 <li class="toctree-l1"><a class="reference internal" href="algorithm.html">Algorithm</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install</a></li>
 <li class="toctree-l1"><a class="reference internal" href="running cpf.html"><em>Continuous peak fit</em>, via the command line</a></li>
-<li class="toctree-l1"><a class="reference internal" href="input file.html">Input file structure (long)</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Input file structure (short)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input file.html">Input file structure (long)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subpattern structure.html">Subpatterns and peaks</a></li>
 <li class="toctree-l1"><a class="reference internal" href="whatsnew.html">Release Notes</a></li>
 </ul>
 
@@ -209,9 +218,9 @@ But an elastic strain tensor should be provided for the others.</p>
       <div class="footer">
         <div class="left">
           <div role="navigation" aria-label="related navigaton">
-            <a href="input file.html" title="Input file structure (long)"
+            <a href="running cpf.html" title="Continuous peak fit, via the command line"
               >previous</a> |
-            <a href="whatsnew.html" title="Release Notes"
+            <a href="input file.html" title="Input file structure (long)"
               >next</a> |
             <a href="genindex.html" title="General Index"
               >index</a>

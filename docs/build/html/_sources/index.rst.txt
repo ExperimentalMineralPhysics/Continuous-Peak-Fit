@@ -74,8 +74,9 @@ Documentation Parts
    algorithm
    installation
    running cpf
-   input file
    input file short
+   input file
+   subpattern structure
    whatsnew
 
 

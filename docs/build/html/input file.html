@@ -16,17 +16,17 @@
     <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Input file structure (short)" href="input file short.html" />
-    <link rel="prev" title="Continuous peak fit, via the command line" href="running cpf.html" /> 
+    <link rel="next" title="Subpatterns and peaks" href="subpattern structure.html" />
+    <link rel="prev" title="Input file structure (short)" href="input file short.html" /> 
   </head><body>
     <div class="header-wrapper" role="banner">
       <div class="header">
         <div class="headertitle"><a
           href="index.html">Continuous-Peak-Fit 0.0 alpha documentation</a></div>
         <div class="rel" role="navigation" aria-label="related navigation">
-          <a href="running cpf.html" title="Continuous peak fit, via the command line"
-             accesskey="P">previous</a> |
           <a href="input file short.html" title="Input file structure (short)"
+             accesskey="P">previous</a> |
+          <a href="subpattern structure.html" title="Subpatterns and peaks"
              accesskey="N">next</a> |
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a>
@@ -96,10 +96,12 @@
 </tr>
 </tbody>
 </table>
+<p>File name construction does not add underscores or fullstops between the components. A fullstop must be contained within the strings used to construct the file name for the file extension to be present.</p>
+<p>Whilst both <code class="docutils literal notranslate"><span class="pre">datafile_Basename</span></code> and <code class="docutils literal notranslate"><span class="pre">datafile_Ending</span></code> are required, it is permitted for them to be empty strings. See examples 2 and 3 below.</p>
 <div class="section" id="example-file-name-structures">
 <h3>Example file name structures:<a class="headerlink" href="#example-file-name-structures" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><p>Example 1: style a, from [LINK to Example 1] :</p></li>
+<li><p>Example 1: style a, from [LINK to Example 1]:</p></li>
 </ul>
 <blockquote>
 <div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">datafile_directory</span>  <span class="o">=</span> <span class="s1">&#39;./Example1-Fe/&#39;</span>
@@ -148,51 +150,25 @@
 </ul>
 </div></blockquote>
 <ul class="simple">
-<li><p>Example 3, style a:</p></li>
+<li><p>Example 3, style b:</p></li>
 </ul>
 <blockquote>
 <div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">datafile_directory</span> <span class="o">=</span> <span class="s1">&#39;F:</span><span class="se">\\</span><span class="s1">remote_server_location</span><span class="se">\&#39;</span>
 <span class="n">datafile_Basename</span>  <span class="o">=</span> <span class="s1">&#39;M1234.&#39;</span>
 <span class="n">datafile_Ending</span>    <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-<span class="n">datafile_StartNum</span>  <span class="o">=</span> <span class="mi">1</span>
-<span class="n">datafile_EndNum</span>    <span class="o">=</span> <span class="mi">30</span>
-<span class="n">datafile_NumDigit</span>  <span class="o">=</span> <span class="mi">4</span>
-</pre></div>
-</div>
-<ul>
-<li><p>Makes file names:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0001</span>
-<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0002</span>
-<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0003</span>
-<span class="o">...</span>
-<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0028</span>
-<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0029</span>
-<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0030</span>
-</pre></div>
-</div>
-</li>
-</ul>
-</div></blockquote>
-<ul class="simple">
-<li><p>Example 4, style b:</p></li>
-</ul>
-<blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">datafile_directory</span> <span class="o">=</span> <span class="s1">&#39;../another/directory/&#39;</span>
-<span class="n">datafile_Basename</span>  <span class="o">=</span> <span class="s1">&#39;D654_&#39;</span>
-<span class="n">datafile_Ending</span>    <span class="o">=</span> <span class="s1">&#39;.nxs&#39;</span>
 <span class="n">datafile_Files</span><span class="o">.</span>    <span class="o">=</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span><span class="mi">13</span><span class="p">,</span> <span class="mi">115</span><span class="p">]</span>
 <span class="n">datafile_NumDigit</span>  <span class="o">=</span> <span class="mi">4</span>
 </pre></div>
 </div>
 <ul>
 <li><p>Makes file names:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">../</span><span class="n">another</span><span class="o">/</span><span class="n">directory</span><span class="o">/</span><span class="n">D654_0006</span><span class="o">.</span><span class="n">nxs</span>
-<span class="o">../</span><span class="n">another</span><span class="o">/</span><span class="n">directory</span><span class="o">/</span><span class="n">D654_0007</span><span class="o">.</span><span class="n">nxs</span>
-<span class="o">../</span><span class="n">another</span><span class="o">/</span><span class="n">directory</span><span class="o">/</span><span class="n">D654_0009</span><span class="o">.</span><span class="n">nxs</span>
-<span class="o">../</span><span class="n">another</span><span class="o">/</span><span class="n">directory</span><span class="o">/</span><span class="n">D654_0010</span><span class="o">.</span><span class="n">nxs</span>
-<span class="o">../</span><span class="n">another</span><span class="o">/</span><span class="n">directory</span><span class="o">/</span><span class="n">D654_0012</span><span class="o">.</span><span class="n">nxs</span>
-<span class="o">../</span><span class="n">another</span><span class="o">/</span><span class="n">directory</span><span class="o">/</span><span class="n">D654_0013</span><span class="o">.</span><span class="n">nxs</span>
-<span class="o">../</span><span class="n">another</span><span class="o">/</span><span class="n">directory</span><span class="o">/</span><span class="n">D654_0115</span><span class="o">.</span><span class="n">nxs</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0006</span>
+<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0007</span>
+<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0009</span>
+<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0010</span>
+<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0012</span>
+<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0013</span>
+<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0115</span>
 </pre></div>
 </div>
 </li>
@@ -200,8 +176,8 @@
 </div></blockquote>
 </div>
 </div>
-<div class="section" id="calibarion-definitions">
-<h2>Calibarion definitions<a class="headerlink" href="#calibarion-definitions" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="calibration-definitions">
+<h2>Calibration definitions<a class="headerlink" href="#calibration-definitions" title="Permalink to this headline">¶</a></h2>
 <p>A calibration type and file are required. Other requirements are possible depending on the detector type. <code class="docutils literal notranslate"><span class="pre">`cpf.XRD_FitPattern.initiate`</span></code> (LINK) will inform you if needed definitions are missing.</p>
 <table class="docutils align-default">
 <colgroup>
@@ -243,95 +219,35 @@
 </tbody>
 </table>
 </div>
-<div class="section" id="peak-definitions-and-limits">
-<h2>Peak definitions and limits<a class="headerlink" href="#peak-definitions-and-limits" title="Permalink to this headline">¶</a></h2>
-<p>Each subpattern is defined by number of parameters contained within a python dictionary. The dictionary for each subpattern is contained with in a list called ‘fit_orders’. e.g.:</p>
-<blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fit_orders</span> <span class="o">=</span> <span class="p">[</span>
-       <span class="p">{</span>
-         <span class="s2">&quot;range&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="mf">3.5</span><span class="p">,</span><span class="mf">3.8</span><span class="p">]],</span>
-         <span class="s2">&quot;background&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
-         <span class="s2">&quot;peak&quot;</span><span class="p">:</span> <span class="p">[{</span>
-             <span class="s2">&quot;phase&quot;</span><span class="p">:</span> <span class="s2">&quot;Steel&quot;</span><span class="p">,</span>
-             <span class="s2">&quot;hkl&quot;</span><span class="p">:</span> <span class="s1">&#39;111&#39;</span><span class="p">,</span>
-             <span class="s2">&quot;d-space&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
-             <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span>
-             <span class="s2">&quot;profile&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-             <span class="c1">#&quot;profile_fixed&quot;: 1,</span>
-             <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-             <span class="c1">#&quot;symmetry&quot;: 2</span>
-           <span class="p">}],</span>
-         <span class="p">},</span>
-       <span class="p">{</span>
-         <span class="s2">&quot;range&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="mf">4.1</span><span class="p">,</span><span class="mf">4.4</span><span class="p">]],</span>
-         <span class="s2">&quot;background&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
-         <span class="s2">&quot;peak&quot;</span><span class="p">:</span> <span class="p">[{</span>
-             <span class="s2">&quot;phase&quot;</span><span class="p">:</span> <span class="s2">&quot;Steel&quot;</span><span class="p">,</span>
-             <span class="s2">&quot;hkl&quot;</span><span class="p">:</span> <span class="s1">&#39;200&#39;</span><span class="p">,</span>
-             <span class="s2">&quot;d-space&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
-             <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span>
-             <span class="s2">&quot;profile&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-             <span class="c1">#&quot;profile_fixed&quot;: 1,</span>
-             <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-             <span class="c1">#&quot;symmetry&quot;: 2</span>
-           <span class="p">}],</span>
-       <span class="p">},</span>
-       <span class="p">]</span>
-</pre></div>
-</div>
-</div></blockquote>
-<p>With in each subpattern dictionary the following parameters are possible or needed:</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 8%" />
-<col style="width: 8%" />
-<col style="width: 84%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Parameter</p></th>
-<th class="head"><p>Required?</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">range</span></code></p></td>
-<td><p>yes</p></td>
-<td><p>Defines the maximum and minimum of the range to fit with peak in. For angle dispersive diffraction data this is the maximum and minimum two theta angle (in degrees), for energy disperdive diffraction it is the maximum and minimum energy (in keV). The format is <code class="docutils literal notranslate"><span class="pre">[[min,</span> <span class="pre">max]]</span></code>.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">background</span></code></p></td>
-<td><p>yes</p></td>
-<td><p>This is a list of numbers, see LINK. The length of the list is the order</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Imax</span></code></p></td>
-<td><p>no</p></td>
-<td><p>Crops the maximum intensity within the range at this value. Formatted as a single number.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Imin</span></code></p></td>
-<td><p>no</p></td>
-<td><p>Crops the minimum intensity within the range at this value. Formatted as a single number.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PeakPositionSelection</span></code></p></td>
-<td><p>only for multiple peaks</p></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">peak</span></code></p></td>
-<td><p>yes</p></td>
-<td><p>List of dictionaries. See</p></td>
-</tr>
-</tbody>
-</table>
-<div class="section" id="peak-definition">
-<h3>Peak definition<a class="headerlink" href="#peak-definition" title="Permalink to this headline">¶</a></h3>
-</div>
+<div class="section" id="subpattern-definitions">
+<h2>Subpattern definitions<a class="headerlink" href="#subpattern-definitions" title="Permalink to this headline">¶</a></h2>
+<p>A full description of the structure required for each subpattern is given here: <a class="reference internal" href="subpattern structure.html"><span class="doc">Subpatterns and peaks</span></a></p>
 </div>
 <div class="section" id="output-settings">
 <h2>Output settings<a class="headerlink" href="#output-settings" title="Permalink to this headline">¶</a></h2>
 <p>blah balh balh</p>
 </div>
-<div class="section" id="optional-extras">
-<h2>Optional Extras.<a class="headerlink" href="#optional-extras" title="Permalink to this headline">¶</a></h2>
-<p>Azi_bins</p>
-<p>Limits</p>
+<div class="section" id="additional-optional-settings">
+<h2>Additional (Optional) Settings<a class="headerlink" href="#additional-optional-settings" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="azimuthal-bins">
+<h3>Azimuthal Bins<a class="headerlink" href="#azimuthal-bins" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">AziBins</span></code> is the number of bins used in the inital fitting of the data (LINK). For angle dispersive data the default number of bins is 90. This value gives 4 degree azimuthal bins for complete Debye-Scherer rings. For partial diffraction rings a smaller number maybe a better chice. This is set in input file by:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">AziBins</span> <span class="o">=</span> <span class="mi">45</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="limits">
+<h3>Limits<a class="headerlink" href="#limits" title="Permalink to this headline">¶</a></h3>
+<p>The paramters in the fits are bounded (see LINK for details). The default limits are:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">limits</span> <span class="o">=</span> <span class="p">[]</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>These can be changed by ….</p>
+</div>
 </div>
 </div>
 
@@ -348,15 +264,16 @@
 <li class="toctree-l1"><a class="reference internal" href="algorithm.html">Algorithm</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install</a></li>
 <li class="toctree-l1"><a class="reference internal" href="running cpf.html"><em>Continuous peak fit</em>, via the command line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input file short.html">Input file structure (short)</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Input file structure (long)</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#data-file-definitions">Data file definitions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#calibarion-definitions">Calibarion definitions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#peak-definitions-and-limits">Peak definitions and limits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#calibration-definitions">Calibration definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#subpattern-definitions">Subpattern definitions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#output-settings">Output settings</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#optional-extras">Optional Extras.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#additional-optional-settings">Additional (Optional) Settings</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="input file short.html">Input file structure (short)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subpattern structure.html">Subpatterns and peaks</a></li>
 <li class="toctree-l1"><a class="reference internal" href="whatsnew.html">Release Notes</a></li>
 </ul>
 
@@ -377,9 +294,9 @@
       <div class="footer">
         <div class="left">
           <div role="navigation" aria-label="related navigaton">
-            <a href="running cpf.html" title="Continuous peak fit, via the command line"
-              >previous</a> |
             <a href="input file short.html" title="Input file structure (short)"
+              >previous</a> |
+            <a href="subpattern structure.html" title="Subpatterns and peaks"
               >next</a> |
             <a href="genindex.html" title="General Index"
               >index</a>

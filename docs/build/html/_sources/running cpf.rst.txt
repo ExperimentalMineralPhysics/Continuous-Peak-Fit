@@ -99,6 +99,8 @@ The peak_selection is zero counted, so the first peak is 0.
 `input_file`\_mask.tif files are saved in the output directory.
 
 
+.. _initial_guess:
+
 ==========================================================================
 Initial guess selection for multiple, weak or obscured peaks
 ==========================================================================

@@ -32,28 +32,28 @@ The input file is a single python file with the following required settings:
 +-----------------------------------------------------+--------------------------------------------------------------------+
 | .. code-block:: python                              |  Detector Mask and Calibration.                                    |
 |                                                     |                                                                    |
-|   # Calibration and masking.,                       |                                                                    |
-|   Calib_type,= "Dioptas",                           |                                                                    |
+|   # Calibration and masking.                        |                                                                    |
+|   Calib_type = "Dioptas",                           |                                                                    |
 |   Calib_detector = 'unknown',                       |                                                                    |
-|   Calib_data,= drive + '/pixi_00001.tif',           |  AziBins is the number of bins for inital fitting [LINK]           |
-|   Calib_param,= 'DLS_CeO2_1200mm.poni',             |      -- should be set as default somewhere                         |
-|   Calib_mask,= 'DLS_CeO2_1200mm.mask',              |                                                                    |
+|   Calib_data = drive + '/pixi_00001.tif',           |  AziBins is the number of bins for inital fitting [LINK]           |
+|   Calib_param = 'DLS_CeO2_1200mm.poni',             |      -- should be set as default somewhere                         |
+|   Calib_mask = 'DLS_CeO2_1200mm.mask',              |                                                                    |
 |   Calib_pixels = 296,                               |                                                                    |
 |                                                     |                                                                    |
-|   #Number of bins for initial fitting.,             |                                                                    |
+|   #Number of bins for initial fitting.              |                                                                    |
 |   AziBins = 90,                                     |                                                                    |
 +-----------------------------------------------------+--------------------------------------------------------------------+
 | .. code-block:: python                              |                                                                    |
 |                                                     |                                                                    |
-|   # Fitting properties for peaks.,                  |                                                                    |
-|   fit_orders = [                                    |                                                                    |
-|      {"range": [[3.05, 3.25]],                      |                                                                    |
+|   # Fitting properties for peaks.,                  | `fit_orders` is a list containing all the parameters needed to fit |
+|   fit_orders = [                                    | each subpattern in the data. Each subpattern is described by a set |
+|      {"range": [[3.05, 3.25]],                      | of parameters which are contained within a python dictionary.      |
 |       "background": [0,0],                          |                                                                    |
-|       "peak": [{"phase":"Ti64",                     |                                                                    |
-|                 "hkl": '100'                        |                                                                    |
-|                 "d-space": 2,                       | Orders of the fourier series for each parameter in each peak.      |
-|                 "height": 6,                        |                                                                    |
-|                 "profile": 0,                       | Number of coefficients is 2*n+1,                                   |
+|       "peak": [{"phase":"Ti64",                     | Each subpattern covers at least one diffraction peak, the          |
+|                 "hkl": '100'                        | numbers for each of the peak properties are the orders of the      |
+|                 "d-space": 2,                       | fourier series or splines for that parameter.                      |
+|                 "height": 6,                        | The number of coefficients is 2*n+1.                               |
+|                 "profile": 0,                       |                                                                    |
 |                 #"profile_fixed": 1,                | 'profile_fixed' will fix the pseudo-voigt peak profile to          |
 |                 "width": 0,                         | the value in profile.                                              |
 |                 "symmetry": 2}]                     |                                                                    |
@@ -66,11 +66,11 @@ The input file is a single python file with the following required settings:
 |                 "height": 6,                        | [[ peak, azimuth, two theta],                                      |
 |                 "profile": 0,                       | ...                                                                |
 |                 #"profile_fixed": 1,                | ]                                                                  |
-|                 "width": 0,                         |                                                                    |
+|                 "width": 0,                         | A routine exists for making this array, see :ref:`initial_guess`   |
 |                 "symmetry": 2,},                    |                                                                    |
 |                {"phase": "Ti64alpha",               |                                                                    |
-|                 "hkl": '101',                       |                                                                    |
-|                 "d-space": 2,                       |                                                                    |
+|                 "hkl": '101',                       | A full descrption of the paramters for each subpattern is          |
+|                 "d-space": 2,                       | provided here: :doc:`subpattern structure`                         |
 |                 "height": 6,                        |                                                                    |
 |                 "profile": 0,                       |                                                                    |
 |                 #"profile_fixed": 1,                |                                                                    |
@@ -97,7 +97,7 @@ The input file is a single python file with the following required settings:
 | .. code-block:: python                              | Outputs.  The types are 'DifferentialStrain', 'Polydefix',         |
 |                                                     | 'multifit' and 'PolyDefixED'.                                      |
 |   #Output settings                                  |                                                                    |
-|   Output_directory = './'                           | No further options are needed for differential strain              |
+|   Output_directory = './'                           | No further options are needed for differential strain.             |
 |   Output_type = 'DifferentialStrain'                | But an elastic strain tensor should be provided for the others.    |
 |                                                     |                                                                    |
 +-----------------------------------------------------+--------------------------------------------------------------------+

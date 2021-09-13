@@ -659,7 +659,9 @@ def execute(settings_file=None, FitSettings=None, FitParameters=None, inputs=Non
             # Read JSON data from file
             print('Loading previous fit results from %s' % temporary_data_file)
             with open(temporary_data_file) as json_data:
-                previous_fit = json.load(json_data)
+                tmp_previous_fit = json.load(json_data)
+                if len(tmp_previous_fit) == len(FitSettings.fit_orders):
+                    previous_fit =tmp_previous_fit
 
         # Switch to save the first fit in each sequence.
         if j == 0 or save_all is True:

@@ -70,13 +70,16 @@ def FileList(FitParameters, FitSettings):
     :return:
     """
     # Define step
-    if 'datafile_Step' not in FitParameters:
+    if ('datafile_Step' in FitParameters):
+        Step = FitSettings.datafile_Step
+    elif ('datafile_Files' in FitParameters):
+        Step = 1
+    else: #if just datafile_StartNum and datafile_EndNum
         if FitSettings.datafile_EndNum > FitSettings.datafile_StartNum:
             Step = 1
         else:
             Step = -1
-    else:
-        Step = FitSettings.datafile_Step
+            
     if not 'datafile_NumDigit' in FitParameters:
         FitSettings.datafile_NumDigit = 1
     
@@ -193,6 +196,8 @@ def peak_string(orders, fname=False, peak='all'):
     return p_str
 
 
+            out.append('Unknown')
+                
 
 def make_outfile_name(basefilename, directory=None, additional_text=None, extension=None, orders=None, overwrite=True):
     ''' Make file names for output files.

@@ -254,7 +254,7 @@ def setrange(settings_file=None, inputs=None, debug=False, refine=True, save_all
     if not 'datafile_Files' in FitParameters:
         FitSettings.datafile_EndNum = FitSettings.datafile_StartNum
     else:
-        FitSettings.datafile_Files = FitSettings.datafile_Files[0]
+        FitSettings.datafile_Files = [FitSettings.datafile_Files[0]]
     
     # restrict to subpatterns listed
     if subpattern=='all':
@@ -289,7 +289,7 @@ def initialpeakposition(settings_file=None, inputs=None, debug=False, refine=Tru
     if not 'datafile_Files' in FitParameters:
         FitSettings.datafile_EndNum = FitSettings.datafile_StartNum
     else:
-        FitSettings.datafile_Files = FitSettings.datafile_Files[0]
+        FitSettings.datafile_Files = [FitSettings.datafile_Files[0]]
     
     # restrict to subpatterns listed
     if subpattern=='all':
@@ -446,7 +446,11 @@ def ordersearch(settings_file=None, inputs=None, debug=False, refine=True, save_
                     
                 else:
                     orders_s['background'][search_peak] = search[k]
-                orders_s['note'] = search_parameter+'='+str(search[k])+'; type='+search_series[j]
+                if len(tmp_order) > 1:
+                    intro_string = 'peak='+str(search_peak)+'_'
+                else:
+                    intro_string = ''
+                orders_s['note'] = intro_string+search_parameter+'='+str(search[k])+'_type='+search_series[j]
                 order_search.append(orders_s)
     FitSettings.fit_orders = order_search
     

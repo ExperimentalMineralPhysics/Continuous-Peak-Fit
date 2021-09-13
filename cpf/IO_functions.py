@@ -182,7 +182,8 @@ def peak_string(orders, fname=False, peak='all'):
         else:
             p_str = p_str + "-"
         if 'hkl' in orders['peak'][x]:
-            p_str = p_str + str(orders['peak'][x]['hkl'])
+            #p_str = p_str + str(orders['peak'][x]['hkl'])
+            p_str = p_str + peak_hkl(orders, peak=x, string=True)[0]
         else:
             p_str = p_str + str(x+1)
         if fname is False:
@@ -196,8 +197,115 @@ def peak_string(orders, fname=False, peak='all'):
     return p_str
 
 
+def peak_hkl(orders, peak='all', string=True):
+    """
+    :param orders: list of peak orders which should include peak names/hkls
+    :param string: switch indicting if the output is a string or numeric list of hkl.
+    :param peak: switch to add restricted peaks to the output string
+    :return: string or list of peak hkl.
+    """
+    #possible hkl input formats:
+    #   string -- hkls as a string, generally used for hkls with leading 0 or negative hkl indicy 
+    #   int -- hkls all positive and no leading 0
+    #   list -- e.g. [h,k,l]. New format. 
+    #desired outputs:
+    #   string -- hkls as a string using String==True
+    #   list -- e.g. [h,k,l]. New format. using String==False
+    
+    if peak=='all':
+        peek = list(range(len(orders['peak'])))
+    elif not isinstance(peak, list):
+        peek = [int(x) for x in str(peak)]
+    else:
+        peek=peak
+        
+    out = []
+    for x in peek:
+        if 'hkl' in orders['peak'][x]:
+            hkl = orders['peak'][x]['hkl']
+            if hkl == '0' or hkl == 0:
+                hkl = '000'
+        else:
+            hkl = '000'
+        
+        if not isinstance(hkl, list) and string==True:
+            #string in, string out
+            out.append(str(hkl))
+        elif isinstance(hkl, list) and string==True:
+            #convert numbers to string
+            out_tmp = ''
+            for y in range(len(hkl)):
+                out_tmp=out_tmp+str(hkl[y])
+            out.append(out_tmp)
+        elif isinstance(hkl, list) and string==False:
+            #list in, list out
+            out.append(hkl)
+        elif not isinstance(hkl, list) and string==False:
+            #convert string to array
+            pos = 0
+            hkl = str(hkl)
+            if hkl[0] == '-':
+                h = hkl[pos:pos+2]
+                pos = pos+2
+            else:
+                h = hkl[pos:pos+1]
+                pos = pos+1
+            if hkl[pos] == '-':
+                k = hkl[pos:pos+2]
+                pos = pos+2
+            else:
+                k = hkl[pos:pos+1]
+                pos = pos+1
+            if hkl[pos] == '-':
+                l = hkl[pos:pos+2]
+                pos = pos+2
+            else:
+                l = hkl[pos:pos+1]
+                pos = pos+1
+            out_tmp = [h, k, l]
+            if len(hkl)>pos:
+                if hkl[pos] == '-':
+                    m = hkl[pos:pos+2]
+                    pos = pos+2
+                else:
+                    m = hkl[pos:pos+1]
+                    pos = pos+1
+                out_tmp.append(m)
+            out.append(out_tmp)
+                
+    return out
+    
+
+def peak_phase(orders, peak='all'):
+    """
+    :param orders: list of peak orders which should include peak names/hkls
+    :param string: switch indicting if the output is a string or numeric list of hkl.
+    :param peak: switch to add restricted peaks to the output string
+    :return: string or list of peak hkl.
+    """
+    #possible hkl input formats:
+    #   string -- hkls as a string, generally used for hkls with leading 0 or negative hkl indicy 
+    #   int -- hkls all positive and no leading 0
+    #   list -- e.g. [h,k,l]. New format. 
+    #desired outputs:
+    #   string -- hkls as a string using String==True
+    #   list -- e.g. [h,k,l]. New format. using String==False
+    
+    if peak=='all':
+        peek = list(range(len(orders['peak'])))
+    elif not isinstance(peak, list):
+        peek = [int(x) for x in str(peak)]
+    else:
+        peek=peak
+        
+    out = []
+    for x in peek:
+        if 'phase' in orders['peak'][x]:
+            out.append(orders['peak'][x]['phase'])
+        else:
             out.append('Unknown')
                 
+    return out
 
 def make_outfile_name(basefilename, directory=None, additional_text=None, extension=None, orders=None, overwrite=True):
     ''' Make file names for output files.
@@ -231,8 +339,11 @@ def make_outfile_name(basefilename, directory=None, additional_text=None, extens
     
     if orders: # add phase and hkl to file name
         filename = filename + '__'+ peak_string(orders, fname=True)
-    if additional_text: # add additional text -- i.e. notes from orders
+    if additional_text: # add additional text 
         filename = filename + '__' + additional_text
+        #FIX ME: Lon lernger used. but need ot check this.
+    if orders and 'note' in orders: # add additional text from note in orders.
+        filename = filename + '__' + "".join(i for i in orders['note'] if i not in "\/:;*?<>|")          
     if directory:
         filename = os.path.join(directory, filename)
     

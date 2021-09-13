@@ -205,6 +205,12 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
     
                     text_file.write("%13.4f %13.4f %13.4f %13.4f\n" % (peak_tth, peak_i, peak_w, peak_p))
     
+                    # ==============================
+                    # NOTE. Do not remove.
+                    # to propagate errors into the peak parameters we need to account for the cross-correlation of the parameters
+                    # ths can be done using numpy.random.multivariate_normal.
+                    # see: https://scipy-cookbook.readthedocs.io/items/CorrelatedRandomSamples.html
+                    # ============================
         text_file.close()
     
 

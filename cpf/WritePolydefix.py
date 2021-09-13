@@ -120,7 +120,10 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
         #if last symbol in the file name is '_' then we need to strip it from the name
         text_file.write("     %s\n" %  FitSettings.datafile_Basename.strip('_').strip('.') )
         print(FitSettings.datafile_StartNum, FitSettings.datafile_EndNum, FitSettings.datafile_StartNum>FitSettings.datafile_EndNum)
-        if FitSettings.datafile_StartNum > FitSettings.datafile_EndNum:
+        if 'datafile_Files' in FitParameters:
+            strt = FitSettings.datafile_Files[0]
+            eend = FitSettings.datafile_Files[-1]            
+        elif FitSettings.datafile_StartNum > FitSettings.datafile_EndNum:
             print('start<end')
             strt = FitSettings.datafile_EndNum
             eend = FitSettings.datafile_StartNum

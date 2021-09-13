@@ -30,7 +30,7 @@ def Requirements():
     
 
     
-def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
+def WriteOutput(FitSettings, parms_dict, debug=True, additional_text = None, **kwargs):
     """
     
 
@@ -82,7 +82,7 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
     if not base:
         print("No base filename, using input filename instead.")
         base =  os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
-    out_file = IO.make_outfile_name(base, directory=FitSettings.Output_directory, extension='.dat', overwrite=True)
+    out_file = IO.make_outfile_name(base, directory=FitSettings.Output_directory, extension='.dat', overwrite=True, additional_text=fname_addtext)
 
     text_file = open(out_file, "w")
     print('Writing', out_file)

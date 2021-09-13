@@ -461,7 +461,8 @@ def ordersearch(settings_file=None, inputs=None, debug=False, refine=True, save_
     #write a differential strain output file
     #FIX ME: using debug as a switch to get all info in file. 
     #should probably use another switch
-    write_output(settings_file, FitSettings=FitSettings, FitParameters=FitParameters, debug=True, outtype='DifferentialStrain')
+    write_output(settings_file, FitSettings=FitSettings, FitParameters=FitParameters, debug=True, outtype='DifferentialStrain', 
+                 additional_text= intro_string+search_parameter)
 
 
 

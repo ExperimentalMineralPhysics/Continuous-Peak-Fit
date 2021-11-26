@@ -8,7 +8,9 @@ __all__ = ['create_newparams', 'params_to_newparams', 'ParamFitArr', 'PseudoVoig
 import numpy as np
 import numpy.ma as ma
 import sys
-from scipy.optimize import curve_fit
+#import time
+#from scipy.optimize import curve_fit
+from scipy.interpolate import make_interp_spline, CubicSpline, interp1d
 from lmfit import minimize, report_fit, Model
 
 np.set_printoptions(threshold=sys.maxsize)
@@ -21,7 +23,7 @@ np.set_printoptions(threshold=sys.maxsize)
 # FIX ME: need hard limits to gauss - lorentz peak profile ratios
 
 
-def parse_bounds(bounds, dspace, intens, twotheta, ndat=None, param=None):
+def parse_bounds(bounds, dspace, intens, twotheta, ndat=None, npeaks=1, param=None):
     """
     Turn text limits in bounds into numbers and return bounds in dictionary format.
     :param bounds: bounds dictionary
@@ -34,9 +36,9 @@ def parse_bounds(bounds, dspace, intens, twotheta, ndat=None, param=None):
         bounds = {
               "background": ['min', 'max'],
               "d-space":    ['min', 'max'],
-              "height":     [ 0,    '2*max'],
+              "height":     [ 0,    'max-min'],
               "profile":    [ 0,     1],
-              "width":      [ 'range/(ndata)',  'range/2'],
+              "width":      [ 'range/(ndata)',  'range/2/npeaks'],
               }
     if ndat is None:
         ndat = np.size(dspace)
@@ -59,6 +61,7 @@ def parse_bounds(bounds, dspace, intens, twotheta, ndat=None, param=None):
         b = [w.replace('ndata', str(ndat)) for w in b]
         b = [w.replace('max', str(np.max(vals))) for w in b]
         b = [w.replace('min', str(np.min(vals))) for w in b]
+        b = [w.replace('npeaks', str(npeaks)) for w in b]
         b = [eval(w) for w in b]
         limits[par] = b          
         
@@ -139,33 +142,39 @@ def params_to_newparams(params, num_peaks, num_bg, order_peak):
     for i in range(num_peaks):
         new_str = 'peak_'+str(i)+'_d'
         dspace = gather_paramerrs_to_list(params, new_str)
+        dspace_tp = get_series_type(params, new_str)
         new_str = 'peak_'+str(i)+'_h'
         hspace = gather_paramerrs_to_list(params, new_str)
+        h_tp = get_series_type(params, new_str)
         new_str = 'peak_'+str(i)+'_w'
         wspace = gather_paramerrs_to_list(params, new_str)
+        w_tp = get_series_type(params, new_str)
         new_str = 'peak_'+str(i)+'_p'
         pspace = gather_paramerrs_to_list(params, new_str)
-
-        if 'symmetry' in order_peak[i]:  # orders['peak'][j]:  # FIX ME: the symmetry part of this is a horrible
-            # way of doing it.
-            peaks.append({"d-space":     dspace[0],
-                          "d-space_err": dspace[1],
-                          "height":      hspace[0],
-                          "height_err":  hspace[1],
-                          "width":       wspace[0],
-                          "width_err":   wspace[1],
-                          "profile":     pspace[0],
-                          "profile_err": pspace[1],
-                          "symmetry":    order_peak[i]['symmetry']})
-        else:
-            peaks.append({"d-space": dspace[0],
-                          "d-space_err": dspace[1],
-                          "height":      hspace[0],
-                          "height_err":  hspace[1],
-                          "width":       wspace[0],
-                          "width_err":   wspace[1],
-                          "profile":     pspace[0],
-                          "profile_err": pspace[1]})
+        p_tp = get_series_type(params, new_str)
+        
+        tmp_peaks = {}
+        if 'phase' in order_peak[i]:
+            tmp_peaks["phase"] = order_peak[i]['phase']
+        if 'hkl' in order_peak[i]:
+            tmp_peaks["hkl"] = order_peak[i]['hkl']
+        tmp_peaks["d-space"] =      dspace[0]
+        tmp_peaks["d-space_err"] =  dspace[1]
+        tmp_peaks["d-space-type"] = coefficient_type_as_string(dspace_tp)
+        tmp_peaks["height"] =       hspace[0]
+        tmp_peaks["height_err"] =   hspace[1]
+        tmp_peaks["height-type"] =  coefficient_type_as_string(h_tp)
+        tmp_peaks["width"] =        wspace[0]
+        tmp_peaks["width_err"] =    wspace[1]
+        tmp_peaks["width-type"] =   coefficient_type_as_string(w_tp)
+        tmp_peaks["profile"] =      pspace[0]
+        tmp_peaks["profile_err"] =  pspace[1]
+        tmp_peaks["profile-type"] = coefficient_type_as_string(p_tp)
+        if 'symmetry' in order_peak[i]:
+            tmp_peaks["symmetry"] = order_peak[i]['symmetry']
+            
+        peaks.append(tmp_peaks)
+        
     # Get background parameters
     bgspace = []
     bgspace_err = []
@@ -174,11 +183,9 @@ def params_to_newparams(params, num_peaks, num_bg, order_peak):
         bgspc = gather_paramerrs_to_list(params, new_str)
         bgspace.append(bgspc[0])
         bgspace_err.append(bgspc[1])
-        # print('background', ff.gather_params_to_list(params, new_str))
-        # bgspace.append(ff.gather_params_to_list(params, new_str))
-
-    # NewParams = {"background": bgspace, "peak": peaks}
-    NewParams = {"background": bgspace, "background_err": bgspace_err, "peak": peaks}
+    bg_tp = coefficient_type_as_string(get_series_type(params, new_str))
+    
+    NewParams = {"background": bgspace, "background_err": bgspace_err, "background-type": bg_tp, "peak": peaks}
 
     return NewParams
 
@@ -274,6 +281,28 @@ def PseudoVoigtPeak(twotheta, tth0, W_all, H_all, LGratio):
     return PVpeak
 
 
+def get_series_type(param, param_str, comp=None):
+    """
+    Make a nested list of parameters and errors from a lmfit Parameters class
+    :param param: dict with multiple coefficients per component
+    :param param_str: base string to select parameters
+    :param comp: component to add to base string to select parameters
+    :return: nested list of [parameters, errors] in alphanumerical order
+    """
+    if comp is not None:
+        new_str = param_str + '_' + comp
+    else:
+        new_str = param_str
+    new_str = new_str+'_tp'
+    if isinstance(param, dict) and new_str in param:
+        out = param[new_str]
+    elif isinstance(param, dict) and new_str not in param:
+        out = 0
+    else:
+        out= None
+    return out
+
+
 def gather_paramerrs_to_list(param, param_str, comp=None, nterms=None):  # fix me: Doesn't run without Comp=None.
     # Maybe it was never validated before SAH ran it.
     """
@@ -291,8 +320,8 @@ def gather_paramerrs_to_list(param, param_str, comp=None, nterms=None):  # fix m
     param_list = []
     err_list = []
     total_params = []
-    str_keys = [key for key, val in param.items() if new_str in key]
-    # print('yes', new_str, str_keys)
+    str_keys = [key for key, val in param.items() if new_str in key and 'tp' not in key]
+    #print('yes', new_str, str_keys)
     for i in range(len(str_keys)):
         param_list.append(param[new_str + str(i)].value)
         err_list.append(param[new_str + str(i)].stderr)
@@ -336,13 +365,13 @@ def gather_params_from_dict(param, param_str, comp):
     else:
         new_str = param_str
     param_list = []
-    str_keys = [key for key, val in param.items() if new_str in key]
+    str_keys = [key for key, val in param.items() if new_str in key and 'tp' not in key]
     for i in range(len(str_keys)):
         param_list.append(param[new_str + str(i)])
     return param_list
 
 
-def initiate_params(param, param_str, comp, trig_orders=None, limits=None, expr=None, value=0., ind_vars=None):
+def initiate_params(param, param_str, comp, coef_type=None, num_coef=None, trig_orders=None, limits=None, expr=None, value=None, ind_vars=None, vary=True):
     """
     Create all required coefficients for no. terms
     :param param: lmfit Parameter class (can be empty)
@@ -357,25 +386,66 @@ def initiate_params(param, param_str, comp, trig_orders=None, limits=None, expr=
     """
     if limits:
         new_max, new_min = limits
+        half_range = (new_max-new_min)/2
     else:
         new_min = -np.inf
         new_max = np.inf
+        half_range = np.inf
+    if value is None and limits is None:
+        value = 0.01
+    elif value is None and limits:
+        value = new_min + (new_max-new_min)*3/5#/2#*2/3
+        #N.B. if seems the initiating the splines with values exactly half way between man and min doesn't work. Anywhere else in the middle of the range seems to do so.
+    # else: value=value
     value = np.array(value)  # force input to be array so that can be iterated over
-    if trig_orders is None:
-        trig_orders = int((len(value) - 1)/2)
-
+    
+    coef_type=coefficient_type_as_number(coef_type)
+    #if coef_type == 5: #if the values at each azimuth are independent
+    #    num_coef = value.shape
+    if coef_type == 5: #if the values at each azimuth are independent we have to have a number of coefficients given. 
+        if num_coef is not None:
+            num_coef = num_coef
+        elif value is not None:
+            try:
+                #trig_orders = int((len(value) - 1)/2) #FIX ME: coefficiennt series length -- make into separate function.
+                num_coef = len(value)
+            except:
+                #trig_orders = int((value.size - 1)/2) #FIX ME: I dont know why the try except is needed but it is. it arose during the spline development
+                num_coef = value.size  
+        else:
+            print(value)
+            raise ValueError('Cannot define independent values without a number of coefficients.')
+            
+    elif trig_orders is None:
+        try:
+            #trig_orders = int((len(value) - 1)/2) #FIX ME: coefficiennt series length -- make into separate function.
+            num_coef = len(value)
+        except:
+            #trig_orders = int((value.size - 1)/2) #FIX ME: I dont know why the try except is needed but it is. it arose during the spline development
+            num_coef = value.size    
+    else:
+        num_coef = np.max(trig_orders)*2+1     
+        # leave the spline with the 2n+1 coefficients so that it matches the equivalnet fourier series.
+        # FIX ME: should we change this to make it more natural to understand?
     # First loop to add all the parameters so can be used in expressions
     #parm_list = []
-    for t in range(2 * np.max(trig_orders) + 1):
-        if value.size == 1:
-            ind = 0
+    #for t in range(2 * np.max(trig_orders) + 1):
+    for t in range(num_coef):
+        if value.size == num_coef and value.size>1:
+            v = value.item(t)
+        elif coef_type != 0 or t==0:
+            v = value.item(0)
         else:
-            ind = t
-        if t == 0:
-        	param.add(param_str + '_' + comp + str(t), value.item(ind), max=new_max, min=new_min, expr=expr)
+            v=0
+        if t == 0 or coef_type != 0:
+        	param.add(param_str + '_' + comp + str(t), v, max=new_max, min=new_min, expr=expr, vary=vary)
         else:
-        	param.add(param_str + '_' + comp + str(t), value.item(ind), expr=expr)
-        # param.add(param_str + '_' + comp + str(t), value, max=max, min=min, expr=expr)
+        	#param.add(param_str + '_' + comp + str(t), v, expr=expr, vary=vary)
+        	param.add(param_str + '_' + comp + str(t), v, max=half_range, min=-half_range, expr=expr, vary=vary)
+    
+    if comp != 's':
+        param.add(param_str + '_' + comp + '_tp', coefficient_type_as_number(coef_type), expr=expr, vary=False)
+    
     return param
 
 
@@ -391,7 +461,7 @@ def unvary_params(param, param_str, comp):
         new_str = param_str + '_' + comp
     else:
         new_str = param_str
-    str_keys = [key for key, val in param.items() if new_str in key]
+    str_keys = [key for key, val in param.items() if new_str in key and 'tp' not in key]
     # print(str_keys)
     for p in param:
         # print(p)
@@ -409,8 +479,14 @@ def unvary_part_params(param, param_str, comp, order=None):
     :param order: order of the coefficients. parts missing are set to vary=False
     :return: updated lmfit Parameter class
     """
+    if comp:
+        new_str = param_str + '_' + comp
+    else:
+        new_str = param_str
+    str_keys = [key for key, val in param.items() if new_str in key and 'tp' not in key]
+    orderr = int((len(str_keys)-1)/2)
     if isinstance(order, list):
-        orderr = max(order)
+        #orderr = max(order)
         for i in range(orderr):
             if not np.isin(i,order):
                 param = unvary_single_param(param, param_str, comp, 2*i)
@@ -454,7 +530,7 @@ def vary_params(param, param_str, comp):
         new_str = param_str + '_' + comp
     else:
         new_str = param_str
-    str_keys = [key for key, val in param.items() if new_str in key]
+    str_keys = [key for key, val in param.items() if new_str in key and 'tp' not in key]
     # print(str_keys)
     for p in str_keys:
         # print('yes')
@@ -474,25 +550,33 @@ def PeaksModel(twotheta, azi, Conv=None, **params):
     :param params: lmfit parameter class dict
     :return lmfit model fit result
     """
-
+    
+    #t_start = time.time()
+    
     # N.B. params now doesn't persist as a parameter class, merely a dictionary, so e.g. call key/value pairs as
     # normal not with '.value'
 
     # recreate backg array to pass to Fourier_backgrnd
-    back_keys = [key for key, val in params.items() if 'bg_c' in key]
+    back_keys = [key for key, val in params.items() if 'bg_c' in key and 'tp' not in key]
     nterm_fouriers = []
     
     i=0
     backg=[]
+    backg_tp = []
     while sum(nterm_fouriers) < len(back_keys):
         
         f = sum('bg_c' + str(i) in L for L in back_keys)
         nterm_fouriers.append(f)
-        
         fbg = []
         for k in range(f):
             fbg.append(params['bg_c' + str(i) + '_f' + str(k)])
-        backg.append(np.array(fbg))   
+            if 'bg_c' + str(i) + '_f_tp' in params:
+                b_tp=params['bg_c' + str(i) + '_f_tp']
+            else:
+                b_tp=0
+                
+        backg.append(np.array(fbg))
+        backg_tp.append(b_tp)
         i = i+1
     
     # for i in range(int(nterms_back)):
@@ -509,11 +593,10 @@ def PeaksModel(twotheta, azi, Conv=None, **params):
     # for future logging
     # print('recreate backg to pass to fourier_backg\n', 'back_keys is ', back_keys)
     # print('backg is ', backg)
-
-    I = Fourier_backgrnd((azi, twotheta), backg)
+    I = Backgrnd((azi, twotheta), backg, coef_type=backg_tp)
 
     
-    peak_keys = [key for key, val in params.items() if 'peak' in key]
+    peak_keys = [key for key, val in params.items() if 'peak' in key and 'tp' not in key]
     num_peaks = 0
     nterm_peaks = 0
     while nterm_peaks < len(peak_keys):
@@ -534,22 +617,31 @@ def PeaksModel(twotheta, azi, Conv=None, **params):
         param_str = 'peak_' + str(a)
         comp = 'd'
         parms = gather_params_from_dict(params, param_str, comp)
-        Dall = Fourier_expand(azi, param=parms)
+        coef_type = get_series_type(params, param_str, comp)
+        Dall = coefficient_expand(azi, parms,coef_type=coef_type)
         comp = 'h'
         parms = gather_params_from_dict(params, param_str, comp)
-        Hall = Fourier_expand(azi * symm, param=parms)
+        coef_type = get_series_type(params, param_str, comp)
+        Hall = coefficient_expand(azi*symm, parms,coef_type=coef_type)
         comp = 'w'
         parms = gather_params_from_dict(params, param_str, comp)
-        Wall = Fourier_expand(azi * symm, param=parms)
+        coef_type = get_series_type(params, param_str, comp)
+        Wall = coefficient_expand(azi*symm, parms,coef_type=coef_type)
         comp = 'p'
         parms = gather_params_from_dict(params, param_str, comp)
-        Pall = Fourier_expand(azi * symm, param=parms)
+        coef_type = get_series_type(params, param_str, comp)
+        Pall = coefficient_expand(azi*symm, parms,coef_type=coef_type)
 
         # conversion
         TTHall = CentroidConversion(Conv, Dall, azi)
         Ipeak.append(PseudoVoigtPeak(twotheta, TTHall, Wall, Hall, Pall))
         I = I + Ipeak[a]
 
+    # Elapsed time for fitting
+    #t_end = time.time()
+    #t_elapsed = t_end - t_start
+    #print(t_elapsed)
+    
     return I
 
 
@@ -580,7 +672,7 @@ def ChangeParams(constants, *fitparam):
 
 
 def FitModel(Intfit, twotheta, azimu, params, num_peaks, nterms_back, Conv=None, fixed=None,
-             fit_method='leastsq', weights=None):
+             fit_method='leastsq', weights=None, max_nfev=None):
     # ChangeArray, Shapes, Conv=None, symm=None, fixed=None, method=None,
     # weights=None, bounds=None):
     """Initiate model of intensities at twotheta and azi given input parameters and fit
@@ -610,7 +702,7 @@ def FitModel(Intfit, twotheta, azimu, params, num_peaks, nterms_back, Conv=None,
     # result = minner.minimize()
     # out = gmodel.fit(Intfit, params, twotheta=twotheta, azi=azimu, num_peaks=num_peaks, nterms_back=nterms_back,
     #                  Conv=Conv, fixed=fixed, nan_policy='propagate')
-    out = gmodel.fit(Intfit, params, twotheta=twotheta, azi=azimu, Conv=Conv, nan_policy='propagate')
+    out = gmodel.fit(Intfit, params, twotheta=twotheta, azi=azimu, Conv=Conv, nan_policy='propagate', max_nfev=max_nfev, xtol=1E-5)
     # print(out.fit_report())
     # print(out.params)
     # out.params.pretty_print()
@@ -618,14 +710,12 @@ def FitModel(Intfit, twotheta, azimu, params, num_peaks, nterms_back, Conv=None,
     return out
 
 
-
-
 def CentroidConversion(Conv, args_in, azi):
     # Conv['DispersionType'] is the conversion type
     # Conv[...] are the values required for the conversion
     # FIX ME: these functions should be a sub function of the detector types. but need to work out how to do it.
-
-    if Conv['DispersionType'] is None or Conv == 0:
+    
+    if Conv == 0 or Conv['DispersionType'] is None:
         args_out = args_in
 
     elif Conv['DispersionType'] == 'AngleDispersive':
@@ -648,14 +738,20 @@ def CentroidConversion(Conv, args_in, azi):
                 args_out.append(
                     12.398 / (2 * args_in * np.sin(np.radians(Conv['calibs'].mcas[a].calibration.two_theta / 2))))
             else:
-                #                print type(azi)
-                #                print azi.mask[x]
-                if not azi.mask[x]:
-                    a = (np.where(Conv['azimuths'] == azi[x])[0][0])
+                try:
+                    a = np.array(np.where(Conv['azimuths'] == azi[x])[0][0])
                     args_out.append(12.398 / (
                             2 * args_in[x] * np.sin(np.radians(Conv['calibs'].mcas[a].calibration.two_theta / 2))))
-                else:
+                except:
                     args_out.append(0)
+                # print(azi)
+                # if not azi.mask.all():
+                #     print(Conv['azimuths'] == azi[x])
+                #     a = np.array(np.where(Conv['azimuths'] == azi[x])[0][0])
+                #     args_out.append(12.398 / (
+                #             2 * args_in[x] * np.sin(np.radians(Conv['calibs'].mcas[a].calibration.two_theta / 2))))
+                # else:
+                #     args_out.append(0)
         if isinstance(azi, np.ma.MaskedArray):
             args_out = ma.array(args_out, mask=azi.mask)
     else:
@@ -663,6 +759,106 @@ def CentroidConversion(Conv, args_in, azi):
 
     return args_out
 
+
+def expand_comp_string(comp):
+    
+    if comp=='d':
+        out = 'd-space'
+    elif comp=='h':
+        out = 'height'
+    elif comp=='w':
+        out='width'
+    elif comp=='p':
+        out='profile'
+    elif comp=='bg' or 'f':
+        out='background'
+    else:
+        raise ValueError('Unrecognised peak property type')
+    return out
+
+
+def params_get_type(orders, comp, peak=0):
+    """
+    Parameters
+    ----------
+    orders : TYPE
+        DESCRIPTION.
+    comp : TYPE
+        DESCRIPTION.
+    peak : TYPE, optional
+        DESCRIPTION. The default is 1.
+
+    Returns
+    -------
+    None.
+
+    """
+    comp_str = expand_comp_string(comp)+'-type'
+    if comp_str in orders:
+        coef_type = orders[comp_str]
+    elif len(orders['peak'])>peak and comp_str in orders['peak'][peak]:
+        coef_type = orders['peak'][peak][comp_str]
+    else:
+        coef_type = 'fourier'
+        
+    return coef_type
+
+
+def get_number_coef(orders, comp, peak=0, azims=None):
+    
+    parm_str = params_get_type(orders, comp, peak)
+    parm_num = coefficient_type_as_number(parm_str)
+    if parm_num==5: #independent
+        if azims is None:
+            raise ValueError('Cannot define number of independent values without a number of coefficients.')
+        else:  
+            n_param = azims.shape[0]
+        
+    elif comp=='bg' or comp=='background' or comp=='f':
+        n_param = np.max(orders['background'][peak])*2+1
+        
+    else: #everything else.
+        n_param = np.max(orders['peak'][peak][expand_comp_string(comp)])*2+1
+        
+    return n_param
+    
+
+def get_order_from_coef(n_coef, parm_num=0, azims=None):
+    
+    if parm_num==5: #independent
+        if azims is None:
+            raise ValueError('Cannot define number of independent values without a number of coefficients.')
+        else:  
+            order = azims.shape[0]
+    
+    else: #everything else.
+        order = (n_coef-1)/2
+        
+    return order
+    
+
+def get_order_from_params(params, comp=None, peak=0):
+    # Given list of Fourier coefficients return order (n)
+    if isinstance(params, (list,)):
+        l = len(params)
+    elif isinstance(params, (float,)):
+        l = np.size(params)
+    elif isinstance(params, (dict,)):
+        parm_str = params_get_type(params, comp, peak)
+        if comp=='bg' or comp=='background' or comp=='f':
+            l = np.max(params['background'][peak])
+        else: #everything else.
+            l = np.max(params['peak'][peak][expand_comp_string(comp)])
+    elif isinstance(params, (int,)):
+        l = 1
+    else:
+        print(params)
+        print(type(params))
+        raise ValueError('Parameter list is not list or float.')
+
+    order = get_order_from_coef(l)
+        
+    return order
 
 def Fourier_order(params):
     # Given list of Fourier coefficients return order (n) of the Fourier series.
@@ -681,6 +877,208 @@ def Fourier_order(params):
     return order
 
 
+def coefficient_type_as_number(coef_type):
+    """
+    :param series_type: string name of series. 
+    :return: numerical index for series type
+    """
+    if coef_type == 'fourier' or coef_type==0:
+        out = 0
+    elif coef_type == 'spline_linear' or coef_type == 'linear' or coef_type==1:
+        out = 1
+    elif coef_type == 'spline_quadratic' or coef_type == 'quadratic' or coef_type==2:
+        out = 2
+    elif coef_type == 'spline_cubic_closed' or coef_type == 'spline_cubic' or coef_type == 'spline-cubic' or coef_type == 'cubic' or coef_type == 'spline' or coef_type==3:
+        out = 3
+    elif coef_type == 'spline_cubic_open' or coef_type == 4:
+        out = 4
+    elif coef_type == 'independent' or coef_type == 5:
+        out = 5
+    else:
+        raise ValueError('Unrecognised coefficient series type, the valid options are ''fourier'', etc...')
+        #FIX ME: write out all the licit options in the error message.
+    return out
+    
+    
+
+def coefficient_type_as_string(series_type):
+    """
+    :series_type: numeric series type. 
+    :return: strong index for series type
+    """
+    if series_type == 0:# or series_type=='fourier':
+        out = 'fourier'
+    elif series_type == 1: # or series_type == 'spline_linear' or series_type == 'linear':
+        out = 'spline_linear'
+    elif series_type == 2: # or series_type == 'spline_quadratic' or series_type == 'quadratic':
+        out = 'spline_quadratic'
+    elif series_type==3: # or series_type == 'spline_cubic_closed' or series_type == 'spline_cubic' or series_type == 'spline-cubic' or series_type == 'cubic' or series_type == 'spline':
+        out = 'spline_cubic'
+    elif series_type==4: #series_type == 'spline_cubic_open' or series_type == 'spline-cubic-open' or series_type == 'cubic-open' or series_type == 'spline-open':
+        out = 'spline_cubic_open'
+    elif series_type == 5: #or series_type == 'independent': 
+        out = 5
+    else:
+        raise ValueError('Unrecognised coefficient series type, the valid options are ''fourier'', etc...')
+        #FIX ME: write out all the licit options in the error message.
+    return out
+    
+    
+
+def coefficient_expand(azimu, param=None, coef_type='fourier', comp_str=None, **params):
+    
+    coef_type = coefficient_type_as_number(coef_type)
+    se = [0, 360]
+    
+    #print('param, coef expand', param)
+    #print('param, coef expand', coef_type)
+    if coef_type==0:
+        out = Fourier_expand(azimu, param=param, comp_str=comp_str, **params)
+    elif coef_type==1:
+        out = Spline_expand(azimu, param=param, comp_str=comp_str, StartEnd = se, bc_type='natural', kind='linear', **params)
+    elif coef_type==2:
+        out = Spline_expand(azimu, param=param, comp_str=comp_str, StartEnd = se, bc_type='natural', kind='quadratic', **params)
+    elif coef_type==3:
+        out = Spline_expand(azimu, param=param, comp_str=comp_str, StartEnd = se, bc_type='periodic', kind='cubic', **params)
+    elif coef_type==4:
+        out = Spline_expand(azimu, param=param, comp_str=comp_str, StartEnd = se, bc_type='natural',  kind='cubic', **params)
+    elif coef_type==5:
+        out = Spline_expand(azimu, param=param, comp_str=comp_str, StartEnd = se, bc_type='natural',  kind='independent', **params)
+    else:
+        raise ValueError('Unrecognised coefficient series type, the valid options are ''fourier'', etc...')
+        #FIX ME: write out all the licit options in the error message.
+        
+    return out
+
+
+def coefficient_fit(ydata, azimu, param, terms=None, errs=None, param_str='peak_0', symm=1, fit_method='leastsq'):
+    """Fit the Fourier expansion to number of required terms
+    :param ydata: Component data array to fit float
+    :param azimu: data array float
+    :param param: lmfit Parameter class dict
+    :param terms: number of terms to fit int
+    :param errs: Component data array errors of size ydata
+    :param param_str: str start of parameter name
+    :param symm: symmetry in azimuth of the fourier to be fit
+    :param fit_method: lmfit method default 'leastsq'
+    :return: lmfit Model result
+    """
+
+    # get NaN values.
+    idx = np.isfinite(azimu) & np.isfinite(ydata) 
+    if type(terms) == list:
+        terms = terms[0]
+    if param:
+        param = param
+    else:
+        param = Parameters()
+        for t in range(2 * terms + 1): #FIX ME: coefficiennt series length -- make into separate function. 
+            params.add(param_str + '_' + str(t), 1.)  # need limits
+
+    if errs is None or errs.all is None:
+        errs = np.ones(ydata.shape)
+
+    coef_type = param.eval(param_str+'_tp')
+    #print('coef fit', param)
+    # param.pretty_print()
+    fmodel = Model(coefficient_expand, independent_vars=['azimu'])
+    # print('parameter names: {}'.format(fmodel.param_names))
+    # print('independent variables: {}'.format(fmodel.independent_vars))
+    # Attempt to mitigate failure of fit with weights containing 'None' values
+    # Replace with nan and alter dtype from object to float64
+    new_errs = errs[idx]
+    new_errs[new_errs == None] = 1000 * new_errs[new_errs != None].max()
+    new_errs = new_errs.astype('float64')
+    out = fmodel.fit(ydata[idx], param, azimu=azimu[idx]*symm, coef_type=coef_type, method=fit_method, sigma=new_errs, comp_str=param_str,
+                     nan_policy='propagate')
+
+    return out
+
+# spline expansion function
+def Spline_expand(azimu, param=None, comp_str=None, StartEnd = [0, 360], bc_type='periodic', kind='cubic', **params):
+    """Calculate Spline interpolation given input coefficients. 
+    :param azimu: arr data array float
+    :param param: list of values at spline tie points
+    :param comp_str: str to determine which coefficients to use from params
+    :param params: lmfit dict of coefficients as parameters
+    :return:
+    """
+    
+    if param is not None:
+        if not isinstance(param, np.float64):
+            param = np.array(param)
+            if len(param.shape) > 1:
+                if np.any(np.array(param.shape) > 1):
+                    param = np.squeeze(param)
+                elif np.all(np.array(param.shape) == 1):
+                    param = np.squeeze(param)
+                    param = np.array([param], float)
+    else:
+        # create relevant list of parameters from dict
+        str_keys = [key for key, val in params.items() if comp_str in key and 'tp' not in key ]
+        param = []
+        for j in range(len(str_keys)):
+            param.append(params[comp_str + str(j)])
+
+    if kind=='independent':
+        points = np.unique(azimu)
+        #points = np.linspace(StartEnd[0], StartEnd[1], np.size(param)+1)
+    elif bc_type == 'periodic':
+        points = np.linspace(StartEnd[0], StartEnd[1], np.size(param)+1)
+        param = np.append(param, param[0])
+        #param.append(param[0])
+    elif isinstance(bc_type, (list, tuple, np.ndarray)):
+        points = bc_type
+    else:
+        points = np.linspace(StartEnd[0], StartEnd[1], np.size(param))
+
+    if kind=='cubic':# and bc_type=='periodic':
+        k=3
+    elif kind=='quadratic':
+        k=2
+    elif kind=='linear' or kind=='independent':
+        k=1
+    else:
+        raise ValueError('Unknown spline type.')
+            
+    fout = np.ones(azimu.shape)
+    
+    if azimu.size == 1:  # this line is required to catch error when out is single number.
+        try:
+            fout = param[0]
+        except IndexError:
+            fout = param
+    else:
+        fout[:] = param[0]
+    # essentially d_0, h_0 or w_0
+    if not isinstance(param, np.float64) and np.size(param) > 1:  
+        if k==3:
+            spl = CubicSpline(points, param, bc_type=bc_type, extrapolate='periodic')
+        else:
+            spl = make_interp_spline(points, param, k=k)
+            #spl = interp1d(points, param, kind=kind)    
+        
+        fout = spl(azimu)
+
+    return fout
+
+
+def Fourier_order(params):
+    # Given list of Fourier coefficients return order (n) of the Fourier series.
+
+    if isinstance(params, (list,)):
+        order = int((len(params) - 1) / 2)
+    elif isinstance(params, (float,)):
+        order = int((np.size(params) - 1) / 2)
+    elif isinstance(params, (int,)):
+        order = 0
+    else:
+        print(params)
+        print(type(params))
+        raise ValueError('Parameter list is not list or float.')
+
+    return order
+
 # fourier expansion function
 def Fourier_expand(azimu, param=None, comp_str=None, **params):
     """Calculate Fourier expansion given input coefficients
@@ -690,8 +1088,8 @@ def Fourier_expand(azimu, param=None, comp_str=None, **params):
     :param params: lmfit dict of coefficients as parameters
     :return:
     """
-
-    if param:
+    #print('param, fourier expand', param)
+    if param is not None:
         # FIX ME: Need to check the fourier is a licit length
         if not isinstance(param, np.float64):
             param = np.array(param)
@@ -705,14 +1103,14 @@ def Fourier_expand(azimu, param=None, comp_str=None, **params):
 
     else:
         # create relevant list of parameters from dict
-        str_keys = [key for key, val in params.items() if comp_str in key]
-        # print(str_keys, 'str_keys')
+        str_keys = [key for key, val in params.items() if comp_str in key and 'tp' not in key ]
+        #print(str_keys, 'str_keys')
         param = []
         for j in range(len(str_keys)):
-            if str.startswith(comp_str, 'bg'):
-                param.append(params[comp_str + '_f' + str(j)])
-            else:
-                param.append(params[comp_str + str(j)])
+            #if str.startswith(comp_str, 'bg'):
+            #    param.append(params[comp_str + '_f' + str(j)])
+            #else:
+            param.append(params[comp_str + str(j)])
 
     fout = np.ones(azimu.shape)
     # print(azimu, fout, 'azimu', type(param))
@@ -735,7 +1133,6 @@ def Fourier_expand(azimu, param=None, comp_str=None, **params):
     # fout = np.ones(azimu.shape)
     # fout[:] = out
     # out = fout*param
-
     return fout
 
 
@@ -809,6 +1206,40 @@ def Fourier_backgrnd(azimutheta, param):
         for j in range(1, int((nterms - 1) / 2) + 1):
             out = out + backg[i][(2 * j) - 1] * np.sin(np.deg2rad(azimu) * j) + backg[i][2 * j] * np.cos(
                 np.deg2rad(azimu) * j)
+        bg_all = bg_all + (out * (twothetaprime ** float(i)))
+
+    return bg_all
+
+# fourier expansion function
+def Backgrnd(azimutheta, param, coef_type=0):
+    """
+    Calculate the Fourier expansion of the background terms
+    :param azimutheta: list of arrays for azimuth and theta float
+    :param param: list of input parameters
+    :return: Fourier expansion result float arr
+    """
+    
+    azimu, twotheta = azimutheta
+    twothetaprime = twotheta - twotheta.min()
+    backg = param
+    bg_all = np.zeros(twotheta.shape)
+    # print(backg, bg_all)
+
+    # Not sure if this is correct, thought that if orders then array would be eg [5,0] and would want a fourier
+    # expansion with 5 parms for offset and then no fourier expansion for slope i.e. 5 parms then 0.
+    # But below would interpret this as effectively [0,0] instead.
+
+    for i in range(len(backg)):
+        # try:
+        #     nterms = len(backg[i])
+        # except TypeError:
+        #     nterms = backg[i].size
+        # # print((nterms - 1) / 2)
+        #out = backg[i][0]
+        # for j in range(1, int((nterms - 1) / 2) + 1):
+        #     out = out + backg[i][(2 * j) - 1] * np.sin(np.deg2rad(azimu) * j) + backg[i][2 * j] * np.cos(
+        #         np.deg2rad(azimu) * j)
+        out = coefficient_expand(azimu, param[i], coef_type[i])
         bg_all = bg_all + (out * (twothetaprime ** float(i)))
 
     return bg_all

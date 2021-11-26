@@ -6,6 +6,7 @@ import os
 
 import numpy as np
 import cpf.PeakFunctions as ff
+import cpf.IO_functions as IO 
 import json
 import re
 import datetime
@@ -34,47 +35,31 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     FitParameters = dir(FitSettings)
     
     #Parse the required inputs. 
-    base_file_name = FitSettings.datafile_Basename
+    #base_file_name = FitSettings.datafile_Basename
     
-    # diffraction patterns 
-    # Identical to code in XRD_FitPatterns
-    if not 'datafile_Files' in FitParameters:
-        n_diff_files = FitSettings.datafile_EndNum - FitSettings.datafile_StartNum + 1
-        diff_files = []
-        for j in range(n_diff_files):
-            # make list of diffraction pattern names
-    
-            #make number of pattern
-            n = str(j+FitSettings.datafile_StartNum).zfill(FitSettings.datafile_NumDigit)
-            
-            #append diffraction pattern name and directory
-            diff_files.append(FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n + FitSettings.datafile_Ending)
-    elif 'datafile_Files' in FitParameters:
-        n_diff_files = len(FitSettings.datafile_Files)
-        diff_files = []
-        for j in range(n_diff_files):
-            # make list of diffraction pattern names
-    
-            #make number of pattern
-            n = str(FitSettings.datafile_Files[j]).zfill(FitSettings.datafile_NumDigit)
-            
-            #append diffraction pattern name and directory
-            diff_files.append(FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n + FitSettings.datafile_Ending)
-    else:
-        n_diff_files = len(FitSettings.datafile_Files)
+    # get diffration file names and number.
+    diff_files, n_diff_files = IO.FileList(FitParameters, FitSettings)
 
-    if 'Output_directory' in FitParameters:
-        out_dir = FitSettings.Output_directory
-    else:
-        out_dir = './'
+
+    base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
+    if not base:
+        print("No base filename, using input filename instead.")
+        base =  os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
+    out_file = IO.make_outfile_name(base, directory=FitSettings.Output_directory, extension='.exp', overwrite=True)
+
+
+    # if 'Output_directory' in FitParameters:
+    #     out_dir = FitSettings.Output_directory
+    # else:
+    #     out_dir = './'
             
 
-    # create output file name from passed name
-    path, filename = os.path.split(base_file_name)
-    base, ext = os.path.splitext(filename)
-    if base[-1:] == '_': #if the base file name ends in an '_' remove it. 
-        base = base[0:-1]
-    out_file = out_dir + base + '.exp'
+    # # create output file name from passed name
+    # path, filename = os.path.split(base_file_name)
+    # base, ext = os.path.splitext(filename)
+    # if base[-1:] == '_': #if the base file name ends in an '_' remove it. 
+    #     base = base[0:-1]
+    # out_file = out_dir + base + '.exp'
 
     text_file = open(out_file, "w")
     print('Writing', out_file)
@@ -98,6 +83,8 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     text_file.write("# Number of detector positions\n")
     text_file.write("%6i\n" % len(parms_dict['azimuths']))
     text_file.write("# Angles for detector positions: Number. Use (1/0). Angle. \n")
+    
+    az_used = []
     for x in range(len(parms_dict['azimuths'])):
         
         # determine if detector masked
@@ -106,6 +93,7 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                 use = 0
             else:
                 use = 1
+                az_used.append(parms_dict['azimuths'][x])
                 
         # print detector number, if it is being used, then angle, lastly just a number.
         text_file.write("%6i  %i  %7.3f  %i \n" % (x+1, use, parms_dict['azimuths'][x], 1))
@@ -132,8 +120,10 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                 
                 #check if the d-spacing fits are NaN or not. if NaN switch off (0) otherwise use (1).
                 # Got first file name        
-                filename = os.path.splitext(os.path.basename(diff_files[0]))[0]
-                filename = filename+'.json'
+                #filename = os.path.splitext(os.path.basename(diff_files[0]))[0]
+                #filename = filename+'.json'
+                
+                filename = IO.make_outfile_name(diff_files[0], directory=FitSettings.Output_directory, extension='.json', overwrite=True)
                 # Read JSON data from file
                 with open(filename) as json_data:
                     fit = json.load(json_data)
@@ -300,9 +290,10 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     text_file.write("# Peak number.  h.  k.  l.  d-spacing.  intensity.  detector number. step number E t \n")
     for z in range(n_diff_files):
         
-        filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
-        filename = filename+'.json'
+        #filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
+        #filename = filename+'.json'
         
+        filename = IO.make_outfile_name(diff_files[z], directory=FitSettings.Output_directory, extension='.json', overwrite=True)
         # Read JSON data from file
         with open(filename) as json_data:
             fit = json.load(json_data)
@@ -346,28 +337,32 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                     sym = FitSettings.fit_orders[x]['peak'][y]['symmetry']
                 else:
                     sym = 1
-                    
+                
+                   
+                az = parms_dict['azimuths']
+                coef_type = ff.params_get_type(fit[x], 'd', peak=y)
+                peak_d = ff.coefficient_expand(np.array(az), fit[x]['peak'][y]['d-space'], coef_type=coef_type)
+                #peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
+                coef_type = ff.params_get_type(fit[x], 'h', peak=y)
+                peak_i = ff.coefficient_expand(np.array(az_used)*sym, fit[x]['peak'][y]['height'], coef_type=coef_type) 
+                n=-1
                 for w in range(len(parms_dict['calibs'].mcas)):
-                    
                     # determine if detector masked
                     if FitSettings.Calib_mask:
                         if w+1 in FitSettings.Calib_mask:
                             use = 0
                         else:
                             use = 1
+                            n=n+1
                     else:
                             use = 1
-                            
-                    #only write output for unmasked detectors
-                    if use == 1:
-                        az = parms_dict['azimuths'][w]
+                            n=n+1
+                    
+                    if use == 1: # write output for unmasked detectors
+                        text_file.write("%8i        %s   %s   %s   %8.4f  %10.3f       %3i           %3i\n" % (peak, h, k, l, peak_d[w], peak_i[n], w+1,  z+1))
+                    else: # if the detetor is masked fill with zeor heights
+                        text_file.write("%8i        %s   %s   %s   %8.4f  %10.3f       %3i           %3i\n" % (peak, h, k, l, peak_d[w], 0, w+1,  z+1))
                         
-                        peak_d = ff.Fourier_expand((az), fit[x]['peak'][y]['d-space'])
-                        #peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
-                        peak_i = ff.Fourier_expand((az)*sym, fit[x]['peak'][y]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
-                        #peak_w = ff.Fourier_expand((az)*sym, fit['peak'][y]['width'])   #FIX ME - is this the correct half width?
-                        #peak_p = ff.Fourier_expand((az)*sym, fit['peak'][y]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
-                        text_file.write("%8i        %s   %s   %s   %8.4f  %10.3f       %3i           %3i\n" % (peak, h, k, l, peak_d, peak_i, w+1,  z+1))
                 
                 peak = peak+1
         

@@ -6,7 +6,7 @@ import os
 import numpy as np
 import cpf.PeakFunctions as ff
 import json
-import cpf.XRD_FitPattern as XRD_FP
+import cpf.IO_functions as IO
 
 
 def Requirements():
@@ -35,7 +35,7 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
     base_file_name = FitSettings.datafile_Basename
     
     # diffraction patterns 
-    diff_files, n_diff_files = XRD_FP.FileList(FitParameters, FitSettings)
+    diff_files, n_diff_files = IO.FileList(FitParameters, FitSettings)
     if 'Output_directory' in FitParameters:
         out_dir = FitSettings.Output_directory
     else:
@@ -53,22 +53,31 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
     for z in range(n_diff_files):
         
         #read file to write output for
-        filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
-        filename = filename+'.json'
+        #filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
+        #filename = filename+'.json'
                 
+        filename = IO.make_outfile_name(diff_files[z], directory=FitSettings.Output_directory, extension='.json', overwrite=True) #overwrite =false to get the file name without incrlemeting it. 
+        
         # Read JSON data from file
         with open(filename) as json_data:
             data_to_write = json.load(json_data)
         
-        
         # create output file name from passed name
-        path, filename = os.path.split(diff_files[z])
-        base, ext = os.path.splitext(filename)
-        if differential_only is not False:
-            base = base+'_DiffOnly'
-        out_file = out_dir + base + '.fit'
+        out_file = IO.make_outfile_name(diff_files[z], directory=FitSettings.Output_directory, extension='.fit', overwrite=True)
+        # path, filename = os.path.split(diff_files[z])
+        # base, ext = os.path.splitext(filename)
+        # if differential_only is not False:
+        #     base = base+'_DiffOnly'
+        # out_file = out_dir + base + '.fit'
         
-        print('Writing', out_dir + base + '.fit')
+        # base, ext = os.path.splitext(os.path.split(diff_files[z])[1])
+        # if not base:
+        #     print("No base filename, using input filename instead.")
+        #     base =  os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
+        
+
+        
+        print('Writing:', out_file)
     
     
         text_file = open(out_file, "w")
@@ -149,9 +158,9 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
             text_file.write("# background coefficients\n")
             for k in range(int(Num_Azi)):
                 az = np.array([k/Num_Azi*360])
-                inter = ff.Fourier_expand(az, data_to_write[j]['background'][0])
+                inter = ff.coefficient_expand(az, data_to_write[j]['background'][0], data_to_write[j]['background-type'])
                 if len(data_to_write[j]['background']) > 1:
-                    slop = ff.Fourier_expand(az, data_to_write[j]['background'][1])
+                    slop = ff.coefficient_expand(az, data_to_write[j]['background'][1], data_to_write[j]['background-type'])
                 else:
                     slop = 0
     
@@ -187,9 +196,12 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
                         d_coef[2] = 0
                     peak_d = ff.Fourier_expand((az), d_coef)
                     peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
-                    peak_i = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
-                    peak_w = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
-                    peak_p = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
+                    #peak_i = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
+                    #peak_w = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
+                    #peak_p = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['profile']) #FIX ME - is this 1 or 0 for Gaussian?
+                    peak_i = np.max([0, ff.coefficient_expand((az)*sym, param=data_to_write[j]['peak'][k]['height'], coef_type=data_to_write[j]['peak'][k]['height-type']) ]) #FIX ME - Is this the height of the peak or the integral under it?
+                    peak_w = ff.coefficient_expand((az)*sym, param=data_to_write[j]['peak'][k]['width'], coef_type=data_to_write[j]['peak'][k]['width-type']) #FIX ME - is this the correct half width?
+                    peak_p = ff.coefficient_expand((az)*sym, param=data_to_write[j]['peak'][k]['profile'], coef_type=data_to_write[j]['peak'][k]['profile-type'])  #FIX ME - is this 1 or 0 for Gaussian?
     
                     text_file.write("%13.4f %13.4f %13.4f %13.4f\n" % (peak_tth, peak_i, peak_w, peak_p))
     

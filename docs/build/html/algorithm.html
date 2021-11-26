@@ -1,0 +1,144 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algorithm &#8212; Continuous-Peak-Fit 0.0 alpha documentation</title>
+    <link rel="stylesheet" href="_static/agogo.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Download and Install" href="installation.html" />
+    <link rel="prev" title="2-dimensional peak fitting" href="index.html" /> 
+  </head><body>
+    <div class="header-wrapper" role="banner">
+      <div class="header">
+        <div class="headertitle"><a
+          href="index.html">Continuous-Peak-Fit 0.0 alpha documentation</a></div>
+        <div class="rel" role="navigation" aria-label="related navigation">
+          <a href="index.html" title="2-dimensional peak fitting"
+             accesskey="P">previous</a> |
+          <a href="installation.html" title="Download and Install"
+             accesskey="N">next</a> |
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="algorithm">
+<h1>Algorithm<a class="headerlink" href="#algorithm" title="Permalink to this headline">¶</a></h1>
+<p>Many data sets contain 2D peaks that are generally treated in data processing as a series of indepentent, unrelated peaks. There are good reasons for this e.g. keeping errors independent. However, in many cases the data are explicitally related in which case the data can and should be treated as a single 2-dimensional data set. Treating thedata as a two D data set requires that each paramter is a function of the dispersion – for X-ray diffraction, azimuth, time series dsata time.</p>
+<p>The continoous Peak Fit algorithm is contained within the script <cite>XRD_FitPattern.py</cite>. The potential complexity of 2D data requires a number of sequential steps each of which produces a more refined model of the data. The steps are:</p>
+<ul class="simple">
+<li><p>1D peak fitting and contonuous function fitting</p></li>
+<li><p>Refinement of dispersion parameters</p></li>
+<li><p>Final fit of all parameters.</p></li>
+</ul>
+<p>Without the incremental steps the minimiser is very unlikely to find the optimal solution. However, a solution for one data can be propagated onto the next if the two data are similar enough (e.g. XRD data).</p>
+<div class="section" id="d-peak-fitting-and-contonuous-function-fitting">
+<h2>1D peak fitting and contonuous function fitting<a class="headerlink" href="#d-peak-fitting-and-contonuous-function-fitting" title="Permalink to this headline">¶</a></h2>
+<p>In a 1D diffraction pattern the intensity of a single peak (Ihkl) as a function of <span class="math notranslate nohighlight">\(2\theta\)</span> can be approximated by a Gaussian, Lorentzian or a convolution of the two (usually a pesudoVoigt function). The peak has height H and width W. The intensity with <span class="math notranslate nohighlight">\(2\theta\)</span> for a Gaussian peak is:</p>
+<p>􏰀    <cite>(2theta − 2theta_0)/2 − 2sigma^2</cite></p>
+<p>Ihkl(2θ) = H exp
+where: H is the height of the peak, 2θ0 is the centroid and σ is the width of the distribution. For a Lorentzian peak:
+where: γ is the HWHM of the distribution.</p>
+<p>􏰂   <cite>γ2 􏰃Ihkl(2θ) = H (2θ − 2θ0)2 + γ2 (β.2)</cite></p>
+<p>the PseudoVoigt function is a linear combination of Gaussian and Lorentz peak shapes.
+Ihkl(2θ) = H[ηL(2θ − 2θ0) + (1 − η)G(2θ − 2θ0)] (β.3)
+where η is the fraction of Lorentz (L) and Gaussian (G) functions used.</p>
+</div>
+<div class="section" id="refinement-of-dispersion-parameters">
+<h2>Refinement of dispersion parameters<a class="headerlink" href="#refinement-of-dispersion-parameters" title="Permalink to this headline">¶</a></h2>
+<p>text goes here</p>
+</div>
+<div class="section" id="final-fit-of-all-parameters">
+<h2>Final fit of all parameters<a class="headerlink" href="#final-fit-of-all-parameters" title="Permalink to this headline">¶</a></h2>
+<p>text goes here.</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          
+          <h3>Table of Contents</h3>
+          <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Algorithm</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#d-peak-fitting-and-contonuous-function-fitting">1D peak fitting and contonuous function fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#refinement-of-dispersion-parameters">Refinement of dispersion parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#final-fit-of-all-parameters">Final fit of all parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="running cpf.html"><em>Continuous peak fit</em>, via the command line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input file short.html">Input file structure (short)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input file.html">Input file structure (long)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subpattern structure.html">Subpatterns and peaks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whatsnew.html">Release Notes</a></li>
+</ul>
+
+          <div role="search">
+            <h3 style="margin-top: 1.5em;">Search</h3>
+            <form class="search" action="search.html" method="get">
+                <input type="text" name="q" />
+                <input type="submit" value="Go" />
+            </form>
+          </div>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+          <div role="navigation" aria-label="related navigaton">
+            <a href="index.html" title="2-dimensional peak fitting"
+              >previous</a> |
+            <a href="installation.html" title="Download and Install"
+              >next</a> |
+            <a href="genindex.html" title="General Index"
+              >index</a>
+          </div>
+          <div role="note" aria-label="source link">
+              <br/>
+              <a href="_sources/algorithm.rst.txt"
+                rel="nofollow">Show Source</a>
+          </div>
+        </div>
+
+        <div class="right">
+          
+    <div class="footer" role="contentinfo">
+        &#169; Copyright Simon Hunt &amp; Danielle Fenech, 2020.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.2.
+    </div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+  </body>
+</html>

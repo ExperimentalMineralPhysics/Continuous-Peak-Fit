@@ -8,6 +8,7 @@ __all__ = ['FitSubpattern']
 import os
 import sys
 import time
+import matplotlib        as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
@@ -1477,10 +1478,35 @@ def FitSubpattern(TwoThetaAndDspacings, azimu, intens, new_data, orders=None, Pr
         axO2.set_ylim(y_lims)
         locs, labels = plt.xticks()
         plt.setp(labels, rotation=90)
+        
+        
+        # create custom colormap for residuals
+        # ---------------
+        #Need: a colour map that is white at 0 and the colours are equally scaled on each side. So it will match the intensity in black and white. Also one this is truncated so dont have lots of unused colour bar.
+        #This can't be done using DivergingNorm(vcenter=0) or CenteredNorm(vcenter=0) so make new colourmap.
+        #
+        #create a colour map that truncates seismic so balanced around 0. 
+        # It is not perfect because the 0 point insn't necessarily perfectly white but it is close enough (I think). 
+        n_entries = 256
+        all_colours = mpl.cm.seismic(np.arange(n_entries))
+        
+        if np.abs(ValMax3)> np.abs(ValMin3):
+            n_cut = np.int(((2*ValMax3-(ValMax3-np.abs(ValMin3)))/(2*ValMax3))*n_entries)
+            keep = n_entries-n_cut
+            all_colours = all_colours[keep:]
+        else:
+            #FIX ME: this bit has not been tested.
+            print('The colour scale here might be wrong because it has not been tested.')
+            n_cut = np.int(((2*ValMax3-(ValMax3-np.abs(ValMin3)))/(2*ValMax3))*n_entries)
+            keep = n_entries-n_cut
+            all_colours = all_colours[:keep]
+        all_colours = mpl.colors.ListedColormap(all_colours, name='myColorMap', N=all_colours.shape[0])
+        
+        
         axO3 = plt.subplot(133)
         # plt.scatter(twotheta, azimu, s=1, c=np.log(intens-fullfit_intens), edgecolors='none', cmap=plt.cm.jet)
-        plt.scatter(twotheta.flatten(), azimu.flatten(), s=dot_size, c=(intens.flatten() - fullfit_intens.flatten()),
-                    edgecolors='none', cmap=plt.cm.coolwarm, vmin=ValMin3, vmax=ValMax3)
+        plt3 = plt.scatter(twotheta.flatten(), azimu.flatten(), s=dot_size, c=(intens.flatten() - fullfit_intens.flatten()),
+                    edgecolors='none', cmap=all_colours, vmin=ValMin3, vmax=ValMax3)
         for i in range(peeks):
             plt.plot(centroid[i], AziPlot, 'k--', linewidth=0.5)
         axO3.set_title('Residuals (data - model)')

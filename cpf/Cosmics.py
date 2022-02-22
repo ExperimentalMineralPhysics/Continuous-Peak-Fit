@@ -2,7 +2,8 @@
 """
 About
 =====
-cosmics.py is a small and simple python module to detect and clean cosmic ray hits on images (numpy arrays or FITS), using scipy, and based on Pieter van Dokkum's L.A.Cosmic algorithm.
+cosmics.py is a small and simple python module to detect and clean cosmic ray hits on images (numpy arrays or FITS),
+using scipy, and based on Pieter van Dokkum's L.A.Cosmic algorithm.
 L.A.Cosmic = Laplacian cosmic ray detection
 U{http://www.astro.yale.edu/dokkum/lacosmic/}
 (article : U{http://arxiv.org/abs/astro-ph/0108003})
@@ -13,14 +14,16 @@ I pimped this a bit to suit my needs :
     This avoids that such stars are treated as big cosmics.
     Indeed saturated stars tend to get even uglier when you try to clean them. Plus they
     keep L.A.Cosmic iterations going on forever.
-    This feature is mainly for pretty-image production. It is optional, requires one more parameter (a CCD saturation level in ADU), and uses some 
+    This feature is mainly for pretty-image production. It is optional, requires one more parameter (a CCD saturation
+    level in ADU), and uses some
     nicely robust morphology operations and object extraction.
     
     - Scipy image analysis allows to "label" the actual cosmic ray hits (i.e. group the pixels into local islands).
     A bit special, but I use this in the scope of visualizing a PSF construction.
 But otherwise the core is really a 1-to-1 implementation of L.A.Cosmic, and uses the same parameters.
 Only the conventions on how filters are applied at the image edges might be different.
-No surprise, this python module is much faster then the IRAF implementation, as it does not read/write every step to disk.
+No surprise, this python module is much faster then the IRAF implementation, as it does not read/write every step to
+disk.
 Usage
 =====
 Everything is in the file cosmics.py, all you need to do is to import it. You need pyfits, numpy and scipy.
@@ -41,7 +44,7 @@ Copied from Dioptas (https://github.com/Dioptas) on 17th May 2021.
 """
 
 
-__version__ = '0.4'
+__version__ = "0.4"
 
 import os
 import numpy as np
@@ -70,8 +73,18 @@ dilstruct[4, 4] = 0
 
 
 class cosmicsimage:
-    def __init__(self, rawarray, pssl=0.0, gain=2.2, readnoise=10.0, sigclip=5.0, sigfrac=0.3, objlim=5.0,
-                 satlevel=50000.0, verbose=True):
+    def __init__(
+        self,
+        rawarray,
+        pssl=0.0,
+        gain=2.2,
+        readnoise=10.0,
+        sigclip=5.0,
+        sigfrac=0.3,
+        objlim=5.0,
+        satlevel=50000.0,
+        verbose=True,
+    ):
         """
         sigclip : increase this if you detect cosmics where there are none. Default is 5.0, a good value for earth-bound images.
         objlim : increase this if normal stars are detected as cosmics. Default is 5.0, a good value for earth-bound images.
@@ -95,7 +108,7 @@ class cosmicsimage:
         # In lacosmiciteration() we work on this guy
         self.cleanarray = self.rawarray.copy()
         # All False, no cosmics yet
-        self.mask = np.cast['bool'](np.zeros(self.rawarray.shape))
+        self.mask = np.cast["bool"](np.zeros(self.rawarray.shape))
 
         self.gain = gain
         self.readnoise = readnoise
@@ -117,19 +130,22 @@ class cosmicsimage:
         Gives a summary of the current state, including the number of cosmic pixels in the mask etc.
         """
         stringlist = [
-            "Input array : (%i, %i), %s" % (
-                self.rawarray.shape[
-                    0], self.rawarray.shape[1], self.rawarray.dtype.name),
-            "Current cosmic ray mask : %i pixels" % np.sum(self.mask)
+            "Input array : (%i, %i), %s"
+            % (
+                self.rawarray.shape[0],
+                self.rawarray.shape[1],
+                self.rawarray.dtype.name,
+            ),
+            "Current cosmic ray mask : %i pixels" % np.sum(self.mask),
         ]
 
         if self.pssl != 0.0:
             stringlist.append(
-                "Using a previously subtracted sky level of %f" % self.pssl)
+                "Using a previously subtracted sky level of %f" % self.pssl
+            )
 
         if self.satstars is not None:
-            stringlist.append(
-                "Saturated star mask : %i pixels" % np.sum(self.satstars))
+            stringlist.append("Saturated star mask : %i pixels" % np.sum(self.satstars))
 
         return "\n".join(stringlist)
 
@@ -143,14 +159,21 @@ class cosmicsimage:
         if verbose:
             print("     Labeling mask pixels ...")
         # We morphologicaly dilate the mask to generously connect "sparse" cosmics :
-        #dilstruct = np.ones((5,5))
+        # dilstruct = np.ones((5,5))
         dilmask = ndimage.morphology.binary_dilation(
-            self.mask, structure=dilstruct, iterations=1, mask=None, output=None, border_value=0, origin=0,
-            brute_force=False)
+            self.mask,
+            structure=dilstruct,
+            iterations=1,
+            mask=None,
+            output=None,
+            border_value=0,
+            origin=0,
+            brute_force=False,
+        )
         # origin = 0 means center
         (labels, n) = ndimage.measurements.label(dilmask)
         # print "Number of cosmic ray hits : %i" % n
-        #tofits(labels, "labels.fits", verbose = False)
+        # tofits(labels, "labels.fits", verbose = False)
         slicecouplelist = ndimage.measurements.find_objects(labels)
         # Now we have a huge list of couples of numpy slice objects giving a frame around each object
         # For plotting purposes, we want to transform this into the center of
@@ -158,14 +181,19 @@ class cosmicsimage:
         if len(slicecouplelist) != n:
             # This never happened, but you never know ...
             raise RuntimeError("Mega error in labelmask !")
-        centers = [[(tup[0].start + tup[0].stop) / 2.0, (tup[1].start + tup[1].stop) / 2.0]
-                   for tup in slicecouplelist]
+        centers = [
+            [(tup[0].start + tup[0].stop) / 2.0, (tup[1].start + tup[1].stop) / 2.0]
+            for tup in slicecouplelist
+        ]
         # We also want to know how many pixels where affected by each cosmic ray.
         # Why ? Dunno... it's fun and available in scipy :-)
         sizes = ndimage.measurements.sum(
-            self.mask.ravel(), labels.ravel(), np.arange(1, n + 1, 1))
-        retdictlist = [{"name": "%i" % size, "x": center[0], "y": center[1]}
-                       for (size, center) in zip(sizes, centers)]
+            self.mask.ravel(), labels.ravel(), np.arange(1, n + 1, 1)
+        )
+        retdictlist = [
+            {"name": "%i" % size, "x": center[0], "y": center[1]}
+            for (size, center) in zip(sizes, centers)
+        ]
 
         if verbose:
             print("     Labeling done")
@@ -179,12 +207,26 @@ class cosmicsimage:
         """
         if size == 3:
             dilmask = ndimage.morphology.binary_dilation(
-                self.mask, structure=growkernel, iterations=1, mask=None, output=None, border_value=0, origin=0,
-                brute_force=False)
+                self.mask,
+                structure=growkernel,
+                iterations=1,
+                mask=None,
+                output=None,
+                border_value=0,
+                origin=0,
+                brute_force=False,
+            )
         elif size == 5:
             dilmask = ndimage.morphology.binary_dilation(
-                self.mask, structure=dilstruct, iterations=1, mask=None, output=None, border_value=0, origin=0,
-                brute_force=False)
+                self.mask,
+                structure=dilstruct,
+                iterations=1,
+                mask=None,
+                output=None,
+                border_value=0,
+                origin=0,
+                brute_force=False,
+            )
         else:
             dismask = self.mask.copy()
 
@@ -223,13 +265,13 @@ class cosmicsimage:
         h = self.cleanarray.shape[1]
         padarray = np.zeros((w + 4, h + 4)) + np.Inf
         # that copy is important, we need 2 independent arrays
-        padarray[2:w + 2, 2:h + 2] = self.cleanarray.copy()
+        padarray[2 : w + 2, 2 : h + 2] = self.cleanarray.copy()
 
         # The medians will be evaluated in this padarray, skipping the np.Inf.
         # Now in this copy called padarray, we also put the saturated stars to
         # np.Inf, if available :
         if self.satstars is not None:
-            padarray[2:w + 2, 2:h + 2][self.satstars] = np.Inf
+            padarray[2 : w + 2, 2 : h + 2][self.satstars] = np.Inf
             # Viva python, I tested this one, it works...
 
         # A loop through every cosmic pixel :
@@ -237,7 +279,7 @@ class cosmicsimage:
             x = cosmicpos[0]
             y = cosmicpos[1]
             # remember the shift due to the padding !
-            cutout = padarray[x:x + 5, y:y + 5].ravel()
+            cutout = padarray[x : x + 5, y : y + 5].ravel()
             # print cutout
             # Now we have our 25 pixels, some of them are np.Inf, and we want
             # to take the median
@@ -301,8 +343,7 @@ class cosmicsimage:
 
         # We build a smoothed version of the image to look for large stars and
         # their support :
-        m5 = ndimage.filters.median_filter(
-            self.rawarray, size=5, mode='mirror')
+        m5 = ndimage.filters.median_filter(self.rawarray, size=5, mode="mirror")
         # We look where this is above half the satlevel
         largestruct = m5 > (self.satlevel / 2.0)
         # The rough locations of saturated stars are now :
@@ -316,16 +357,23 @@ class cosmicsimage:
         # I haven't found a better solution then the double loop
 
         # We dilate the satpixels alone, to ensure connectivity in glitchy regions and to add a safety margin around them.
-        #dilstruct = np.array([[0,1,0], [1,1,1], [0,1,0]])
+        # dilstruct = np.array([[0,1,0], [1,1,1], [0,1,0]])
 
         dilsatpixels = ndimage.morphology.binary_dilation(
-            satpixels, structure=dilstruct, iterations=2, mask=None, output=None, border_value=0, origin=0,
-            brute_force=False)
+            satpixels,
+            structure=dilstruct,
+            iterations=2,
+            mask=None,
+            output=None,
+            border_value=0,
+            origin=0,
+            brute_force=False,
+        )
         # It turns out it's better to think large and do 2 iterations...
 
         # We label these :
         (dilsatlabels, nsat) = ndimage.measurements.label(dilsatpixels)
-        #tofits(dilsatlabels, "test.fits")
+        # tofits(dilsatlabels, "test.fits")
 
         if verbose:
             print("     We have %i saturated stars." % nsat)
@@ -342,7 +390,7 @@ class cosmicsimage:
                 # we add thisisland to the mask
                 outmask = np.logical_or(outmask, thisisland)
 
-        self.satstars = np.cast['bool'](outmask)
+        self.satstars = np.cast["bool"](outmask)
 
         if verbose:
             print("     Mask of saturated stars done")
@@ -408,8 +456,7 @@ class cosmicsimage:
         # We subsample, convolve, clip negative values, and rebin to original
         # size
         subsam = subsample(self.cleanarray)
-        conved = signal.convolve2d(
-            subsam, laplkernel, mode="same", boundary="symm")
+        conved = signal.convolve2d(subsam, laplkernel, mode="same", boundary="symm")
         cliped = conved.clip(min=0.0)
         # cliped = np.abs(conved) # unfortunately this does not work to find
         # holes as well ...
@@ -419,12 +466,12 @@ class cosmicsimage:
             print("     Creating noise model ...")
 
         # We build a custom noise map, so to compare the laplacian to
-        m5 = ndimage.filters.median_filter(
-            self.cleanarray, size=5, mode='mirror')
+        m5 = ndimage.filters.median_filter(self.cleanarray, size=5, mode="mirror")
         # We keep this m5, as I will use it later for the interpolation.
         m5clipped = m5.clip(min=0.00001)  # As we will take the sqrt
         noise = (1.0 / self.gain) * np.sqrt(
-            self.gain * m5clipped + self.readnoise * self.readnoise)
+            self.gain * m5clipped + self.readnoise * self.readnoise
+        )
 
         if verbose:
             print("     Calculating Laplacian signal to noise ratio ...")
@@ -434,7 +481,7 @@ class cosmicsimage:
         # This s is called sigmap in the original lacosmic.cl
 
         # We remove the large structures (s prime) :
-        sp = s - ndimage.filters.median_filter(s, size=5, mode='mirror')
+        sp = s - ndimage.filters.median_filter(s, size=5, mode="mirror")
 
         if verbose:
             print("     Selecting candidate cosmic rays ...")
@@ -451,20 +498,21 @@ class cosmicsimage:
         if self.satstars is not None:
             if verbose:
                 print("     Masking saturated stars ...")
-            candidates = np.logical_and(
-                np.logical_not(self.satstars), candidates)
+            candidates = np.logical_and(np.logical_not(self.satstars), candidates)
             nbcandidates = np.sum(candidates)
 
             if verbose:
-                print("       %5i candidate pixels not part of saturated stars" % nbcandidates)
+                print(
+                    "       %5i candidate pixels not part of saturated stars"
+                    % nbcandidates
+                )
 
         if verbose:
             print("     Building fine structure image ...")
 
         # We build the fine structure image :
-        m3 = ndimage.filters.median_filter(
-            self.cleanarray, size=3, mode='mirror')
-        m37 = ndimage.filters.median_filter(m3, size=7, mode='mirror')
+        m3 = ndimage.filters.median_filter(self.cleanarray, size=3, mode="mirror")
+        m37 = ndimage.filters.median_filter(m3, size=7, mode="mirror")
         f = m3 - m37
         # In the article that's it, but in lacosmic.cl f is divided by the noise...
         # Ok I understand why, it depends on if you use sp/f or L+/f as criterion.
@@ -494,8 +542,11 @@ class cosmicsimage:
 
         # We grow these cosmics a first time to determine the immediate
         # neighborhod  :
-        growcosmics = np.cast['bool'](
-            signal.convolve2d(np.cast['float32'](cosmics), growkernel, mode="same", boundary="symm"))
+        growcosmics = np.cast["bool"](
+            signal.convolve2d(
+                np.cast["float32"](cosmics), growkernel, mode="same", boundary="symm"
+            )
+        )
 
         # From this grown set, we keep those that have sp > sigmalim
         # so obviously not requiring sp/f > objlim, otherwise it would be
@@ -505,8 +556,14 @@ class cosmicsimage:
         # Now we repeat this procedure, but lower the detection limit to
         # sigmalimlow :
 
-        finalsel = np.cast['bool'](
-            signal.convolve2d(np.cast['float32'](growcosmics), growkernel, mode="same", boundary="symm"))
+        finalsel = np.cast["bool"](
+            signal.convolve2d(
+                np.cast["float32"](growcosmics),
+                growkernel,
+                mode="same",
+                boundary="symm",
+            )
+        )
         finalsel = np.logical_and(sp > self.sigcliplow, finalsel)
 
         # Again, we have to kick out pixels on saturated stars :
@@ -523,7 +580,7 @@ class cosmicsimage:
         # Now the replacement of the cosmics...
         # we outsource this to the function clean(), as for some purposes the cleaning might not even be needed.
         # Easy way without masking would be :
-        #self.cleanarray[finalsel] = m5[finalsel]
+        # self.cleanarray[finalsel] = m5[finalsel]
 
         # We find how many cosmics are not yet known :
         newmask = np.logical_and(np.logical_not(self.mask), finalsel)
@@ -535,7 +592,12 @@ class cosmicsimage:
         # We return
         # (used by function lacosmic)
 
-        return {"niter": nbfinal, "nnew": nbnew, "itermask": finalsel, "newmask": newmask}
+        return {
+            "niter": nbfinal,
+            "nnew": nbnew,
+            "itermask": finalsel,
+            "newmask": newmask,
+        }
 
     def findholes(self, verbose=True):
         """
@@ -641,6 +703,7 @@ class cosmicsimage:
 
 # Array manipulation
 
+
 def subsample(a):  # this is more a generic function then a method ...
     """
     Returns a 2x2-subsampled version of array a (no interpolation, just cutting pixels in 4).
@@ -661,11 +724,10 @@ def subsample(a):  # this is more a generic function then a method ...
     """
     # much better :
     newshape = (2 * a.shape[0], 2 * a.shape[1])
-    slices = [slice(0, old, float(old) / new)
-              for old, new in zip(a.shape, newshape)]
+    slices = [slice(0, old, float(old) / new) for old, new in zip(a.shape, newshape)]
     coordinates = np.mgrid[slices]
-    #choose the biggest smaller integer index
-    indices = coordinates.astype('i')
+    # choose the biggest smaller integer index
+    indices = coordinates.astype("i")
     return a[tuple(indices)]
 
 
@@ -680,12 +742,15 @@ def rebin(a, newshape):
     lenShape = len(shape)
     factor = np.asarray(shape) / np.asarray(newshape)
     # print factor
-    evList = ['a.reshape('] + \
-             ['int(newshape[%d]),int(factor[%d]),' % (i, i) for i in range(lenShape)] + \
-             [')'] + ['.sum(%d)' % (i + 1) for i in range(lenShape)] + \
-             ['/factor[%d]' % i for i in range(lenShape)]
+    evList = (
+        ["a.reshape("]
+        + ["int(newshape[%d]),int(factor[%d])," % (i, i) for i in range(lenShape)]
+        + [")"]
+        + [".sum(%d)" % (i + 1) for i in range(lenShape)]
+        + ["/factor[%d]" % i for i in range(lenShape)]
+    )
 
-    return eval(''.join(evList))
+    return eval("".join(evList))
 
 
 def rebin2x2(a):

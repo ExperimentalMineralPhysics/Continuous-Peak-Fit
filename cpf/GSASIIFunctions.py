@@ -21,10 +21,10 @@ from scipy.optimize import curve_fit
 np.set_printoptions(threshold=sys.maxsize)
 
 # import GSASIIIO as GsIO
-# ------- above here is the intro stuff that I dont know if it is needed. 
+# ------- above here is the intro stuff that I don't know if it is needed.
+
 
 class GSASIIDetector:
-
     def __init__(self, calibration_parameters, fit_parameters=None):
         """
         :param calibration_parameters:
@@ -36,8 +36,11 @@ class GSASIIDetector:
         self.tth = None
         self.azm = None
         self.dspace = None
+        self.calibration = None
 
-    def fill_data(self, calibration_data, detector=None, debug=None, calibration_mask=None):
+    def fill_data(
+        self, calibration_data, detector=None, debug=None, calibration_mask=None
+    ):
         """
         :param calibration_data:
         :param detector:
@@ -46,34 +49,48 @@ class GSASIIDetector:
         """
         # self.detector = self.detector_check(calibration_data, detector)
         self.get_detector(calibration_data, detector)
-        self.intensity = self.get_masked_calibration(calibration_data, debug, calibration_mask)
+        self.intensity = self.get_masked_calibration(
+            calibration_data, debug, calibration_mask
+        )
         self.tth = self.GetTth(self.parameters, self.detector, self.intensity.mask)
         self.azm = self.GetAzm(self.parameters, self.detector, self.intensity.mask)
         self.dspace = self.GetDsp(self.parameters, self.detector, self.intensity.mask)
 
     def get_detector(self, calibration_data, detector=None):
-        self.detector = self.detector_check(calibration_data, detector)
+        """
+
+        :param calibration_data:
+        :param detector:
+        :return:
+        """
+        self.detector = self.detector_check()
+
+    @staticmethod
+    def detector_check():
+        """
+        This function is empty because GSAS does not require knowledge of the detector type
+        :return:
+        """
+        return None
 
     def get_masked_calibration(self, calibration_data, debug, calibration_mask=None):
         """
         load calibration data/image -- to get intensities for mask
         :param calibration_data:
-        :param calibration_pixels:
         :param debug:
         :param calibration_mask:
         :return:
         """
-        im = self.ImportImage(calibration_data, debug)
+        im = self.import_image(calibration_data, debug)
         intens = ma.array(im)
         # create mask from mask file if present. If not make all values valid
         if calibration_mask:
-            intens = self.GetMask(calibration_mask, intens)
+            intens = self.get_mask(calibration_mask, intens)
         else:
-            ImMask = np.zeros_like(intens)
-            intens = ma.array(intens, mask=ImMask)
+            im_mask = np.zeros_like(intens)
+            intens = ma.array(intens, mask=im_mask)
             intens = ma.masked_outside(intens, 0, np.inf)
         return intens
-
 
     def get_requirements(self, parameter_settings=None):
         """
@@ -89,50 +106,53 @@ class GSASIIDetector:
         #   data - in form of:
         #       - file listing data files. (with or without directory)
         #       - file listing data file numbers (needs directory, file name, number digits, ending)
-        #       - beginning and and numbers for files (needs directory, file name, number digits, ending)
-        RequiredList = ['Calib_type',
-                        # 'Calib_detector'
-                        # 'Calib_data',        # Removed because this is not strictly required.
-                        # 'Calib_param',       # Now added to calibration function file.
-                        'Calib_pixels',      # this is only needed for GSAS-II and should be read from image file. FIX
-                        # ME: add to GSAS-II inputfile.
-                        # 'Calib_mask',        # a mask file is not strictly required.
-                        'datafile_directory',
-                        'datafile_Basename',
-                        'datafile_Ending',
-                        # 'datafile_StartNum',  # now optionally replaced by datafile_Files
-                        # 'datafile_EndNum',    # now optionally replaced by datafile_Files
-                        'datafile_NumDigit',
-                        # 'AziBins',            # required based on detector type
-                        'fit_orders',
-                        # 'Output_type',		   # should be optional
-                        # 'Output_NumAziWrite',  # should be optional
-                        # 'Output_directory']	   # should be optional
-                        ]
+        #       - beginning and numbers for files (needs directory, file name, number digits, ending)
+        required_list = [
+            "Calib_type",
+            # 'Calib_detector'
+            # 'Calib_data',        # Removed because this is not strictly required.
+            # 'Calib_param',       # Now added to calibration function file.
+            "Calib_pixels",  # this is only needed for GSAS-II and should be read from image file. FIX
+            # ME: add to GSAS-II inputfile.
+            # 'Calib_mask',        # a mask file is not strictly required.
+            "datafile_directory",
+            "datafile_Basename",
+            "datafile_Ending",
+            # 'datafile_StartNum',  # now optionally replaced by datafile_Files
+            # 'datafile_EndNum',    # now optionally replaced by datafile_Files
+            "datafile_NumDigit",
+            # 'AziBins',            # required based on detector type
+            "fit_orders",
+            # 'Output_type',		   # should be optional
+            # 'Output_NumAziWrite',  # should be optional
+            # 'Output_directory']	   # should be optional
+        ]
 
         # Check required against inputs if given
         if parameter_settings is not None:
             # properties of the data files.
             all_present = 1
             for par in parameter_settings:
-                if par in RequiredList:
-                    print('Got: ', par)
+                if par in required_list:
+                    print("Got: ", par)
                 else:
-                    print("The settings file requires a parameter called  \'", par, "\'")
+                    print("The settings file requires a parameter called  '", par, "'")
                     all_present = 0
             if all_present == 0:
-                sys.exit("The highlighted settings are missing from the input file. Fitting cannot proceed until they "
-                         "are all present.")
-        return RequiredList
+                sys.exit(
+                    "The highlighted settings are missing from the input file. Fitting cannot proceed until they "
+                    "are all present."
+                )
+        return required_list
 
     @staticmethod
-    def ImportImage(ImageName):
+    def import_image(image_name):
         """
-        :param ImageName:
+        :param image_name:
         :return:
         """
         # Im = GsIO.GetImageData([], ImageName)
-        im = Image.open(ImageName)  ##always tiff?- no
+        im = Image.open(image_name)  # always tiff?- no
         # print type(im)
         # im = im.transpose(Image.FLIP_TOP_BOTTOM)
         # im = im.transpose(Image.FLIP_LEFT_RIGHT)
@@ -140,28 +160,15 @@ class GSASIIDetector:
         # inf = im._getexif()
         return im
 
-    @staticmethod
-    def detector_check(ImageName, detector=None):
-        """
-        This function is empty because GSAS does not require knowledge of the detector type
-        :param ImageName:
-        :param detector:
-        :return:
-        """
-        return None
-
     def conversion(self):
+        # DMF FIX ME: should this actually return None or just pass out unconverted data?
         """
-        
-
         Returns
         -------
         None.
-
         """
 
-
-    def GetMask(self, MSKfile, ImInts, ImTTH, ImAzi, file_name, pix, debug=False):
+    def get_mask(self, MSKfile, ImInts, ImTTH, ImAzi, file_name, pix, debug=False):
         """
         :param MSKfile:
         :param ImInts:
@@ -172,6 +179,8 @@ class GSASIIDetector:
         :param debug:
         :return:
         """
+        # DMF: code below needs refactoring - but haven't yet as don't know if this is copied as is from GSASII or not?
+
         Imx, Imy = GetImSizeArr(file_name, pix)
         # GSAS-II licence problems later.
         # As it stands we may have to get people to copy a GSAS-II file from their repository so that it does not
@@ -187,7 +196,7 @@ class GSASIIDetector:
         # Thresholds
         # copied from pyGSAS/GSASIIimage.py Fill2ThetaAzimuthMap
         # units of mask are intensity
-        IntLims = msks['Thresholds'][1]
+        IntLims = msks["Thresholds"][1]
         # print IntLims[0], IntLims[1]
         ImMsk = ma.masked_outside(ImInts, int(IntLims[0]), IntLims[1])
         # ImMsk = ma.masked_outside(ImInts.flatten(),int(IntLims[0]),IntLims[1])
@@ -195,29 +204,42 @@ class GSASIIDetector:
         # Rings
         # copied from pyGSAS/GSASIIimage.py Fill2ThetaAzimuthMap
         # units of mask are two theta and two theta (both in degrees)
-        RngLims = (msks['Rings'])
+        RngLims = msks["Rings"]
         for twoth, thickness in RngLims:
             # print max(0.01,twoth-thickness/2.), twoth+thickness/2.
             # print type(ma.masked_inside(ImTTH.flatten(),max(0.01,twoth-thickness/2.),twoth+thickness/2.))
             # print type((ImMsk))
-            ImMsk.mask = ma.mask_or(ma.getmask(ImMsk), ma.getmask(ma.masked_inside(ImTTH, max(0.01, twoth -
-                                                                                              thickness / 2.),
-                                                                                   twoth + thickness / 2.)))
+            ImMsk.mask = ma.mask_or(
+                ma.getmask(ImMsk),
+                ma.getmask(
+                    ma.masked_inside(
+                        ImTTH,
+                        max(0.01, twoth - thickness / 2.0),
+                        twoth + thickness / 2.0,
+                    )
+                ),
+            )
         # Arcs
         # copied from pyGSAS/GSASIIimage.py Fill2ThetaAzimuthMap
         # units of mask are two theta and azimuth (both in degrees)
-        ArcLims = (msks['Arcs'])
+        ArcLims = msks["Arcs"]
         for twoth, azim, thickness in ArcLims:
-            tamt = ma.getmask(ma.masked_inside(ImTTH, max(0.01, twoth - thickness / 2.), twoth + thickness / 2.))
+            tamt = ma.getmask(
+                ma.masked_inside(
+                    ImTTH, max(0.01, twoth - thickness / 2.0), twoth + thickness / 2.0
+                )
+            )
             tama = ma.getmask(ma.masked_inside(ImAzi, azim[0], azim[1]))
             ImMsk.mask = ma.mask_or(ma.getmask(ImMsk), tamt * tama)
 
         # Points/Spots
         # copied from pyGSAS/GSASIIimage.py Make2ThetaAzimuthMap
         # units of mask are position (x and y) on detector (in mm)
-        spots = msks['Points']
+        spots = msks["Points"]
         for spX, spY, spdiam in spots:
-            tamp = ma.getmask(ma.masked_less((Imx - spX) ** 2 + (Imy - spY) ** 2, (spdiam / 2.) ** 2))
+            tamp = ma.getmask(
+                ma.masked_less((Imx - spX) ** 2 + (Imy - spY) ** 2, (spdiam / 2.0) ** 2)
+            )
             ImMsk.mask = ma.mask_or(ma.getmask(ImMsk), tamp)
 
         # polygon
@@ -226,7 +248,7 @@ class GSASIIDetector:
         # This here is therefore an equivalent code block totally in python.
         # matplotlib.path is needed here.
         # Units of mask are position (x and y) on detector (in mm)
-        PolyLms = msks['Polygons']
+        PolyLms = msks["Polygons"]
         points = np.vstack((Imx.flatten(), Imy.flatten())).T
         # FIX ME: The points array is flattened and then in a few lines time grid is reshaped. It is possible to do this
         # without changing the shape of the arrays?
@@ -247,7 +269,7 @@ class GSASIIDetector:
         # The difference in the code for the two types is a -TRUE applied to the mask.
         # This should be checked though.
 
-        FrmLms = msks['Frames']
+        FrmLms = msks["Frames"]
         # print FrmLms
         # for frame in FrmLms:
         # print frame
@@ -265,17 +287,109 @@ class GSASIIDetector:
             fig = plt.figure()
             ax = fig.add_subplot(1, 2, 1)
             plt.subplot(121)
-            plt.scatter(Imx, Imy, s=4, c=intens, edgecolors='none', cmap=plt.cm.jet)
+            plt.scatter(Imx, Imy, s=4, c=intens, edgecolors="none", cmap=plt.cm.jet)
             ax = fig.add_subplot(1, 2, 2)
             plt.subplot(122)
-            plt.scatter(ma.array(Imx, mask=ImMsk.mask), ma.array(Imy, mask=ImMsk.mask), s=4, c=intens, edgecolors='none',
-                        cmap=plt.cm.jet)
+            plt.scatter(
+                ma.array(Imx, mask=ImMsk.mask),
+                ma.array(Imy, mask=ImMsk.mask),
+                s=4,
+                c=intens,
+                edgecolors="none",
+                cmap=plt.cm.jet,
+            )
             plt.colorbar()
             plt.show()
             plt.close()
 
         return ImMsk
 
+    def get_calibration(self, file_name):
+        """
+        Parse inputs file, create type specific inputs.
+        :param file_name:
+        :return:
+        """
+        # FIX ME: DMF code below can be rationalised to more naturally catch int vs. float vs. str
+        parms_file = open(file_name, "rb")
+        file_lines = parms_file.readlines()
+        parms_dict = {}
+        for item in file_lines:
+            new_parms = item.strip("\n").split(":", 1)
+            parm = new_parms[1]
+            value = None
+            # print parm
+            try:
+                value = int(parm)
+                parms_dict[str(new_parms[0])] = value
+            except ValueError:
+                try:
+                    value = float(parm)
+                    parms_dict[new_parms[0]] = value
+                except ValueError:
+                    if parm.startswith("["):
+                        list_vals = parm.strip("[").strip("]").split(",")
+                        new_list = []
+                        for val in list_vals:
+                            new_value = None
+                            try:
+                                new_value = int(val)
+                                new_list.append(new_value)
+                            except ValueError:
+                                try:
+                                    new_value = float(val)
+                                    new_list.append(new_value)
+                                except ValueError:
+                                    new_list.append(
+                                        val.replace("'", "").replace(" ", "")
+                                    )
+                        parms_dict[new_parms[0]] = new_list
+                    elif parm.startswith("{"):
+                        # print parm
+                        list_vals = parm.strip("{").strip("}").split(",")
+                        new_dict = {}
+                        for keyval in list_vals:
+                            # print keyval
+                            new_key = (
+                                keyval.split(":")[0].replace("'", "").replace(" ", "")
+                            )
+                            val = keyval.split(":")[1]
+                            new_value = None
+                            try:
+                                new_value = int(val)
+                                new_dict[str(new_key)] = new_value
+                            except ValueError:
+                                try:
+                                    new_value = float(val)
+                                    new_dict[str(new_key)] = new_value
+                                except ValueError:
+                                    new_dict[str(new_key)] = val.replace("'", "").replace(
+                                        " ", ""
+                                    )
+                        parms_dict[new_parms[0]] = new_dict
+                    elif not parm:
+                        parms_dict[new_parms[0]] = ""
+
+                    else:
+                        parms_dict[new_parms[0]] = str(parm)
+
+        # get wavelengths in Angstrom
+        parms_dict["Conversion_constant"] = parms_dict["Wavelength"]
+
+        # force all dictionary labels to be lower case -- makes s
+        parms_dict = {k.lower(): v for k, v in parms_dict.items()}
+
+        return parms_dict
+
+    # FIX ME: Missing function bins (see dioptas class)  - is it needed?
+
+    # FIX ME: Missing function get_azimuthal_integration - is this GSASII GetAzm fom below?
+
+    # FIX ME: Missing function get_two_theta - if this is below just need to wrap
+
+    # FIX ME: Missing function get_azimuth - if this is below just need to wrap
+
+    # FIX ME: Missing function get_d_space - if this is below just need to wrap
 
     def point_in_polygon(self, pXY, xy):
         """
@@ -283,6 +397,8 @@ class GSASIIDetector:
         :param xy:
         :return:
         """
+        # FIX ME: DMF doesn't seem to be used?
+
         # pXY - assumed closed 1st & last points are duplicates
         Inside = False
         N = len(pXY)
@@ -297,7 +413,6 @@ class GSASIIDetector:
             p1x, p1y = p2x, p2y
         return Inside
 
-
     def fill_2_theta_azimuth_map(self, masks, azim, twoth, image):
         """
         :param masks:
@@ -306,16 +421,28 @@ class GSASIIDetector:
         :param image:
         :return:
         """
-        Zlim = masks['Thresholds'][1]
-        rings = masks['Rings']
-        arcs = masks['Arcs']
+        # FIX ME: DMF doesn't seem to be used?
+
+        Zlim = masks["Thresholds"][1]
+        rings = masks["Rings"]
+        arcs = masks["Arcs"]
         # TA = np.dstack((ma.getdata(TA[1]),ma.getdata(TA[0]),ma.getdata(TA[2])))    #azimuth, 2-theta, dist
         # tax,tay,tad = np.dsplit(TA,3)    #azimuth, 2-theta, dist**2/d0**2
         for tth, thick in rings:
-            tam = ma.mask_or(tam.flatten(),
-                             ma.getmask(ma.masked_inside(tay.flatten(), max(0.01, tth - thick / 2.), tth + thick / 2.)))
+            tam = ma.mask_or(
+                tam.flatten(),
+                ma.getmask(
+                    ma.masked_inside(
+                        tay.flatten(), max(0.01, tth - thick / 2.0), tth + thick / 2.0
+                    )
+                ),
+            )
         for tth, azm, thick in arcs:
-            tamt = ma.getmask(ma.masked_inside(tay.flatten(), max(0.01, tth - thick / 2.), tth + thick / 2.))
+            tamt = ma.getmask(
+                ma.masked_inside(
+                    tay.flatten(), max(0.01, tth - thick / 2.0), tth + thick / 2.0
+                )
+            )
             tama = ma.getmask(ma.masked_inside(tax.flatten(), azm[0], azm[1]))
             tam = ma.mask_or(tam.flatten(), tamt * tama)
         taz = ma.masked_outside(image.flatten(), int(Zlim[0]), Zlim[1])
@@ -325,10 +452,11 @@ class GSASIIDetector:
         tay = ma.compressed(ma.array(tay.flatten(), mask=tam))  # 2-theta
         taz = ma.compressed(ma.array(taz.flatten(), mask=tam))  # intensity
         # tad = ma.compressed(ma.array(tad.flatten(),mask=tam))   #dist**2/d0**2
-        tabs = ma.compressed(ma.array(tabs.flatten(), mask=tam))  # ones - later used for absorption corr.
+        tabs = ma.compressed(
+            ma.array(tabs.flatten(), mask=tam)
+        )  # ones - later used for absorption corr.
         return tax, tay, taz, tabs
         # return tax,tay,taz,tad,tabs
-
 
     def load_mask(self, mskfilename):
         """
@@ -336,16 +464,18 @@ class GSASIIDetector:
         :param mskfilename:
         :return:
         """
-        File = open(mskfilename, 'r')
+        # FIX ME: DMF doesn't seem to be used here, doesn't have an equivalent in dioptas - needs sorting
+
+        File = open(mskfilename, "r")
         save = {}
         # oldThreshold = data['Thresholds'][0]
         S = File.readline()
         while S:
-            if S[0] == '#':
+            if S[0] == "#":
                 S = File.readline()
                 continue
-            [key, val] = S[:-1].split(':')
-            if key in ['Points', 'Rings', 'Arcs', 'Polygons', 'Frames', 'Thresholds']:
+            [key, val] = S[:-1].split(":")
+            if key in ["Points", "Rings", "Arcs", "Polygons", "Frames", "Thresholds"]:
                 # if key == 'Thresholds':
                 #    S = File.readline()
                 #    continue
@@ -358,101 +488,28 @@ class GSASIIDetector:
 
         return save
 
-
-    def get_calibration(self, file_name):
-        """
-        Parse inputs file, create type specific inputs.
-        :param file_name:
-        :return:
-        """
-        parms_file = open(file_name, 'rb')
-        file_lines = parms_file.readlines()
-        parms_dict = {}
-        for item in file_lines:
-            newparms = item.strip('\n').split(':', 1)
-            parm = newparms[1]
-            value = None
-            # print parm
-            try:
-                value = int(parm)
-                parms_dict[str(newparms[0])] = value
-            except ValueError:
-                try:
-                    value = float(parm)
-                    parms_dict[newparms[0]] = value
-                except ValueError:
-                    if parm.startswith('['):
-                        listvals = parm.strip('[').strip(']').split(',')
-                        newlist = []
-                        for val in listvals:
-                            newValue = None
-                            try:
-                                newValue = int(val)
-                                newlist.append(newValue)
-                            except ValueError:
-                                try:
-                                    newValue = float(val)
-                                    newlist.append(newValue)
-                                except ValueError:
-                                    newlist.append(val.replace("'", "").replace(" ", ""))
-                        parms_dict[newparms[0]] = newlist
-                    elif parm.startswith('{'):
-                        # print parm
-                        listvals = parm.strip('{').strip('}').split(',')
-                        newdict = {}
-                        for keyval in listvals:
-                            # print keyval
-                            newkey = keyval.split(':')[0].replace("'", "").replace(" ", "")
-                            val = keyval.split(':')[1]
-                            newValue = None
-                            try:
-                                newValue = int(val)
-                                newdict[str(newkey)] = newValue
-                            except ValueError:
-                                try:
-                                    newValue = float(val)
-                                    newdict[str(newkey)] = newValue
-                                except ValueError:
-                                    newdict[str(newkey)] = val.replace("'", "").replace(" ", "")
-                        parms_dict[newparms[0]] = newdict
-                    elif not parm:
-                        parms_dict[newparms[0]] = ''
-
-                    else:
-                        parms_dict[newparms[0]] = str(parm)
-
-        # get wavelengths in Angstrom
-        parms_dict['Conversion_constant'] = parms_dict['Wavelength']
-
-        # force all dictionary labels to be lower case -- makes s
-        parms_dict = {k.lower(): v for k, v in parms_dict.items()}
-
-        return parms_dict
-
-
     ## Functions below taken from GSAS-II code see https://github.com/svaksha/pyGSAS/
     ## Toby, B. H., & Von Dreele, R. B. (2013). "GSAS-II: the genesis of a modern open-source
     ## all purpose crystallography software package". Journal of Applied Crystallography,
     ## 46(2), 544-549. ##
 
     # trig functions
-    sind = lambda x: math.sin(x * math.pi / 180.)
-    asind = lambda x: 180. * math.asin(x) / math.pi
-    tand = lambda x: math.tan(x * math.pi / 180.)
-    atand = lambda x: 180. * math.atan(x) / math.pi
-    atan2d = lambda y, x: 180. * math.atan2(y, x) / math.pi
-    cosd = lambda x: math.cos(x * math.pi / 180.)
-    acosd = lambda x: 180. * math.acos(x) / math.pi
+    sind = lambda x: math.sin(x * math.pi / 180.0)
+    asind = lambda x: 180.0 * math.asin(x) / math.pi
+    tand = lambda x: math.tan(x * math.pi / 180.0)
+    atand = lambda x: 180.0 * math.atan(x) / math.pi
+    atan2d = lambda y, x: 180.0 * math.atan2(y, x) / math.pi
+    cosd = lambda x: math.cos(x * math.pi / 180.0)
+    acosd = lambda x: 180.0 * math.acos(x) / math.pi
     rdsq2d = lambda x, p: round(1.0 / math.sqrt(x), p)
     # numpy trig functions
-    npsind = lambda x: np.sin(x * np.pi / 180.)
-    npasind = lambda x: 180. * np.arcsin(x) / np.pi
-    npcosd = lambda x: np.cos(x * np.pi / 180.)
-    npacosd = lambda x: 180. * np.arccos(x) / np.pi
-    nptand = lambda x: np.tan(x * np.pi / 180.)
-    npatand = lambda x: 180. * np.arctan(x) / np.pi
-    npatan2d = lambda y, x: 180. * np.arctan2(y, x) / np.pi
-
+    npsind = lambda x: np.sin(x * np.pi / 180.0)
+    npasind = lambda x: 180.0 * np.arcsin(x) / np.pi
+    npcosd = lambda x: np.cos(x * np.pi / 180.0)
+    npacosd = lambda x: 180.0 * np.arccos(x) / np.pi
+    nptand = lambda x: np.tan(x * np.pi / 180.0)
+    npatand = lambda x: 180.0 * np.arctan(x) / np.pi
+    npatan2d = lambda y, x: 180.0 * np.arctan2(y, x) / np.pi
 
     def makeMat(self, Angle, Axis):
         """Make rotation matrix from Angle and Axis
@@ -461,9 +518,8 @@ class GSASIIDetector:
         """
         cs = npcosd(Angle)
         ss = npsind(Angle)
-        M = np.array(([1., 0., 0.], [0., cs, -ss], [0., ss, cs]), dtype=np.float32)
+        M = np.array(([1.0, 0.0, 0.0], [0.0, cs, -ss], [0.0, ss, cs]), dtype=np.float32)
         return np.roll(np.roll(M, Axis, axis=0), Axis, axis=1)
-
 
     def GetTthAzmDsp(self, x, y, data):  # expensive
         """
@@ -473,19 +529,19 @@ class GSASIIDetector:
         :param data:
         :return:
         """
-        wave = data['wavelength']
-        cent = data['center']
-        tilt = data['tilt']
+        wave = data["wavelength"]
+        cent = data["center"]
+        tilt = data["tilt"]
         # print tilt, cosd(tilt)
-        dist = data['distance'] / cosd(tilt)
-        x0 = data['distance'] * tand(tilt)
-        phi = data['rotation']
-        dep = data['detdepth']
-        LRazim = data['lrazimuth']
-        azmthoff = data['azmthoff']
+        dist = data["distance"] / cosd(tilt)
+        x0 = data["distance"] * tand(tilt)
+        phi = data["rotation"]
+        dep = data["detdepth"]
+        LRazim = data["lrazimuth"]
+        azmthoff = data["azmthoff"]
         dx = np.array(x - cent[0], dtype=np.float32)
         dy = np.array(y - cent[1], dtype=np.float32)
-        D = ((dx - x0) ** 2 + dy ** 2 + data['distance'] ** 2)  # sample to pixel distance
+        D = (dx - x0) ** 2 + dy ** 2 + data["distance"] ** 2  # sample to pixel distance
         X = np.array(([dx, dy, np.zeros_like(dx)]), dtype=np.float32).T
         # print np.array(([dx,dy,np.zeros_like(dx)]),dtype=np.float32).shape
         X = np.dot(X, makeMat(phi, 2))
@@ -495,13 +551,14 @@ class GSASIIDetector:
         DX = dist - Z + dxy
         DY = np.sqrt(dx ** 2 + dy ** 2 - Z ** 2)
         tth = npatan2d(DY, DX)
-        dsp = wave / (2. * npsind(tth / 2.))
-        azm = (npatan2d(dy, dx) + azmthoff + 720.) % 360.
-        G = D / data['distance'] ** 2  # for geometric correction = 1/cos(2theta)^2 if tilt=0.
+        dsp = wave / (2.0 * npsind(tth / 2.0))
+        azm = (npatan2d(dy, dx) + azmthoff + 720.0) % 360.0
+        G = (
+            D / data["distance"] ** 2
+        )  # for geometric correction = 1/cos(2theta)^2 if tilt=0.
         return np.array([tth, azm, G, dsp])
 
-
-    def peneCorr(self, tth, dep, tilt=0., azm=0.):
+    def peneCorr(self, tth, dep, tilt=0.0, azm=0.0):
         """
         :param tth:
         :param dep:
@@ -509,8 +566,7 @@ class GSASIIDetector:
         :param azm:
         :return:
         """
-        return dep * (1. - npcosd(tth))  # best one
-
+        return dep * (1.0 - npcosd(tth))  # best one
 
     def GetImSizeArr(self, image_name, pix):
         """
@@ -522,7 +578,7 @@ class GSASIIDetector:
         im = ImportImage(image_name)
         imarray = np.array(im)
 
-        gd = np.mgrid[0:imarray.shape[0], 0:imarray.shape[1]]  ##SAH: edit
+        gd = np.mgrid[0 : imarray.shape[0], 0: imarray.shape[1]]  ##SAH: edit
         # print gd.shape
         y = gd[0, :, :] + 1  ##SAH: edit
         x = gd[1, :, :] + 1  ##SAH: edit
@@ -532,16 +588,15 @@ class GSASIIDetector:
         x = (x) * pix / 1e3  ##SAH: edit
         # print x             ##SAH: edit
         # print y             ##SAH: edit
-        '''
+        """
         ## SAH: would linspace+meshgrid be a better way of making the arrays?
         ## DMF: Could do it this way...
         xn = np.linspace(0, imarray.shape[0],num=imarray.shape[0],endpoint=False,dtype=int)#nx)
         yn = np.linspace(0, imarray.shape[1],num=imarray.shape[1],endpoint=False,dtype=int)#ny)
         xv, yv = np.meshgrid(xn, yn)
         #print xv.shape,yv.shape,xv[1],yv[1]
-        '''
+        """
         return x, y
-
 
     # Related calls
     def GetTth(self, calib_file, data, pix):
@@ -555,7 +610,6 @@ class GSASIIDetector:
         x, y = GetImSizeArr(calib_file, pix)
         return GetTthAzmDsp(x, y, data)[0]
 
-
     def GetTthAzm(self, calib_file, data, pix):
         """
         Give 2-theta, azimuth values for detector x,y position; calibration info in data
@@ -566,7 +620,6 @@ class GSASIIDetector:
         """
         x, y = GetImSizeArr(calib_file, pix)
         return GetTthAzmDsp(x, y, data)[0:2]
-
 
     def GetDsp(self, calib_file, data, pix):
         """
@@ -579,7 +632,6 @@ class GSASIIDetector:
         x, y = GetImSizeArr(calib_file, pix)
         return GetTthAzmDsp(x, y, data)[3]
 
-
     def GetAzm(self, calib_file, data, pix):
         """
         Give azimuth value for detector x,y position; calibration info in data
@@ -590,6 +642,3 @@ class GSASIIDetector:
         """
         x, y = GetImSizeArr(calib_file, pix)
         return GetTthAzmDsp(x, y, data)[1]
-
-
-

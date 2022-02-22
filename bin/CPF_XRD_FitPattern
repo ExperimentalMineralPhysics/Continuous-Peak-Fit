@@ -12,7 +12,7 @@ import numpy.ma as ma
 import importlib.util
 
 # import FPF_WriteMultiFit as wr
-from cpf.XRD_FitSubpattern import FitSubpattern
+from cpf.XRD_FitSubpattern import fit_sub_pattern
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -359,14 +359,14 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
     if debug:
         fig = plt.figure()
         if FitSettings.Calib_type == 'Med':
-            # plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
+            # plt.scatter(twotheta, azimuth, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
             # vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
             for x in range(9):
                 plt.plot(twotheta[x], intens[x] + 100 * x)  # Better for energy dispersive data. #FIX ME: need variable
                 # for vmax.
 
         else:
-            # plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)
+            # plt.scatter(twotheta, azimuth, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)
             # #Better for monochromatic data.             #FIX ME: need variable for vmax.
             plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin=0)
             # Better for monochromatic data.             #FIX ME: need variable for vmax.
@@ -390,14 +390,14 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
         if debug:
             fig = plt.figure()
             if FitSettings.Calib_type == 'Med':
-                # plt.scatter(twotheta, azimu, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
+                # plt.scatter(twotheta, azimuth, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
                 # vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
                 for x in range(9):
                     plt.plot(twotheta[x], intens[
                         x] + 100 * x)  # Better for energy dispersive data.  #FIX ME: need variable for vmax.
 
             else:
-                # plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
+                # plt.scatter(twotheta, azimuth, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
                 # vmax = 1000)  #Better for monochromatic data.             #FIX ME: need variable for vmax.
                 plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin=0,
                             vmax=4000)  # FIX ME: need variable for vmax.
@@ -454,8 +454,8 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
 
             # fit the subpattern
             Fitted_param.append(
-                FitSubpattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
-                              DetFuncs=calib_mod, SaveFit=SaveFigs, debug=debug, refine=refine, iterations=iterations))
+                fit_sub_pattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
+                                DetFuncs=calib_mod, save_fit=SaveFigs, debug=debug, refine=refine, iterations=iterations))
 
         # write output files
 

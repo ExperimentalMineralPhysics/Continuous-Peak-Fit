@@ -1,24 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+__all__ = ["DioptasDetector"]
 
-__all__ = ['DioptasDetector']
-# __all__ = ['Requirements', 'ImportImage', 'DetectorCheck', 'Conversion', 'GetMask', 'GetCalibration', 'GetTth',
-# 'GetAzm', 'GetDsp']
-
-import sys
 import os
+import sys
+
+import fabio
 import h5py
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
-from PIL import Image
-from PIL.ExifTags import TAGS
-import matplotlib.pyplot as plt
-from matplotlib import gridspec
-
-from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 import pyFAI
-import fabio
+from PIL import Image
+from matplotlib import gridspec
+from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 
 
 class DioptasDetector:
@@ -38,69 +34,95 @@ class DioptasDetector:
         self.tth = None
         self.azm = None
         self.dspace = None
+        self.calibration = None
 
     def fill_data(self, diff_file, settings=None, debug=None, calibration_mask=None):
         """
-        :param calibration_data:
-        :param detector:
+        :param settings:
+        :param diff_file:
         :param debug:
         :param calibration_mask:
         """
         # self.detector = self.detector_check(calibration_data, detector)
-#        print(settings.Calib_param)
+        #        print(settings.Calib_param)
         self.calibration = self.get_calibration(settings.Calib_param)
         self.get_detector(diff_file, settings)
-        
-        self.intensity = self.get_masked_calibration(diff_file, debug, calibration_mask)
-        self.tth = self.GetTth(mask=self.intensity.mask)
-        self.azm = self.GetAzm(mask=self.intensity.mask)
-        self.dspace = self.GetDsp(mask=self.intensity.mask)
 
+        self.intensity = self.get_masked_calibration(diff_file, debug, calibration_mask)
+        self.tth = self.get_two_theta(mask=self.intensity.mask)
+        self.azm = self.get_azimuth(mask=self.intensity.mask)
+        self.dspace = self.get_d_space(mask=self.intensity.mask)
 
     def get_detector(self, diff_file, settings=None):
-        
-        if hasattr(settings, 'Calib_detector'): 
+        """
+        :param diff_file:
+        :param settings:
+        :return:
+        """
+
+        if hasattr(settings, "Calib_detector"):
             self.detector = pyFAI.detector_factory(settings.Calib_detector)
-        else: 
-            #if settings is None or detector == 'unknown' or detector == 'other' or detector == 'blank':
+        else:
+            # if settings is None or detector == 'unknown' or detector == 'other' or detector == 'blank':
             im_all = fabio.open(diff_file)
-            if 'pixelsize1' in self.calibration:
-                sz1 = self.calibration['pixelsize1']
-                sz2 = self.calibration['pixelsize2']
-            elif hasattr(settings, 'Calib_pixels'):
+            if "pixelsize1" in self.calibration:
+                sz1 = self.calibration["pixelsize1"]
+                sz2 = self.calibration["pixelsize2"]
+            elif hasattr(settings, "Calib_pixels"):
                 sz1 = settings.Calib_pixels * 1e-6
                 sz2 = settings.Calib_pixels * 1e-6
             else:
-                err_str = 'The pixel size or the detctor are is not defined. Add to inputs.'
+                err_str = (
+                    "The pixel size or the detector are is not defined. Add to inputs."
+                )
                 raise ValueError(err_str)
-            #sz = calibration_data.Calib_pixels  # Pixel_size
-            #if sz > 1:
-            #    sz = sz*1e-6
-                
-            self.detector = pyFAI.detectors.Detector(pixel1=sz1, pixel2=sz2, splineFile=None, max_shape=im_all.shape)
-        # FIX ME: check the detector type is valid.    
-        #self.detector = self.detector_check(calibration_data, detector=None)
-        
-        #return detector
+
+            self.detector = pyFAI.detectors.Detector(
+                pixel1=sz1, pixel2=sz2, splineFile=None, max_shape=im_all.shape
+            )
+        # FIX ME: check the detector type is valid.
+        # self.detector = self.detector_check(calibration_data, detector=None)
+        # return detector
+
+    @staticmethod
+    def detector_check(calibration_data, settings=None):
+        """
+        Get detector information
+        :param settings:
+        :param calibration_data:
+        :return: detector:
+        """
+        if "Calib_detector" in settings:
+            detector = pyFAI.detector_factory(settings.Calib_detector)
+        else:
+            # if settings is None or detector == 'unknown' or detector == 'other' or detector == 'blank':
+            im_all = fabio.open(calibration_data)
+            sz = calibration_data.Calib_pixels  # Pixel_size
+            if sz > 1:
+                sz = sz * 1e-6
+            detector = pyFAI.detectors.Detector(
+                pixel1=sz, pixel2=sz, splineFile=None, max_shape=im_all.shape
+            )
+        # FIX ME: check the detector type is valid.
+        return detector
 
     def get_masked_calibration(self, calibration_data, debug, calibration_mask=None):
         """
         load calibration data/image -- to get intensities for mask
         :param calibration_data:
-        :param calibration_pixels:
         :param debug:
         :param calibration_mask:
         :return:
         """
         im = fabio.open(calibration_data)
-        #im = im_a.data #self.ImportImage(calibration_data, debug=debug)
+        # im = im_a.data # self.ImportImage(calibration_data, debug=debug)
         intens = ma.array(im.data)
         # create mask from mask file if present. If not make all values valid
         if calibration_mask:
-            intens = self.GetMask(calibration_mask, intens)
+            intens = self.get_mask(calibration_mask, intens)
         else:
-            ImMask = np.zeros_like(intens)
-            intens = ma.array(intens, mask=ImMask)
+            im_mask = np.zeros_like(intens)
+            intens = ma.array(intens, mask=im_mask)
             intens = ma.masked_outside(intens, 0, np.inf)
         return intens
 
@@ -118,44 +140,47 @@ class DioptasDetector:
         #   data - in form of:
         #       - file listing data files. (with or without directory)
         #       - file listing data file numbers (needs directory, file name, number digits, ending)
-        #       - beginning and and numbers for files (needs directory, file name, number digits, ending)
-        RequiredList = ['Calib_type',
-                        'Calib_detector'
-                        # 'Calib_data',        # Removed because this is not strictly required.
-                        'Calib_param',       # Now added to calibration function file.
-                        # 'Calib_pixels',      # this is only needed for GSAS-II and should be read from image file. FIX
-                        # ME: add to GSAS-II inputfile.
-                        # 'Calib_mask',        # a mask file is not strictly required.
-                        'datafile_directory',
-                        'datafile_Basename',
-                        'datafile_Ending',
-                        # 'datafile_StartNum',  # now optionally replaced by datafile_Files
-                        # 'datafile_EndNum',    # now optionally replaced by datafile_Files
-                        'datafile_NumDigit',
-                        'AziBins',            # required based on detector type
-                        'fit_orders',
-                        # 'Output_type',		   # should be optional
-                        # 'Output_NumAziWrite',  # should be optional
-                        # 'Output_directory']	   # should be optional
-                        ]
+        #       - beginning and numbers for files (needs directory, file name, number digits, ending)
+        required_list = [
+            "Calib_type",
+            "Calib_detector",
+            # 'Calib_data',        # Removed because this is not strictly required.
+            "Calib_param",  # Now added to calibration function file.
+            # 'Calib_pixels',      # this is only needed for GSAS-II and should be read from image file. FIX
+            # ME: add to GSAS-II input file.
+            # 'Calib_mask',        # a mask file is not strictly required.
+            "datafile_directory",
+            "datafile_Basename",
+            "datafile_Ending",
+            # 'datafile_StartNum',  # now optionally replaced by datafile_Files
+            # 'datafile_EndNum',    # now optionally replaced by datafile_Files
+            "datafile_NumDigit",
+            "AziBins",  # required based on detector type
+            "fit_orders",
+            # 'Output_type',		   # should be optional
+            # 'Output_NumAziWrite',  # should be optional
+            # 'Output_directory']	   # should be optional
+        ]
 
         # Check required against inputs if given
         if parameter_settings is not None:
             # properties of the data files.
             all_present = 1
             for par in parameter_settings:
-                if par in RequiredList:
-                    print('Got: ', par)
+                if par in required_list:
+                    print("Got: ", par)
                 else:
-                    print("The settings file requires a parameter called  \'", par, "\'")
+                    print("The settings file requires a parameter called  '", par, "'")
                     all_present = 0
             if all_present == 0:
-                sys.exit("The highlighted settings are missing from the input file. Fitting cannot proceed until they "
-                         "are all present.")
-        return RequiredList
+                sys.exit(
+                    "The highlighted settings are missing from the input file. Fitting cannot proceed until they "
+                    "are all present."
+                )
+        return required_list
 
     @staticmethod
-    def ImportImage(image_name, mask=None, debug=False):
+    def import_image(image_name, mask=None, debug=False):
         """
         Import the data image
         :param mask:
@@ -163,53 +188,28 @@ class DioptasDetector:
         :param debug: extra output for debugging - plot
         :return: intensity array
         """
-        # FIX ME: why is mask in here? should it ingerit from previous data if it exists?
+        # FIX ME: why is mask in here? should it inherit from previous data if it exists?
         # im = Image.open(ImageName) ##always tiff?- no
         filename, file_extension = os.path.splitext(image_name)
-        if file_extension == '.nxs':
-            im_all = h5py.File(image_name, 'r')
+        if file_extension == ".nxs":
+            im_all = h5py.File(image_name, "r")
             # FIX ME: This assumes that there is only one image in the nxs file.
-            # If there are more then it will only read 1.
-            im = np.array(im_all['/entry1/instrument/detector/data'])
+            # If there are more, then it will only read 1.
+            im = np.array(im_all["/entry1/instrument/detector/data"])
         else:
             im_all = fabio.open(image_name)
             im = im_all.data
         # Dioptas flips the images to match the orientations in Plot2D.
-        # Therefore implemented here to be consistent with Dioptas.
+        # Therefor implemented here to be consistent with Dioptas.
         im = np.array(im)[::-1]
         if debug:
-            img_plot = plt.imshow(im, vmin=0, vmax=2000)
+            plt.imshow(im, vmin=0, vmax=2000)
             plt.colorbar()
             plt.show()
         if mask is not None:
             return ma.array(im, mask=mask)
         else:
             return ma.array(im)
-
-    @staticmethod
-    def detector_check(calibration_data, settings=None):
-        """
-        Get detector information
-        :param detector: Choose detector on initiation
-        :param calibration_data:
-        :param detector:
-        :return:
-        """
-        # FIX ME: we should try importing the image and reading the detector type from it.
-        # The image is now imported and read but this means that the detector type in settings
-        # is no longer necessary and could be removed.
-        if 'Calib_detector' in settings:
-            detector = pyFAI.detector_factory(settings.Calib_detector)
-            
-        else: 
-            #if settings is None or detector == 'unknown' or detector == 'other' or detector == 'blank':
-            im_all = fabio.open(calibration_data)
-            sz = calibration_data.Calib_pixels  # Pixel_size
-            if sz > 1:
-                sz = sz*1e-6
-            detector = pyFAI.detectors.Detector(pixel1=sz, pixel2=sz, splineFile=None, max_shape=im_all.shape)
-        # FIX ME: check the detector type is valid.
-        return detector
 
     def conversion(self, tth_in, conv, reverse=0, azm=None):
         """
@@ -221,10 +221,8 @@ class DioptasDetector:
         :param azm:
         :return:
         """
-        # FIX ME: Still needed?
-        # Convert wavelength into angstroms.
-        # this is not longer required because it is done in the GetCalibration stage.
-        wavelength = conv['conversion_constant']
+
+        wavelength = conv["conversion_constant"]
         # print(wavelength)
         if not reverse:
             # convert tth to d_spacing
@@ -237,22 +235,22 @@ class DioptasDetector:
             # dspc_out = 2*np.degrees(np.arcsin(wavelength/2/tth_in[:,1]))
         return dspc_out
 
-    def GetMask(self, MSKfile, ImInts):
+    def get_mask(self, msk_file, im_ints):
         """
         Dioptas mask is compressed Tiff image.
         Save and load functions within Dioptas are: load_mask and save_mask in dioptas/model/MaskModel.py
-        :param MSKfile:
-        :param ImInts:
+        :param msk_file:
+        :param im_ints:
         :return:
         """
-        ImMsk = np.array(Image.open(MSKfile))
-        ImInts = ma.array(ImInts, mask=ImMsk)
+        im_mask = np.array(Image.open(msk_file))
+        im_ints = ma.array(im_ints, mask=im_mask)
 
         # TALK TO SIMON ABOUT WHAT TO DO WITH THIS
-        # SAH. !! July 2021: -- we need a  mask function that makes usre all the arrays have the same mask applied to them. 
+        # SAH!! July 2021: we need a mask function that makes sure all the arrays have the same mask applied to them.
         #     == and possibly one that returns just the mask.
 
-        '''
+        """
         if debug:
             # N.B. The plot is a pig with even 1000x1000 pixel images and takes a long time to render.
             if ImTTH.size > 100000:
@@ -264,7 +262,7 @@ class DioptasDetector:
             ax1.set_title('All data')
 
             ax2 = fig_1.add_subplot(1, 3, 2)
-            ax2.scatter(ImTTH, ImAzi, s=1, c=ImMsk, edgecolors='none', cmap='Greys')
+            ax2.scatter(ImTTH, ImAzi, s=1, c=im_mask, edgecolors='none', cmap='Greys')
             ax2.set_title('Mask')
             ax2.set_xlim(ax1.get_xlim())
 
@@ -277,24 +275,25 @@ class DioptasDetector:
             plt.show()
 
             plt.close()
-        '''
+        """
 
-        # FIX ME: need to validate size of images vs. detector name. Otherwise the mask can be the wrong size
+        # FIX ME: need to validate size of images vs. detector name. Otherwise, the mask can be the wrong size
         # det_size = pyFAI.detectors.ALL_DETECTORS['picam_v1'].MAX_SHAPE
         # FIX ME : this could probably all be done by using the detector class in fabio.
-        return ImInts
+        return im_ints
 
-    def get_calibration(self, filenam):
+    def get_calibration(self, file_nam):
         """
         Parse inputs file, create type specific inputs
-        :param filenam:
+        :rtype: object
+        :param file_nam:
         :return:
         """
-        parms_file = open(filenam, 'r')
-        filelines = parms_file.readlines()
+        parms_file = open(file_nam, "r")
+        file_lines = parms_file.readlines()
         parms_dict = {}
-        for item in filelines:
-            new_parms = item.strip('\n').split(':', 1)
+        for item in file_lines:
+            new_parms = item.strip("\n").split(":", 1)
             parm = new_parms[1].strip()
             value = None
             # print parm
@@ -306,247 +305,382 @@ class DioptasDetector:
                     value = float(parm)
                     parms_dict[new_parms[0]] = value
                 except ValueError:
-                    if parm.startswith('['):
-                        listvals = parm.strip('[').strip(']').split(',')
-                        newlist = []
-                        for val in listvals:
-                            newValue = None
+                    if parm.startswith("["):
+                        list_vals = parm.strip("[").strip("]").split(",")
+                        new_list = []
+                        for val in list_vals:
+                            new_value = None
                             try:
-                                newValue = int(val)
-                                newlist.append(newValue)
+                                new_value = int(val)
+                                new_list.append(new_value)
                             except ValueError:
                                 try:
-                                    newValue = float(val)
-                                    newlist.append(newValue)
+                                    new_value = float(val)
+                                    new_list.append(new_value)
                                 except ValueError:
-                                    newlist.append(val.replace("'", "").replace(" ", "").replace("\"", ""))
-                        parms_dict[new_parms[0]] = newlist
-                    elif parm.startswith('{'):
+                                    new_list.append(
+                                        val.replace("'", "")
+                                            .replace(" ", "")
+                                            .replace('"', "")
+                                    )
+                        parms_dict[new_parms[0]] = new_list
+                    elif parm.startswith("{"):
                         # print parm
-                        listvals = parm.strip('{').strip('}').split(',')
-                        newdict = {}
-                        for keyval in listvals:
-                            # print keyval
-                            newkey = keyval.split(':')[0].replace("'", "").replace(" ", "").replace("\"", "")
-                            val = keyval.split(':')[1]
-                            newValue = None
+                        list_vals = parm.strip("{").strip("}").split(",")
+                        new_dict = {}
+                        for key_val in list_vals:
+                            # print key_val
+                            new_key = (
+                                key_val.split(":")[0]
+                                    .replace("'", "")
+                                    .replace(" ", "")
+                                    .replace('"', "")
+                            )
+                            val = key_val.split(":")[1]
+                            new_value = None
                             try:
-                                newValue = int(val)
-                                newdict[str(newkey)] = newValue
+                                new_value = int(val)
+                                new_dict[str(new_key)] = new_value
                             except ValueError:
                                 try:
-                                    newValue = float(val)
-                                    newdict[str(newkey)] = newValue
+                                    new_value = float(val)
+                                    new_dict[str(new_key)] = new_value
                                 except ValueError:
-                                    newdict[str(newkey)] = val.replace("'", "").replace(" ", "").replace("\"", "")
-                        parms_dict[new_parms[0]] = newdict
+                                    new_dict[str(new_key)] = (
+                                        val.replace("'", "")
+                                            .replace(" ", "")
+                                            .replace('"', "")
+                                    )
+                        parms_dict[new_parms[0]] = new_dict
                     elif not parm:
-                        parms_dict[new_parms[0]] = ''
+                        parms_dict[new_parms[0]] = ""
 
                     else:
                         parms_dict[new_parms[0]] = str(parm)
 
         # process 'detector_config' into pixel sizes if needed.
-        if 'Detector_config' in parms_dict:
+        if "Detector_config" in parms_dict:
             # print(parms_dict['Detector_config'])
-            parms_dict['pixelsize1'] = parms_dict['Detector_config']['pixel1']
-            parms_dict['pixelsize2'] = parms_dict['Detector_config']['pixel2']
+            parms_dict["pixelsize1"] = parms_dict["Detector_config"]["pixel1"]
+            parms_dict["pixelsize2"] = parms_dict["Detector_config"]["pixel2"]
         # get wavelengths in Angstrom
-        parms_dict['conversion_constant'] = parms_dict['Wavelength'] * 1E10
+        parms_dict["conversion_constant"] = parms_dict["Wavelength"] * 1e10
         # force all dictionary labels to be lower case -- makes s
         parms_dict = {k.lower(): v for k, v in parms_dict.items()}
         # report type
-        parms_dict['DispersionType'] = 'AngleDispersive'
+        parms_dict["DispersionType"] = "AngleDispersive"
         return parms_dict
 
-    def bins(self, azimu, orders):
+    def bins(self, azimuth, orders):
         """
-        determine bins to use in initial fitting.
-        assign each data to a chunk corresponding to its azimuth value
+        Determine bins to use in initial fitting.
+        Assign each data to a chunk corresponding to its azimuth value
         Returns array with indices for each bin and array of bin centroids
-        :param azimu:
+        :param azimuth:
         :param orders:
         :return:
         """
-        azmax = azimu.max()
-        azmin = azimu.min()
-        if 'AziBins' in orders:
-            bins = orders['AziBins']
+        az_max = azimuth.max()
+        az_min = azimuth.min()
+        if "AziBins" in orders:
+            bins = orders["AziBins"]
         else:
             bins = 90
-        binsize = (azmax - azmin) / bins
+        bin_size = (az_max - az_min) / bins
         chunks = []
-        azichunks = []
-        tempazi = azimu.flatten()
+        azi_chunks = []
+        temp_azimuth = azimuth.flatten()
         for i in range(bins):
-            start = azmin + i * binsize
-            end = azmin + (i + 1) * binsize
-            azichunk = np.where((tempazi > start) & (tempazi <= end))
-            azichunks.append(((end - start) / 2) + start)
-            chunks.append(azichunk)
-        return chunks, azichunks
-    
+            start = az_min + i * bin_size
+            end = az_min + (i + 1) * bin_size
+            azi_chunk = np.where((temp_azimuth > start) & (temp_azimuth <= end))
+            azi_chunks.append(((end - start) / 2) + start)
+            chunks.append(azi_chunk)
+        return chunks, azi_chunks
 
-    def GetTth(self, poni=None, det=None, mask=None):
+    def get_azimuthal_integration(self):
         """
-        Give 2-theta value for detector x,y position; calibration info in data
-        :param cali_file:
-        :param poni:
-        :param pix:
-        :param det:
-        :param imask:
+
         :return:
         """
-        
-        ai = AzimuthalIntegrator(self.calibration['distance'], self.calibration['poni1'], self.calibration['poni2'], self.calibration['rot1'], self.calibration['rot2'],
-                                 self.calibration['rot3'], pixel1=self.calibration['pixelsize1'], pixel2=self.calibration['pixelsize2'], detector=self.detector,
-                                 wavelength=self.calibration['wavelength'])
+        ai = AzimuthalIntegrator(
+            self.calibration["distance"],
+            self.calibration["poni1"],
+            self.calibration["poni2"],
+            self.calibration["rot1"],
+            self.calibration["rot2"],
+            self.calibration["rot3"],
+            pixel1=self.calibration["pixelsize1"],
+            pixel2=self.calibration["pixelsize2"],
+            detector=self.detector,
+            wavelength=self.calibration["wavelength"],
+        )
+        return ai
+
+    def get_two_theta(self, mask=None):
+        """
+        Give 2-theta value for detector x,y position; calibration info in data
+        :param mask:
+        :return:
+        """
+
+        ai = self.get_azimuthal_integration()
         if mask is not None:
             return ma.array(np.degrees(ai.twoThetaArray()), mask=mask)
         else:
             return ma.array(np.degrees(ai.twoThetaArray()))
 
-    def GetAzm(self, poni=None, det=None, mask=None):
+    def get_azimuth(self, mask=None):
         """
         Give azimuth value for detector x,y position; calibration info in data
-        :param cali_file:
-        :param poni:
-        :param pix:
-        :param det:
-        :param imask:
+        :param mask:
         :return:
         """
-        ai = AzimuthalIntegrator(self.calibration['distance'], self.calibration['poni1'], self.calibration['poni2'], self.calibration['rot1'], self.calibration['rot2'],
-                                 self.calibration['rot3'], pixel1=self.calibration['pixelsize1'], pixel2=self.calibration['pixelsize2'], detector=self.detector,
-                                 wavelength=self.calibration['wavelength'])
+        ai = self.get_azimuthal_integration()
         if mask is not None:
             return ma.array(np.degrees(ai.chiArray()), mask=mask)
         else:
             return ma.array(np.degrees(ai.chiArray()))
 
-    def GetDsp(self, poni=None, det=None, mask=None):
+    def get_d_space(self, mask=None):
         """
         Give d-spacing value for detector x,y position; calibration info in data
-        Get as thetheta and then convert into d-spacing
-        :param cali_file:
-        :param poni:
-        :param pix:
-        :param det:
-        :param imask:
+        Get as twotheta and then convert into d-spacing
+        :param mask:
         :return:
         """
-        ai = AzimuthalIntegrator(self.calibration['distance'], self.calibration['poni1'], self.calibration['poni2'], self.calibration['rot1'], self.calibration['rot2'],
-                                 self.calibration['rot3'], pixel1=self.calibration['pixelsize1'], pixel2=self.calibration['pixelsize2'], detector=self.detector,
-                                 wavelength=self.calibration['wavelength'])
+        ai = self.get_azimuthal_integration()
         if mask is not None:
-            return ma.array(self.calibration['wavelength'] * 1E10 / 2 / np.sin(ai.twoThetaArray() / 2), mask=mask)
+            return ma.array(
+                self.calibration["wavelength"]
+                * 1e10
+                / 2
+                / np.sin(ai.twoThetaArray() / 2),
+                mask=mask,
+            )
         else:
-            return ma.array(self.calibration['wavelength'] * 1E10 / 2 / np.sin(ai.twoThetaArray() / 2))
+            return ma.array(
+                self.calibration["wavelength"]
+                * 1e10
+                / 2
+                / np.sin(ai.twoThetaArray() / 2)
+            )
 
-
-
-
-    def plot(self, ImDispersion, ImAzimuths, ImIntensity, plottype='data', masked=True, ImIntensity2=None, name=''):
+    @staticmethod
+    def full_plot(
+            im_dispersion,
+            im_azimuths,
+            im_intensity,
+            plot_type="data",
+            masked=True,
+            im_intensity_2=None,
+            name="",
+    ):
+        """
+        :param im_dispersion:
+        :param im_azimuths:
+        :param im_intensity:
+        :param plot_type:
+        :param masked:
+        :param im_intensity_2:
+        :param name:
+        :return:
+        """
         # Plot data.
         # possibilities:
         #   1. just plotting the data or model - with or without mask: label 'data'
         #   2. plot of data, model and differences: label 'model'
         #   3. plot of all data, mask and masked data. label 'mask'
         to_plot = []
-        if plottype == 'data':
+        if plot_type == "data":
             x_plots = 1
             y_plots = 1
-            to_plot.append(ImIntensity)
+            to_plot.append(im_intensity)
             plot_mask = [masked]
-            plot_title = ['Data']
+            plot_title = ["Data"]
             plot_cmap = [plt.cm.jet]
-            
-            spec = gridspec.GridSpec(ncols=x_plots, nrows=y_plots,
-                             width_ratios=[1], wspace=0.5,
-                             hspace=0.5, height_ratios=[1])
-        elif plottype == 'model':
+            spec = gridspec.GridSpec(
+                ncols=x_plots,
+                nrows=y_plots,
+                width_ratios=[1],
+                wspace=0.5,
+                hspace=0.5,
+                height_ratios=[1],
+            )
+        elif plot_type == "model":
             x_plots = 3
             y_plots = 1
-            to_plot.append(ImIntensity)
-            to_plot.append(ImIntensity2)
-            to_plot.append(ImIntensity - ImIntensity2)
+            to_plot.append(im_intensity)
+            to_plot.append(im_intensity_2)
+            to_plot.append(im_intensity - im_intensity_2)
             plot_mask = [masked, masked, masked]
-            plot_title = ['Data', 'Model', 'Residuals']
-            plot_cmap = ['jet', 'jet', 'jet']
-            
-        elif plottype == 'mask':
+            plot_title = ["Data", "Model", "Residuals"]
+            plot_cmap = ["jet", "jet", "jet"]
+        elif plot_type == "mask":
             x_plots = 3
             y_plots = 2
-            to_plot.append(ImIntensity)
-            to_plot.append(np.array(ma.getmaskarray(ImIntensity), dtype='uint8')+1)
-            to_plot.append(ImIntensity)
+            to_plot.append(im_intensity)
+            to_plot.append(np.array(ma.getmaskarray(im_intensity), dtype="uint8") + 1)
+            to_plot.append(im_intensity)
             plot_mask = [False, False, True]
-            plot_title = ['All Data', 'Mask', 'Masked Data']
-            plot_cmap = 'jet', 'Greys', 'jet'
-            
-            spec = gridspec.GridSpec(ncols=x_plots, nrows=y_plots,
-                             width_ratios=[1,1,1], wspace=0.5,
-                             hspace=0.5, height_ratios=[2,1])
-                    
+            plot_title = ["All Data", "Mask", "Masked Data"]
+            plot_cmap = "jet", "Greys", "jet"
+            spec = gridspec.GridSpec(
+                ncols=x_plots,
+                nrows=y_plots,
+                width_ratios=[1, 1, 1],
+                wspace=0.5,
+                hspace=0.5,
+                height_ratios=[2, 1],
+            )
         else:
-            stop    
-        
-        y_lims = np.array([np.min(ImAzimuths.flatten()), np.max(ImAzimuths.flatten())])
+            print("Plotting set up incorrect. Continuing without plotting.")
+            return
+
+        y_lims = np.array(
+            [np.min(im_azimuths.flatten()), np.max(im_azimuths.flatten())]
+        )
         y_lims = np.around(y_lims / 180) * 180
 
-
         # N.B. The plot is a pig with even 1000x1000 pixel images and takes a long time to render.
-        if ImIntensity.size > 100000:
-            print(' Have patience. The plot(s) will appear but it can take its time to render.')
-            
-        
+        if im_intensity.size > 100000:
+            print(
+                " Have patience. The plot(s) will appear but it can take its time to render."
+            )
+
         fig_1 = plt.figure()
         for i in range(x_plots):
             ax1 = fig_1.add_subplot(spec[i])
-            if plot_mask[i] == True:
-                ax1.scatter(ImDispersion, ImAzimuths, s=1, c=(to_plot[i]), edgecolors='none', cmap=plot_cmap[i], vmin=0) #plot all data includeing masked data.
+            if plot_mask[i]:
+                ax1.scatter(
+                    im_dispersion,
+                    im_azimuths,
+                    s=1,
+                    c=(to_plot[i]),
+                    edgecolors="none",
+                    cmap=plot_cmap[i],
+                    vmin=0,
+                )  # plot all data including masked data.
             else:
-                ax1.scatter(ImDispersion.data, ImAzimuths.data, s=1, c=(to_plot[i].data), edgecolors='none', cmap=plot_cmap[i], vmin=0)
+                ax1.scatter(
+                    im_dispersion.data,
+                    im_azimuths.data,
+                    s=1,
+                    c=to_plot[i].data,
+                    edgecolors="none",
+                    cmap=plot_cmap[i],
+                    vmin=0,
+                )
             ax1.set_title(plot_title[i])
             ax1.set_ylim(y_lims)
             locs, labels = plt.xticks()
             plt.setp(labels, rotation=90)
             if i == 0:
-                ax1.set_ylabel(r'Azimuth ($^\circ$)')
-            ax1.set_xlabel(r'$2\theta$ ($^\circ$)')
-            
+                ax1.set_ylabel(r"Azimuth ($^\circ$)")
+            ax1.set_xlabel(r"$2\theta$ ($^\circ$)")
+
         if y_plots > 1:
             for i in range(x_plots):
-                ax1 = fig_1.add_subplot(spec[i+x_plots])
-                if plottype == 'mask' and i==1:
-                    #plot cdf of the intensities.
+                ax1 = fig_1.add_subplot(spec[i + x_plots])
+                if plot_type == "mask" and i == 1:
+                    # plot cdf of the intensities.
                     # sort the data in ascending order
-                    x1 = np.sort(ImIntensity.data)
-                    x2 = np.sort(ImIntensity)
-                      
+                    x1 = np.sort(im_intensity.data)
+                    x2 = np.sort(im_intensity)
+
                     # get the cdf values of y
                     y1 = np.arange(np.size(x1)) / float(np.size(x1))
                     y2 = np.arange(np.size(x2)) / float(ma.count(x2))
-                      
-                    #ax1 = fig_1.add_subplot(1, 1, 1)   
-                    ax1.plot(x1, y1, marker='.', ms=3, label='unmasked CDF')
-                    ax1.plot(x2, y2, marker='.', ms=3, label='cleaned CDF')
-                    #ax1.legend()
-                    ax1.set_title('CDF of the intensities')
-                    
+
+                    # ax1 = fig_1.add_subplot(1, 1, 1)
+                    ax1.plot(
+                        x1,
+                        y1,
+                    )
+                    ax1.plot(
+                        x2,
+                        y2,
+                    )
+                    # ax1.legend()
+                    ax1.set_title("CDF of the intensities")
+
                 else:
-                    if plot_mask[i] == True:
-                        ax1.scatter(ImDispersion, to_plot[i], s=1, c=(ImAzimuths), edgecolors='none', cmap=plot_cmap[i], vmin=0) #plot all data includeing masked data.
+                    if plot_mask[i]:
+                        ax1.scatter(
+                            im_dispersion,
+                            to_plot[i],
+                            s=1,
+                            c=im_azimuths,
+                            edgecolors="none",
+                            cmap=plot_cmap[i],
+                            vmin=0,
+                        )  # plot all data including masked data.
                     else:
-                        ax1.scatter(ImDispersion.data, to_plot[i].data, s=1, c=(ImAzimuths.data), edgecolors='none', cmap=plot_cmap[i], vmin=0)
-                    #ax1.set_title(plot_title[i])
-                    #ax1.set_ylim(y_lims)
+                        ax1.scatter(
+                            im_dispersion.data,
+                            to_plot[i].data,
+                            s=1,
+                            c=im_azimuths.data,
+                            edgecolors="none",
+                            cmap=plot_cmap[i],
+                            vmin=0,
+                        )
+                    # ax1.set_title(plot_title[i])
+                    # ax1.set_ylim(y_lims)
                     locs, labels = plt.xticks()
                     plt.setp(labels, rotation=90)
                     if i == 0:
-                        ax1.set_ylabel(r'Intennsity (a.u.)')
-                    ax1.set_xlabel(r'$2\theta$ ($^\circ$)')
-                    
-        plt.suptitle(name + '; masking')
-        
+                        ax1.set_ylabel(r"Intensity (a.u.)")
+                    ax1.set_xlabel(r"$2\theta$ ($^\circ$)")
+
+        plt.suptitle(name + "; masking")
         return fig_1
+
+    @staticmethod
+    def debug_plot(title_str='Unspecified', two_theta=None, azimuth=None, intensity=None, show=0):
+        """
+
+        :param title_str:
+        :param two_theta:
+        :param azimuth:
+        :param intensity:
+        :param show:
+        :return:
+        """
+        '''
+        fig = plt.figure()
+        if fit_settings.Calib_type == "Med":
+            # plt.scatter(twotheta, azimuth, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
+            # vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
+            for x in range(9):
+                plt.plot(
+                    twotheta[x], intens[x] + 100 * x
+                )  # Better for energy dispersive data. #FIX ME: need variable
+                # for vmax.
+            plt.xlabel("Energy (keV)")
+            plt.ylabel("Intensity")
+        else:
+        '''
+        # plt.scatter(twotheta, azimuth, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)
+        # Better for monochromatic data.
+        # FIX ME: need variable for vmax.
+        plt.scatter(
+            two_theta,
+            azimuth,
+            s=4,
+            c=intensity,
+            edgecolors="none",
+            cmap=plt.cm.jet,
+            vmin=0,
+            vmax=4000,  # FIX ME: generally applicable?
+        )
+        # Better for monochromatic data.
+        # FIX ME: need variable for vmax.
+        plt.xlabel(r"2$\theta$")
+        plt.ylabel("Azimuth")
+        plt.colorbar()
+        plt.title(title_str)
+        plt.draw()
+        if show:
+            plt.show()
+        plt.close()

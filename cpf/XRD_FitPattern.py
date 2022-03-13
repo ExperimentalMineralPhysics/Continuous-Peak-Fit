@@ -978,6 +978,7 @@ def execute(
                         "iterations": iterations,
                         "f_name": diff_files[j],
                         "fdir": fit_settings.Output_directory,
+                        "num": i
                     }
                     args = (
                         [twotheta_sub, d_spacing_sub, parms_dict],
@@ -1005,6 +1006,7 @@ def execute(
                         iterations=iterations,
                         f_name=diff_files[j],
                         fdir=fit_settings.Output_directory,
+                        num=i
                     )
                     fitted_param.append(tmp[0])
                     lmfit_models.append(tmp[1])

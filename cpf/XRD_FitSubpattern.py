@@ -752,6 +752,7 @@ def fit_sub_pattern(
     f_name=None,
     fdir=None,
     fit_method=None,
+    num=1
 ):
     """
     Perform the various fitting stages to the data
@@ -1045,7 +1046,7 @@ def fit_sub_pattern(
                         if debug:
                             params.pretty_print()
                             print("\n")
-                            guess = params
+                        guess = params
 
                         # Run actual fit
                         out = pf.fit_model(
@@ -1088,6 +1089,61 @@ def fit_sub_pattern(
                             # if fixed
 
                         new_azi_chunks.append(azichunks[j])
+
+                        # Temp addition: append chunk azimuths and fitted peak intensities to file
+                        azm_plot = np.tile(azimu.flatten()[chunks[j]][0], 300)
+                        azm_plot = ma.array(azm_plot, mask=(~np.isfinite(azm_plot)))
+                        gmodel = Model(
+                                pf.peaks_model, independent_vars=["two_theta", "azimuth"])
+                        tth_range = np.linspace(np.min(
+                            twotheta.flatten()[chunks[j]]),
+                            np.max(twotheta.flatten()[chunks[j]]),
+                            azm_plot.size,
+                        )
+                        mod_plot = gmodel.eval(
+                            params=params,
+                            two_theta=tth_range,
+                            azimuth=azm_plot,
+                            conv=conversion_factor,
+                        )
+                        # Get the highest peak
+                        temp_int = max(mod_plot)
+                        temp_peak_ints = [temp_int]
+                        temp_x = tth_range[np.where(mod_plot == temp_int)][0]
+                        temp_tth = [temp_x]
+                        temp_widths = []
+                        temp_tth_range = tth_range
+                        temp_mod_plot = mod_plot
+                        # Find the widest peak width
+                        for i in range(peeks):
+                            temp_widths.append(params["peak_" + str(i) + "_w0"].value)
+                        temp_max_width = max(temp_widths)
+                        # print(temp_int, temp_x, temp_max_width)
+                        # Use the max width to mask out array to search for next peak
+                        for pk in range(len(peaks)-1):
+                            upper = temp_x+(2*temp_max_width)
+                            lower = temp_x-(2*temp_max_width)
+                            # print(upper, lower)
+                            # temp_int = max(mod_plot[np.where(temp_tth_range)])
+                            temp_mod_plot = temp_mod_plot[np.where((temp_tth_range >= upper) | (temp_tth_range <= lower))]
+                            temp_int = max(temp_mod_plot)
+                            temp_peak_ints.append(temp_int)
+                            # temp_int = max(mod_plot[np.where((temp_tth_range >= upper) | (temp_tth_range <= lower))])
+                            temp_x = temp_tth_range[np.where(temp_mod_plot == temp_int)][0]
+                            temp_tth.append(temp_x)
+                            temp_tth_range = (temp_tth_range[(temp_tth_range >= upper) | (temp_tth_range <= lower)])
+                            # print('peak', temp_peak_ints, temp_tth)
+
+                        # Work out which peak is which - assume in 2theta order
+                        temp_tth = sorted(temp_tth)
+                        # Write to file per sub-pattern per peak
+                        for pk in range(len(peaks)):
+                            # print(azichunks[j], temp_peak_ints[pk])
+                            with open("subpattern"+str(num)+"peak"+str(pk)+".txt", "a") as myfile:
+                                myfile.write("%f %f\n"  % (azichunks[j], temp_peak_ints[pk]))
+
+                        # print(stop)
+                        # debug = True
 
                         # plot the fits.
                         if debug:
@@ -1134,11 +1190,12 @@ def fit_sub_pattern(
                                 linewidth=2,
                                 label="fit",
                             )
-                            plt.xlim(t_th_range)
+                            #plt.xlim(tth_range)
                             plt.legend()
                             plt.title(io.peak_string(orders) + "; Chunk " + str(j + 1))
                             plt.show()
 
+                # print(stop)
                 # Fitting stage 2:
                 # Feed each d_0,h,w into Fourier expansion function to get fit for fourier component
                 # parameters as output.

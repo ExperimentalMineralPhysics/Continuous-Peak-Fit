@@ -104,7 +104,7 @@ def initiate(
     :return fit_settings:
     """
     # Check we can find and load settings file
-    if settings_file:
+    if setting_file:
         try:
             print("\nThe name of the settings file is: ", setting_file)
             if not str.endswith(setting_file, ".py"):

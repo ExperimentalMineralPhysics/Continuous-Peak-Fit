@@ -1138,9 +1138,21 @@ def fit_sub_pattern(
                         temp_tth = sorted(temp_tth)
                         # Write to file per sub-pattern per peak
                         for pk in range(len(peaks)):
+                            filename = io.make_outfile_name(
+                                        f_name,
+                                        directory=fdir,
+                                        additional_text="ChunksHeights",
+                                        orders=orders,
+                                        extension=".txt",
+                                        overwrite=True,
+                                    )
                             # print(azichunks[j], temp_peak_ints[pk])
-                            with open("subpattern"+str(num)+"peak"+str(pk)+".txt", "a") as myfile:
-                                myfile.write("%f %f\n"  % (azichunks[j], temp_peak_ints[pk]))
+                            if j==0:
+                                with open(filename, "w") as myfile:
+                                    myfile.write("%f %f\n"  % (azichunks[j], temp_peak_ints[pk]))
+                            else:
+                                with open(filename, "a") as myfile:
+                                    myfile.write("%f %f\n"  % (azichunks[j], temp_peak_ints[pk]))
 
                         # print(stop)
                         # debug = True

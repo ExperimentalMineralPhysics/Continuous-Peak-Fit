@@ -1051,7 +1051,7 @@ def execute(
 
     if mode == "fit":
         # Write the output files.
-        write_output(settings_file, fit_settings=fit_settings, fit_parameters=fit_parameters, parms_dict=parms_dict,
+        write_output(setting_file, fit_settings=fit_settings, fit_parameters=fit_parameters, parms_dict=parms_dict,
                      outtype=fit_settings.Output_type)
 
     if parallel is True:

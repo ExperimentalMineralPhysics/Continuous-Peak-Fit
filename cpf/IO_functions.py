@@ -70,13 +70,16 @@ def file_list(fit_parameters, fit_settings):
     :return:
     """
     # Define step
-    if "datafile_Step" not in fit_parameters:
-        if fit_settings.datafile_EndNum > fit_settings.datafile_StartNum:
+    if ('datafile_Step' in fit_parameters):
+        step = fit_settings.datafile_Step
+    elif ('datafile_Files' in fit_parameters):
+        step = 1
+    else: #if just datafile_StartNum and datafile_EndNum
+        if fit_settings.datafile_EndNum >= fit_settings.datafile_StartNum:
             step = 1
         else:
             step = -1
-    else:
-        step = fit_settings.datafile_Step
+    
     if "datafile_NumDigit" not in fit_parameters:
         fit_settings.datafile_NumDigit = 1
 

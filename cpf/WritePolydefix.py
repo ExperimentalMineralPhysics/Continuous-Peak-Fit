@@ -142,11 +142,6 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
         text_file.write(
             "     %s\n" % FitSettings.datafile_Basename.strip("_").strip(".")
         )
-        print(
-            FitSettings.datafile_StartNum,
-            FitSettings.datafile_EndNum,
-            FitSettings.datafile_StartNum > FitSettings.datafile_EndNum,
-        )
         if FitSettings.datafile_StartNum > FitSettings.datafile_EndNum:
             print("start<end")
             strt = FitSettings.datafile_EndNum

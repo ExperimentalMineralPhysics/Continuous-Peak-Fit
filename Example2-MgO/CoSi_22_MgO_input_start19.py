@@ -100,5 +100,6 @@ fit_orders = [
     ]
 
 #Output settings
+Output_directory   = './results/'
 Output_type        = "PolydefixED"
 Output_ElasticProperties = "MgO_elastic_properties.txt"

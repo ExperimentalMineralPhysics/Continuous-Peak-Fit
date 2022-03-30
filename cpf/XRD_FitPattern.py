@@ -336,12 +336,12 @@ def set_range(
         setting_file, inputs=inputs, report=True
     )
 
-    if "datafile_Files" not in fit_parameters:
-        fit_settings.datafile_Files = fit_settings.datafile_Files[0]
     # search over the first file only
-    # strip file list to first file
-    else:
+    # restrict file list to first file
+    if "datafile_Files" not in fit_parameters:
         fit_settings.datafile_EndNum = fit_settings.datafile_StartNum
+    else:
+        fit_settings.datafile_Files = [fit_settings.datafile_Files[0]]
 
     # restrict to sub-patterns listed
     if subpattern == "all":
@@ -417,8 +417,14 @@ def initial_peak_position(
         orders_tmp.append(fit_settings.fit_orders[j])
     fit_settings.fit_orders = orders_tmp
 
+    print("\n'initial_peak_position' needs an interactive matplotlib figure.")
+    print("If you are using sypder with inline figures, call '%matplotlib qt', then rerun the script")
+    print("To restore the inline plotting afterwards call '%matplotlib inline'")
+    print("To move to the next peak selection close the window.\n")
+
     execute(fit_settings=fit_settings, fit_parameters=fit_parameters, inputs=new_data, debug=debug, refine=refine,
             save_all=save_all, propagate=propagate, iterations=iterations, parallel=parallel, mode="set-guess")
+
 
 
 class PointBuilder:
@@ -568,7 +574,7 @@ def order_search(
     else:
         search = [int(x) for x in str(search_over)]
 
-    ordered_search = []
+    orders_search = []
     for i in range(len(sub_patterns)):
         for j in range(len(search_series)):
             tmp_order = fit_settings.fit_orders[sub_patterns[i]]
@@ -581,15 +587,19 @@ def order_search(
                     ] = search_series[j]
                 else:
                     orders_s["background"][search_peak] = search[k]
+                if len(tmp_order) > 1:
+                    intro_string = "peak="+str(search_peak)+"_"
+                else:
+                    intro_string = ''
                 orders_s["note"] = (
                     search_parameter
                     + "="
                     + str(search[k])
-                    + "; type="
+                    + "_type="
                     + search_series[j]
                 )
-                ordered_search.append(orders_s)
-    fit_settings.fit_orders = ordered_search
+                orders_search.append(orders_s)
+    fit_settings.fit_orders = orders_search
 
     execute(fit_settings=fit_settings, fit_parameters=fit_parameters, inputs=new_data, debug=debug, refine=refine,
             save_all=save_all, propagate=propagate, iterations=iterations, parallel=parallel)
@@ -741,10 +751,10 @@ def execute(
     # print(azimuth, twotheta, dspace)
 
     # plot calibration file
+    # FIX ME: SAH - I have just removed this so that the debug runs without the calibration file.
     if (
         0
     ):  # debug and 'Calib_data' in FitParameters:
-        # FIX ME: SAH - I have just removed this so that the debug runs without the calibration file.
         new_data.debug_plot(two_theta=twotheta, azimuth=azimuth, intensity=new_data.intensity)
 
     # if parallel processing start the pool
@@ -920,7 +930,7 @@ def execute(
                 twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
                 d_spacing_sub = ma.array(d_spacing_sub, mask=intens_sub.mask)
 
-            if mode == "setrange":
+            if mode == "set-range":
                 # FIX ME: this plots the input data. perhaps it should have its own switch rather than being 
                 # subservient to Debug.
                 # It is not a debug it is a setup thing.
@@ -948,7 +958,7 @@ def execute(
 
                 step = 1000
 
-            elif mode == "setguess":
+            elif mode == "set-guess":
 
                 fig_1 = new_data.full_plot(twotheta_sub,
                                            azimuth_sub,

@@ -9,6 +9,7 @@ import os
 import sys
 import time
 import matplotlib.pyplot as plt
+from matplotlib import cm, colors
 import numpy as np
 import numpy.ma as ma
 from lmfit import Parameters, Model
@@ -134,19 +135,12 @@ def update_component_fits(
 
     comp = "h"
     # set other parameters to not vary
-    master_params = pf.un_vary_params(
-        master_params, param_str, comp
-    )
+    master_params = ff.unvary_params(master_params, param_str, comp)
     # set these parameters to vary
-    master_params = pf.vary_params(
-        master_params, param_str, comp
-    )
+    master_params = ff.vary_params(master_params, param_str, comp)
     # set part of these parameters to not vary
-    master_params = pf.un_vary_part_params(
-        master_params, param_str, comp, o["height"]
-    )
-
-    master_params.pretty_print()
+    master_params = ff.unvary_part_params(master_params, param_str, comp, o["height"])
+    #master_params.pretty_print()
     out = pf.fit_model(
         intens.flatten(),
         twotheta.flatten(),
@@ -161,18 +155,15 @@ def update_component_fits(
     )
     # master_params = out.params
     hfour.append(pf.gather_param_errs_to_list(master_params, param_str, comp))
-    master_params.pretty_print()
-
+    #master_params.pretty_print()
 
     comp = "d"
-    master_params = pf.un_vary_params(
-        master_params, param_str, comp
-    )  # set other parameters to not vary
-    master_params = pf.vary_params(
-        master_params, param_str, comp
-    )  # set these parameters to vary
-    master_params = pf.un_vary_part_params(master_params, param_str, comp, o["d-space"])
+    # set other parameters to not vary
+    master_params = ff.unvary_params(master_params, param_str, comp)
+    # set these parameters to vary
+    master_params = ff.vary_params(master_params, param_str, comp)
     # set part of these parameters to not vary
+    master_params = ff.unvary_part_params(master_params, param_str, comp, o["d-space"])
     out = pf.fit_model(
         intens.flatten(),
         twotheta.flatten(),
@@ -189,14 +180,12 @@ def update_component_fits(
     dfour.append(pf.gather_param_errs_to_list(master_params, param_str, comp))
 
     comp = "w"
-    master_params = pf.un_vary_params(
-        master_params, param_str, comp
-    )  # set other parameters to not vary
-    master_params = pf.vary_params(
-        master_params, param_str, comp
-    )  # set these parameters to vary
-    master_params = pf.un_vary_part_params(master_params, param_str, comp, o["width"])
+    # set other parameters to not vary
+    master_params = ff.unvary_params(master_params, param_str, comp)
+    # set these parameters to vary
+    master_params = ff.vary_params(master_params, param_str, comp)
     # set part of these parameters to not vary
+    master_params = ff.unvary_part_params(master_params, param_str, comp, o["width"])
     out = pf.fit_model(
         intens.flatten(),
         twotheta.flatten(),
@@ -215,16 +204,12 @@ def update_component_fits(
     comp = "p"
     if pfixed is False:
         # if 'profile_fixed' not in order_peak[0]: # orders['peak'][0]:
-        master_params = pf.un_vary_params(
-            master_params, param_str, comp
-        )  # set other parameters to not vary
-        master_params = pf.vary_params(
-            master_params, param_str, comp
-        )  # set these parameters to vary
-        master_params = pf.un_vary_part_params(
-            master_params, param_str, comp, o["profile"]
-        )
+        # set other parameters to not vary
+        master_params = ff.unvary_params(master_params, param_str, comp)
+        # set these parameters to vary
+        master_params = ff.vary_params(master_params, param_str, comp)
         # set part of these parameters to not vary
+        master_params = ff.unvary_part_params(master_params, param_str, comp, o["profile"])
         out = pf.fit_model(
             intens.flatten(),
             twotheta.flatten(),
@@ -312,9 +297,8 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                         previous_params["peak"][y][param]
                 ):
                     # print 'smaller'
-                    change_by = np.size(previous_params["peak"][y][param]) - (
-                            np.max(orders["peak"][y][param]) * 2 + 1
-                    )
+                    change_by = (np.size(previous_params["peak"][y][param]) - 
+                            np.max(orders["peak"][y][param]) * 2 + 1)
                     previous_params["peak"][y][param] = previous_params["peak"][y][
                                                             param
                                                         ][1: -(change_by - 1)]
@@ -407,7 +391,7 @@ def check_num_azimuths(peeks, azimu, orders):
         coeff_type = pf.params_get_type(orders, param, peak=y)
         if coeff_type != 5:  # if parameters are not independent
             max_coeff = np.max([max_coeff, np.max(orders["background"][y]) * 2 + 1])
-    print(max_coeff, len(np.unique(azimu)))
+    #print(max_coeff, len(np.unique(azimu)))
     if max_coeff > len(np.unique(azimu)):
         err_str = (
                 "The maximum order, %i, needs more coefficients than the number of unique azimuths, %i. "
@@ -428,6 +412,11 @@ def get_manual_guesses(peeks, orders, bounds, twotheta, debug=None):
     :return:
     """
     t_th_guesses = np.array(orders["PeakPositionSelection"])
+
+    #confirm there are the same number of peaks selected as are to be fit.
+    if len(t_th_guesses) != peeks:
+        raise ValueError("The number of peaks and the postion selection do not match.")
+
     # for future use in setting limits
     dist = np.max(t_th_guesses[:, 2]) - np.min(t_th_guesses[:, 2])
     width_change = dist / (2 ** peeks)
@@ -520,7 +509,7 @@ def get_chunk_background_guess(twotheta, azimu, intens, orders, chunks, backgrou
     background_guess = [[0.0] for i in range(len(orders["background"]))]
     if background_type == "coeffs":
         # Fourier expands the coefficients.
-        # FIX ME!! Altered this loop from using 'j' as already outer loop, needs checking below!
+        # FIX ME! Replace fourier_expand with coeff_expand or remove background_type == "coeffs" as an option
         for k in range(len(orders["background"])):
             background_guess[j] = pf.fourier_expand(
                 np.mean(azimu.flatten()[chunks[j]]),
@@ -551,7 +540,6 @@ def get_chunk_background_guess(twotheta, azimu, intens, orders, chunks, backgrou
                 ]
             )
             # if there are more, then calculate a gradient guess.
-            # leave all higher order terms as 0 -- assume they are small.
             background_guess[1][0] = (
                                              np.mean(
                                                  intens.flatten()[chunks[j]].compressed()[
@@ -571,6 +559,7 @@ def get_chunk_background_guess(twotheta, azimu, intens, orders, chunks, backgrou
                                                  tth_ord[0]
                                              ]
                                      )
+            # leave all higher order terms as 0 -- assume they are small.
     # FIX ME: do we need a 'flat' option?
     # elif backg_type == 'flat':
     #     backg_guess = backg[0][0]
@@ -737,6 +726,32 @@ def get_chunk_guesses(peeks, orders, twotheta, intens, background_guess,
     return peaks, limits, p_fixed
 
 
+def residuals_colour_scheme(maximum_value, minimum_value):
+
+    # create custom colormap for residuals
+    # ---------------
+    #Need: a colour map that is white at 0 and the colours are equally scaled on each side. So it will match the intensity in black and white. Also one this is truncated so dont have lots of unused colour bar.
+    #This can't be done using DivergingNorm(vcenter=0) or CenteredNorm(vcenter=0) so make new colourmap.
+    #
+    #create a colour map that truncates seismic so balanced around 0. 
+    # It is not perfect because the 0 point insn't necessarily perfectly white but it is close enough (I think). 
+    n_entries = 256
+    all_colours = cm.seismic(np.arange(n_entries))
+    
+    if np.abs(maximum_value)> np.abs(minimum_value):
+        n_cut = np.int(((2*maximum_value-(maximum_value-np.abs(minimum_value)))/(2*maximum_value))*n_entries)
+        keep = n_entries-n_cut
+        all_colours = all_colours[keep:]
+    else:
+        n_cut = np.int(((2*np.abs(minimum_value)-(maximum_value-np.abs(minimum_value)))/(2*np.abs(minimum_value)))*n_entries)
+        keep = n_entries-n_cut
+        all_colours = all_colours[:keep]
+    all_colours = colors.ListedColormap(all_colours, name='myColorMap', N=all_colours.shape[0])
+
+    return all_colours
+
+
+
 def fit_sub_pattern(
     two_theta_and_dspacings,
     azimu,
@@ -862,10 +877,9 @@ def fit_sub_pattern(
         step = 5
 
     # Start fitting loops
-    while (
-        step <= 100
-    ):  # 10 is arbitrarily large number and does not (currently) reflect the num. of actual steps/stages in the process
-        # use while loops so that if the fit is rubbish we can go back and improve it by repeating earlier steps.
+    while (step <= 100):
+        # 100 is arbitrarily large number and does not (currently) reflect the num. of actual steps/stages in the process.
+        # While loops are used so that if the fit is rubbish we can go back and improve it by repeating earlier steps.
         # for chunks step <= 9 and for refine <= 19
         # we are using increments of 10 so that it is possible to utilise different states after the final fit.
 
@@ -1091,6 +1105,7 @@ def fit_sub_pattern(
                         new_azi_chunks.append(azichunks[j])
 
                         # Temp addition: append chunk azimuths and fitted peak intensities to file
+                        '''
                         azm_plot = np.tile(azimu.flatten()[chunks[j]][0], 300)
                         azm_plot = ma.array(azm_plot, mask=(~np.isfinite(azm_plot)))
                         gmodel = Model(
@@ -1156,6 +1171,7 @@ def fit_sub_pattern(
 
                         # print(stop)
                         # debug = True
+                        '''
 
                         # plot the fits.
                         if debug:
@@ -1206,10 +1222,15 @@ def fit_sub_pattern(
                             plt.legend()
                             plt.title(io.peak_string(orders) + "; Chunk " + str(j + 1))
                             plt.show()
-
+                
+                '''
+                return [0, 0] 
                 # print(stop)
+                '''
+
+
                 # Fitting stage 2:
-                # Feed each d_0,h,w into Fourier expansion function to get fit for fourier component
+                # Feed each d_0,h,w into coefficient function to get fit for coeficient component
                 # parameters as output.
                 print("\n Performing Series fits...")
 
@@ -1272,10 +1293,8 @@ def fit_sub_pattern(
 
                 # initiate peak(s)
                 for j in range(peeks):
-
-                    param_str = "peak_" + str(
-                        j
-                    )  # defines peak string to start parameter name
+                    # defines peak string to start parameter name
+                    param_str = "peak_" + str(j)
 
                     # initiate symmetry
                     comp = "s"
@@ -1548,7 +1567,6 @@ def fit_sub_pattern(
                 lims = pf.parse_bounds(
                     bounds, d_space.flatten(), intens.flatten(), twotheta.flatten()
                 )
-                # replace fixed array with dynamic limits
 
                 # Initiate background parameters
                 comp = "bg"
@@ -1568,11 +1586,10 @@ def fit_sub_pattern(
                         limits=limits,
                     )
 
+                #Initiate peaks
                 for j in range(peeks):
-
-                    param_str = "peak_" + str(
-                        j
-                    )  # defines peak string to start parameter name
+                    # defines peak string to start parameter name
+                    param_str = "peak_" + str(j)
 
                     # initiate symmetry
                     comp = "s"
@@ -1665,15 +1682,12 @@ def fit_sub_pattern(
                     for k in range(len(backgnd)):
                         param_str = "bg_c" + str(k)
                         comp = "f"
-                        master_params = pf.un_vary_params(
-                            master_params, param_str, comp
-                        )  # set other parameters to not vary
-                        master_params = pf.vary_params(
-                            master_params, param_str, comp
-                        )  # set these parameters to vary
-                        # master_params = ff.un_vary_part_params(master_params, param_str, comp,
-                        # orders['background'][k])
+                        # set other parameters to not vary
+                        master_params = pf.un_vary_params(master_params, param_str, comp)
+                        # set these parameters to vary
+                        master_params = pf.vary_params(master_params, param_str, comp)
                         # set part of these parameters to not vary
+                        # master_params = ff.un_vary_part_params(master_params, param_str, comp, orders['background'][k])
                         fout = pf.fit_model(
                             intens.flatten(),
                             twotheta.flatten(),
@@ -1686,36 +1700,29 @@ def fit_sub_pattern(
                             params=master_params,
                             max_n_fev=default_max_f_eval,
                         )
-                        if fout.success == 1:
-                            master_params = fout.params
+                        #if fout.success == 1:
+                        master_params = fout.params
 
                     for k in range(peeks):
                         param_str = "peak_" + str(k)
-                        comp_list = [
-                            "h",
-                            "d",
-                            "w",
-                        ]  # always need to iterate over d, height and width
+                        # always need to iterate over d, height and width
+                        comp_list = ['h', 'd', 'w']
                         comp_names = ["height", "d-space", "width", "profile"]
                         if "profile_fixed" in orders["peak"][k]:
                             p_fixed = 1
                         else:
                             p_fixed = 0
-                            comp_list.append(
-                                "p"
-                            )  # if the profile is not fixed iterate over this as well.
+                            # if the profile is not fixed iterate over this as well.
+                            comp_list.append("p")
                         for cp in range(len(comp_list)):
                             comp = comp_list[cp]
                             # print(comp_names[cp])
-                            master_params = pf.un_vary_params(
-                                master_params, param_str, comp
-                            )  # set other parameters to not vary
-                            master_params = pf.vary_params(
-                                master_params, param_str, comp
-                            )  # set these parameters to vary
-                            if isinstance(
-                                orders["peak"][k][comp_names[cp]], list
-                            ):  # set part of these parameters to not vary
+                            # set other parameters to not vary
+                            master_params = pf.un_vary_params(master_params, param_str, comp)
+                            # set these parameters to vary
+                            master_params = pf.vary_params(master_params, param_str, comp)
+                            # set part of these parameters to not vary
+                            if isinstance(orders["peak"][k][comp_names[cp]], list):
                                 master_params = pf.un_vary_part_params(
                                     master_params,
                                     param_str,
@@ -1763,9 +1770,8 @@ def fit_sub_pattern(
             # Refit through full equation with all data for d,h,w,bg independently
             print("\nFinal fit solving for all parms...\n")
 
-            if any(
-                x == step for x in [20, 21, 22, 25, 26, 27]
-            ):  # if we are on the first go round of the fitting.
+            if any(x == step for x in [20, 21, 22, 25, 26, 27]):
+                # if we are on the first go round of the fitting.
                 max_n_f_eval = default_max_f_eval
             elif any(x == step for x in [23, 28]):
                 max_n_f_eval = 2 * default_max_f_eval
@@ -1778,33 +1784,27 @@ def fit_sub_pattern(
             for k in range(len(backgnd)):
                 param_str = "bg_c" + str(k)
                 comp = "f"
-                master_params = pf.vary_params(
-                    master_params, param_str, comp
-                )  # set these parameters to vary
+                # set these parameters to vary
+                master_params = pf.vary_params(master_params, param_str, comp)
                 # master_params = ff.un_vary_part_params(master_params, param_str, comp, orders['background'][k])
                 # set part of these parameters to not vary
             for k in range(peeks):
                 param_str = "peak_" + str(k)
-                comp_list = [
-                    "d",
-                    "h",
-                    "w",
-                ]  # always need to iterate over d, height and width
-                comp_names = ["d-space", "height", "width", "profile"]
+                # always need to iterate over d, height and width
+                comp_list = ['h', 'd', 'w']
+                comp_names = ["height", "d-space", "width", "profile"]
                 if "profile_fixed" in orders["peak"][k]:
                     p_fixed = 1
                 else:
                     p_fixed = 0
-                    comp_list.append(
-                        "p"
-                    )  # if the profile is not fixed iterate over this as well.
+                    # if the profile is not fixed iterate over this as well.
+                    comp_list.append("p")
                 for cp in range(len(comp_list)):
                     master_params = pf.vary_params(
                         master_params, param_str, comp_list[cp]
                     )
-                    if isinstance(
-                        orders["peak"][k][comp_names[cp]], list
-                    ):  # set part of these parameters to not vary
+                    # set part of these parameters to not vary
+                    if isinstance(orders["peak"][k][comp_names[cp]], list):
                         master_params = pf.un_vary_part_params(
                             master_params,
                             param_str,
@@ -1970,11 +1970,11 @@ def fit_sub_pattern(
         if conversion_factor["DispersionType"] == "EnergyDispersive":
             xlabel_str = "Energy (keV)"
         elif conversion_factor["DispersionType"] == "AngleDispersive":
-            xlabel_str = "Two theta (deg)"
+            xlabel_str = r'2$\theta$ (deg)'#"Two theta (deg)"
         else:
             xlabel_str = "Dispersive units"
 
-        dot_size = 16
+        dot_size = 6#0.5
 
         fig = plt.figure()
         axf = fig.add_subplot(1, 3, 1)
@@ -2021,14 +2021,17 @@ def fit_sub_pattern(
         locs, labels = plt.xticks()
         plt.setp(labels, rotation=90)
         ax_o3 = plt.subplot(133)
+        resid_colour = residuals_colour_scheme(val_max3, val_min3)
+        print("residuals range", val_max3, val_min3)
         # plt.scatter(twotheta, azimuth, s=1, c=np.log(intens-full_fit_intens), edgecolors='none', cmap=plt.cm.jet)
+
         plt.scatter(
             twotheta.flatten(),
             azimu.flatten(),
             s=dot_size,
             c=(intens.flatten() - full_fit_intens.flatten()),
             edgecolors="none",
-            cmap=plt.cm.coolwarm,
+            cmap=resid_colour,
             vmin=val_min3,
             vmax=val_max3,
         )
@@ -2082,10 +2085,10 @@ def fit_sub_pattern(
             save_modelresult(out, filename)
         except BaseException:
             print("Cannot save lmfit object, trying again")
-            if os.path.isfile(filename):
-                os.remove(filename)
-                save_modelresult(out, filename)
-            else:
-                print("File does not exist!")
+            # if os.path.isfile(filename):
+            #     os.remove(filename)
+            #     save_modelresult(out, filename)
+            # else:
+            #     print("File does not exist!")
 
     return [new_params, out]

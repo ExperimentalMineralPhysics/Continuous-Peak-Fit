@@ -6,9 +6,11 @@
 
 import sys
 import os
+from copy import deepcopy, copy
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
+from matplotlib import cm, colors
 from cpf import Med
 
 
@@ -24,11 +26,14 @@ from cpf import Med
 
 
 class MedDetector:
-    def __init__(self, calibration_parameters, fit_parameters=None):
+    def __init__(self, calibration_parameters=None, fit_parameters=None):
         """
         :param calibration_parameters:
         """
-        self.parameters = self.get_calibration(calibration_parameters)
+        self.parameters = None
+        if calibration_parameters is not None:
+            self.parameters = self.get_calibration(calibration_parameters)
+        
         self.requirements = self.get_requirements(fit_parameters)
         self.detector = None
         self.intensity = None
@@ -37,9 +42,26 @@ class MedDetector:
         self.dspace = None
         self.calibration = None
 
+    def __deepcopy__(self,a):
+        """
+        Makes a "deep" copy of an Mca instance, using copy.deepcopy() on all of
+        the attributes of the Mca instance. All of the attribute will point to
+        new objects.
+        """
+        
+        new = MedDetector()
+        new.parameters =copy(self.parameters)
+        new.calibration = copy(self.calibration)
+        
+        new.intensity = deepcopy(self.intensity)
+        new.tth = deepcopy(self.tth)
+        new.azm  = deepcopy(self.azm)
+        new.dspace = deepcopy(self.dspace) 
+        
+        return new
+
     def fill_data(self, diff_file, settings=None, debug=None, calibration_mask=None):
         """
-
         :param diff_file:
         :param settings:
         :param debug:
@@ -145,8 +167,8 @@ class MedDetector:
                 )
         return required_list
 
-    @staticmethod
-    def import_image(image_name, mask=None, debug=False):
+
+    def import_image(self,image_name, mask=None, debug=False):
         """
         :param image_name:
         :param debug:
@@ -166,6 +188,12 @@ class MedDetector:
                 im_all = ma.array(im_all)
         else:
             sys.exit("Unknown file type. A *.med file is required")
+            
+        if mask is not None and ma.is_masked(self.intensity):
+            self.intensity = ma.array(im_all, mask=self.intensity.mask)
+        else:
+            self.intensity = np.array(im_all)
+                
         return im_all
 
     def conversion(self, e_in, calib, reverse=0, azm=None):
@@ -369,3 +397,228 @@ class MedDetector:
         else:
             d_space = ma.array(dspc)
         return d_space
+
+
+    def set_limits(self, range_bounds=[-np.inf, np.inf], i_max=np.inf, i_min=-np.inf):
+        """
+        Set limits to data 
+        :param range_bounds:
+        :param i_max:
+        :param i_min:
+        :return:
+        """
+                
+        local_mask = np.array((self.tth <= range_bounds[0]) | (self.tth >= range_bounds[1]) | (self.intensity > i_max) | (self.intensity < i_min) )
+        masks = (local_mask) + (self.intensity.mask)
+   
+        self.intensity = ma.masked_array(self.intensity,mask = masks)
+        self.tth = ma.masked_array(self.tth,mask=self.intensity.mask)
+        self.azm = ma.masked_array(self.azm,mask=self.intensity.mask)
+        self.dspace = ma.masked_array(self.dspace,mask=self.intensity.mask)
+
+
+    # @staticmethod
+    # def residuals_colour_scheme(maximum_value, minimum_value, **kwargs):
+    
+    #     # create custom colormap for residuals
+    #     # ---------------
+    #     #Need: a colour map that is white at 0 and the colours are equally scaled on each side. So it will match the intensity in black and white. Also one this is truncated so dont have lots of unused colour bar.
+    #     #This can't be done using DivergingNorm(vcenter=0) or CenteredNorm(vcenter=0) so make new colourmap.
+    #     #
+    #     #create a colour map that truncates seismic so balanced around 0. 
+    #     # It is not perfect because the 0 point insn't necessarily perfectly white but it is close enough (I think). 
+    #     n_entries = 256
+    #     all_colours = cm.seismic(np.arange(n_entries))
+        
+    #     if np.abs(maximum_value)> np.abs(minimum_value):
+    #         n_cut = np.int(((2*maximum_value-(maximum_value-np.abs(minimum_value)))/(2*maximum_value))*n_entries)
+    #         keep = n_entries-n_cut
+    #         all_colours = all_colours[keep:]
+    #     else:
+    #         n_cut = np.int(((2*np.abs(minimum_value)-(maximum_value-np.abs(minimum_value)))/(2*np.abs(minimum_value)))*n_entries)
+    #         keep = n_entries-n_cut
+    #         all_colours = all_colours[:keep]
+    #     all_colours = colors.ListedColormap(all_colours, name='myColorMap', N=all_colours.shape[0])
+    
+    #     return all_colours
+    
+    
+
+    def plot_masked(self, fig_plot=None):
+        """
+        Plot all the information needed to mask the data well. 
+        :param fig:
+        :return:
+        """
+        
+        ax1 = fig_plot.add_subplot(111)
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax1, x_axis="default", limits=[0, 100])
+        
+        
+        
+    def plot_fitted(self, fig_plot=None, model=None, fit_centroid=None ):
+        """
+        add data to axes. 
+        :param ax:
+        :param show:
+        :return:
+        """
+        #reshape model to match self
+        model2 = deepcopy(self.intensity)
+        p = 0
+        for i in range(len(self.intensity)):
+            for j in range(len(self.intensity[0])):
+                if not ma.is_masked(self.intensity[i][j]):
+                    model2[i][j] = model[p]
+                    p=p+1
+        
+        
+        #match max and min of colour scales
+        limits={'max': np.max([np.max(self.intensity), np.max(model)]),
+                'min': np.min([np.min(self.intensity), np.min(model)])}
+        
+        #plot data
+        ax1 = fig_plot.add_subplot(1,3,1)
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax1, show="intensity", x_axis="default", limits=limits)
+        ax1.set_title("Data")
+        locs, labels = plt.xticks()
+        plt.setp(labels, rotation=90)
+        #plot model
+        ax2 = fig_plot.add_subplot(1,3,2)
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax2, data=model2, limits=limits)
+        if fit_centroid is not None: 
+            for i in range(len(fit_centroid[1])):
+                plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
+        ax2.set_title("Model")
+        locs, labels = plt.xticks()
+        plt.setp(labels, rotation=90)
+            
+        #plot residuals
+        ax3 = fig_plot.add_subplot(1,3,3)
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax3, data=self.intensity-model2, limits=[0, 100])
+        if fit_centroid is not None: 
+            for i in range(len(fit_centroid[1])):
+                plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
+        ax3.set_title("Residuals")
+        locs, labels = plt.xticks()
+        plt.setp(labels, rotation=90)
+        
+        # tidy layout
+        plt.tight_layout()
+
+    def plot_collected(self, fig_plot=None, axis_plot=None, show='intensity', x_axis="default", limits=[0, 100]):
+        """
+        add data to axes in form collected in. 
+        :param fig_plot:
+        :param axis_plot:
+        :param show:
+        :param x_axis:
+        :param limits:
+        :return:
+        """
+        
+        max_counts = np.max(self.intensity)
+        spacing = max_counts/10
+        
+        for x in range(len(self.intensity)):
+            axis_plot.plot(list(range(len(self.intensity[x]))), self.intensity[x] + spacing * x)  
+        axis_plot.set_xlabel("Channel number")
+        axis_plot.set_ylabel("Counts")
+
+
+    def plot_calibrated(self, fig_plot=None, axis_plot=None, show='intensity', x_axis="default", y_axis="default", data=None, limits=[0, 99.9], colourmap = "jet"):
+        """
+        add data to axes in form collected in. 
+        :param fig_plot:
+        :param axis_plot:
+        :param show:
+        :param x_axis:
+        :param limits:
+        :return:
+        """
+        
+        max_counts = np.max(self.intensity)
+        spacing = max_counts/10/20
+        
+        if x_axis == "default":
+            plot_x = self.tth
+        else:
+            plot_x = self.tth
+        label_x = "Energy (keV)"
+        
+        
+        if data is not None:
+            plot_i = data
+        else:
+            plot_i = self.intensity
+        
+        
+        if y_axis == "intensity":
+            #y is unmodified intensity; colour of data by azimuth
+            plot_y = plot_i
+            plot_c = self.azm
+            label_y = "Intensity (a.u.)"
+        elif y_axis == "azimuth":
+            #y is unmodified azimuth, intensity is size of dots amd colour scale 
+            plot_y = self.azm
+            plot_c = plot_i/np.max(self.intensity)*200
+            plot_s = plot_i/np.max(self.intensity)*200
+            label_y = "Azimuth (deg)"
+        else: #if y_axis is default
+            #y is intensity distributed by azimuth; colour is azimuth 
+            plot_y = plot_i + self.azm * spacing# + dispersion by azimuth
+            plot_c = self.azm
+            label_y = "Counts"
+            
+        # sort the data
+        # here assume x isenergy, y is azzimuth, z is intensity or counts.
+        if show == "unmasked_intensity":
+            plot_x = plot_x.data
+            plot_y = plot_y.data
+            plot_c = plot_c
+        elif show == "mask":
+            plot_x = plot_x.data
+            plot_y = plot_y.data
+            plot_c = np.array(ma.getmaskarray(self.intensity), dtype="uint8") + 1
+            colourmap="Greys"
+        else: 
+            plot_c = plot_c
+        
+        #set colour map
+        if colourmap == "residuals-blanaced":
+            colourmap = self.residuals_colour_scheme(np.max(plot_c.flatten()), np.min(plot_c.flatten())) 
+        else:
+            colourmap = colourmap
+        
+
+        if 'plot_s' in locals():
+                    
+            the_plot = axis_plot.scatter(plot_x, plot_y, s=plot_s, c=plot_c, cmap=colourmap, alpha=.2)
+            fig_plot.colorbar(mappable=the_plot).set_label(label="Counts")
+            
+        else:
+                
+            # Set colour map range - to be in 90 degree blocks
+            blocks = 90
+            colour_start = np.floor((np.min(self.azm)-.1)/blocks)*blocks
+            colour_end   = np.ceil((np.max(self.azm))/blocks)*blocks
+            normalize = colors.Normalize(vmin=colour_start, vmax=colour_end)
+            c_map = cm.get_cmap(name=colourmap)
+            
+            for x in range(len(plot_y)-1,-1,-1):
+                 if not plot_c.mask.all():
+                     colour = c_map(normalize(np.mean(plot_c[x])))
+                     the_plot=axis_plot.plot(plot_x[x], plot_y[x], color=colour)
+            
+            # Colorbar
+            s_map = cm.ScalarMappable(norm=normalize, cmap=c_map)
+            # label colour bar with azimuths if there are less than 10
+            if len(self.intensity) <= 10:
+                ticks = np.unique(plot_c)
+            else:
+                ticks = None
+            cbar = fig_plot.colorbar(s_map, ticks=ticks)
+            cbar.set_label("Azimuth")
+            
+        axis_plot.set_xlabel(label_x)
+        axis_plot.set_ylabel(label_y)

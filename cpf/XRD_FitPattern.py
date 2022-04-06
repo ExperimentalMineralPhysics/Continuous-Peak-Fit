@@ -400,7 +400,7 @@ def initial_peak_position(
     if "datafile_Files" not in fit_parameters:
         fit_settings.datafile_EndNum = fit_settings.datafile_StartNum
     else:
-        fit_settings.datafile_Files = fit_settings.datafile_Files[0]
+        fit_settings.datafile_Files = [fit_settings.datafile_Files[0]]
 
     # restrict to sub-patterns listed
     if sub_pattern == "all":
@@ -752,10 +752,14 @@ def execute(
 
     # plot calibration file
     # FIX ME: SAH - I have just removed this so that the debug runs without the calibration file.
-    if (
-        0
-    ):  # debug and 'Calib_data' in FitParameters:
-        new_data.debug_plot(two_theta=twotheta, azimuth=azimuth, intensity=new_data.intensity)
+    if debug and "Calib_data" in fit_parameters:
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)            
+        new_data.plot_collected(fig_plot=fig, axis_plot=ax)
+        plt.title("Calibration data")
+        plt.show()
+        plt.close()
+        #new_data.debug_plot(two_theta=twotheta, azimuth=azimuth, intensity=new_data.intensity)
 
     # if parallel processing start the pool
     if parallel is True:
@@ -779,6 +783,7 @@ def execute(
                 print("Remove Cosmics")
                 # set defaults
                 gain = 2.2
+
                 sigclip = 1.5  # 3 is dioptas default
                 objlim = 3.0  # 3 is dioptas default
                 sigfrac = 0.3
@@ -814,36 +819,13 @@ def execute(
 
         # plot input file
         if debug:
-            new_data.debug_plot(os.path.basename(diff_files[j]), twotheta, azimuth, intens, show=1)
-            '''
             fig = plt.figure()
-            if fit_settings.Calib_type == "Med":
-                # Better for energy dispersive data.  #FIX ME: need variable for vmax.
-                for x in range(9):
-                    plt.plot(
-                        twotheta[x], intens[x] + 100 * x
-                    )  # Better for energy dispersive data.  #FIX ME: need variable for vmax.
-                plt.xlabel("Energy (keV)")
-                plt.ylabel("Intensity")
-            else:
-                # FIX ME: need variable for vmax.
-                plt.scatter(
-                    twotheta,
-                    azimuth,
-                    s=4,
-                    c=intens,
-                    edgecolors="none",
-                    cmap=plt.cm.jet,
-                    vmin=0,
-                    vmax=4000,
-                )  # FIX ME: need variable for vmax.
-                plt.xlabel(r"2$\theta$")
-                plt.ylabel("Azimuth")
-                plt.colorbar()
+            ax = fig.add_subplot(1, 1, 1)
+            ax_o1 = plt.subplot(111)
+            new_data.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity")            
             plt.title(os.path.basename(diff_files[j]))
-            plt.draw()
+            plt.show()
             plt.close()
-            '''
 
         # Get previous fit (if it exists and is required)
         if os.path.isfile(temporary_data_file) and propagate is True and mode == "fit":
@@ -916,7 +898,11 @@ def execute(
             d_spacing_sub = dspace[sub_pattern]
             azimuth_sub = azimuth[sub_pattern]
             intens_sub = intens[sub_pattern]
-
+            
+            
+            sub_data = deepcopy(new_data)
+            sub_data.set_limits(range_bounds=tth_range)
+            
             # Mask the subpattern by intensity if called for
             if "imax" in orders or "imin" in orders:
                 imax = np.inf
@@ -930,17 +916,15 @@ def execute(
                 twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
                 d_spacing_sub = ma.array(d_spacing_sub, mask=intens_sub.mask)
 
+                sub_data.set_limits(i_min = imin, i_max = imax)
+
+
             if mode == "set-range":
-                # FIX ME: this plots the input data. perhaps it should have its own switch rather than being 
-                # subservient to Debug.
-                # It is not a debug it is a setup thing.
-                # plot the data and the mask.
-                fig_1 = new_data.full_plot(twotheta_sub,
-                                           azimuth_sub,
-                                           intens_sub,
-                                           plot_type="mask",
-                                           name=peak_string(orders)
-                                           )
+                
+                fig_1 = plt.figure()
+                sub_data.plot_masked(fig_plot=fig_1)
+                plt.suptitle(peak_string(orders) + "; masking")
+                                                
                 filename = make_outfile_name(
                     diff_files[j],
                     directory=fit_settings.Output_directory,
@@ -953,18 +937,17 @@ def execute(
                 fig_1.savefig(filename)
 
                 if debug:
-                    plt.draw()
+                    plt.show()
                 plt.close()
-
-                step = 1000
 
             elif mode == "set-guess":
 
-                fig_1 = new_data.full_plot(twotheta_sub,
-                                           azimuth_sub,
-                                           intens_sub,
-                                           plot_type="data",
-                                           name=peak_string(orders))
+                fig_1 = plt.figure()
+                ax = fig_1.add_subplot(1, 1, 1)
+                ax_o1 = plt.subplot(111)
+                sub_data.plot_calibrated(fig_plot=fig_1, axis_plot=ax, y_axis="azimuth", limits=[0, 100])            
+                plt.title(peak_string(orders))
+                
                 (points,) = fig_1.get_axes()[0].plot([], [], )
                 point_builder = PointBuilder(points, fig_1.get_axes()[0])
                 plt.show(block=True)
@@ -978,7 +961,7 @@ def execute(
                     print(json.dumps(selection_arr[k]) + ",")
                 print("]")
                 print("")
-                step = 1000
+                
             else:
                 if parallel is True:  # setup parallel version
                     kwargs = {
@@ -994,19 +977,20 @@ def execute(
                         [twotheta_sub, d_spacing_sub, parms_dict],
                         azimuth_sub,
                         intens_sub,
-                        new_data,
+                        sub_data,
                         orders,
                         params,
                         bounds,
                     )
                     parallel_pile.append((args, kwargs))
 
+
                 else:  # non-parallel version
                     tmp = fit_sub_pattern(
                         [twotheta_sub, d_spacing_sub, parms_dict],
                         azimuth_sub,
                         intens_sub,
-                        new_data,
+                        sub_data,
                         orders,
                         params,
                         bounds,
@@ -1020,7 +1004,7 @@ def execute(
                     )
                     fitted_param.append(tmp[0])
                     lmfit_models.append(tmp[1])
-
+                    
         # write output files
         if mode == "fit":
             if parallel is True:

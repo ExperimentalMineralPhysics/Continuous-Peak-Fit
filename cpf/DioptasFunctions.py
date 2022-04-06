@@ -15,6 +15,7 @@ import pyFAI
 from PIL import Image
 from matplotlib import gridspec
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from matplotlib import cm, colors
 
 
 class DioptasDetector:
@@ -114,7 +115,11 @@ class DioptasDetector:
         :param calibration_mask:
         :return:
         """
-        im = fabio.open(calibration_data)
+        im_all = fabio.open(calibration_data)
+        im=im_all.data
+        print(type(im))
+        im = np.array(im)[::-1]
+        
         # im = im_a.data # self.ImportImage(calibration_data, debug=debug)
         intens = ma.array(im.data)
         # create mask from mask file if present. If not make all values valid
@@ -179,8 +184,8 @@ class DioptasDetector:
                 )
         return required_list
 
-    @staticmethod
-    def import_image(image_name, mask=None, debug=False):
+    #@staticmethod
+    def import_image(self,image_name, mask=None, debug=False):
         """
         Import the data image
         :param mask:
@@ -199,13 +204,22 @@ class DioptasDetector:
         else:
             im_all = fabio.open(image_name)
             im = im_all.data
+        
         # Dioptas flips the images to match the orientations in Plot2D.
         # Therefor implemented here to be consistent with Dioptas.
         im = np.array(im)[::-1]
+        
+        self.intensity = ma.array(im, mask=self.intensity.mask)
+                
         if debug:
-            plt.imshow(im, vmin=0, vmax=2000)
-            plt.colorbar()
+            fig = plt.figure()
+            ax = fig.add_subplot(1, 1, 1)            
+            self.plot_collected(fig_plot=fig, axis_plot=ax)
+            plt.title(os.path.split(image_name)[1])
             plt.show()
+            plt.close()
+            
+        
         if mask is not None:
             return ma.array(im, mask=mask)
         else:
@@ -244,7 +258,11 @@ class DioptasDetector:
         :return:
         """
         im_mask = np.array(Image.open(msk_file))
+        #im_mask = np.array(im_mask)[::-1]
         im_ints = ma.array(im_ints, mask=im_mask)
+
+        im_ints = ma.masked_less(im_ints, 0)
+
 
         # TALK TO SIMON ABOUT WHAT TO DO WITH THIS
         # SAH!! July 2021: we need a mask function that makes sure all the arrays have the same mask applied to them.
@@ -466,221 +484,505 @@ class DioptasDetector:
                 / np.sin(ai.twoThetaArray() / 2)
             )
 
-    @staticmethod
-    def full_plot(
-            im_dispersion,
-            im_azimuths,
-            im_intensity,
-            plot_type="data",
-            masked=True,
-            im_intensity_2=None,
-            name="",
-    ):
+
+
+    def set_limits(self, range_bounds=[-np.inf, np.inf], i_max=np.inf, i_min=-np.inf):
         """
-        :param im_dispersion:
-        :param im_azimuths:
-        :param im_intensity:
-        :param plot_type:
-        :param masked:
-        :param im_intensity_2:
-        :param name:
+        Set limits to data 
+        :param range_bounds:
+        :param i_max:
+        :param i_min:
         :return:
         """
-        # Plot data.
-        # possibilities:
-        #   1. just plotting the data or model - with or without mask: label 'data'
-        #   2. plot of data, model and differences: label 'model'
-        #   3. plot of all data, mask and masked data. label 'mask'
-        to_plot = []
-        if plot_type == "data":
-            x_plots = 1
-            y_plots = 1
-            to_plot.append(im_intensity)
-            plot_mask = [masked]
-            plot_title = ["Data"]
-            plot_cmap = [plt.cm.jet]
-            spec = gridspec.GridSpec(
-                ncols=x_plots,
-                nrows=y_plots,
-                width_ratios=[1],
-                wspace=0.5,
-                hspace=0.5,
-                height_ratios=[1],
-            )
-        elif plot_type == "model":
-            x_plots = 3
-            y_plots = 1
-            to_plot.append(im_intensity)
-            to_plot.append(im_intensity_2)
-            to_plot.append(im_intensity - im_intensity_2)
-            plot_mask = [masked, masked, masked]
-            plot_title = ["Data", "Model", "Residuals"]
-            plot_cmap = ["jet", "jet", "jet"]
-        elif plot_type == "mask":
-            x_plots = 3
-            y_plots = 2
-            to_plot.append(im_intensity)
-            to_plot.append(np.array(ma.getmaskarray(im_intensity), dtype="uint8") + 1)
-            to_plot.append(im_intensity)
-            plot_mask = [False, False, True]
-            plot_title = ["All Data", "Mask", "Masked Data"]
-            plot_cmap = "jet", "Greys", "jet"
-            spec = gridspec.GridSpec(
-                ncols=x_plots,
-                nrows=y_plots,
-                width_ratios=[1, 1, 1],
-                wspace=0.5,
-                hspace=0.5,
-                height_ratios=[2, 1],
-            )
-        else:
-            print("Plotting set up incorrect. Continuing without plotting.")
-            return
+                
+        local_mask = np.where((self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1]))
+        self.intensity = self.intensity[local_mask]
+        self.tth = self.tth[local_mask]
+        self.azm = self.azm[local_mask]
+        self.dspace = self.dspace[local_mask]
 
-        y_lims = np.array(
-            [np.min(im_azimuths.flatten()), np.max(im_azimuths.flatten())]
-        )
-        y_lims = np.around(y_lims / 180) * 180
 
-        # N.B. The plot is a pig with even 1000x1000 pixel images and takes a long time to render.
-        if im_intensity.size > 100000:
-            print(
-                " Have patience. The plot(s) will appear but it can take its time to render."
-            )
+    # def full_plot(self,
+    #         plot_type="data",
+    #         masked=True,
+    #         im_intensity_2=None,
+    #         name="",
+    # ):
+    #     """
+    #     :param im_dispersion:
+    #     :param im_azimuths:
+    #     :param im_intensity:
+    #     :param plot_type:
+    #     :param masked:
+    #     :param im_intensity_2:
+    #     :param name:
+    #     :return:
+    #     """
+    #     # Plot data.
+    #     # possibilities:
+    #     #   1. just plotting the data or model - with or without mask: label 'data'
+    #     #   2. plot of data, model and differences: label 'model'
+    #     #   3. plot of all data, mask and masked data. label 'mask'
+    #     to_plot = []
+    #     if plot_type == "data":
+    #         x_plots = 1
+    #         y_plots = 1
+    #         to_plot.append(im_intensity)
+    #         plot_mask = [masked]
+    #         plot_title = ["Data"]
+    #         plot_cmap = [plt.cm.jet]
+    #         spec = gridspec.GridSpec(
+    #             ncols=x_plots,
+    #             nrows=y_plots,
+    #             width_ratios=[1],
+    #             wspace=0.5,
+    #             hspace=0.5,
+    #             height_ratios=[1],
+    #         )
+    #     elif plot_type == "model":
+    #         x_plots = 3
+    #         y_plots = 1
+    #         to_plot.append(im_intensity)
+    #         to_plot.append(im_intensity_2)
+    #         to_plot.append(im_intensity - im_intensity_2)
+    #         plot_mask = [masked, masked, masked]
+    #         plot_title = ["Data", "Model", "Residuals"]
+    #         plot_cmap = ["jet", "jet", "jet"]
+    #     elif plot_type == "mask":
+    #         x_plots = 3
+    #         y_plots = 2
+    #         to_plot.append(im_intensity)
+    #         to_plot.append(np.array(ma.getmaskarray(im_intensity), dtype="uint8") + 1)
+    #         to_plot.append(im_intensity)
+    #         plot_mask = [False, False, True]
+    #         plot_title = ["All Data", "Mask", "Masked Data"]
+    #         plot_cmap = "jet", "Greys", "jet"
+    #         spec = gridspec.GridSpec(
+    #             ncols=x_plots,
+    #             nrows=y_plots,
+    #             width_ratios=[1, 1, 1],
+    #             wspace=0.5,
+    #             hspace=0.5,
+    #             height_ratios=[2, 1],
+    #         )
+    #     else:
+    #         print("Plotting set up incorrect. Continuing without plotting.")
+    #         return
 
-        fig_1 = plt.figure()
-        for i in range(x_plots):
-            ax1 = fig_1.add_subplot(spec[i])
-            if plot_mask[i]:
-                ax1.scatter(
-                    im_dispersion,
-                    im_azimuths,
-                    s=1,
-                    c=(to_plot[i]),
-                    edgecolors="none",
-                    cmap=plot_cmap[i],
-                    vmin=0,
-                )  # plot all data including masked data.
-            else:
-                ax1.scatter(
-                    im_dispersion.data,
-                    im_azimuths.data,
-                    s=1,
-                    c=to_plot[i].data,
-                    edgecolors="none",
-                    cmap=plot_cmap[i],
-                    vmin=0,
-                )
-            ax1.set_title(plot_title[i])
-            ax1.set_ylim(y_lims)
-            locs, labels = plt.xticks()
-            plt.setp(labels, rotation=90)
-            if i == 0:
-                ax1.set_ylabel(r"Azimuth ($^\circ$)")
-            ax1.set_xlabel(r"$2\theta$ ($^\circ$)")
+    #     y_lims = np.array(
+    #         [np.min(im_azimuths.flatten()), np.max(im_azimuths.flatten())]
+    #     )
+    #     y_lims = np.around(y_lims / 180) * 180
 
-        if y_plots > 1:
-            for i in range(x_plots):
-                ax1 = fig_1.add_subplot(spec[i + x_plots])
-                if plot_type == "mask" and i == 1:
-                    # plot cdf of the intensities.
-                    # sort the data in ascending order
-                    x1 = np.sort(im_intensity.data)
-                    x2 = np.sort(im_intensity)
+    #     # N.B. The plot is a pig with even 1000x1000 pixel images and takes a long time to render.
+    #     if im_intensity.size > 100000:
+    #         print(
+    #             " Have patience. The plot(s) will appear but it can take its time to render."
+    #         )
 
-                    # get the cdf values of y
-                    y1 = np.arange(np.size(x1)) / float(np.size(x1))
-                    y2 = np.arange(np.size(x2)) / float(ma.count(x2))
+    #     fig_1 = plt.figure()
+    #     for i in range(x_plots):
+    #         ax1 = fig_1.add_subplot(spec[i])
+    #         if plot_mask[i]:
+    #             ax1.scatter(
+    #                 im_dispersion,
+    #                 im_azimuths,
+    #                 s=1,
+    #                 c=(to_plot[i]),
+    #                 edgecolors="none",
+    #                 cmap=plot_cmap[i],
+    #                 vmin=0,
+    #             )  # plot all data including masked data.
+    #         else:
+    #             ax1.scatter(
+    #                 im_dispersion.data,
+    #                 im_azimuths.data,
+    #                 s=1,
+    #                 c=to_plot[i].data,
+    #                 edgecolors="none",
+    #                 cmap=plot_cmap[i],
+    #                 vmin=0,
+    #             )
+    #         ax1.set_title(plot_title[i])
+    #         ax1.set_ylim(y_lims)
+    #         locs, labels = plt.xticks()
+    #         plt.setp(labels, rotation=90)
+    #         if i == 0:
+    #             ax1.set_ylabel(r"Azimuth ($^\circ$)")
+    #         ax1.set_xlabel(r"$2\theta$ ($^\circ$)")
 
-                    # ax1 = fig_1.add_subplot(1, 1, 1)
-                    ax1.plot(
-                        x1,
-                        y1,
-                    )
-                    ax1.plot(
-                        x2,
-                        y2,
-                    )
-                    # ax1.legend()
-                    ax1.set_title("CDF of the intensities")
+    #     if y_plots > 1:
+    #         for i in range(x_plots):
+    #             ax1 = fig_1.add_subplot(spec[i + x_plots])
+    #             if plot_type == "mask" and i == 1:
+    #                 # plot cdf of the intensities.
+    #                 # sort the data in ascending order
+    #                 x1 = np.sort(im_intensity.data)
+    #                 x2 = np.sort(im_intensity)
 
-                else:
-                    if plot_mask[i]:
-                        ax1.scatter(
-                            im_dispersion,
-                            to_plot[i],
-                            s=1,
-                            c=im_azimuths,
-                            edgecolors="none",
-                            cmap=plot_cmap[i],
-                            vmin=0,
-                        )  # plot all data including masked data.
-                    else:
-                        ax1.scatter(
-                            im_dispersion.data,
-                            to_plot[i].data,
-                            s=1,
-                            c=im_azimuths.data,
-                            edgecolors="none",
-                            cmap=plot_cmap[i],
-                            vmin=0,
-                        )
-                    # ax1.set_title(plot_title[i])
-                    # ax1.set_ylim(y_lims)
-                    locs, labels = plt.xticks()
-                    plt.setp(labels, rotation=90)
-                    if i == 0:
-                        ax1.set_ylabel(r"Intensity (a.u.)")
-                    ax1.set_xlabel(r"$2\theta$ ($^\circ$)")
+    #                 # get the cdf values of y
+    #                 y1 = np.arange(np.size(x1)) / float(np.size(x1))
+    #                 y2 = np.arange(np.size(x2)) / float(ma.count(x2))
 
-        plt.suptitle(name + "; masking")
-        return fig_1
+    #                 # ax1 = fig_1.add_subplot(1, 1, 1)
+    #                 ax1.plot(
+    #                     x1,
+    #                     y1,
+    #                 )
+    #                 ax1.plot(
+    #                     x2,
+    #                     y2,
+    #                 )
+    #                 # ax1.legend()
+    #                 ax1.set_title("CDF of the intensities")
 
-    @staticmethod
-    def debug_plot(title_str='Unspecified', two_theta=None, azimuth=None, intensity=None, show=0):
+    #             else:
+    #                 if plot_mask[i]:
+    #                     ax1.scatter(
+    #                         im_dispersion,
+    #                         to_plot[i],
+    #                         s=1,
+    #                         c=im_azimuths,
+    #                         edgecolors="none",
+    #                         cmap=plot_cmap[i],
+    #                         vmin=0,
+    #                     )  # plot all data including masked data.
+    #                 else:
+    #                     ax1.scatter(
+    #                         im_dispersion.data,
+    #                         to_plot[i].data,
+    #                         s=1,
+    #                         c=im_azimuths.data,
+    #                         edgecolors="none",
+    #                         cmap=plot_cmap[i],
+    #                         vmin=0,
+    #                     )
+    #                 # ax1.set_title(plot_title[i])
+    #                 # ax1.set_ylim(y_lims)
+    #                 locs, labels = plt.xticks()
+    #                 plt.setp(labels, rotation=90)
+    #                 if i == 0:
+    #                     ax1.set_ylabel(r"Intensity (a.u.)")
+    #                 ax1.set_xlabel(r"$2\theta$ ($^\circ$)")
+
+    #     plt.suptitle(name + "; masking")
+    #     return fig_1
+
+    # @staticmethod
+    # def debug_plot(title_str='Unspecified', two_theta=None, azimuth=None, intensity=None, show=0):
+    #     """
+
+    #     :param title_str:
+    #     :param two_theta:
+    #     :param azimuth:
+    #     :param intensity:
+    #     :param show:
+    #     :return:
+    #     """
+    #     '''
+    #     fig = plt.figure()
+    #     if fit_settings.Calib_type == "Med":
+    #         # plt.scatter(twotheta, azimuth, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
+    #         # vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
+    #         for x in range(9):
+    #             plt.plot(
+    #                 twotheta[x], intens[x] + 100 * x
+    #             )  # Better for energy dispersive data. #FIX ME: need variable
+    #             # for vmax.
+    #         plt.xlabel("Energy (keV)")
+    #         plt.ylabel("Intensity")
+    #     else:
+    #     '''
+    #     # plt.scatter(twotheta, azimuth, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)
+    #     # Better for monochromatic data.
+    #     # FIX ME: need variable for vmax.
+    #     plt.scatter(
+    #         two_theta,
+    #         azimuth,
+    #         s=4,
+    #         c=intensity,
+    #         edgecolors="none",
+    #         cmap=plt.cm.jet,
+    #         vmin=0,
+    #         vmax=4000,  # FIX ME: generally applicable?
+    #     )
+    #     # Better for monochromatic data.
+    #     # FIX ME: need variable for vmax.
+    #     plt.xlabel(r"2$\theta$")
+    #     plt.ylabel("Azimuth")
+    #     plt.colorbar()
+    #     plt.title(title_str)
+    #     plt.draw()
+    #     if show:
+    #         plt.show()
+    #     plt.close()
+
+
+
+
+    def plot_masked(self, fig_plot=None):
         """
+        Plot all the information needed to mask the data well. 
+        :param fig:
+        :return:
+        """
+        
+        x_plots = 3
+        y_plots = 2
+        spec = gridspec.GridSpec(
+            ncols=x_plots,
+            nrows=y_plots,
+            width_ratios=[1, 1, 1],
+            wspace=0.5,
+            hspace=0.5,
+            height_ratios=[2, 1],
+        )
+                
+        ax1 = fig_plot.add_subplot(spec[0])
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax1, show="unmasked_intensity", x_axis="default", limits=[0, 100])
+        ax1.set_title("All Data")
+        ax2 = fig_plot.add_subplot(spec[1])
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax2, show="mask", x_axis="default", limits=[0, 100])
+        ax2.set_title("Mask")
+        ax3 = fig_plot.add_subplot(spec[2])
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax3, show="intensity", x_axis="default", limits=[0, 100])
+        ax3.set_title("Masked Data")
+        
+        
+        ax4 = fig_plot.add_subplot(spec[3])
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax4, show="unmasked_intensity", x_axis="default", y_axis="intensity", limits=[0, 100])
+        
+        
+        ax5 = fig_plot.add_subplot(spec[4])
+        # plot cdf of the intensities.
+        # sort the data in ascending order
+        x1 = np.sort(self.intensity.data)
+        x2 = np.sort(self.intensity)
 
-        :param title_str:
-        :param two_theta:
-        :param azimuth:
-        :param intensity:
+        # get the cdf values of y
+        y1 = np.arange(np.size(x1)) / float(np.size(x1))
+        y2 = np.arange(np.size(x2)) / float(ma.count(x2))
+
+        # ax1 = fig_1.add_subplot(1, 1, 1)
+        ax5.plot(
+            x1,
+            y1,
+        )
+        ax5.plot(
+            x2,
+            y2,
+        )
+        ax5.set_title("CDF of the intensities")
+        
+        ax6 = fig_plot.add_subplot(spec[5])
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax6, show="intensity", x_axis="default", y_axis="intensity", limits=[0, 100])
+           
+        
+        
+    def plot_fitted(self, fig_plot=None, model=None, fit_centroid=None ):
+        """
+        add data to axes. 
+        :param ax:
         :param show:
         :return:
         """
-        '''
-        fig = plt.figure()
-        if fit_settings.Calib_type == "Med":
-            # plt.scatter(twotheta, azimuth, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
-            # vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
-            for x in range(9):
-                plt.plot(
-                    twotheta[x], intens[x] + 100 * x
-                )  # Better for energy dispersive data. #FIX ME: need variable
-                # for vmax.
-            plt.xlabel("Energy (keV)")
-            plt.ylabel("Intensity")
+        
+        #match max and min of colour scales
+        limits={'max': np.max([np.max(self.intensity), np.max(model)]),
+                'min': np.min([np.min(self.intensity), np.min(model)])}
+        
+        #plot data
+        ax1 = fig_plot.add_subplot(1,3,1)
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax1, show="intensity", x_axis="default", limits=limits, colourmap = "magma_r")
+        ax1.set_title("Data")
+        locs, labels = plt.xticks()
+        plt.setp(labels, rotation=90)
+        #plot model
+        ax2 = fig_plot.add_subplot(1,3,2)
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax2, data=model, limits=limits, colourmap = "magma_r")
+        if fit_centroid is not None: 
+            for i in range(len(fit_centroid[1])):
+                plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
+        ax2.set_title("Model")
+        locs, labels = plt.xticks()
+        plt.setp(labels, rotation=90)
+            
+        #plot residuals
+        ax3 = fig_plot.add_subplot(1,3,3)
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax3, data=self.intensity-model, limits=[0, 100], colourmap = "residuals-blanaced")
+        if fit_centroid is not None: 
+            for i in range(len(fit_centroid[1])):
+                plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
+        ax3.set_title("Residuals")
+        locs, labels = plt.xticks()
+        plt.setp(labels, rotation=90)
+        
+        # tidy layout
+        plt.tight_layout()
+        
+        
+    @staticmethod
+    def residuals_colour_scheme(maximum_value, minimum_value, **kwargs):
+    
+        # create custom colormap for residuals
+        # ---------------
+        #Need: a colour map that is white at 0 and the colours are equally scaled on each side. So it will match the intensity in black and white. Also one this is truncated so dont have lots of unused colour bar.
+        #This can't be done using DivergingNorm(vcenter=0) or CenteredNorm(vcenter=0) so make new colourmap.
+        #
+        #create a colour map that truncates seismic so balanced around 0. 
+        # It is not perfect because the 0 point insn't necessarily perfectly white but it is close enough (I think). 
+        n_entries = 256
+        all_colours = cm.seismic(np.arange(n_entries))
+        
+        if np.abs(maximum_value)> np.abs(minimum_value):
+            n_cut = np.int(((2*maximum_value-(maximum_value-np.abs(minimum_value)))/(2*maximum_value))*n_entries)
+            keep = n_entries-n_cut
+            all_colours = all_colours[keep:]
         else:
-        '''
-        # plt.scatter(twotheta, azimuth, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)
-        # Better for monochromatic data.
-        # FIX ME: need variable for vmax.
-        plt.scatter(
-            two_theta,
-            azimuth,
-            s=4,
-            c=intensity,
+            n_cut = np.int(((2*np.abs(minimum_value)-(maximum_value-np.abs(minimum_value)))/(2*np.abs(minimum_value)))*n_entries)
+            keep = n_entries-n_cut
+            all_colours = all_colours[:keep]
+        all_colours = colors.ListedColormap(all_colours, name='myColorMap', N=all_colours.shape[0])
+    
+        return all_colours
+
+
+
+    def plot_collected(self, fig_plot=None, axis_plot=None, show='intensity', limits=[0, 99.9] ):
+        """
+        add data to axes. 
+        :param ax:
+        :param show:
+        :return:
+        """
+        
+        IMax = np.percentile(self.intensity, limits[1])
+        IMin = np.percentile(self.intensity, limits[0])
+        #if IMin < 0:
+        #    IMin = 0
+            
+        if limits[0] > 0 and limits[1] < 100: 
+            cb_extend="both"
+        elif limits[1] < 100:
+            cb_extend="max"
+        elif limits[0]>0:
+            cb_extend="min"
+        else:
+            cb_extend="neither"        
+                
+        the_plot = axis_plot.imshow(self.intensity, vmin=IMin, vmax=IMax,
+            cmap=plt.cm.jet)    
+        axis_plot.set_xlabel("x")
+        axis_plot.set_ylabel("y")
+        axis_plot.invert_yaxis()
+        
+        fig_plot.colorbar(mappable=the_plot, extend=cb_extend)
+        
+
+
+    def plot_calibrated(self, fig_plot=None, axis_plot=None, show="intensity", x_axis="default", y_axis="default", data=None, limits=[0, 99.9], colourmap = "jet"):
+        """
+        add data to axes. 
+        :param ax:
+        :param show:
+        :return:
+        """
+        rstr=False
+        if self.intensity.size > 100000:
+            print(
+                " Have patience. The plot(s) will appear but it can take its time to render."
+            )
+            rstr = True
+            
+        if x_axis == "default":
+            plot_x = self.tth
+        else:
+            plot_x = self.tth
+        plot_y = self.azm  
+                    
+        if y_axis == "intensity":
+            #plot y rather than azimuth on the y axis 
+            plot_y = self.intensity
+            #organise colour scale as azimuth
+            plot_i = self.azm
+            label_y = "Intensity (a.u.)"
+        else: #if y_axis is "default" or "azimuth"
+            plot_y = self.azm
+            plot_i = self.intensity
+            label_y = "Azimuth (deg)"
+            
+            y_lims = np.array(
+                [np.min(plot_y.flatten()), np.max(plot_y.flatten())]
+            )
+            y_lims = np.around(y_lims / 180) * 180
+            axis_plot.set_ylim(y_lims)
+
+        # sort the data
+        if data is not None:
+            plot_i = data
+        elif show == "unmasked_intensity":
+            plot_x = plot_x.data
+            plot_y = plot_y.data
+            plot_i = plot_i.data
+        elif show == "mask":
+            plot_x = plot_x.data
+            plot_y = plot_y.data
+            plot_i = np.array(ma.getmaskarray(self.intensity), dtype="uint8") + 1
+            colourmap="Greys"
+        else: #if show == "intensity"
+            plot_i = plot_i
+            
+        #set colour map
+        if colourmap == "residuals-blanaced":
+            colourmap = self.residuals_colour_scheme(np.max(plot_i.flatten()), np.min(plot_i.flatten())) 
+        else:
+            colourmap = colourmap
+            
+        #set colour bar and colour maps.   
+        if colourmap=="Greys":
+            IMax=2.01
+            IMin=0
+            cb_extend="neither"
+        elif isinstance(limits, dict):
+            IMax = limits['max']#limits[0]
+            IMin = limits['min']
+            cb_extend="neither"
+        else:
+            if limits[1] == 100:
+                IMax = np.max(plot_i)
+            else:
+                IMax = np.percentile(plot_i, limits[1])
+            if limits[0] == 0:
+                IMin = np.min(plot_i)
+            else:
+                IMin = np.percentile(plot_i, limits[0])
+            if limits[0] > 0 and limits[1] < 100: 
+                cb_extend="both"
+            elif limits[1] < 100:
+                cb_extend="max"
+            elif limits[0]>0:
+                cb_extend="min"
+            else:
+                cb_extend="neither"
+        
+        #set axis limits
+        x_lims = [np.min(plot_x.flatten()), np.max(plot_x.flatten())]
+        axis_plot.set_xlim(x_lims)
+        
+        the_plot = axis_plot.scatter(
+            plot_x,
+            plot_y,
+            s=1,
+            c=plot_i,
             edgecolors="none",
-            cmap=plt.cm.jet,
-            vmin=0,
-            vmax=4000,  # FIX ME: generally applicable?
-        )
-        # Better for monochromatic data.
-        # FIX ME: need variable for vmax.
-        plt.xlabel(r"2$\theta$")
-        plt.ylabel("Azimuth")
-        plt.colorbar()
-        plt.title(title_str)
-        plt.draw()
-        if show:
-            plt.show()
-        plt.close()
+            cmap=colourmap,
+            vmin=IMin,
+            vmax=IMax,
+            rasterized=rstr 
+        )    
+        axis_plot.set_xlabel(r"2$\theta$ (deg)")
+        axis_plot.set_ylabel(label_y)
+        
+        
+        fig_plot.colorbar(mappable=the_plot, extend=cb_extend)
+

@@ -9,7 +9,6 @@ import os
 import sys
 import time
 import matplotlib.pyplot as plt
-from matplotlib import cm, colors
 import numpy as np
 import numpy.ma as ma
 from lmfit import Parameters, Model
@@ -725,30 +724,6 @@ def get_chunk_guesses(peeks, orders, twotheta, intens, background_guess,
     }
     return peaks, limits, p_fixed
 
-
-def residuals_colour_scheme(maximum_value, minimum_value):
-
-    # create custom colormap for residuals
-    # ---------------
-    #Need: a colour map that is white at 0 and the colours are equally scaled on each side. So it will match the intensity in black and white. Also one this is truncated so dont have lots of unused colour bar.
-    #This can't be done using DivergingNorm(vcenter=0) or CenteredNorm(vcenter=0) so make new colourmap.
-    #
-    #create a colour map that truncates seismic so balanced around 0. 
-    # It is not perfect because the 0 point insn't necessarily perfectly white but it is close enough (I think). 
-    n_entries = 256
-    all_colours = cm.seismic(np.arange(n_entries))
-    
-    if np.abs(maximum_value)> np.abs(minimum_value):
-        n_cut = np.int(((2*maximum_value-(maximum_value-np.abs(minimum_value)))/(2*maximum_value))*n_entries)
-        keep = n_entries-n_cut
-        all_colours = all_colours[keep:]
-    else:
-        n_cut = np.int(((2*np.abs(minimum_value)-(maximum_value-np.abs(minimum_value)))/(2*np.abs(minimum_value)))*n_entries)
-        keep = n_entries-n_cut
-        all_colours = all_colours[:keep]
-    all_colours = colors.ListedColormap(all_colours, name='myColorMap', N=all_colours.shape[0])
-
-    return all_colours
 
 
 
@@ -1918,7 +1893,7 @@ def fit_sub_pattern(
     new_params.update({"PeakLabel": io.peak_string(orders)})
 
     # Plot results to check
-    view = 0
+    view = 1
     if save_fit == 1 or view == 1 or debug:
         print("\nPlotting results for fit...\n")
 
@@ -1938,129 +1913,151 @@ def fit_sub_pattern(
             azi_plot = np.unique(azimu.flatten())
         elif conversion_factor["DispersionType"] == "AngleDispersive":
             azi_plot = np.array(list(range(np.int(y_lims[0]), np.int(y_lims[1]), 2)))
-        centroid = []
+        # centroid = []
+        # for i in range(peeks):
+        #     param = new_params["peak"][i]["d-space"]
+        #     param_type = new_params["peak"][i]["d-space-type"]
+        #     centroid.append(
+        #         pf.centroid_conversion(
+        #             conversion_factor,
+        #             pf.coefficient_expand(azi_plot, param=param, coeff_type=param_type),
+        #             azi_plot,
+        #         )
+        #     )
+
+
+        fit_centroid = []
         for i in range(peeks):
             param = new_params["peak"][i]["d-space"]
             param_type = new_params["peak"][i]["d-space-type"]
-            centroid.append(
+            fit_centroid.append(
                 pf.centroid_conversion(
                     conversion_factor,
                     pf.coefficient_expand(azi_plot, param=param, coeff_type=param_type),
                     azi_plot,
                 )
             )
-
-        # full_fit_intens = inp
-        # Set the maximum to the n+1th value in the array
-        # FIX ME: the max find is not necessarily efficient. A quicker way should be found if it exists.
-        max_pos = 0
-
-        val_max1 = -np.sort(-intens.flatten())[max_pos]  # np.max(intens.flatten())
-        val_max2 = -np.sort(-full_fit_intens.flatten())[
-            max_pos
-        ]  # np.max(full_fit_intens.flatten())
-        val_max3 = -np.sort(-(intens.flatten() - full_fit_intens.flatten()))[max_pos]
-        # np.max((intens.flatten()-full_fit_intens.flatten()))
-        val_max = np.max([val_max1, val_max2])
-        val_min1 = np.min(intens.flatten())
-        val_min2 = np.min(full_fit_intens.flatten())
-        val_min3 = np.min((intens.flatten() - full_fit_intens.flatten()))
-        val_min = np.min([val_min1, val_min2])
-
-        if conversion_factor["DispersionType"] == "EnergyDispersive":
-            xlabel_str = "Energy (keV)"
-        elif conversion_factor["DispersionType"] == "AngleDispersive":
-            xlabel_str = r'2$\theta$ (deg)'#"Two theta (deg)"
-        else:
-            xlabel_str = "Dispersive units"
-
-        dot_size = 6#0.5
-
+        
+        #plot the modelled data
         fig = plt.figure()
-        axf = fig.add_subplot(1, 3, 1)
-        ax_o1 = plt.subplot(131)
-        # plt.scatter(twotheta, azimuth, s=1, c=np.log(intens), edgecolors='none', cmap=plt.cm.jet)
-        plt.scatter(
-            twotheta.flatten(),
-            azimu.flatten(),
-            s=dot_size,
-            c=(intens.flatten()),
-            edgecolors="none",
-            cmap=plt.cm.magma_r,
-            vmin=val_min,
-            vmax=val_max,
-        )
-        ax_o1.set_title("Data")
-        ax_o1.set_xlabel(xlabel_str)
-        ax_o1.set_ylabel("Azimuth (deg)")
-        ax_o1.set_xlim([np.min(twotheta.flatten()), np.max(twotheta.flatten())])
-        ax_o1.set_ylim(y_lims)
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
-        plt.colorbar()
-        ax_o2 = plt.subplot(132)
-        # plt.scatter(twotheta, azimuth, s=1, c=np.log(full_fit_intens), edgecolors='none', cmap=plt.cm.jet)
-        plt.scatter(
-            twotheta.flatten(),
-            azimu.flatten(),
-            s=dot_size,
-            c=(full_fit_intens.flatten()),
-            edgecolors="none",
-            cmap=plt.cm.magma_r,
-            vmin=val_min,
-            vmax=val_max,
-        )
-        for i in range(peeks):
-            plt.plot(centroid[i], azi_plot, "k--", linewidth=0.5)
-        plt.colorbar()
-        ax_o2.set_title("Model")
-        ax_o2.set_xlabel(xlabel_str)
-        ax_o2.set_ylabel("Azimuth (deg)")
-        ax_o2.set_xlim([np.min(twotheta.flatten()), np.max(twotheta.flatten())])
-        ax_o2.set_ylim(y_lims)
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
-        ax_o3 = plt.subplot(133)
-        resid_colour = residuals_colour_scheme(val_max3, val_min3)
-        print("residuals range", val_max3, val_min3)
-        # plt.scatter(twotheta, azimuth, s=1, c=np.log(intens-full_fit_intens), edgecolors='none', cmap=plt.cm.jet)
-
-        plt.scatter(
-            twotheta.flatten(),
-            azimu.flatten(),
-            s=dot_size,
-            c=(intens.flatten() - full_fit_intens.flatten()),
-            edgecolors="none",
-            cmap=resid_colour,
-            vmin=val_min3,
-            vmax=val_max3,
-        )
-        for i in range(peeks):
-            plt.plot(centroid[i], azi_plot, "k--", linewidth=0.5)
-        ax_o3.set_title("Residuals (data - model)")
-        ax_o3.set_xlabel(xlabel_str)
-        ax_o3.set_ylabel("Azimuth (deg)")
-        ax_o3.set_xlim([np.min(twotheta.flatten()), np.max(twotheta.flatten())])
-        ax_o3.set_ylim(y_lims)
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
-        plt.colorbar()
+        new_data.plot_fitted(fig_plot=fig, model=full_fit_intens, fit_centroid=[azi_plot, fit_centroid] )
+        title_str = io.peak_string(orders) + "; final fit"
         if "note" in orders:
-            title_str = io.peak_string(orders) + "; final fit; " + orders["note"]
-        else:
-            title_str = io.peak_string(orders) + "; final fit"
+            title_str = title_str + " " + orders["note"]
         plt.suptitle(title_str)
         plt.tight_layout()
 
-        #        # make a second figure with the Q-Q plot of the data and fit.
-        #        #the second subplot is a cdf of the residuals with a gaussian added to it.
-        #        fig2 = plt.figure()
-        #        axQ = plt.subplots()
-        #        plt.scatter(intens.flatten(), full_fit_intens.flatten(), s=dot_size)
-        #        #axQ.set_xlabel('Observations')
-        #        #axQ.set_ylabel('Model')
-        #        plt.grid(True)
-        #        plt.tight_layout()
+        # # full_fit_intens = inp
+        # # Set the maximum to the n+1th value in the array
+        # # FIX ME: the max find is not necessarily efficient. A quicker way should be found if it exists.
+        # max_pos = 0
+
+        # val_max1 = -np.sort(-intens.flatten())[max_pos]  # np.max(intens.flatten())
+        # val_max2 = -np.sort(-full_fit_intens.flatten())[
+        #     max_pos
+        # ]  # np.max(full_fit_intens.flatten())
+        # val_max3 = -np.sort(-(intens.flatten() - full_fit_intens.flatten()))[max_pos]
+        # # np.max((intens.flatten()-full_fit_intens.flatten()))
+        # val_max = np.max([val_max1, val_max2])
+        # val_min1 = np.min(intens.flatten())
+        # val_min2 = np.min(full_fit_intens.flatten())
+        # val_min3 = np.min((intens.flatten() - full_fit_intens.flatten()))
+        # val_min = np.min([val_min1, val_min2])
+
+        # if conversion_factor["DispersionType"] == "EnergyDispersive":
+        #     xlabel_str = "Energy (keV)"
+        # elif conversion_factor["DispersionType"] == "AngleDispersive":
+        #     xlabel_str = r'2$\theta$ (deg)'#"Two theta (deg)"
+        # else:
+        #     xlabel_str = "Dispersive units"
+
+        # dot_size = 6#0.5
+
+        # fig = plt.figure()
+        # axf = fig.add_subplot(1, 3, 1)
+        # ax_o1 = plt.subplot(131)
+        # # plt.scatter(twotheta, azimuth, s=1, c=np.log(intens), edgecolors='none', cmap=plt.cm.jet)
+        # plt.scatter(
+        #     twotheta.flatten(),
+        #     azimu.flatten(),
+        #     s=dot_size,
+        #     c=(intens.flatten()),
+        #     edgecolors="none",
+        #     cmap=plt.cm.magma_r,
+        #     vmin=val_min,
+        #     vmax=val_max,
+        # )
+        # ax_o1.set_title("Data")
+        # ax_o1.set_xlabel(xlabel_str)
+        # ax_o1.set_ylabel("Azimuth (deg)")
+        # ax_o1.set_xlim([np.min(twotheta.flatten()), np.max(twotheta.flatten())])
+        # ax_o1.set_ylim(y_lims)
+        # locs, labels = plt.xticks()
+        # plt.setp(labels, rotation=90)
+        # plt.colorbar()
+        # ax_o2 = plt.subplot(132)
+        # # plt.scatter(twotheta, azimuth, s=1, c=np.log(full_fit_intens), edgecolors='none', cmap=plt.cm.jet)
+        # plt.scatter(
+        #     twotheta.flatten(),
+        #     azimu.flatten(),
+        #     s=dot_size,
+        #     c=(full_fit_intens.flatten()),
+        #     edgecolors="none",
+        #     cmap=plt.cm.magma_r,
+        #     vmin=val_min,
+        #     vmax=val_max,
+        # )
+        # for i in range(peeks):
+        #     plt.plot(centroid[i], azi_plot, "k--", linewidth=0.5)
+        # plt.colorbar()
+        # ax_o2.set_title("Model")
+        # ax_o2.set_xlabel(xlabel_str)
+        # ax_o2.set_ylabel("Azimuth (deg)")
+        # ax_o2.set_xlim([np.min(twotheta.flatten()), np.max(twotheta.flatten())])
+        # ax_o2.set_ylim(y_lims)
+        # locs, labels = plt.xticks()
+        # plt.setp(labels, rotation=90)
+        # ax_o3 = plt.subplot(133)
+        # resid_colour = residuals_colour_scheme(val_max3, val_min3)
+        # print("residuals range", val_max3, val_min3)
+        # # plt.scatter(twotheta, azimuth, s=1, c=np.log(intens-full_fit_intens), edgecolors='none', cmap=plt.cm.jet)
+
+        # plt.scatter(
+        #     twotheta.flatten(),
+        #     azimu.flatten(),
+        #     s=dot_size,
+        #     c=(intens.flatten() - full_fit_intens.flatten()),
+        #     edgecolors="none",
+        #     cmap=resid_colour,
+        #     vmin=val_min3,
+        #     vmax=val_max3,
+        # )
+        # for i in range(peeks):
+        #     plt.plot(centroid[i], azi_plot, "k--", linewidth=0.5)
+        # ax_o3.set_title("Residuals (data - model)")
+        # ax_o3.set_xlabel(xlabel_str)
+        # ax_o3.set_ylabel("Azimuth (deg)")
+        # ax_o3.set_xlim([np.min(twotheta.flatten()), np.max(twotheta.flatten())])
+        # ax_o3.set_ylim(y_lims)
+        # locs, labels = plt.xticks()
+        # plt.setp(labels, rotation=90)
+        # plt.colorbar()
+        # if "note" in orders:
+        #     title_str = io.peak_string(orders) + "; final fit; " + orders["note"]
+        # else:
+        #     title_str = io.peak_string(orders) + "; final fit"
+        # plt.suptitle(title_str)
+        # plt.tight_layout()
+
+        # #        # make a second figure with the Q-Q plot of the data and fit.
+        # #        #the second subplot is a cdf of the residuals with a gaussian added to it.
+        # #        fig2 = plt.figure()
+        # #        axQ = plt.subplots()
+        # #        plt.scatter(intens.flatten(), full_fit_intens.flatten(), s=dot_size)
+        # #        #axQ.set_xlabel('Observations')
+        # #        #axQ.set_ylabel('Model')
+        # #        plt.grid(True)
+        # #        plt.tight_layout()
 
         # save figures without overwriting old names
         if save_fit:

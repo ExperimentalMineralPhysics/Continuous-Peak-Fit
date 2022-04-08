@@ -10,7 +10,7 @@ from copy import deepcopy, copy
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
-from matplotlib import cm, colors
+from matplotlib import cm, colors, gridspec
 from cpf import Med
 
 
@@ -50,7 +50,7 @@ class MedDetector:
         """
         
         new = MedDetector()
-        new.parameters =copy(self.parameters)
+        new.parameters = copy(self.parameters)
         new.calibration = copy(self.calibration)
         
         new.intensity = deepcopy(self.intensity)
@@ -416,32 +416,6 @@ class MedDetector:
         self.azm = ma.masked_array(self.azm,mask=self.intensity.mask)
         self.dspace = ma.masked_array(self.dspace,mask=self.intensity.mask)
 
-
-    # @staticmethod
-    # def residuals_colour_scheme(maximum_value, minimum_value, **kwargs):
-    
-    #     # create custom colormap for residuals
-    #     # ---------------
-    #     #Need: a colour map that is white at 0 and the colours are equally scaled on each side. So it will match the intensity in black and white. Also one this is truncated so dont have lots of unused colour bar.
-    #     #This can't be done using DivergingNorm(vcenter=0) or CenteredNorm(vcenter=0) so make new colourmap.
-    #     #
-    #     #create a colour map that truncates seismic so balanced around 0. 
-    #     # It is not perfect because the 0 point insn't necessarily perfectly white but it is close enough (I think). 
-    #     n_entries = 256
-    #     all_colours = cm.seismic(np.arange(n_entries))
-        
-    #     if np.abs(maximum_value)> np.abs(minimum_value):
-    #         n_cut = np.int(((2*maximum_value-(maximum_value-np.abs(minimum_value)))/(2*maximum_value))*n_entries)
-    #         keep = n_entries-n_cut
-    #         all_colours = all_colours[keep:]
-    #     else:
-    #         n_cut = np.int(((2*np.abs(minimum_value)-(maximum_value-np.abs(minimum_value)))/(2*np.abs(minimum_value)))*n_entries)
-    #         keep = n_entries-n_cut
-    #         all_colours = all_colours[:keep]
-    #     all_colours = colors.ListedColormap(all_colours, name='myColorMap', N=all_colours.shape[0])
-    
-    #     return all_colours
-    
     
 
     def plot_masked(self, fig_plot=None):
@@ -472,39 +446,68 @@ class MedDetector:
                     model2[i][j] = model[p]
                     p=p+1
         
-        
         #match max and min of colour scales
-        limits={'max': np.max([np.max(self.intensity), np.max(model)]),
-                'min': np.min([np.min(self.intensity), np.min(model)])}
+        #FIXME: this is not used but should be used to set to colour ranges of the data -- by azimuth. 
+        limits={'max': np.max([np.max(self.azm)]),
+                'min': np.min([np.min(self.azm)])}
+        
+        #make axes
+        gs = gridspec.GridSpec(1, 3, wspace=0.0)
+        ax=[]
+        for i in range(3):
+                ax.append(fig_plot.add_subplot(gs[i]))
         
         #plot data
-        ax1 = fig_plot.add_subplot(1,3,1)
-        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax1, show="intensity", x_axis="default", limits=limits)
-        ax1.set_title("Data")
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax[0], show="intensity", x_axis="default", colourbar=False)
+        ax[0].set_title("Data")
         #plot model
-        ax2 = fig_plot.add_subplot(1,3,2)
-        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax2, data=model2, limits=limits)
-        if fit_centroid is not None: 
-            for i in range(len(fit_centroid[1])):
-                plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
-        ax2.set_title("Model")
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
-            
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax[1], data=model2, colourbar=False)
+        # if fit_centroid is not None: 
+        #     for i in range(len(fit_centroid[1])):
+        #         plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
+        ax[1].set_title("Model")
         #plot residuals
-        ax3 = fig_plot.add_subplot(1,3,3)
-        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax3, data=self.intensity-model2, limits=[0, 100])
-        if fit_centroid is not None: 
-            for i in range(len(fit_centroid[1])):
-                plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
-        ax3.set_title("Residuals")
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
+        self.plot_calibrated(fig_plot=fig_plot, axis_plot=ax[2], data=self.intensity-model2, colourbar=True)
+        # if fit_centroid is not None: 
+        #     for i in range(len(fit_centroid[1])):
+        #         plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
+        ax[2].set_title("Residuals")
+                
+        # organise the axes and labelling. 
+        bottom0,top0 = ax[0].get_ylim()
+        bottom1,top1 = ax[1].get_ylim()
+        bottom2,top2 = ax[2].get_ylim()
+        top_max      = np.max([top0,top1,top2])
+        bottom_min   = np.min([bottom0,bottom1,bottom2])
+        ax[0].set_ylim(top=top_max, bottom=bottom_min)
+        ax[1].set_ylim(top=top_max, bottom=bottom_min)
+        ax[2].set_ylim(top=top_max, bottom=bottom_min)
+        ax[2].set_ylim(top=top_max, bottom=bottom_min)
+        ax[1].set(yticklabels=[]) 
+        ax[2].set(yticklabels=[]) 
+        ax[1].set(ylabel=None) 
+        ax[2].set(ylabel=None) 
+        ax[1].set(ylabel=None) 
+        
+        # # Colorbar
+        # # set the colour bar underneath the axes. 
+        # blocks = 90
+        # colour_start = np.floor((np.min(self.azm)-.1)/blocks)*blocks
+        # colour_end   = np.ceil((np.max(self.azm))/blocks)*blocks
+        # normalize = colors.Normalize(vmin=colour_start, vmax=colour_end)
+        # c_map = cm.get_cmap(name="jet")
+        # s_map = cm.ScalarMappable(norm=normalize, cmap=c_map)
+        # # label colour bar with azimuths if there are less than 10
+        # if len(self.intensity) <= 10:
+        #     ticks = np.unique(self.azm)
+        # else:
+        #     ticks = None
+        # cbar = fig_plot.colorbar(ax[1], ax=[ax[0], ax[1], ax[2]], s_map, ticks=ticks, orientation="horizontal")
+        # cbar.set_label("Azimuth")
         
         # tidy layout
         plt.tight_layout()
+        
 
     def plot_collected(self, fig_plot=None, axis_plot=None, show='intensity', x_axis="default", limits=[0, 100]):
         """
@@ -526,7 +529,7 @@ class MedDetector:
         axis_plot.set_ylabel("Counts")
 
 
-    def plot_calibrated(self, fig_plot=None, axis_plot=None, show='intensity', x_axis="default", y_axis="default", data=None, limits=[0, 99.9], colourmap = "jet"):
+    def plot_calibrated(self, fig_plot=None, axis_plot=None, show='intensity', x_axis="default", y_axis="default", data=None, limits=[0, 99.9], colourmap = "jet", colourbar=True):
         """
         add data to axes in form collected in. 
         :param fig_plot:
@@ -566,11 +569,23 @@ class MedDetector:
             label_y = "Azimuth (deg)"
         else: #if y_axis is default
             #y is intensity distributed by azimuth; colour is azimuth 
-            plot_y = plot_i + self.azm * spacing# + dispersion by azimuth
+            plot_y = plot_i + self.azm * spacing
             plot_c = self.azm
             label_y = "Counts"
+            #organise to plot 0 count lines.
+            plot_y0=[]
+            plot_x0=[]
+            plot_c0=[]
+            for i in range(len(plot_y)):
+                if not plot_x[i].mask.all():
+                    plot_x0.append([plot_x[i][~self.azm[i].mask][0],plot_x[i][~self.azm[i].mask][-1]])
+                    plot_y0.append([self.azm[i][~self.azm[i].mask][0]*spacing,self.azm[i][~self.azm[i].mask][-1]*spacing])
+                    plot_c0.append(np.mean(plot_c[i]))
+                else:
+                    plot_y0.append([np.nan, np.nan])
+                    plot_x0.append([np.nan, np.nan])
             
-        # sort the data
+        # organise the data to plot
         # here assume x isenergy, y is azzimuth, z is intensity or counts.
         if show == "unmasked_intensity":
             plot_x = plot_x.data
@@ -592,7 +607,6 @@ class MedDetector:
         
 
         if 'plot_s' in locals():
-                    
             the_plot = axis_plot.scatter(plot_x, plot_y, s=plot_s, c=plot_c, cmap=colourmap, alpha=.2)
             fig_plot.colorbar(mappable=the_plot).set_label(label="Counts")
             
@@ -600,7 +614,7 @@ class MedDetector:
                 
             # Set colour map range - to be in 90 degree blocks
             blocks = 90
-            colour_start = np.floor((np.min(self.azm)-.1)/blocks)*blocks
+            colour_start = np.floor((np.min(self.azm))/blocks)*blocks
             colour_end   = np.ceil((np.max(self.azm))/blocks)*blocks
             normalize = colors.Normalize(vmin=colour_start, vmax=colour_end)
             c_map = cm.get_cmap(name=colourmap)
@@ -609,16 +623,28 @@ class MedDetector:
                  if not plot_c.mask.all():
                      colour = c_map(normalize(np.mean(plot_c[x])))
                      the_plot=axis_plot.plot(plot_x[x], plot_y[x], color=colour)
+                     if y_axis == "default":
+                         the_plot=axis_plot.plot(plot_x0[x], plot_y0[x], "--", linewidth=.5, color=colour)
+            
             
             # Colorbar
+            if colourbar=="horizontal":
+                orientation = "horizontal"
+            else:
+                orientation="vertical"
             s_map = cm.ScalarMappable(norm=normalize, cmap=c_map)
-            # label colour bar with azimuths if there are less than 10
+            # label colour bar with unique azimuths if there are less than 10
             if len(self.intensity) <= 10:
                 ticks = np.unique(plot_c)
             else:
                 ticks = None
-            cbar = fig_plot.colorbar(s_map, ticks=ticks)
-            cbar.set_label("Azimuth")
+            if colourbar is True:
+                cbar = fig_plot.colorbar(s_map, ticks=ticks, orientation=orientation)
+                cbar.set_label("Azimuth")
+            else:
+                cbar=[]
             
         axis_plot.set_xlabel(label_x)
         axis_plot.set_ylabel(label_y)
+        
+        return the_plot, cbar

@@ -821,7 +821,6 @@ class DioptasDetector:
         plt.tight_layout()
         
         
-    @staticmethod
     def residuals_colour_scheme(maximum_value, minimum_value, **kwargs):
     
         # create custom colormap for residuals
@@ -917,7 +916,7 @@ class DioptasDetector:
             y_lims = np.around(y_lims / 180) * 180
             axis_plot.set_ylim(y_lims)
 
-        # sort the data
+        # organise the data to plot
         if data is not None:
             plot_i = data
         elif show == "unmasked_intensity":
@@ -944,7 +943,7 @@ class DioptasDetector:
             IMin=0
             cb_extend="neither"
         elif isinstance(limits, dict):
-            IMax = limits['max']#limits[0]
+            IMax = limits['max']
             IMin = limits['min']
             cb_extend="neither"
         else:

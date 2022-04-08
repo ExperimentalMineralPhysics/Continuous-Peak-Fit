@@ -900,7 +900,7 @@ def execute(
             intens_sub = intens[sub_pattern]
             
             
-            sub_data = deepcopy(new_data)
+            sub_data = new_data.duplicate()
             sub_data.set_limits(range_bounds=tth_range)
             
             # Mask the subpattern by intensity if called for

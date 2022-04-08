@@ -42,7 +42,7 @@ class MedDetector:
         self.dspace = None
         self.calibration = None
 
-    def __deepcopy__(self,a):
+    def duplicate(self):
         """
         Makes a "deep" copy of an Mca instance, using copy.deepcopy() on all of
         the attributes of the Mca instance. All of the attribute will point to

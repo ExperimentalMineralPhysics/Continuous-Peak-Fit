@@ -5,7 +5,7 @@ __all__ = ["DioptasDetector"]
 
 import os
 import sys
-
+from copy import deepcopy
 import fabio
 import h5py
 import matplotlib.pyplot as plt
@@ -36,6 +36,15 @@ class DioptasDetector:
         self.azm = None
         self.dspace = None
         self.calibration = None
+
+    def duplicate(self):
+        """
+        Makes a "deep" copy of an Dioptas Instance, using copy.deepcopy()
+        """
+        
+        new = deepcopy(self)
+        
+        return new
 
     def fill_data(self, diff_file, settings=None, debug=None, calibration_mask=None):
         """
@@ -821,7 +830,10 @@ class DioptasDetector:
         plt.tight_layout()
         
         
+    @staticmethod
     def residuals_colour_scheme(maximum_value, minimum_value, **kwargs):
+        # @staticmethod is needed or get an error saying:
+        # "TypeError: residuals_colour_scheme() takes 2 positional arguments but 3 were given"
     
         # create custom colormap for residuals
         # ---------------

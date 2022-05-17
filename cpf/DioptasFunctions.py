@@ -46,19 +46,20 @@ class DioptasDetector:
         
         return new
 
-    def fill_data(self, diff_file, settings=None, debug=None, calibration_mask=None):
+    def fill_data(self, diff_file, settings=None, debug=None):#, calibration_mask=None):
         """
-        :param settings:
+        :param settings: -- now a class.
         :param diff_file:
         :param debug:
-        :param calibration_mask:
+        :param calibration_mask: -- now removed because calibration mask file is contained in settings class
         """
         # self.detector = self.detector_check(calibration_data, detector)
         #        print(settings.Calib_param)
-        self.calibration = self.get_calibration(settings.Calib_param)
+        self.calibration = self.get_calibration(settings.calibration_parameters)
+        #self.calibration = self.get_calibration(settings.Calib_param)
         self.get_detector(diff_file, settings)
 
-        self.intensity = self.get_masked_calibration(diff_file, debug, calibration_mask)
+        self.intensity = self.get_masked_calibration(diff_file, debug, calibration_mask=settings.calibration_mask)
         self.tth = self.get_two_theta(mask=self.intensity.mask)
         self.azm = self.get_azimuth(mask=self.intensity.mask)
         self.dspace = self.get_d_space(mask=self.intensity.mask)
@@ -70,17 +71,18 @@ class DioptasDetector:
         :return:
         """
 
-        if hasattr(settings, "Calib_detector"):
-            self.detector = pyFAI.detector_factory(settings.Calib_detector)
+        #if hasattr(settings, "Calib_detector"):
+        if settings.calibration_detector is not None:
+            self.detector = pyFAI.detector_factory(settings.calibration_detector)
         else:
             # if settings is None or detector == 'unknown' or detector == 'other' or detector == 'blank':
             im_all = fabio.open(diff_file)
             if "pixelsize1" in self.calibration:
                 sz1 = self.calibration["pixelsize1"]
                 sz2 = self.calibration["pixelsize2"]
-            elif hasattr(settings, "Calib_pixels"):
-                sz1 = settings.Calib_pixels * 1e-6
-                sz2 = settings.Calib_pixels * 1e-6
+            elif settings.calibration_pixel_size is not None:
+                sz1 = settings.calibration_pixel_size * 1e-6
+                sz2 = settings.calibration_pixel_size * 1e-6
             else:
                 err_str = (
                     "The pixel size or the detector are is not defined. Add to inputs."
@@ -102,12 +104,15 @@ class DioptasDetector:
         :param calibration_data:
         :return: detector:
         """
-        if "Calib_detector" in settings:
-            detector = pyFAI.detector_factory(settings.Calib_detector)
+        # if "Calib_detector" in settings:
+            # detector = pyFAI.detector_factory(settings.Calib_detector)
+        if settings.calibration_detector is not None:
+            detector = pyFAI.detector_factory(settings.calibration_detector)
         else:
             # if settings is None or detector == 'unknown' or detector == 'other' or detector == 'blank':
             im_all = fabio.open(calibration_data)
-            sz = calibration_data.Calib_pixels  # Pixel_size
+            #sz = calibration_data.Calib_pixels  # Pixel_size
+            sz = calibration_data.calibration_pixel_size  # Pixel_size
             if sz > 1:
                 sz = sz * 1e-6
             detector = pyFAI.detectors.Detector(
@@ -126,7 +131,6 @@ class DioptasDetector:
         """
         im_all = fabio.open(calibration_data)
         im=im_all.data
-        print(type(im))
         im = np.array(im)[::-1]
         
         # im = im_a.data # self.ImportImage(calibration_data, debug=debug)
@@ -234,7 +238,8 @@ class DioptasDetector:
         else:
             return ma.array(im)
 
-    def conversion(self, tth_in, conv, reverse=0, azm=None):
+    #def conversion(self, tth_in, conv, reverse=0, azm=None):
+    def conversion(self, tth_in, reverse=0, azm=None):
         """
         Convert two theta values into d-spacing.
         azm is needed to enable compatibility with the energy dispersive detectors
@@ -245,7 +250,8 @@ class DioptasDetector:
         :return:
         """
 
-        wavelength = conv["conversion_constant"]
+        #wavelength = conv["conversion_constant"]
+        wavelength = self.parameters["Wavelength"] * 1e10
         # print(wavelength)
         if not reverse:
             # convert tth to d_spacing
@@ -495,21 +501,38 @@ class DioptasDetector:
 
 
 
-    def set_limits(self, range_bounds=[-np.inf, np.inf], i_max=np.inf, i_min=-np.inf):
+    def set_limits(self, range_bounds=[-np.inf, np.inf]):
         """
         Set limits to data 
         :param range_bounds:
         :param i_max:
         :param i_min:
         :return:
-        """
-                
+        """    
         local_mask = np.where((self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1]))
         self.intensity = self.intensity[local_mask]
         self.tth = self.tth[local_mask]
         self.azm = self.azm[local_mask]
         self.dspace = self.dspace[local_mask]
 
+
+
+    def set_mask(self, range_bounds=[-np.inf, np.inf], i_max=np.inf, i_min=-np.inf):
+        """
+        Set limits to data 
+        :param range_bounds:
+        :param i_max:
+        :param i_min:
+        :return:
+        """     
+        local_mask = ma.getmask(ma.masked_outside(self.tth, range_bounds[0], range_bounds[1]))
+        local_mask2 = ma.getmask(ma.masked_outside(self.intensity, i_min, i_max))
+        combined_mask = np.ma.mask_or(ma.getmask(self.intensity), local_mask)
+        combined_mask = np.ma.mask_or(combined_mask, local_mask2)
+        self.intensity.mask = combined_mask
+        self.tth.mask = combined_mask
+        self.azm.mask = combined_mask
+        self.dspace.mask = combined_mask
 
     # def full_plot(self,
     #         plot_type="data",
@@ -899,7 +922,7 @@ class DioptasDetector:
         :return:
         """
         rstr=False
-        if self.intensity.size > 100000:
+        if self.intensity.size > 50000:
             print(
                 " Have patience. The plot(s) will appear but it can take its time to render."
             )

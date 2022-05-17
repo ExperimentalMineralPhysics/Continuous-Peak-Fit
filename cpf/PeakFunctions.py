@@ -943,7 +943,7 @@ def fourier_order(params):
     return order
 
 
-def coefficient_type_as_number(coeff_type):
+def coefficient_type_as_number(coeff_type, return_error=1):
     """
 
     :param coeff_type:
@@ -970,12 +970,14 @@ def coefficient_type_as_number(coeff_type):
     elif coeff_type == "independent" or coeff_type == 5:
         out = 5
     else:
-        raise ValueError(
-            "Unrecognised coefficient series type, the valid options are "
-            "fourier"
-            ", etc..."
-        )
-        # FIX ME: write out all the licit options in the error message.
+        error_str = "Unrecognised coefficient series type, the valid options are fourier, etc..."
+        if return_error==0:
+            raise ValueError(
+                error_str
+            )
+            # FIX ME: write out all the licit options in the error message.
+        else:
+            out = error_str
     return out
 
 

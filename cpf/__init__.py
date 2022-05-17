@@ -15,6 +15,7 @@ __all__ = [
     "Med",
     "generate_inputs",
     "Cosmics",
+    "Settings"
 ]
 
 from . import XRD_FitPattern
@@ -31,6 +32,7 @@ from . import WriteDifferentialStrain
 from . import Mca
 from . import Med
 from . import Cosmics
+from . import Settings
 
 
 def generate_inputs():

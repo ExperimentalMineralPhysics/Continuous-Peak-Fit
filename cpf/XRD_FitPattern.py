@@ -10,10 +10,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import multiprocessing as mp
+#import pathos.multiprocessing as mp
 import importlib.util
 import cpf.DioptasFunctions as DioptasFunctions
 import cpf.GSASIIFunctions as GSASIIFunctions
 import cpf.MedFunctions as MedFunctions
+from cpf.Settings import Settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 from cpf.Cosmics import cosmicsimage
 from cpf.IO_functions import json_numpy_serializer, file_list, make_outfile_name, peak_string
@@ -103,206 +105,215 @@ def initiate(
     :return fit_parameters:
     :return fit_settings:
     """
-    # Check we can find and load settings file
-    if setting_file:
-        try:
-            print("\nThe name of the settings file is: ", setting_file)
-            if not str.endswith(setting_file, ".py"):
-                setting_file = setting_file + ".py"
-            spec = importlib.util.spec_from_file_location(
-                "settings_module", setting_file
-            )
-            fit_settings = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(fit_settings)
-            fit_parameters = dir(fit_settings)
-            fit_settings.inputfile = setting_file
+    
+    
+    settings_for_fit = Settings()
+    
+    settings_for_fit.populate(settings_file = setting_file, report=report)
+    
+        
+    return settings_for_fit
+    
+    # # Check we can find and load settings file
+    # if setting_file:
+    #     try:
+    #         print("\nThe name of the settings file is: ", setting_file)
+    #         if not str.endswith(setting_file, ".py"):
+    #             setting_file = setting_file + ".py"
+    #         spec = importlib.util.spec_from_file_location(
+    #             "settings_module", setting_file
+    #         )
+    #         fit_settings = importlib.util.module_from_spec(spec)
+    #         spec.loader.exec_module(fit_settings)
+    #         fit_parameters = dir(fit_settings)
+    #         fit_settings.inputfile = setting_file
 
-        except FileNotFoundError:
-            raise FileNotFoundError
-    elif inputs:
-        raise NotImplementedError
-    else:
-        raise ValueError("No inputs provided")
+    #     except FileNotFoundError:
+    #         raise FileNotFoundError
+    # elif inputs:
+    #     raise NotImplementedError
+    # else:
+    #     raise ValueError("No inputs provided")
 
-    # Data directory and file validation: check they exist.
-    if os.path.exists(fit_settings.datafile_directory) is False:
-        raise ImportError(
-            "The data directory " + fit_settings.datafile_directory + " does not exist."
-        )
-    else:
-        print("The data directory exists.")
-    diff_files, n_diff_files = file_list(fit_parameters, fit_settings)
-    for j in range(n_diff_files):
-        if os.path.isfile(diff_files[j]) is False:
-            raise ImportError(
-                "The data file "
-                + diff_files[j]
-                + " does not exist. Check the input file."
-            )
-    print("All the data files exist.")
+    # # Data directory and file validation: check they exist.
+    # if os.path.exists(fit_settings.datafile_directory) is False:
+    #     raise ImportError(
+    #         "The data directory " + fit_settings.datafile_directory + " does not exist."
+    #     )
+    # else:
+    #     print("The data directory exists.")
+    # diff_files, n_diff_files = file_list(fit_parameters, fit_settings)
+    # for j in range(n_diff_files):
+    #     if os.path.isfile(diff_files[j]) is False:
+    #         raise ImportError(
+    #             "The data file "
+    #             + diff_files[j]
+    #             + " does not exist. Check the input file."
+    #         )
+    # print("All the data files exist.")
 
-    # Confirm that an output directory is listed.
-    if "Output_directory" not in fit_parameters:
-        fit_settings.Output_directory = "."
-        fit_parameters.append("Output_directory")
-    if not os.path.isdir(fit_settings.Output_directory):
-        raise ValueError("Output directory not found")
+    # # Confirm that an output directory is listed.
+    # if "Output_directory" not in fit_parameters:
+    #     fit_settings.Output_directory = "."
+    #     fit_parameters.append("Output_directory")
+    # if not os.path.isdir(fit_settings.Output_directory):
+    #     raise ValueError("Output directory not found")
 
-    # Load the detector class here to access relevant functions and check required parameters are present
-    if "Calib_type" not in fit_parameters:
-        raise ValueError(
-            "There is no 'Calib_type' in the settings. The fitting cannot proceed until a recognised "
-            "calibration type is present."
-        )
-    else:
-        data_class = detector_factory(fit_settings.Calib_param, fit_settings.Calib_type)
+    # # Load the detector class here to access relevant functions and check required parameters are present
+    # if "Calib_type" not in fit_parameters:
+    #     raise ValueError(
+    #         "There is no 'Calib_type' in the settings. The fitting cannot proceed until a recognised "
+    #         "calibration type is present."
+    #     )
+    # else:
+    #     data_class = detector_factory(fit_settings.Calib_param, fit_settings.Calib_type)
 
-    # FIX ME: This doesn't seem to be used, if it should be this needs moving to class structure.
-    alternatives_list = [[["datafile_StartNum", "datafile_EndNum"], ["datafile_Files"]]]
-    optional_list = ["datafile_Step"]  # FIX ME: This doesn't seem to be used
-    possible = [[[], []] * len(alternatives_list)]
-    for x in range(len(alternatives_list)):
-        for y in range(2):
-            for z in range(len(alternatives_list[x][y])):
-                if alternatives_list[x][y][z] in fit_parameters:
-                    possible[x][y].append(1)
-                else:
-                    possible[x][y].append(0)
-    # exit if all parameters are not present
+    # # FIX ME: This doesn't seem to be used, if it should be this needs moving to class structure.
+    # alternatives_list = [[["datafile_StartNum", "datafile_EndNum"], ["datafile_Files"]]]
+    # optional_list = ["datafile_Step"]  # FIX ME: This doesn't seem to be used
+    # possible = [[[], []] * len(alternatives_list)]
+    # for x in range(len(alternatives_list)):
+    #     for y in range(2):
+    #         for z in range(len(alternatives_list[x][y])):
+    #             if alternatives_list[x][y][z] in fit_parameters:
+    #                 possible[x][y].append(1)
+    #             else:
+    #                 possible[x][y].append(0)
+    # # exit if all parameters are not present
 
-    # check the peak fitting options in the input file are not illicit.
-    missing = []
-    extras = []
-    fit_orders = fit_settings.fit_orders
+    # # check the peak fitting options in the input file are not illicit.
+    # missing = []
+    # extras = []
+    # fit_orders = fit_settings.fit_orders
 
-    for i in range(len(fit_orders)):
-        # FIX ME: we should check for incorrect or unneeded options
-        required = ["background", "peak", "range"]
-        possible = ["PeakPositionSelection", "Imax"]
-        peak_required = ["d-space", "width", "height", "profile"]
+    # for i in range(len(fit_orders)):
+    #     # FIX ME: we should check for incorrect or unneeded options
+    #     required = ["background", "peak", "range"]
+    #     possible = ["PeakPositionSelection", "Imax"]
+    #     peak_required = ["d-space", "width", "height", "profile"]
 
-        # check range and background
-        if "range" not in fit_orders[i]:
-            missing.append("fit_orders " + str(i) + " is missing a " "'range'")
-        elif (
-                not isinstance(fit_orders[i]["range"], list)
-                and len(fit_orders[i]["range"]) != 2
-        ):
-            missing.append(
-                "fit_orders " + str(i) + " has an incorrectly formatted "+"'range'")
+    #     # check range and background
+    #     if "range" not in fit_orders[i]:
+    #         missing.append("fit_orders " + str(i) + " is missing a " "'range'")
+    #     elif (
+    #             not isinstance(fit_orders[i]["range"], list)
+    #             and len(fit_orders[i]["range"]) != 2
+    #     ):
+    #         missing.append(
+    #             "fit_orders " + str(i) + " has an incorrectly formatted "+"'range'")
 
-        if "background" not in fit_orders[i]:
-            missing.append("fit_orders " + str(i) + " is missing a "+"'background'")
-        elif not isinstance(fit_orders[i]["background"], list):
-            missing.append(
-                "fit_orders " + str(i) + " has an incorrectly formatted"+"'background'")
+    #     if "background" not in fit_orders[i]:
+    #         missing.append("fit_orders " + str(i) + " is missing a "+"'background'")
+    #     elif not isinstance(fit_orders[i]["background"], list):
+    #         missing.append(
+    #             "fit_orders " + str(i) + " has an incorrectly formatted"+"'background'")
 
-        # check peaks
-        if "peak" not in fit_orders[i]:
-            missing.append("fit_orders" + str(i) + "has no "+"'peak'")
-        else:
-            for j in range(len(fit_orders[i]["peak"])):
-                for k in range(len(peak_required)):
-                    if not peak_required[k] in fit_orders[i]["peak"][j]:
-                        missing.append(
-                            "fit_orders "
-                            + str(i)
-                            + ", peak "
-                            + str(j)
-                            + " has no "
-                            + peak_required[k]
-                        )
-                    elif not isinstance(
-                        fit_orders[i]["peak"][j][peak_required[k]], list
-                    ) and not isinstance(
-                        fit_orders[i]["peak"][j][peak_required[k]], int
-                    ):
-                        missing.append(
-                            "fit_orders "
-                            + str(i)
-                            + ", peak "
-                            + str(j)
-                            + " incorrectly formatted "
-                            "" + peak_required[k] + " "
-                            " "
-                        )
+    #     # check peaks
+    #     if "peak" not in fit_orders[i]:
+    #         missing.append("fit_orders" + str(i) + "has no "+"'peak'")
+    #     else:
+    #         for j in range(len(fit_orders[i]["peak"])):
+    #             for k in range(len(peak_required)):
+    #                 if not peak_required[k] in fit_orders[i]["peak"][j]:
+    #                     missing.append(
+    #                         "fit_orders "
+    #                         + str(i)
+    #                         + ", peak "
+    #                         + str(j)
+    #                         + " has no "
+    #                         + peak_required[k]
+    #                     )
+    #                 elif not isinstance(
+    #                     fit_orders[i]["peak"][j][peak_required[k]], list
+    #                 ) and not isinstance(
+    #                     fit_orders[i]["peak"][j][peak_required[k]], int
+    #                 ):
+    #                     missing.append(
+    #                         "fit_orders "
+    #                         + str(i)
+    #                         + ", peak "
+    #                         + str(j)
+    #                         + " incorrectly formatted "
+    #                         "" + peak_required[k] + " "
+    #                         " "
+    #                     )
 
-        # if PeakPositionSelection - check within range
-        if "PeakPositionSelection" in fit_orders[i]:
-            # how many peaks in list
-            tthguesses = np.array(fit_orders[i]["PeakPositionSelection"])
+    #     # if PeakPositionSelection - check within range
+    #     if "PeakPositionSelection" in fit_orders[i]:
+    #         # how many peaks in list
+    #         tthguesses = np.array(fit_orders[i]["PeakPositionSelection"])
 
-            # FIX ME: use of j here outside of loop - need to check meaning!
-            if max(tthguesses[:, 0]) > len(fit_orders[i]["peak"][j]):
-                missing.append(
-                    "fit_orders "
-                    + str(i)
-                    + ": PeakPositionSelection contains too many peaks"
-                )
+    #         # FIX ME: use of j here outside of loop - need to check meaning!
+    #         if max(tthguesses[:, 0]) > len(fit_orders[i]["peak"][j]):
+    #             missing.append(
+    #                 "fit_orders "
+    #                 + str(i)
+    #                 + ": PeakPositionSelection contains too many peaks"
+    #             )
 
-            # if positions outside of range.
-            if np.min(tthguesses[:, 2]) < fit_orders[i]["range"][0][0]:
-                missing.append(
-                    "fit_orders "
-                    + str(i)
-                    + ": PeakPositionSelection has at least one two theta value that is too small"
-                )
-            if np.max(tthguesses[:, 2]) > fit_orders[i]["range"][0][1]:
-                missing.append(
-                    "fit_orders "
-                    + str(i)
-                    + ": PeakPositionSelection has at least one two theta value that is too large"
-                )
-        else:
-            if len(fit_orders[i]["peak"]) > 1:
-                missing.append(
-                    "fit_orders " + str(i) + ": There are more peaks than listed in "
-                    "PeakPositionSelection"
-                    " than peaks listed"
-                )
+    #         # if positions outside of range.
+    #         if np.min(tthguesses[:, 2]) < fit_orders[i]["range"][0][0]:
+    #             missing.append(
+    #                 "fit_orders "
+    #                 + str(i)
+    #                 + ": PeakPositionSelection has at least one two theta value that is too small"
+    #             )
+    #         if np.max(tthguesses[:, 2]) > fit_orders[i]["range"][0][1]:
+    #             missing.append(
+    #                 "fit_orders "
+    #                 + str(i)
+    #                 + ": PeakPositionSelection has at least one two theta value that is too large"
+    #             )
+    #     else:
+    #         if len(fit_orders[i]["peak"]) > 1:
+    #             missing.append(
+    #                 "fit_orders " + str(i) + ": There are more peaks than listed in "
+    #                 "PeakPositionSelection"
+    #                 " than peaks listed"
+    #             )
 
-        # list unrecognised entries
+    #     # list unrecognised entries
 
-    if missing:
-        print("\nMissing Values:")
-        for i in range(len(missing)):
-            print(missing[i])
-        if not report:
-            raise ValueError("The problems listed above will prevent the data fitting.")
-        else:
-            print(
-                "The problems listed above will prevent the data fitting and need to be rectified before execution"
-            )
-    else:
-        print("Fit_orders appears to be correct")
+    # if missing:
+    #     print("\nMissing Values:")
+    #     for i in range(len(missing)):
+    #         print(missing[i])
+    #     if not report:
+    #         raise ValueError("The problems listed above will prevent the data fitting.")
+    #     else:
+    #         print(
+    #             "The problems listed above will prevent the data fitting and need to be rectified before execution"
+    #         )
+    # else:
+    #     print("Fit_orders appears to be correct")
 
-    # FIX ME: do we need to check fit bounds?
+    # # FIX ME: do we need to check fit bounds?
 
-    # Load output function(s) and check output options are present and valid
-    if out_type is not None:
-        output_mod = get_output_options(out_type)
-    elif "Output_type" in fit_parameters:
-        output_mod = get_output_options(fit_settings.Output_type)
-    else:
-        raise ValueError(
-            "No output type. Add 'Output_type' to input file or specify 'out_type' in command."
-        )
+    # # Load output function(s) and check output options are present and valid
+    # if out_type is not None:
+    #     output_mod = get_output_options(out_type)
+    # elif "Output_type" in fit_parameters:
+    #     output_mod = get_output_options(fit_settings.Output_type)
+    # else:
+    #     raise ValueError(
+    #         "No output type. Add 'Output_type' to input file or specify 'out_type' in command."
+    #     )
 
-    # Check output format exists
-    for mod in output_mod:
-        if mod not in output_methods_modules.keys():
-            raise ImportError(
-                "The 'Output_type' "
-                + mod
-                + " is not recognised; the file '"
-                + mod
-                + "' does not "
-                "exist. Check if "
-                "the calibration "
-                "type exists."
-            )
+    # # Check output format exists
+    # for mod in output_mod:
+    #     if mod not in output_methods_modules.keys():
+    #         raise ImportError(
+    #             "The 'Output_type' "
+    #             + mod
+    #             + " is not recognised; the file '"
+    #             + mod
+    #             + "' does not "
+    #             "exist. Check if "
+    #             "the output "
+    #             "type exists."
+    #         )
 
-    return fit_settings, fit_parameters, data_class
+    # return fit_settings, fit_parameters, data_class
 
 
 def set_range(
@@ -332,34 +343,43 @@ def set_range(
     :param kwargs:
     :return:
     """
-    fit_settings, fit_parameters, new_data = initiate(
+    
+    settings_for_fit = initiate(
         setting_file, inputs=inputs, report=True
     )
+    
+    # fit_settings, fit_parameters, new_data = initiate(
+    #     setting_file, inputs=inputs, report=True
+    # )
 
     # search over the first file only
     # restrict file list to first file
-    if "datafile_Files" not in fit_parameters:
-        fit_settings.datafile_EndNum = fit_settings.datafile_StartNum
-    else:
-        fit_settings.datafile_Files = [fit_settings.datafile_Files[0]]
+    settings_for_fit.set_data_files(keep=0)
+    
+    # if "datafile_Files" not in fit_parameters:
+    #     fit_settings.datafile_EndNum = fit_settings.datafile_StartNum
+    # else:
+    #     fit_settings.datafile_Files = [fit_settings.datafile_Files[0]]
 
     # restrict to sub-patterns listed
-    if subpattern == "all":
-        sub_pats = list(range(0, len(fit_settings.fit_orders)))
-    elif isinstance(subpattern, list):
-        sub_pats = subpattern
-    else:
-        sub_pats = [int(x) for x in str(subpattern)]
+    settings_for_fit.set_subpatterns(subpatterns=subpattern)
+    
+    # if subpattern == "all":
+    #     sub_pats = list(range(0, len(fit_settings.fit_orders)))
+    # elif isinstance(subpattern, list):
+    #     sub_pats = subpattern
+    # else:
+    #     sub_pats = [int(x) for x in str(subpattern)]
 
-    # make new order search list
-    orders_tmp = []
-    for i in range(len(sub_pats)):
-        j = sub_pats[i]
-        orders_tmp.append(fit_settings.fit_orders[j])
-    fit_settings.fit_orders = orders_tmp
+    # # make new order search list
+    # orders_tmp = []
+    # for i in range(len(sub_pats)):
+    #     j = sub_pats[i]
+    #     orders_tmp.append(fit_settings.fit_orders[j])
+    # fit_settings.fit_orders = orders_tmp
 
-    execute(inputs=new_data, debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
-            parallel=parallel, mode="set-range", report=True, fit_settings=fit_settings, fit_parameters=fit_parameters)
+    execute(setting_class=settings_for_fit, debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
+            parallel=parallel, mode="set-range", report=True)#inputs=new_data, fit_settings=fit_settings, fit_parameters=fit_parameters)
 
 
 def initial_peak_position(
@@ -372,7 +392,7 @@ def initial_peak_position(
     iterations=1,
     track=False,
     parallel=True,
-    sub_pattern="all",
+    subpattern="all",
     **kwargs
 ):
     """
@@ -391,39 +411,47 @@ def initial_peak_position(
     """
 
     # see https://matplotlib.org/stable/users/event_handling.html for how to make work
-    fit_settings, fit_parameters, new_data = initiate(
+    
+    settings_for_fit = initiate(
         setting_file, inputs=inputs, report=True
     )
+    # fit_settings, fit_parameters, new_data = initiate(
+    #     setting_file, inputs=inputs, report=True
+    # )
 
     # search over the first file only
-    # strip file list to first file
-    if "datafile_Files" not in fit_parameters:
-        fit_settings.datafile_EndNum = fit_settings.datafile_StartNum
-    else:
-        fit_settings.datafile_Files = [fit_settings.datafile_Files[0]]
+    settings_for_fit.set_data_files(keep=0)
+    # # strip file list to first file
+    # if "datafile_Files" not in fit_parameters:
+    #     fit_settings.datafile_EndNum = fit_settings.datafile_StartNum
+    # else:
+    #     fit_settings.datafile_Files = [fit_settings.datafile_Files[0]]
 
     # restrict to sub-patterns listed
-    if sub_pattern == "all":
-        sub_pats = list(range(0, len(fit_settings.fit_orders)))
-    elif isinstance(sub_pattern, list):
-        sub_pats = sub_pattern
-    else:
-        sub_pats = [int(x) for x in str(sub_pattern)]
+    settings_for_fit.set_subpatterns(subpatterns=subpattern)
+    # if sub_pattern == "all":
+    #     sub_pats = list(range(0, len(fit_settings.fit_orders)))
+    # elif isinstance(sub_pattern, list):
+    #     sub_pats = sub_pattern
+    # else:
+    #     sub_pats = [int(x) for x in str(sub_pattern)]
 
     # make new order search list
-    orders_tmp = []
-    for i in range(len(sub_pats)):
-        j = sub_pats[i]
-        orders_tmp.append(fit_settings.fit_orders[j])
-    fit_settings.fit_orders = orders_tmp
+    # orders_tmp = []
+    # for i in range(len(sub_pats)):
+    #     j = sub_pats[i]
+    #     orders_tmp.append(fit_settings.fit_orders[j])
+    # fit_settings.fit_orders = orders_tmp
 
     print("\n'initial_peak_position' needs an interactive matplotlib figure.")
     print("If you are using sypder with inline figures, call '%matplotlib qt', then rerun the script")
     print("To restore the inline plotting afterwards call '%matplotlib inline'")
     print("To move to the next peak selection close the window.\n")
 
-    execute(fit_settings=fit_settings, fit_parameters=fit_parameters, inputs=new_data, debug=debug, refine=refine,
-            save_all=save_all, propagate=propagate, iterations=iterations, parallel=parallel, mode="set-guess")
+    execute(setting_class=settings_for_fit, debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
+            parallel=parallel, mode="set-guess", report=True)
+    # execute(fit_settings=fit_settings, fit_parameters=fit_parameters, inputs=new_data, debug=debug, refine=refine,
+    #         save_all=save_all, propagate=propagate, iterations=iterations, parallel=parallel, mode="set-guess")
 
 
 
@@ -527,7 +555,7 @@ def order_search(
     parallel=True,
     search_parameter="height",
     search_over=[0, 20],
-    sub_pattern="all",
+    subpattern="all",
     search_peak=0,
     search_series=["fourier", "spline"],
     **kwargs
@@ -549,72 +577,91 @@ def order_search(
     :param iterations:
     :return:
     """
-    fit_settings, fit_parameters, new_data = initiate(setting_file, inputs=inputs)
+    
+    settings_for_fit = initiate(
+        setting_file, inputs=inputs, report=True
+    )
+    #fit_settings, fit_parameters, new_data = initiate(setting_file, inputs=inputs)
 
     # force it to write the required output type.
-    fit_settings.Output_type = "DifferentialStrain"
+    settings_for_fit.output_type = ["DifferentialStrain"]
+    #fit_settings.Output_type = "DifferentialStrain"
 
     # search over the first file only
-    # strip file list to first file
-    if "datafile_Files" not in fit_parameters:
-        fit_settings.datafile_EndNum = fit_settings.datafile_StartNum
-    else:
-        fit_settings.datafile_Files = fit_settings.datafile_Files[0]
+    settings_for_fit.set_data_files(keep=0)
+    # # strip file list to first file
+    # if "datafile_Files" not in fit_parameters:
+    #     fit_settings.datafile_EndNum = fit_settings.datafile_StartNum
+    # else:
+    #     fit_settings.datafile_Files = fit_settings.datafile_Files[0]
 
     # restrict to sub-patterns listed
-    if sub_pattern == "all":
-        sub_patterns = list(range(0, len(fit_settings.fit_orders)))
-    elif isinstance(sub_pattern, list):
-        sub_patterns = sub_pattern
-    else:
-        sub_patterns = [int(x) for x in str(sub_pattern)]
-    # make new order search list
-    if isinstance(search_over, list) and len(search_over) == 2:
-        search = list(range(search_over[0], search_over[1]))
-    else:
-        search = [int(x) for x in str(search_over)]
+    settings_for_fit.set_subpatterns(subpatterns=subpattern)
+    # if sub_pattern == "all":
+    #     sub_patterns = list(range(0, len(fit_settings.fit_orders)))
+    # elif isinstance(sub_pattern, list):
+    #     sub_patterns = sub_pattern
+    # else:
+    #     sub_patterns = [int(x) for x in str(sub_pattern)]
+    # # make new order search list
+    # if isinstance(search_over, list) and len(search_over) == 2:
+    #     search = list(range(search_over[0], search_over[1]))
+    # else:
+    #     search = [int(x) for x in str(search_over)]
 
-    orders_search = []
-    for i in range(len(sub_patterns)):
-        for j in range(len(search_series)):
-            tmp_order = fit_settings.fit_orders[sub_patterns[i]]
-            for k in range(len(search)):
-                orders_s = deepcopy(tmp_order)
-                if search_parameter != "background":
-                    orders_s["peak"][search_peak][search_parameter] = search[k]
-                    orders_s["peak"][search_peak][
-                        search_parameter + "-type"
-                    ] = search_series[j]
-                else:
-                    orders_s["background"][search_peak] = search[k]
-                if len(tmp_order) > 1:
-                    intro_string = "peak="+str(search_peak)+"_"
-                else:
-                    intro_string = ''
-                orders_s["note"] = (
-                    search_parameter
-                    + "="
-                    + str(search[k])
-                    + "_type="
-                    + search_series[j]
-                )
-                orders_search.append(orders_s)
-    fit_settings.fit_orders = orders_search
+    # set seasrch orders
+    settings_for_fit.set_order_search(search_parameter=search_parameter, 
+                        search_over=search_over,
+                        subpatterns=subpattern,
+                        search_peak=search_peak,
+                        search_series=search_series)
+    # orders_search = []
+    # for i in range(len(sub_patterns)):
+    #     for j in range(len(search_series)):
+    #         tmp_order = fit_settings.fit_orders[sub_patterns[i]]
+    #         for k in range(len(search)):
+    #             orders_s = deepcopy(tmp_order)
+    #             if search_parameter != "background":
+    #                 orders_s["peak"][search_peak][search_parameter] = search[k]
+    #                 orders_s["peak"][search_peak][
+    #                     search_parameter + "-type"
+    #                 ] = search_series[j]
+    #             else:
+    #                 orders_s["background"][search_peak] = search[k]
+    #             if len(tmp_order) > 1:
+    #                 intro_string = "peak="+str(search_peak)+"_"
+    #             else:
+    #                 intro_string = ''
+    #             orders_s["note"] = (
+    #                 search_parameter
+    #                 + "="
+    #                 + str(search[k])
+    #                 + "_type="
+    #                 + search_series[j]
+    #             )
+    #             orders_search.append(orders_s)
+    # fit_settings.fit_orders = orders_search
 
-    execute(fit_settings=fit_settings, fit_parameters=fit_parameters, inputs=new_data, debug=debug, refine=refine,
-            save_all=save_all, propagate=propagate, iterations=iterations, parallel=parallel)
+    
+    execute(setting_class=settings_for_fit, debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
+            parallel=parallel, report=True)
+    # execute(fit_settings=fit_settings, fit_parameters=fit_parameters, inputs=new_data, debug=debug, refine=refine,
+    #         save_all=save_all, propagate=propagate, iterations=iterations, parallel=parallel)
 
     # write a differential strain output file
     # FIX ME: using debug as a switch to get all info in file.
     # should probably use another switch
-    write_output(setting_file, fit_settings=fit_settings, fit_parameters=fit_parameters, debug=True,
-                 outtype="DifferentialStrain")
+    # write_output(setting_file, fit_settings=fit_settings, fit_parameters=fit_parameters, debug=True,
+    #              outtype="DifferentialStrain")
+    write_output(setting_file=setting_file,setting_class=settings_for_fit, debug=True,
+                 out_type="DifferentialStrain")
 
 
 def write_output(
     setting_file=None,
-    fit_settings=None,
-    fit_parameters=None,
+    setting_class=None,
+    #fit_settings=None,
+    #fit_parameters=None,
     parms_dict=None,
     out_type=None,
     det=None,
@@ -637,42 +684,56 @@ def write_output(
     """
     # Fail gracefully
     if (
-        parms_dict is None
-        and setting_file is None
-        and fit_settings is None
-        and fit_parameters is None
+        #parms_dict is None
+        setting_file is None
+        and setting_class is None
+        # and fit_settings is None
+        # and fit_parameters is None
     ):
         raise ValueError(
             "Either the settings file or the parameter dictionary need to be specified."
         )
     # If no params_dict then initiate. Check all the output functions are present and valid.
-    if parms_dict is None and fit_settings is None and fit_parameters is None:
-        fit_settings, fit_parameters, new_data = initiate(setting_file, outtype=out_type)
-        parms_dict = new_data.get_calibration(os.path.abspath(fit_settings.Calib_param))
-    elif parms_dict is None:
-        _, _, new_data = initiate(setting_file, outtype=out_type)
-        parms_dict = new_data.get_calibration(os.path.abspath(fit_settings.Calib_param))
+    
+    if setting_class is None: #parms_dict is None and fit_settings is None and fit_parameters is None:
+        # fit_settings, fit_parameters, new_data = initiate(setting_file, outtype=out_type)
+        # parms_dict = new_data.get_calibration(os.path.abspath(fit_settings.Calib_param))
+        setting_class = initiate(setting_file, report=True, out_type=out_type)
+    
+    #elif parms_dict is None:
+        #_, _, new_data = initiate(setting_file, outtype=out_type)
+        #parms_dict = new_data.get_calibration(os.path.abspath(fit_settings.Calib_param))
+    
+    
     if out_type is not None:
-        output_mod = get_output_options(out_type)
-    elif "Output_type" in fit_parameters:
-        output_mod = get_output_options(fit_settings.Output_type)
-    else:
+        print("Changing output_type to " + out_type)
+        #output_mod = get_output_options(out_type)
+        setting_class.set_output_types(out_type_list = out_type)
+        
+    # elif "Output_type" in fit_parameters:
+    #     output_mod = get_output_options(fit_settings.Output_type)
+    # else:
+    if setting_class.output_types is None:
         raise ValueError(
             "No output type. Add 'Output_type' to input file or specify 'out_type' in command."
         )
 
-    for mod in output_mod:
+    for mod in setting_class.output_types:
         print("\nWrite output file(s) using", mod)
         wr = output_methods_modules[mod]
+        # wr.WriteOutput(
+        #     fit_settings, parms_dict, differential_only=differential_only, debug=debug
+        # )
         wr.WriteOutput(
-            fit_settings, parms_dict, differential_only=differential_only, debug=debug
+            setting_class=setting_class, setting_file=setting_file, differential_only=differential_only, debug=debug
         )
 
 
 def execute(
     setting_file=None,
-    fit_settings=None,
-    fit_parameters=None,
+    setting_class=None,
+    # fit_settings=None,
+    # fit_parameters=None,
     inputs=None,
     debug=False,
     refine=True,
@@ -701,58 +762,81 @@ def execute(
     :param iterations:
     :return:
     """
-    if fit_settings is None:
-        fit_settings, fit_parameters, new_data = initiate(setting_file, report=report)
+        
+    if setting_class is None:
+        settings_for_fit = initiate(
+            setting_file, inputs=inputs, report=True
+            )
+        # fit_settings, fit_parameters, new_data = initiate(setting_file, report=report)
+        #new_data = settings_for_fit.data_class
     else:
-        new_data = inputs
-
+        settings_for_fit = setting_class
+        #new_data = inputs
+    new_data = settings_for_fit.data_class
+    
     # Define locally required names
     temporary_data_file = make_outfile_name(
         "PreviousFit_JSON",
-        directory=fit_settings.Output_directory,
+        # directory=fit_settings.Output_directory,
+        directory=settings_for_fit.output_directory,
         extension=".dat",
         overwrite=True,
     )
     # temporary_data_file = make_outfile_name('PreviousFit_JSON', extension='dat', overwrite=True)
 
     # Get list of diffraction patterns #
-    diff_files, n_diff_files = file_list(fit_parameters, fit_settings)
+    #  this is now contained in the settings_for_fit
+    
+    # diff_files, n_diff_files = file_list(fit_parameters, fit_settings)
 
     # Initiate data in data class with appropriate detector class
-    if "Calib_mask" in fit_parameters:
-        use_mask = fit_settings.Calib_mask
-    else:
-        use_mask = None
+    
+    # mask now held in settings class.
+    # if "Calib_mask" in fit_parameters:
+    #     use_mask = fit_settings.Calib_mask
+    # else:
+    #     use_mask = None
 
-    if "Calib_data" in fit_parameters:
-        new_data.fill_data(
-            os.path.abspath(fit_settings.Calib_data),
-            settings=fit_settings,
-            debug=debug,
-            calibration_mask=use_mask,
-        )
+    if settings_for_fit.calibration_data:
+        data_to_fill = os.path.abspath(settings_for_fit.calibration_data)
     else:
-        new_data.fill_data(
-            os.path.abspath(diff_files[0]),
-            settings=fit_settings,
-            debug=debug,
-            calibration_mask=use_mask,
-        )
+        data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
+        
+    new_data.fill_data(
+        data_to_fill,
+        settings=settings_for_fit,
+        debug=debug,
+        # calibration_mask=use_mask,
+    )       
+    
+    #     new_data.fill_data(
+    #         os.path.abspath(fit_settings.Calib_data),
+    #         settings=fit_settings,
+    #         debug=debug,
+    #         calibration_mask=use_mask,
+    #     )
+    # else:
+    #     new_data.fill_data(
+    #         os.path.abspath(diff_files[0]),
+    #         settings=fit_settings,
+    #         debug=debug,
+    #         calibration_mask=use_mask,
+    #     )
 
     # Get calibration parameter file
     parms_dict = new_data.parameters
 
     # Get calibration for image set.
     # Get array for azimuth, two theta and d-space the same size as the image.
-    azimuth = new_data.azm
-    twotheta = new_data.tth
-    dspace = new_data.dspace
-    original_mask = np.copy(new_data.azm.mask)
+    # azimuth = new_data.azm
+    # twotheta = new_data.tth
+    # dspace = new_data.dspace
+    # original_mask = np.copy(new_data.azm.mask)
     # print(azimuth, twotheta, dspace)
 
     # plot calibration file
     # FIX ME: SAH - I have just removed this so that the debug runs without the calibration file.
-    if debug and "Calib_data" in fit_parameters:
+    if debug and settings_for_fit.calibration_data is not None:#"Calib_data" in fit_parameters:
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)            
         new_data.plot_collected(fig_plot=fig, axis_plot=ax)
@@ -760,26 +844,31 @@ def execute(
         plt.show()
         plt.close()
         #new_data.debug_plot(two_theta=twotheta, azimuth=azimuth, intensity=new_data.intensity)
-
+    
     # if parallel processing start the pool
     if parallel is True:
         p = mp.Pool(processes=mp.cpu_count())
+        #p = mp.Pool()
 
     # Process the diffraction patterns #
-    for j in range(n_diff_files):
-        print("Process ", diff_files[j])
+    for j in range(settings_for_fit.datafile_number):
+        print("Process ", settings_for_fit.datafile_list[j])
 
         # Get diffraction pattern to process.
-        intens = new_data.import_image(diff_files[j], mask=azimuth.mask, debug=debug)
+        intens = new_data.import_image(settings_for_fit.datafile_list[j], debug=debug)
         # Replace this with call through to class structure
         # FIX ME: the mask call is needed here to pass the mask in. but should it inherit the mask from the preceding
         # data?
+        # ANSWER: the data does interit the mask. the call is not needed and has been removed. But it the option is left in the class
         # DMF FIX ME: No test data seems to use the image_prepare setting. What should be the equivalent when it's not
         # used?
-
+        # ANSWER: do nothing when it is not used. 
+        
         # FIX ME: replace mask with image_prepare mask.
-        if "Image_prepare" in fit_parameters:
-            if "cosmics" in fit_settings.Image_prepare:
+        
+        # FIXME: move all this code to the Cosmics file.
+        if settings_for_fit.datafile_preprocess is not None: #"Image_prepare" in fit_parameters:
+            if "cosmics" in settings_for_fit.datafile_preprocess:
                 print("Remove Cosmics")
                 # set defaults
                 gain = 2.2
@@ -787,17 +876,18 @@ def execute(
                 sigclip = 1.5  # 3 is dioptas default
                 objlim = 3.0  # 3 is dioptas default
                 sigfrac = 0.3
-                if bool(fit_settings.Image_prepare["cosmics"]):
-                    if "gain" in fit_settings.Image_prepare["cosmics"]:
-                        gain = fit_settings.Image_prepare["cosmics"]["gain"]
-                    if "sigclip" in fit_settings.Image_prepare["cosmics"]:
-                        sigclip = fit_settings.Image_prepare["cosmics"]["sigclip"]
-                    if "objlim" in fit_settings.Image_prepare["cosmics"]:
-                        objlim = fit_settings.Image_prepare["cosmics"]["objlim"]
-                    if "sigfrac" in fit_settings.Image_prepare["cosmics"]:
-                        sigfrac = fit_settings.Image_prepare["cosmics"]["sigfrac"]
+                if bool(settings_for_fit.datafile_preprocess["cosmics"]):
+                    if "gain" in settings_for_fit.datafile_preprocess["cosmics"]:
+                        gain = settings_for_fit.datafile_preprocess["cosmics"]["gain"]
+                    if "sigclip" in settings_for_fit.datafile_preprocess["cosmics"]:
+                        sigclip = settings_for_fit.datafile_preprocess["cosmics"]["sigclip"]
+                    if "objlim" in settings_for_fit.datafile_preprocess["cosmics"]:
+                        objlim = settings_for_fit.datafile_preprocess["cosmics"]["objlim"]
+                    if "sigfrac" in settings_for_fit.datafile_preprocess["cosmics"]:
+                        sigfrac = settings_for_fit.datafile_preprocess["cosmics"]["sigfrac"]
                     # FIX ME: use argparse or someway of passing any argument into cosmics.
 
+    
                 test = cosmicsimage(
                     intens, sigclip=sigclip, objlim=objlim, gain=gain, sigfrac=sigfrac
                 )
@@ -813,6 +903,11 @@ def execute(
                 azimuth = ma.array(azimuth, mask=intens.mask)
                 twotheta = ma.array(twotheta, mask=intens.mask)
                 dspace = ma.array(dspace, mask=intens.mask)
+                
+                
+                new_data.set_mask()
+                stop
+                
                 # FIX ME: applying a mask to the data should mask all the arrays. This should be a class function.
                 # FIX ME: I think these calls should all be class applications rather than as it is now. -- but it seems
                 # to work
@@ -823,10 +918,10 @@ def execute(
             ax = fig.add_subplot(1, 1, 1)
             ax_o1 = plt.subplot(111)
             new_data.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity")            
-            plt.title(os.path.basename(diff_files[j]))
+            plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
             plt.show()
             plt.close()
-
+            
         # Get previous fit (if it exists and is required)
         if os.path.isfile(temporary_data_file) and propagate is True and mode == "fit":
             # Read JSON data from file
@@ -840,7 +935,7 @@ def execute(
         else:
             save_figs = 0
 
-        fit_orders = fit_settings.fit_orders
+        fit_orders = settings_for_fit.fit_orders
         # Pass each sub-pattern to Fit_Subpattern for fitting in turn.
         # Get number of sub-patterns to be fitted
         n_sub_patterns = len(fit_orders)
@@ -849,23 +944,23 @@ def execute(
         parallel_pile = []
 
         for i in range(n_sub_patterns):
-            tth_range = fit_orders[i]["range"][0]
-            if hasattr(fit_settings, "fit_orders"):  # FitSettings.fit_orders:
-                orders = fit_orders[i]
-            if hasattr(fit_settings, "AziBins"):
-                orders["AziBins"] = fit_settings.AziBins
-            if "fit_bounds" in fit_parameters:
-                bounds = fit_settings.fit_bounds
-            else:
-                bounds = None
+            
+            
+            settings_for_fit.set_subpattern(j, i)
+            print(settings_for_fit.subfit_orders, settings_for_fit.subfit_filename)
+            
+            # stop
+            # orders = settings_for_fit.fit_orders[i]
+            
             if "previous_fit" in locals() and mode == "fit":
                 params = previous_fit[i]
             else:
                 params = []
-
+               
             # Track the position of the peak centroid
             # FIX ME; This is crude - the range doesn't change width. so can't account for massive change in stress.
             # But does it need to?
+            tth_range = settings_for_fit.subfit_orders["range"][0]
             if track is True and "previous_fit" in locals():
                 print("tth_range", tth_range)
                 mid = []
@@ -881,55 +976,101 @@ def execute(
                 print("tth_range", tth_range)
 
                 # The PeakPositionSelections are only used if the fits are not being propagated
-                if "PeakPositionSelection" in orders:
-                    for k in range(len(orders["PeakPositionSelection"])):
-                        orders["PeakPositionSelection"][k][2] = (
-                            orders["PeakPositionSelection"][k][2]
+                if "PeakPositionSelection" in settings_for_fit.subpat_orders:
+                    for k in range(len(settings_for_fit.subpat_orders["PeakPositionSelection"])):
+                        settings_for_fit.subpat_orders["PeakPositionSelection"][k][2] = (
+                            settings_for_fit.subpat_orders["PeakPositionSelection"][k][2]
                             - ((tth_range[1] + tth_range[0]) / 2)
                             + cent
                         )
+                        
+            # if hasattr(settings_for_fit, "fit_orders"):  # FitSettings.fit_orders:
+            #     orders = settings_for_fit.fit_orders[i]
+            
+            
+            
+            # tth_range = fit_orders[i]["range"][0]
+            
+            
+            # if hasattr(settings_for_fit, "fit_orders"):  # FitSettings.fit_orders:
+            #     orders = settings_for_fit.fit_orders[i]
+            # if hasattr(settings_for_fit, "fit_azi_bins"):
+            #     orders["AziBins"] = settings_for_fit.fit_azi_bins # fit_settings.AziBins
+            # if "fit_bounds" in fit_parameters:
+            #     bounds = fit_settings.fit_bounds
+            # else:
+            #     bounds = None
+            # if "previous_fit" in locals() and mode == "fit":
+            #     params = previous_fit[i]
+            # else:
+            #     params = []
+
+            # # Track the position of the peak centroid
+            # # FIX ME; This is crude - the range doesn't change width. so can't account for massive change in stress.
+            # # But does it need to?
+            # if track is True and "previous_fit" in locals():
+            #     print("tth_range", tth_range)
+            #     mid = []
+            #     for k in range(len(params["peak"])):
+            #         mid.append(params["peak"][k]["d-space"][0])
+            #     # Replace this with call through to class structure?
+            #     cent = new_data.conversion(
+            #         np.sum(mid) / (k + 1), parms_dict, reverse=1, azm=None
+            #     )
+            #     tth_range[0] = tth_range[0] - ((tth_range[1] + tth_range[0]) / 2) + cent
+            #     tth_range[1] = tth_range[1] - ((tth_range[1] + tth_range[0]) / 2) + cent
+            #     print("move by:", ((tth_range[1] + tth_range[0]) / 2) + cent)
+            #     print("tth_range", tth_range)
+
+            #     # The PeakPositionSelections are only used if the fits are not being propagated
+            #     if "PeakPositionSelection" in orders:
+            #         for k in range(len(orders["PeakPositionSelection"])):
+            #             orders["PeakPositionSelection"][k][2] = (
+            #                 orders["PeakPositionSelection"][k][2]
+            #                 - ((tth_range[1] + tth_range[0]) / 2)
+            #                 + cent
+            #             )
 
             # DISCUSS WITH SIMON Can replace with sending new_data through to subpattern call and add functions to
             # class to find sub-arrays - will depend on parallelisation though....
 
             # Get subsection of data to pass
-            sub_pattern = np.where((twotheta >= tth_range[0]) & (twotheta <= tth_range[1]))
-            twotheta_sub = twotheta[sub_pattern]
-            d_spacing_sub = dspace[sub_pattern]
-            azimuth_sub = azimuth[sub_pattern]
-            intens_sub = intens[sub_pattern]
+            # sub_pattern = np.where((twotheta >= tth_range[0]) & (twotheta <= tth_range[1]))
+            # twotheta_sub = twotheta[sub_pattern]
+            # d_spacing_sub = dspace[sub_pattern]
+            # azimuth_sub = azimuth[sub_pattern]
+            # intens_sub = intens[sub_pattern]
             
             
             sub_data = new_data.duplicate()
             sub_data.set_limits(range_bounds=tth_range)
             
             # Mask the subpattern by intensity if called for
-            if "imax" in orders or "imin" in orders:
+            if "imax" in settings_for_fit.subfit_orders or "imin" in settings_for_fit.subfit_orders:
                 imax = np.inf
                 imin = 0
-                if "imax" in orders:
-                    imax = int(orders["imax"])
-                if "imin" in orders:
-                    imin = int(orders["imin"])
-                intens_sub = ma.masked_outside(intens_sub, imin, imax)
-                azimuth_sub = ma.array(azimuth_sub, mask=intens_sub.mask)
-                twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
-                d_spacing_sub = ma.array(d_spacing_sub, mask=intens_sub.mask)
-
-                sub_data.set_limits(i_min = imin, i_max = imax)
+                if "imax" in settings_for_fit.subfit_orders:
+                    imax = int(settings_for_fit.subfit_orders["imax"])
+                if "imin" in settings_for_fit.subfit_orders:
+                    imin = int(settings_for_fit.subfit_orders["imin"])
+                # intens_sub = ma.masked_outside(intens_sub, imin, imax)
+                # azimuth_sub = ma.array(azimuth_sub, mask=intens_sub.mask)
+                # twotheta_sub = ma.array(twotheta_sub, mask=intens_sub.mask)
+                # d_spacing_sub = ma.array(d_spacing_sub, mask=intens_sub.mask)
+                sub_data.set_mask(i_min = imin, i_max = imax)
 
 
             if mode == "set-range":
                 
                 fig_1 = plt.figure()
                 sub_data.plot_masked(fig_plot=fig_1)
-                plt.suptitle(peak_string(orders) + "; masking")
+                plt.suptitle(peak_string(settings_for_fit.subfit_orders) + "; masking")
                                                 
                 filename = make_outfile_name(
-                    diff_files[j],
-                    directory=fit_settings.Output_directory,
+                    settings_for_fit.datafile_list[j],
+                    directory=settings_for_fit.output_directory,
                     additional_text="mask",
-                    orders=orders,
+                    orders=settings_for_fit.subfit_orders,
                     extension=".png",
                     overwrite=True,
                 )
@@ -946,7 +1087,7 @@ def execute(
                 ax = fig_1.add_subplot(1, 1, 1)
                 ax_o1 = plt.subplot(111)
                 sub_data.plot_calibrated(fig_plot=fig_1, axis_plot=ax, y_axis="azimuth", limits=[0, 100])            
-                plt.title(peak_string(orders))
+                plt.title(peak_string(settings_for_fit.subfit_orders))
                 
                 (points,) = fig_1.get_axes()[0].plot([], [], )
                 point_builder = PointBuilder(points, fig_1.get_axes()[0])
@@ -955,7 +1096,7 @@ def execute(
                 selection_arr = point_builder.array()
                 # print(selection_arr)
                 print("")
-                print("Selected points, %s:" % peak_string(orders))
+                print("Selected points, %s:" % peak_string(settings_for_fit.subfit_orders))
                 print("[")
                 for k in range(len(selection_arr)):
                     print(json.dumps(selection_arr[k]) + ",")
@@ -969,38 +1110,60 @@ def execute(
                         "debug": debug,
                         "refine": refine,
                         "iterations": iterations,
-                        "f_name": diff_files[j],
-                        "fdir": fit_settings.Output_directory,
+                        "file_number": j, #added
+                        "subpattern_number": i, #added
+                        # "f_name": diff_files[j],
+                        # "fdir": fit_settings.Output_directory,
                         "num": i
                     }
-                    args = (
-                        [twotheta_sub, d_spacing_sub, parms_dict],
-                        azimuth_sub,
-                        intens_sub,
-                        sub_data,
-                        orders,
-                        params,
-                        bounds,
-                    )
+                    # args = (
+                    #     [twotheta_sub, d_spacing_sub, parms_dict],
+                    #     azimuth_sub,
+                    #     intens_sub,
+                    #     sub_data,
+                    #     orders,
+                    #     params,
+                    #     bounds,
+                    # )
+                    # parallel_pile.append((args, kwargs))
+                    args = (sub_data, settings_for_fit)
                     parallel_pile.append((args, kwargs))
 
-
                 else:  # non-parallel version
+                    # tmp = fit_sub_pattern(
+                    #     [twotheta_sub, d_spacing_sub, parms_dict],
+                    #     azimuth_sub,
+                    #     intens_sub,
+                    #     sub_data,
+                    #     orders,
+                    #     params,
+                    #     bounds,
+                    #     save_fit=save_figs,
+                    #     debug=debug,
+                    #     refine=refine,
+                    #     iterations=iterations,
+                    #     f_name=diff_files[j],
+                    #     fdir=fit_settings.Output_directory,
+                    #     num=i
+                    # )
                     tmp = fit_sub_pattern(
-                        [twotheta_sub, d_spacing_sub, parms_dict],
-                        azimuth_sub,
-                        intens_sub,
+                        # [twotheta_sub, d_spacing_sub, parms_dict],
+                        # azimuth_sub,
+                        # intens_sub,
                         sub_data,
-                        orders,
+                        settings_for_fit, #added
+                        #orders,
                         params,
-                        bounds,
+                        # bounds,
                         save_fit=save_figs,
                         debug=debug,
                         refine=refine,
                         iterations=iterations,
-                        f_name=diff_files[j],
-                        fdir=fit_settings.Output_directory,
-                        num=i
+                        # file_number=j, #added
+                        # subpattern_number=i, #added
+                        # f_name=diff_files[j],
+                        # fdir=fit_settings.Output_directory,
+                        # num=i
                     )
                     fitted_param.append(tmp[0])
                     lmfit_models.append(tmp[1])
@@ -1015,8 +1178,8 @@ def execute(
 
             # store the fit parameters' information as a JSON file.
             filename = make_outfile_name(
-                diff_files[j],
-                directory=fit_settings.Output_directory,
+                settings_for_fit.subfit_filename,
+                directory=settings_for_fit.output_directory,
                 extension=".json",
                 overwrite=True,
             )
@@ -1045,8 +1208,9 @@ def execute(
 
     if mode == "fit":
         # Write the output files.
-        write_output(setting_file, fit_settings=fit_settings, fit_parameters=fit_parameters, parms_dict=parms_dict,
-                     outtype=fit_settings.Output_type)
+        # write_output(setting_file, fit_settings=fit_settings, fit_parameters=fit_parameters, parms_dict=parms_dict,
+        #              outtype=fit_settings.Output_type)
+        write_output(setting_file=setting_file,setting_class=settings_for_fit, debug=True)
 
     if parallel is True:
         p.close()

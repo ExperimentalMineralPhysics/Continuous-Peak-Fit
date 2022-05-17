@@ -11,49 +11,72 @@ import cpf.IO_functions as IO
 def Requirements():
     # List non-universally required parameters for writing this output type.
 
-    RequiredParams = ["Output_NumAziWrite"]
+    RequiredParams = [
+        #'apparently none!
+        ]
     OptionalParams = [
-        "Output_ElasticProperties",  # FIX ME: this needs to be included
-        "Output_directory",  # if no direcrtory is specified write to current directory.
+        #"Output_ElasticProperties",  # FIX ME: this needs to be included -- not needed or multifit. only for WritePolyDefix
+        #"Output_directory",  # if no direcrtory is specified write to current directory. -- not wrapped in the settings class and set by default
+        "Output_NumAziWrite", # now set by default here therefore optional
     ]
 
-    return RequiredParams
+    return RequiredParams, OptionalParams
 
 
-def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
+# def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
+def WriteOutput(setting_class=None,setting_file=None,differential_only=False, debug=True, **kwargs):
+    
     # writes output from multifit in the form of *.fit files required for polydefix.
     # writes a separate file for each diffraction pattern.
     # uses the parameters in the json files to do so.
-
-    FitParameters = dir(FitSettings)
+    
+    
+    if setting_class is None and setting_file is None:
+        raise ValueError(
+            "Either the settings file or the setting class need to be specified."
+        )
+    elif setting_class is None:
+        import cpf.XRD_FitPattern.initiate as initiate
+        setting_class = initiate(setting_file)
+    
+    
+    #FitParameters = dir(FitSettings)
 
     # Parse the required inputs.
-    base_file_name = FitSettings.datafile_Basename
+    #base_file_name = FitSettings.datafile_Basename
 
     # diffraction patterns
-    diff_files, n_diff_files = IO.file_list(FitParameters, FitSettings)
-    if "Output_directory" in FitParameters:
-        out_dir = FitSettings.Output_directory
-    else:
-        out_dir = "./"
+    # diff_files, n_diff_files = IO.file_list(FitParameters, FitSettings)
+    # if "Output_directory" in FitParameters:
+    #     out_dir = FitSettings.Output_directory
+    # else:
+    #     out_dir = "./"
 
     # def WriteOutput(base_file_name, data_to_write, Num_Azi, wavelength):
     ## writes *.fit files required by polydefix.
 
     # force Num_Azi to be a float
     # Num_Azi = float(Num_Azi)
-    Num_Azi = FitSettings.Output_NumAziWrite
-    wavelength = parms_dict["conversion_constant"]
+    # Num_Azi = FitSettings.Output_NumAziWrite
+    Num_Azi = 90
+    if "Output_NumAziWrite" in setting_class.output_settings:
+        Num_Azi = setting_class.output_settings["Output_NumAziWrite"]
 
-    for z in range(n_diff_files):
+    # wavelength = parms_dict["conversion_constant"]
+    wavelength = setting_class.data_class.parameters["conversion_constant"]
+
+    for z in range(setting_class.datafile_number):
 
         # read file to write output for
         # filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
         # filename = filename+'.json'
-
+        setting_class.set_subpattern(z,0)   
+        
         filename = IO.make_outfile_name(
-            diff_files[z],
-            directory=FitSettings.Output_directory,
+            # diff_files[z],
+            # directory=FitSettings.Output_directory,
+            setting_class.subfit_filename,#diff_files[z],
+            directory=setting_class.output_directory,#directory=FitSettings.Output_directory,
             extension=".json",
             overwrite=True,
         )  # overwrite =false to get the file name without incrlemeting it.
@@ -63,9 +86,21 @@ def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
             data_to_write = json.load(json_data)
 
         # create output file name from passed name
+        base = setting_class.subfit_filename 
+        if base is None:
+            print("No base filename, using input filename instead.")
+            base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
+        # if not base:
+        #     print("No base filename, using input filename instead.")
+        #     base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
+        if differential_only is not False:
+            base = base + "_DiffOnly"
+
         out_file = IO.make_outfile_name(
-            diff_files[z],
-            directory=FitSettings.Output_directory,
+            # diff_files[z],
+            # directory=FitSettings.Output_directory,
+            base,#diff_files[z],
+            directory=setting_class.output_directory,#directory=FitSettings.Output_directory,
             extension=".fit",
             overwrite=True,
         )

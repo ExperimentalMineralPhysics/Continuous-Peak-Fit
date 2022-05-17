@@ -21,18 +21,17 @@ def Requirements():
         #'apparently none!
     ]
     OptionalParams = [
-        "ElasticProperties",  # FIX ME: this needs to be included
-        "tc",  # which thermocoule to include from 6BMB/X17B2 collection system. default to 1. #FIX ME: this needs to be included
-        "Output_directory",  # if no direcrtory is specified write to current directory.
+        #'apparently none!
     ]
 
-    return RequiredParams
+    return RequiredParams, OptionalParams
 
 
-def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
+# def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
+def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
     """
 
-
+    writes some of the fitted coeficients to a table. With a focus on the differential strain coefficents
     Parameters
     ----------
     FitSettings : TYPE
@@ -49,15 +48,30 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
     None.
 
     """
+    
+    if setting_class is None and setting_file is None:
+        raise ValueError(
+            "Either the settings file or the setting class need to be specified."
+        )
+    elif setting_class is None:
+        import cpf.XRD_FitPattern.initiate as initiate
+        setting_class = initiate(setting_file)
+    
+    
+    
+    
+    
     # writes some of the fitted coeficients to a table. With a focus on the differential strain coefficents
 
-    FitParameters = dir(FitSettings)
+    # FitParameters = dir(FitSettings)
+
+    
 
     # Parse the required inputs.
     # base_file_name = FitSettings.datafile_Basename
 
     # diffraction patterns
-    diff_files, n_diff_files = IO.file_list(FitParameters, FitSettings)
+    # diff_files, n_diff_files = IO.file_list(FitParameters, FitSettings)
     # if 'Output_directory' in FitParameters:
     #     out_dir = FitSettings.Output_directory
     # else:
@@ -75,12 +89,15 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
 
     # out_file = out_dir + base + '.dat'
 
-    base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
-    if not base:
+    #base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
+    base = setting_class.datafile_basename
+    
+    # if not base:
+    if base is None:
         print("No base filename, using input filename instead.")
-        base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
+        base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
     out_file = IO.make_outfile_name(
-        base, directory=FitSettings.Output_directory, extension=".dat", overwrite=True
+        base, directory=setting_class.output_directory, extension=".dat", overwrite=True
     )
 
     text_file = open(out_file, "w")
@@ -88,7 +105,7 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
 
     text_file.write(
         "# Summary of fits produced by continuous_peak_fit for input file: %s.\n"
-        % FitSettings.inputfile
+        % setting_class.settings_file #FitSettings.inputfile
     )
     text_file.write("# For more information: http://www.github.com/me/something\n")
     text_file.write("# File version: %i \n" % 1.1)
@@ -142,13 +159,15 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
         )
     text_file.write("\n")
 
-    for z in range(n_diff_files):
+    for z in range(setting_class.datafile_number):# n_diff_files):
+
+        setting_class.set_subpattern(z,0)        
 
         # filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
         # filename = filename+'.json'
         filename = IO.make_outfile_name(
-            diff_files[z],
-            directory=FitSettings.Output_directory,
+            setting_class.subfit_filename,#diff_files[z],
+            directory=setting_class.output_directory,
             extension=".json",
             overwrite=True,
         )
@@ -163,10 +182,12 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
             num_subpatterns = len(fit)
             for y in range(num_subpatterns):
 
-                try:
-                    orders = FitSettings.fit_orders[y]
-                except:
-                    orders = []
+                # setting_class.set_subpattern(z,y) 
+                # try:
+                #     #orders = FitSettings.fit_orders[y]
+                #     orders = setting_class.subfit_orders
+                # except:
+                #     orders = []
 
                 # subfilename = os.path.splitext(os.path.basename(diff_files[z]))[0] + '_'
 
@@ -188,15 +209,16 @@ def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
                 #         subfilename = subfilename + '_'
 
                 out_name = IO.make_outfile_name(
-                    diff_files[z], directory="", overwrite=True
+                    setting_class.subfit_filename,#diff_files[z], 
+                    directory="", overwrite=True
                 )
 
                 # print('  Incorporating ' + subfilename)
                 print("  Incorporating: " + out_name + ", " + IO.peak_string(fit[y]))
 
                 savfilename = IO.make_outfile_name(
-                    diff_files[z],
-                    directory=FitSettings.Output_directory,
+                    setting_class.subfit_filename,#diff_files[z],
+                    directory=setting_class.output_directory,#directory=FitSettings.Output_directory,
                     orders=fit[y],
                     extension=".sav",
                     overwrite=True,

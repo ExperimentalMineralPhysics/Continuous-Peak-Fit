@@ -134,11 +134,11 @@ def update_component_fits(
 
     comp = "h"
     # set other parameters to not vary
-    master_params = ff.unvary_params(master_params, param_str, comp)
+    master_params = pf.unvary_params(master_params, param_str, comp)
     # set these parameters to vary
-    master_params = ff.vary_params(master_params, param_str, comp)
+    master_params = pf.vary_params(master_params, param_str, comp)
     # set part of these parameters to not vary
-    master_params = ff.unvary_part_params(master_params, param_str, comp, o["height"])
+    master_params = pf.unvary_part_params(master_params, param_str, comp, o["height"])
     #master_params.pretty_print()
     out = pf.fit_model(
         intens.flatten(),
@@ -158,11 +158,11 @@ def update_component_fits(
 
     comp = "d"
     # set other parameters to not vary
-    master_params = ff.unvary_params(master_params, param_str, comp)
+    master_params = pf.unvary_params(master_params, param_str, comp)
     # set these parameters to vary
-    master_params = ff.vary_params(master_params, param_str, comp)
+    master_params = pf.vary_params(master_params, param_str, comp)
     # set part of these parameters to not vary
-    master_params = ff.unvary_part_params(master_params, param_str, comp, o["d-space"])
+    master_params = pf.unvary_part_params(master_params, param_str, comp, o["d-space"])
     out = pf.fit_model(
         intens.flatten(),
         twotheta.flatten(),
@@ -180,11 +180,11 @@ def update_component_fits(
 
     comp = "w"
     # set other parameters to not vary
-    master_params = ff.unvary_params(master_params, param_str, comp)
+    master_params = pf.unvary_params(master_params, param_str, comp)
     # set these parameters to vary
-    master_params = ff.vary_params(master_params, param_str, comp)
+    master_params = pf.vary_params(master_params, param_str, comp)
     # set part of these parameters to not vary
-    master_params = ff.unvary_part_params(master_params, param_str, comp, o["width"])
+    master_params = pf.unvary_part_params(master_params, param_str, comp, o["width"])
     out = pf.fit_model(
         intens.flatten(),
         twotheta.flatten(),
@@ -204,11 +204,11 @@ def update_component_fits(
     if pfixed is False:
         # if 'profile_fixed' not in order_peak[0]: # orders['peak'][0]:
         # set other parameters to not vary
-        master_params = ff.unvary_params(master_params, param_str, comp)
+        master_params = pf.unvary_params(master_params, param_str, comp)
         # set these parameters to vary
-        master_params = ff.vary_params(master_params, param_str, comp)
+        master_params = pf.vary_params(master_params, param_str, comp)
         # set part of these parameters to not vary
-        master_params = ff.unvary_part_params(master_params, param_str, comp, o["profile"])
+        master_params = pf.unvary_part_params(master_params, param_str, comp, o["profile"])
         out = pf.fit_model(
             intens.flatten(),
             twotheta.flatten(),
@@ -566,7 +566,7 @@ def get_chunk_background_guess(twotheta, azimu, intens, orders, chunks, backgrou
 
 
 def get_chunk_guesses(peeks, orders, twotheta, intens, background_guess,
-                      azimu, chunks, conversion_factor, new_data, count, n,
+                      azimu, chunks, conversion_factor, data_as_class, count, n,
                       d_space, bounds, w_guess_fraction, dfour=None, debug=None):
     """
 
@@ -580,7 +580,7 @@ def get_chunk_guesses(peeks, orders, twotheta, intens, background_guess,
     :param azimu:
     :param chunks:
     :param conversion_factor:
-    :param new_data:
+    :param data_as_class:
     :param count:
     :param n:
     :param d_space:
@@ -611,7 +611,7 @@ def get_chunk_guesses(peeks, orders, twotheta, intens, background_guess,
                 dfour[k][0],
                 coeff_type=coeff_type,
             )
-            d_guess = new_data.conversion(
+            d_guess = data_as_class.conversion(
                 t_th_guess,
                 conversion_factor,
                 azm=np.mean(azimu.flatten()[chunks[j]]),
@@ -728,27 +728,28 @@ def get_chunk_guesses(peeks, orders, twotheta, intens, background_guess,
 
 
 def fit_sub_pattern(
-    two_theta_and_dspacings,
-    azimu,
-    intens,
-    new_data,
-    orders=None,
+    #two_theta_and_dspacings,
+    #azimu,
+    #intens,
+    data_as_class,
+    settings_as_class,
+    #orders=None,
     previous_params=None,
-    bounds=None,
+    #bounds=None,
     save_fit=None,
     debug=False,
     refine=True,
     iterations=2,
-    f_name=None,
-    fdir=None,
+    #f_name=None,
+    #fdir=None,
     fit_method=None,
-    num=1
+    #num=1
 ):
     """
     Perform the various fitting stages to the data
     :param fit_method:
     :param fdir:
-    :param new_data:
+    :param data_as_class:
     :param two_theta_and_dspacings:
     :param azimu:
     :param intens:
@@ -763,6 +764,53 @@ def fit_sub_pattern(
     :return:
     """
 
+
+
+
+
+
+# fit_sub_pattern(
+#                         # [twotheta_sub, d_spacing_sub, parms_dict],
+#                         # azimuth_sub,
+#                         # intens_sub,
+#                         sub_data,
+#                         settings_for_fit, #added
+#                         #orders,
+#                         params,
+#                         # bounds,
+#                         save_fit=save_figs,
+#                         debug=debug,
+#                         refine=refine,
+#                         iterations=iterations,
+#                         # file_number=j, #added
+#                         # subpattern_number=i, #added
+#                         # f_name=diff_files[j],
+#                         # fdir=fit_settings.Output_directory,
+#                         # num=i
+#                     )
+
+
+    # FIXME: these lines are here to get the data class into the file and make it run with minimum reorganisaion. They should be removed eventually when the file is reorganised.
+    orders = settings_as_class.subfit_orders
+    bounds = settings_as_class.fit_bounds
+
+    f_name    = settings_as_class.subfit_filename
+    fdir      = settings_as_class.output_directory
+    #directory = settings_as_class.output_directory
+    
+    twotheta = data_as_class.tth
+    d_space  = data_as_class.dspace
+    intens   = data_as_class.intensity
+    azimu    = data_as_class.azm
+    
+    # FIXME: this paramter is not needed. It is carried with the data class. 
+    #but getting rid of it in the code is time consuming.
+    conversion_factor = data_as_class.parameters 
+    
+    t_th_range = orders["range"]
+    
+    
+
     # set a limit to the maximum number of function evaluations.
     # make variable in case need more iterations for other data
     default_max_f_eval = 400
@@ -774,17 +822,18 @@ def fit_sub_pattern(
     # Sort inputs
     # two theta and d-spacing are both 'x' dimensions. Therefore, import them as single array.
     # split them up here if needed.
-    if np.shape(two_theta_and_dspacings)[0] == 3:
-        twotheta = two_theta_and_dspacings[0]
-        d_space = two_theta_and_dspacings[1]
-        conversion_factor = two_theta_and_dspacings[2]
-    else:
-        twotheta = two_theta_and_dspacings
+    
+    # if np.shape(two_theta_and_dspacings)[0] == 3:
+    #     twotheta = two_theta_and_dspacings[0]
+    #     d_space = two_theta_and_dspacings[1]
+    #     conversion_factor = two_theta_and_dspacings[2]
+    # else:
+    #     twotheta = two_theta_and_dspacings
         # FIX ME: need to set a value for 'conversion_factor' in here and propagate its none-use through the code.
         # FIX ME: use d-space in guesses below - need an alternative here or change reliance later
 
-    if debug:  # get limits for chunk fit plots.
-        t_th_range = [np.min(twotheta.flatten()), np.max(twotheta.flatten())]
+    # if debug:  # get limits for chunk fit plots.
+    #     t_th_range = [np.min(twotheta.flatten()), np.max(twotheta.flatten())]
 
     # set data type for the intensity data.
     # This is needed for saving the fits using save_modelresult/ load_modelresult.
@@ -889,7 +938,7 @@ def fit_sub_pattern(
                     dfour = get_manual_guesses(peeks, orders, bounds, twotheta, debug=None)
 
                 # Get chunks according to detector type.
-                chunks, azichunks = new_data.bins(azimu, orders)
+                chunks, azichunks = data_as_class.bins(azimu, orders)
 
                 # Final output list of azimuths with corresponding twotheta_0,h,w
 
@@ -935,7 +984,7 @@ def fit_sub_pattern(
                         peaks, limits, p_fixed = get_chunk_guesses(peeks, orders, twotheta, intens,
                                                                    background_guess,
                                                                    azimu, chunks, conversion_factor,
-                                                                   new_data, j, n,
+                                                                   data_as_class, j, n,
                                                                    d_space, bounds, w_guess_fraction,
                                                                    dfour, debug)
 
@@ -1396,10 +1445,10 @@ def fit_sub_pattern(
                         else:
                             az_plt = azi_plot
                         gmod_plot = gmodel.eval(
-                            params=master_params,
-                            azimuth=np.array(az_plt),
-                            inp_param=temp[0],
-                            coeff_type=temp_tp,
+                                params=master_params, 
+                                azimuth=np.array(az_plt), 
+                                param=temp[0], 
+                                coef_type=temp_tp
                         )
                         ax1.scatter(new_azi_chunks, new_d0[j], s=10)
                         ax1.plot(az_plt, gmod_plot, )
@@ -1423,10 +1472,10 @@ def fit_sub_pattern(
                         else:
                             az_plt = azi_plot
                         gmod_plot = gmodel.eval(
-                            params=master_params,
-                            azimuth=np.array(az_plt) * symm,
-                            inp_param=temp[0],
-                            coeff_type=temp_tp,
+                                params=master_params, 
+                                azimuth=np.array(az_plt) * symm, 
+                                param=temp[0], 
+                                coef_type=temp_tp
                         )
                         ax2.scatter(new_azi_chunks, new_h_all[j], s=10)
                         ax2.plot(az_plt, gmod_plot, )
@@ -1450,10 +1499,10 @@ def fit_sub_pattern(
                         else:
                             az_plt = azi_plot
                         gmod_plot = gmodel.eval(
-                            params=master_params,
-                            azimuth=np.array(az_plt) * symm,
-                            inp_param=temp[0],
-                            coeff_type=temp_tp,
+                                params=master_params, 
+                                azimuth=np.array(az_plt) * symm, 
+                                param=temp[0], 
+                                coef_type=temp_tp
                         )
                         ax3.scatter(new_azi_chunks, new_w_all[j], s=10)
                         ax3.plot(az_plt, gmod_plot, )
@@ -1477,10 +1526,10 @@ def fit_sub_pattern(
                         else:
                             az_plt = azi_plot
                         gmod_plot = gmodel.eval(
-                            params=master_params,
-                            azimuth=np.array(az_plt) * symm,
-                            inp_param=temp[0],
-                            coeff_type=temp_tp,
+                                params=master_params, 
+                                azimuth=np.array(az_plt) * symm, 
+                                param=temp[0], 
+                                coef_type=temp_tp
                         )
                         ax4.scatter(new_azi_chunks, new_p_all[j], s=10)
                         ax4.plot(az_plt, gmod_plot, )
@@ -1502,10 +1551,10 @@ def fit_sub_pattern(
                         else:
                             az_plt = azi_plot
                         gmod_plot = gmodel.eval(
-                            params=master_params,
-                            azimuth=np.array(az_plt),
-                            inp_param=temp[0],
-                            coeff_type=temp_tp,
+                                params=master_params, 
+                                azimuth=np.array(az_plt),
+                                param=temp[0], 
+                                coef_type=temp_tp
                         )
                         ax5.scatter(new_azi_chunks, new_bg_all[k], s=10)
                         ax5.plot(az_plt, gmod_plot, )
@@ -1940,7 +1989,7 @@ def fit_sub_pattern(
         
         #plot the modelled data
         fig = plt.figure()
-        new_data.plot_fitted(fig_plot=fig, model=full_fit_intens, fit_centroid=[azi_plot, fit_centroid] )
+        data_as_class.plot_fitted(fig_plot=fig, model=full_fit_intens, fit_centroid=[azi_plot, fit_centroid] )
         title_str = io.peak_string(orders) + "; final fit"
         if "note" in orders:
             title_str = title_str + " " + orders["note"]

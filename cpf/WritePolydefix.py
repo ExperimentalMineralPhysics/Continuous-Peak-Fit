@@ -42,7 +42,7 @@ def Requirements():
 
 
 # def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
-def WriteOutput(setting_class=None,setting_file=None,differential_only=False, debug=True, **kwargs):
+def WriteOutput(setting_class=None,setting_file=None,differential_only=False, debug=False, **kwargs):
     # writes *.fit files produced by multifit (as input for polydefix)
     # writes *.exp files required by polydefix.
     # N.B. this is a different file than that required by polydefix for energy dispersive diffraction.

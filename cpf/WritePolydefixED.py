@@ -30,7 +30,7 @@ def Requirements():
 
 
 # def WriteOutput(FitSettings, parms_dict, **kwargs):
-def WriteOutput(setting_class=None,setting_file=None,differential_only=False, debug=True, **kwargs):
+def WriteOutput(setting_class=None,setting_file=None,differential_only=False, debug=False, **kwargs):
     # writes *.exp files required by polydefixED.
     # N.B. this is a different file than that required by polydefix for monochromatic diffraction.
     # This file contains a list of all the diffraction information. Hence it has to be written after the fitting as a single operation.
@@ -92,7 +92,7 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
     text_file.write("# Experiment analysis file. to be used with PolydefixED\n")
     text_file.write("# For more information: http://merkel.zoneo.net/Polydefix/\n")
     text_file.write(
-        "# File Created by FPF_WritePolydefixED function in FourierPeakFit\n"
+        "# File Created by WritePolydefixED function in ContinuousPeakFit\n"
     )
     text_file.write("# For more information: http://www.github.com/me/something\n")
     text_file.write("# File version\n")

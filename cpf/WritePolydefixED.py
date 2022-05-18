@@ -20,33 +20,59 @@ def Requirements():
     OptionalParams = [
         "ElasticProperties",  # FIX ME: this needs to be included
         "tc",  # which thermocoule to include from 6BMB/X17B2 collection system. default to 1. #FIX ME: this needs to be included
-        "Output_directory",  # if no direcrtory is specified write to current directory.
+        ###"Output_directory",  # if no direcrtory is specified write to current directory.
+        "phase", #the phase we are interested in 
+        "Output_TemperaturePower",
+        "Output_tc"
     ]
 
     return RequiredParams, OptionalParams
 
 
-def WriteOutput(FitSettings, parms_dict, **kwargs):
+# def WriteOutput(FitSettings, parms_dict, **kwargs):
+def WriteOutput(setting_class=None,setting_file=None,differential_only=False, debug=True, **kwargs):
     # writes *.exp files required by polydefixED.
     # N.B. this is a different file than that required by polydefix for monochromatic diffraction.
     # This file contains a list of all the diffraction information. Hence it has to be written after the fitting as a single operation.
 
-    FitParameters = dir(FitSettings)
+    if setting_class is None and setting_file is None:
+        raise ValueError(
+            "bummer Either the settings file or the setting class need to be specified."
+        )
+    elif setting_class is None:
+        import cpf.XRD_FitPattern.initiate as initiate
+        setting_class = initiate(setting_file)
+    
+    
+    # FitParameters = dir(FitSettings)
 
     # Parse the required inputs.
     # base_file_name = FitSettings.datafile_Basename
 
     # get diffration file names and number.
-    diff_files, n_diff_files = IO.file_list(FitParameters, FitSettings)
+    # diff_files, n_diff_files = IO.file_list(FitParameters, FitSettings)
 
-    base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
-    if not base:
+    # base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
+    # if not base:
+    #     print("No base filename, using input filename instead.")
+    #     base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
+
+    base = setting_class.datafile_basename 
+    if base is None:
         print("No base filename, using input filename instead.")
-        base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
+        base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
+    if differential_only is not False:
+        base = base + "_DiffOnly"
+    # out_file = IO.make_outfile_name(
+    #     base, directory=FitSettings.Output_directory, extension=".exp", overwrite=True
+    # )
     out_file = IO.make_outfile_name(
-        base, directory=FitSettings.Output_directory, extension=".exp", overwrite=True
-    )
-
+            base,
+            directory=setting_class.output_directory,#directory=FitSettings.Output_directory,
+            extension=".exp",
+            overwrite=True,
+        )
+    
     # if 'Output_directory' in FitParameters:
     #     out_dir = FitSettings.Output_directory
     # else:
@@ -76,36 +102,37 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     # Writes two theta from the first detector.
     # FIX ME: should this be the average of all the two theat angles?
     text_file.write("# 2 theta angle (in degrees)\n")
-    text_file.write("%12.5f\n" % parms_dict["calibs"].mcas[0].calibration.two_theta)
+    # text_file.write("%12.5f\n" % parms_dict["calibs"].mcas[0].calibration.two_theta)
+    text_file.write("%12.5f\n" % setting_class.data_class.parameters["calibs"].mcas[0].calibration.two_theta)
 
     # Write detector properties.
     text_file.write("# Number of detector positions\n")
-    text_file.write("%6i\n" % len(parms_dict["azimuths"]))
+    text_file.write("%6i\n" % len(setting_class.data_class.parameters["azimuths"]))
     text_file.write("# Angles for detector positions: Number. Use (1/0). Angle. \n")
 
     az_used = []
-    for x in range(len(parms_dict["azimuths"])):
+    for x in range(len(setting_class.data_class.parameters["azimuths"])):
 
         # determine if detector masked
-        if FitSettings.Calib_mask:
-            if x + 1 in FitSettings.Calib_mask:
+        if setting_class.calibration_mask is not None:
+            if x + 1 in setting_class.calibration_mask:
                 use = 0
             else:
                 use = 1
-                az_used.append(parms_dict["azimuths"][x])
+                az_used.append(setting_class.data_class.parameters["azimuths"][x])
 
         # print detector number, if it is being used, then angle, lastly just a number.
         text_file.write(
-            "%6i  %i  %7.3f  %i \n" % (x + 1, use, parms_dict["azimuths"][x], 1)
+            "%6i  %i  %7.3f  %i \n" % (x + 1, use, setting_class.data_class.parameters["azimuths"][x], 1)
         )
 
         # FIX ME: if 10 element detector then turn detector 10 off.
 
     # Write number of peaks
-    num_subpatterns = len(FitSettings.fit_orders)
+    num_subpatterns = len(setting_class.fit_orders)
     num_peaks = 0
     for x in range(num_subpatterns):
-        num_peaks = num_peaks + len(FitSettings.fit_orders[x]["peak"])
+        num_peaks = num_peaks + len(setting_class.fit_orders[x]["peak"])
     text_file.write("# Number of peaks\n")
     text_file.write("%6i \n" % num_peaks)
 
@@ -114,9 +141,9 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     text_file.write("# Number. use (1/0). h. k. l\n")
     peak = 1
     for x in range(num_subpatterns):
-        for y in range(len(FitSettings.fit_orders[x]["peak"])):
-            if "hkl" in FitSettings.fit_orders[x]["peak"][y]:
-                hkl = str(FitSettings.fit_orders[x]["peak"][y]["hkl"])
+        for y in range(len(setting_class.fit_orders[x]["peak"])):
+            if "hkl" in setting_class.fit_orders[x]["peak"][y]:
+                hkl = str(setting_class.fit_orders[x]["peak"][y]["hkl"])
 
                 # check if the d-spacing fits are NaN or not. if NaN switch off (0) otherwise use (1).
                 # Got first file name
@@ -124,8 +151,8 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                 # filename = filename+'.json'
 
                 filename = IO.make_outfile_name(
-                    diff_files[0],
-                    directory=FitSettings.Output_directory,
+                    setting_class.datafile_list[0],
+                    directory=setting_class.output_directory,
                     extension=".json",
                     overwrite=True,
                 )
@@ -166,7 +193,7 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     text_file.write("# Fit offset for maximum stress 1 for yes. 0 for no\n")
     text_file.write("     1\n")
     text_file.write("# Starting offset value. in degrees\n")
-    text_file.write("%6i \n" % parms_dict["azimuths"][0])
+    text_file.write("%6i \n" % setting_class.data_class.parameters["azimuths"][0])
 
     # Write material properties
     # FIX ME: need to be able to import material properties and write them to the file without messing about.
@@ -176,19 +203,19 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     text_file.write("# Version\n")
     text_file.write("2       \n")
 
-    if "Material" in FitParameters:
+    if "Material" in setting_class.output_settings:
 
         raise ValueError(
             "''Material'' is depreciated as an option. Change your input file to have a ''Phase'' instead."
         )
 
-    elif "Phase" in FitParameters:
+    elif "phase" in setting_class.output_settings:
         # left empty on purpose
         text_file.write("")
 
-    elif "Output_ElasticProperties" in FitParameters:
+    elif "Output_ElasticProperties" in setting_class.output_settings:
 
-        fid = open(FitSettings.Output_ElasticProperties, "r")
+        fid = open(setting_class.output_settings["Output_ElasticProperties"], "r")
 
         # pipe ealstic properties to the output file.
         text_file.write(fid.read())
@@ -275,16 +302,16 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
 
     # write number of steps
     text_file.write("# Number of time steps in the experiment\n")
-    text_file.write("%i \n" % n_diff_files)
+    text_file.write("%i \n" % setting_class.datafile_number)
     text_file.write("# Information on time step       \n")
     text_file.write(
         "# Step number.  Step name.         Step time.    Step temperature (K).    taux de def E\n"
     )
-    for x in range(n_diff_files):
+    for x in range(setting_class.datafile_number):
         temp = np.array(
             0.0
         )  # pre-set temperature to 0 incase no value is found in the data file.
-        with open(diff_files[x], "r") as myfile:
+        with open(setting_class.datafile_list[x], "r") as myfile:
             for line in myfile:  # For each line, stored as line,
 
                 # get date.
@@ -298,27 +325,27 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
 
                 # get temperature
                 if (
-                    "Output_TemperaturePower" in FitParameters
+                    "Output_TemperaturePower" in setting_class.output_settings
                 ):  # get temperture from furnace power
                     st = "LVP_furnace_calcs.D"
                     if st in line:
                         pwr = float(re.findall(r'"(.*?)"', line)[0])
-                        for i in range(len(FitSettings.Output_TemperaturePower)):
+                        for i in range(len(setting_class.output_settings["Output_TemperaturePower"])):
                             temp = (
-                                temp + FitSettings.Output_TemperaturePower[i] * pwr ** i
+                                temp + setting_class.output_settings["Output_TemperaturePower"][i] * pwr ** i
                             )
                         temp = temp + 273
                 else:  # get temperature from thermocouple reading
-                    if not "Output_tc" in FitParameters:
+                    if not "Output_tc" in setting_class.output_settings:
                         st = "LVP_tc1_calcs.I"
                     else:
-                        st = "LVP_tc" + FitSettings.Output_tc + "_calcs.I"
+                        st = "LVP_tc" + setting_class.output_settings["Output_tc"] + "_calcs.I"
                     if st in line:
                         temp = re.findall(r'"(.*?)"', line)
                         temp = float(temp[0]) + 273.0
 
         # strip directory and ending from filename
-        diff_name = os.path.splitext(os.path.basename(diff_files[x]))[0]
+        diff_name = os.path.splitext(os.path.basename(setting_class.datafile_list[x]))[0]
 
         text_file.write(
             "%8i        %s  %8.8g            %6.1f\n"
@@ -330,14 +357,14 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
     text_file.write(
         "# Peak number.  h.  k.  l.  d-spacing.  intensity.  detector number. step number E t \n"
     )
-    for z in range(n_diff_files):
+    for z in range(setting_class.datafile_number):
 
         # filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
         # filename = filename+'.json'
 
         filename = IO.make_outfile_name(
-            diff_files[z],
-            directory=FitSettings.Output_directory,
+            setting_class.datafile_list[x],
+            directory=setting_class.output_directory,
             extension=".json",
             overwrite=True,
         )
@@ -347,15 +374,15 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
 
         peak = 1
         for x in range(num_subpatterns):
-            for y in range(len(FitSettings.fit_orders[x]["peak"])):
+            for y in range(len(setting_class.fit_orders[x]["peak"])):
 
                 # Write the following structure to the data file.
                 # [peak number     H     K     L     d-spacing     Intensity     detector number     step number   ]  repeat for the number of
                 # ...                                                                                ]  peaks*number detectors*number patterns
                 # [peak number     H     K     L     d-spacing     Intensity     detector number     step number   ]  in data set.
 
-                if "hkl" in FitSettings.fit_orders[x]["peak"][y]:
-                    hkl = str(FitSettings.fit_orders[x]["peak"][y]["hkl"])
+                if "hkl" in setting_class.fit_orders[x]["peak"][y]:
+                    hkl = str(setting_class.fit_orders[x]["peak"][y]["hkl"])
                     use = 1
                 else:
                     hkl = "000"
@@ -380,12 +407,12 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                     l = hkl[pos : pos + 1]
                     pos = pos + 1
 
-                if "symmetry" in FitSettings.fit_orders[x]["peak"][y]:
-                    sym = FitSettings.fit_orders[x]["peak"][y]["symmetry"]
+                if "symmetry" in setting_class.fit_orders[x]["peak"][y]:
+                    sym = setting_class.fit_orders[x]["peak"][y]["symmetry"]
                 else:
                     sym = 1
 
-                az = parms_dict["azimuths"]
+                az = setting_class.data_class.parameters["azimuths"]
                 coef_type = ff.params_get_type(fit[x], "d", peak=y)
                 peak_d = ff.coefficient_expand(
                     np.array(az), fit[x]["peak"][y]["d-space"], coeff_type=coef_type
@@ -398,10 +425,10 @@ def WriteOutput(FitSettings, parms_dict, **kwargs):
                     coeff_type=coef_type,
                 )
                 n = -1
-                for w in range(len(parms_dict["calibs"].mcas)):
+                for w in range(len(setting_class.data_class.parameters["calibs"].mcas)):
                     # determine if detector masked
-                    if FitSettings.Calib_mask:
-                        if w + 1 in FitSettings.Calib_mask:
+                    if setting_class.calibration_mask:
+                        if w + 1 in setting_class.calibration_mask:
                             use = 0
                         else:
                             use = 1

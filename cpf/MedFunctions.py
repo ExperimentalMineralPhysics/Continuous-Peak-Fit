@@ -68,10 +68,10 @@ class MedDetector:
         :param calibration_mask:
         :return:
         """
-        self.calibration = self.get_calibration(settings.Calib_param)
+        self.calibration = self.get_calibration(settings.calibration_parameters)
         self.get_detector(diff_file, settings)
 
-        self.intensity = self.get_masked_calibration(diff_file, debug, calibration_mask)
+        self.intensity = self.get_masked_calibration(diff_file, debug, calibration_mask=settings.calibration_mask)
         self.tth = self.get_two_theta(mask=self.intensity.mask)
         self.azm = self.get_azimuth(mask=self.intensity.mask)
         self.dspace = self.get_d_space(mask=self.intensity.mask)
@@ -192,7 +192,7 @@ class MedDetector:
         if mask is not None and ma.is_masked(self.intensity):
             self.intensity = ma.array(im_all, mask=self.intensity.mask)
         else:
-            self.intensity = np.array(im_all)
+            self.intensity = ma.array(im_all)
                 
         return im_all
 
@@ -304,6 +304,20 @@ class MedDetector:
         """
         parms_dict = {}
         dat = Med.Med(file=file_name)
+        
+        # save this block of code incase it is needed for future studies/datasets
+        #this is a blank calibratiom from a dead detector. Make something more reasonable.
+        # if i in range(len(dat)):
+        #     if (#dat.mcas[i].calibration.two_theta == 6.5
+        #         and dat.mcas[i].calibration.offset = 0.0
+        #         and dat.mcas[i].calibration.slope = 0.0
+        #         and dat.mcas[i].calibration.quad = 0.0
+        #         )
+        #     dat.mcas[i].calibration.two_theta == 6.5
+        #     dat.mcas[i].calibration.offset = 0.1
+        #     dat.mcas[i].calibration.slope = 0.06
+        #     dat.mcas[i].calibration.quad = 4E-8
+            
         parms_dict["DispersionType"] = "EnergyDispersive"
         parms_dict["calibs"] = dat
         if len(dat.mcas) == 10:
@@ -335,13 +349,14 @@ class MedDetector:
         :param orders:
         :return:
         """
-        bin_vals = np.unique(azimu)
+        bin_vals = np.unique(azimu.data)
         chunks = []
         azichunks = []
         temp_azimuth = azimu.flatten()
         for i in range(len(bin_vals)):
             azi_chunk = np.where((temp_azimuth == bin_vals[i]))
             chunks.append(azi_chunk)
+        
         return chunks, bin_vals
 
     # FIX ME: DMF missing function from dioptas get_azimuthal_integration -- is it needed here?
@@ -407,16 +422,33 @@ class MedDetector:
         :param i_min:
         :return:
         """
-                
-        local_mask = np.array((self.tth <= range_bounds[0]) | (self.tth >= range_bounds[1]) | (self.intensity > i_max) | (self.intensity < i_min) )
-        masks = (local_mask) + (self.intensity.mask)
-   
-        self.intensity = ma.masked_array(self.intensity,mask = masks)
-        self.tth = ma.masked_array(self.tth,mask=self.intensity.mask)
-        self.azm = ma.masked_array(self.azm,mask=self.intensity.mask)
-        self.dspace = ma.masked_array(self.dspace,mask=self.intensity.mask)
-
+        local_mask = np.where((self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1]))
+        self.intensity = ma.masked_array(self.intensity[local_mask])
+        self.tth = ma.masked_array(self.tth[local_mask])
+        self.azm = ma.masked_array(self.azm[local_mask])
+        self.dspace = ma.masked_array(self.dspace[local_mask])
+        
     
+
+    def set_mask(self, range_bounds=[-np.inf, np.inf], i_max=np.inf, i_min=-np.inf):
+        """
+        Set limits to data 
+        :param range_bounds:
+        :param i_max:
+        :param i_min:
+        :return:
+        """     
+        local_mask = ma.getmask(ma.masked_outside(self.tth, range_bounds[0], range_bounds[1]))
+        local_mask2 = ma.getmask(ma.masked_outside(self.intensity, i_min, i_max))
+        combined_mask = np.ma.mask_or(ma.getmask(self.intensity), local_mask)
+        combined_mask = np.ma.mask_or(combined_mask, local_mask2)
+        self.intensity.mask = combined_mask
+        self.tth.mask = combined_mask
+        self.azm.mask = combined_mask
+        self.dspace.mask = combined_mask
+
+
+
 
     def plot_masked(self, fig_plot=None):
         """
@@ -440,12 +472,18 @@ class MedDetector:
         #reshape model to match self
         model2 = deepcopy(self.intensity)
         p = 0
-        for i in range(len(self.intensity)):
-            for j in range(len(self.intensity[0])):
-                if not ma.is_masked(self.intensity[i][j]):
-                    model2[i][j] = model[p]
-                    p=p+1
         
+        # for i in range(len(self.intensity)):
+        #     for j in range(len(self.intensity[0])):
+        #         if not ma.is_masked(self.intensity[i][j]):
+        #             model2[i][j] = model[p]
+        #             p=p+1
+        for i in range(len(self.intensity)):
+            # for j in range(len(self.intensity[0])):
+            if not ma.is_masked(self.intensity[i]):
+                model2[i] = model[p]
+                p=p+1
+                    
         #match max and min of colour scales
         #FIXME: this is not used but should be used to set to colour ranges of the data -- by azimuth. 
         limits={'max': np.max([np.max(self.azm)]),
@@ -549,7 +587,6 @@ class MedDetector:
             plot_x = self.tth
         label_x = "Energy (keV)"
         
-        
         if data is not None:
             plot_i = data
         else:
@@ -572,18 +609,21 @@ class MedDetector:
             plot_y = plot_i + self.azm * spacing
             plot_c = self.azm
             label_y = "Counts"
+            
             #organise to plot 0 count lines.
             plot_y0=[]
             plot_x0=[]
             plot_c0=[]
-            for i in range(len(plot_y)):
-                if not plot_x[i].mask.all():
-                    plot_x0.append([plot_x[i][~self.azm[i].mask][0],plot_x[i][~self.azm[i].mask][-1]])
-                    plot_y0.append([self.azm[i][~self.azm[i].mask][0]*spacing,self.azm[i][~self.azm[i].mask][-1]*spacing])
-                    plot_c0.append(np.mean(plot_c[i]))
+            for i in range(len(np.unique(self.azm))):
+                if ma.MaskedArray.all(plot_x[self.azm==np.unique(self.azm)[i]]):
+                    plot_x0.append([plot_x[self.azm==np.unique(self.azm)[i]][0],plot_x[self.azm==np.unique(self.azm)[i]][-1]])
+                    plot_y0.append([self.azm[self.azm==np.unique(self.azm)[i]][0]*spacing, self.azm[self.azm==np.unique(self.azm)[i]][-1]*spacing])
+                    plot_c0.append(np.mean(plot_c[self.azm==np.unique(self.azm)[i]]))
                 else:
                     plot_y0.append([np.nan, np.nan])
                     plot_x0.append([np.nan, np.nan])
+            plot_x0 = np.array(plot_x0)
+            plot_y0 = np.array(plot_y0)
             
         # organise the data to plot
         # here assume x isenergy, y is azzimuth, z is intensity or counts.
@@ -605,28 +645,29 @@ class MedDetector:
         else:
             colourmap = colourmap
         
-
         if 'plot_s' in locals():
             the_plot = axis_plot.scatter(plot_x, plot_y, s=plot_s, c=plot_c, cmap=colourmap, alpha=.2)
             fig_plot.colorbar(mappable=the_plot).set_label(label="Counts")
-            
         else:
-                
             # Set colour map range - to be in 90 degree blocks
             blocks = 90
             colour_start = np.floor((np.min(self.azm))/blocks)*blocks
             colour_end   = np.ceil((np.max(self.azm))/blocks)*blocks
             normalize = colors.Normalize(vmin=colour_start, vmax=colour_end)
             c_map = cm.get_cmap(name=colourmap)
-            
-            for x in range(len(plot_y)-1,-1,-1):
-                 if not plot_c.mask.all():
-                     colour = c_map(normalize(np.mean(plot_c[x])))
-                     the_plot=axis_plot.plot(plot_x[x], plot_y[x], color=colour)
-                     if y_axis == "default":
-                         the_plot=axis_plot.plot(plot_x0[x], plot_y0[x], "--", linewidth=.5, color=colour)
-            
-            
+            for i in range(len(np.unique(self.azm))-1,-1,-1):
+                if 0: #for debugging
+                    print("arrays for plotting")
+                    print(i, np.unique(self.azm))
+                    print("x", plot_x[self.azm==np.unique(self.azm)[i]])
+                    print("y", plot_y[self.azm==np.unique(self.azm)[i]])
+                    print("c", np.mean(plot_c[self.azm==np.unique(self.azm)[i]]))
+                    print("mask", not ma.MaskedArray.all(plot_x[self.azm==np.unique(self.azm)[i]]) )
+                colour = c_map(normalize(np.mean(plot_c[self.azm==np.unique(self.azm)[i]])))
+                if y_axis == "default":
+                    the_plot=axis_plot.plot(plot_x0[i], plot_y0[i], "--", linewidth=.5, color=colour)
+                the_plot=axis_plot.plot(plot_x[self.azm==np.unique(self.azm)[i]], plot_y[self.azm==np.unique(self.azm)[i]], color=colour)
+
             # Colorbar
             if colourbar=="horizontal":
                 orientation = "horizontal"

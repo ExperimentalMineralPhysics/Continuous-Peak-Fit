@@ -75,10 +75,10 @@ class Settings:
         """
         
         # set defaults that can be set, otherwise make an empty value.
-        self.datafile_basename  = None
-        self.datafile_startnum  = None
-        self.datafile_endnum    = None
-        self.datafile_numdigits = None
+        # self.datafile_basename  = None
+        # self.datafile_startnum  = None
+        # self.datafile_endnum    = None
+        # self.datafile_numdigits = None
         self.datafile_list = None
         self.datafile_number = 0
         self.datafile_directory = "."
@@ -212,10 +212,14 @@ class Settings:
         
         #add and check data files
         self.datafile_list, self.datafile_number = file_list(dir(self.settings_from_file), self.settings_from_file)
-        self.datafile_basename  = self.settings_from_file.datafile_Basename
-        self.datafile_startnum  = self.settings_from_file.datafile_StartNum
-        self.datafile_endnum    = self.settings_from_file.datafile_EndNum
-        self.datafile_numdigits = self.settings_from_file.datafile_NumDigit
+        
+        # FIXME: datfil_base name should probably go because it is not a required variable it is only used in writing hte outputs.s
+        if "datafile_Basename" in dir(self.settings_from_file):
+            self.datafile_basename  = self.settings_from_file.datafile_Basename
+        # if "datafile_startnum" in self.settings_from_file:
+        #     self.datafile_startnum  = self.settings_from_file.datafile_StartNum
+        #     self.datafile_endnum    = self.settings_from_file.datafile_EndNum
+        #     self.datafile_numdigits = self.settings_from_file.datafile_NumDigit
         self.check_files_exist(self.datafile_list, write=False)
         print("All the data files exist.")
         
@@ -247,7 +251,7 @@ class Settings:
         if "Calib_mask" in dir(self.settings_from_file):
             self.calibration_mask = self.settings_from_file.Calib_mask
         if "Calib_detector" in dir(self.settings_from_file):
-            self.calibration_mask = self.settings_from_file.Calib_detector
+            self.calibration_detector = self.settings_from_file.Calib_detector
         if "Calib_pixels" in dir(self.settings_from_file):
             self.calibration_pixel_size = self.settings_from_file.Calib_pixels
             

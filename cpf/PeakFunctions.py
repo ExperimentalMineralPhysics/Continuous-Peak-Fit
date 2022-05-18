@@ -1155,7 +1155,7 @@ def coefficient_fit(
         ydata[idx],
         inp_param,
         azimuth=azimuth[idx] * symmetry,
-        coef_type=coeff_type,
+        coeff_type=coeff_type,
         method=fit_method,
         sigma=new_errs,
         comp_str=param_str,

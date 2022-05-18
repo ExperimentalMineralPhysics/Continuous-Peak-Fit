@@ -1448,7 +1448,7 @@ def fit_sub_pattern(
                                 params=master_params, 
                                 azimuth=np.array(az_plt), 
                                 param=temp[0], 
-                                coef_type=temp_tp
+                                coeff_type=temp_tp
                         )
                         ax1.scatter(new_azi_chunks, new_d0[j], s=10)
                         ax1.plot(az_plt, gmod_plot, )
@@ -1475,7 +1475,7 @@ def fit_sub_pattern(
                                 params=master_params, 
                                 azimuth=np.array(az_plt) * symm, 
                                 param=temp[0], 
-                                coef_type=temp_tp
+                                coeff_type=temp_tp
                         )
                         ax2.scatter(new_azi_chunks, new_h_all[j], s=10)
                         ax2.plot(az_plt, gmod_plot, )
@@ -1502,7 +1502,7 @@ def fit_sub_pattern(
                                 params=master_params, 
                                 azimuth=np.array(az_plt) * symm, 
                                 param=temp[0], 
-                                coef_type=temp_tp
+                                coeff_type=temp_tp
                         )
                         ax3.scatter(new_azi_chunks, new_w_all[j], s=10)
                         ax3.plot(az_plt, gmod_plot, )
@@ -1529,7 +1529,7 @@ def fit_sub_pattern(
                                 params=master_params, 
                                 azimuth=np.array(az_plt) * symm, 
                                 param=temp[0], 
-                                coef_type=temp_tp
+                                coeff_type=temp_tp
                         )
                         ax4.scatter(new_azi_chunks, new_p_all[j], s=10)
                         ax4.plot(az_plt, gmod_plot, )
@@ -1554,7 +1554,7 @@ def fit_sub_pattern(
                                 params=master_params, 
                                 azimuth=np.array(az_plt),
                                 param=temp[0], 
-                                coef_type=temp_tp
+                                coeff_type=temp_tp
                         )
                         ax5.scatter(new_azi_chunks, new_bg_all[k], s=10)
                         ax5.plot(az_plt, gmod_plot, )
@@ -1696,7 +1696,7 @@ def fit_sub_pattern(
         if step >= 10:
 
             # if refine or step>=10 or not PreviousParams:
-            if refine or step != 10 or step != 15:
+            if refine or step != 10 or step != 15 and iterations >=1:
                 # Iterate over each parameter series in turn.
                 print(
                     "\nRe-fitting for d, h, w, +/-p, bg separately... will refine %i time(s)\n"

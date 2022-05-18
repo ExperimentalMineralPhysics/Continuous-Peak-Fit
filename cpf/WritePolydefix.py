@@ -25,6 +25,12 @@ def Requirements():
         "tc",  # which thermocoule to include from 6BMB/X17B2 collection system. default to 1. #FIX ME: this needs to be included
         #"Output_directory",  # if no direcrtory is specified write to current directory. -- not set by default in settings class.
         "phase", #the phase we are interested in 
+        
+        "datafile_StartNum", #start num and end num are needed for Polydefix which assumes continuous data files. 
+        "datafile_EndNum",
+        "datafile_NumDigit",
+        # FIXME: we should be able to re-number the data files so that processing them is possible with polydexif.  
+        # FIXME: these are addressed in the code as .  
     ]
 
     #append the requirements from WriteMultiFit to the lists because PolyDefix requires WriteMultiFit.
@@ -169,7 +175,7 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
         text_file.write("# Experiment analysis file. to be used with Polydefix\n")
         text_file.write("# For more information: http://merkel.zoneo.net/Polydefix/\n")
         text_file.write(
-            "# File Created by FPF_WritePolydefix function in Continuous-Peak-Fit\n"
+            "# File Created by WritePolydefixED function in ContinuousPeakFit\n"
         )
         text_file.write("# For more information: http://www.github.com/me/something\n")
 
@@ -188,19 +194,23 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
         text_file.write(
             "     %s\n" % setting_class.datafile_basename.strip("_").strip(".")
         )
-        if setting_class.datafile_startnum > setting_class.datafile_endnum:
+        # if "datafile_startnum" in self.settings_from_file:
+        #     self.datafile_startnum  = self.settings_from_file.datafile_StartNum
+        #     self.datafile_endnum    = self.settings_from_file.datafile_EndNum
+        #     self.datafile_numdigits = self.settings_from_file.datafile_NumDigit
+        if setting_class.settings_from_file.datafile_StartNum > setting_class.settings_from_file.datafile_EndNum:
             print("start>end")
-            strt = setting_class.datafile_endnum
-            eend = setting_class.datafile_startnum
+            strt = setting_class.settings_from_file.datafile_EndNum
+            eend = setting_class.settings_from_file.datafile_StartNum
         else:
-            strt = setting_class.datafile_startnum
-            eend = setting_class.datafile_endnum
+            strt = setting_class.settings_from_file.datafile_StartNum
+            eend = setting_class.settings_from_file.datafile_EndNum
         text_file.write("# First index for FIT files\n")
         text_file.write("     %i\n" % strt)
         text_file.write("# Last index for FIT files\n")
         text_file.write("     %i\n" % eend)
         text_file.write("# Number of digits for FIT files\n")
-        text_file.write("     %i\n" % setting_class.datafile_numdigits)
+        text_file.write("     %i\n" % setting_class.settings_from_file.datafile_NumDigit)
         text_file.write("# Wavelength\n")
         text_file.write("     %8.7g\n" % setting_class.data_class.parameters["conversion_constant"])
         text_file.write("# Fit offset for maximum stress 1 for yes, 0 for no\n")

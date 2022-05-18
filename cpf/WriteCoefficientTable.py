@@ -20,10 +20,10 @@ def Requirements():
         #'apparently none!
     ]
     OptionalParams = [
-        "Output_directory"  # if no direcrtory is specified write to current directory.
+        ##"Output_directory"  # if no direcrtory is specified write to current directory.
     ]
 
-    return RequiredParams
+    return RequiredParams, OptionalParams
 
 
 def WriteOutput(FitSettings, parms_dict, **kwargs):

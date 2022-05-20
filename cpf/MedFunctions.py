@@ -30,9 +30,9 @@ class MedDetector:
         """
         :param calibration_parameters:
         """
-        self.parameters = None
-        if calibration_parameters is not None:
-            self.parameters = self.get_calibration(calibration_parameters)
+        # self.parameters = None
+        # if calibration_parameters is not None:
+        #     self.parameters = self.get_calibration(calibration_parameters)
         
         self.requirements = self.get_requirements(fit_parameters)
         self.detector = None
@@ -41,6 +41,8 @@ class MedDetector:
         self.azm = None
         self.dspace = None
         self.calibration = None
+        if calibration_parameters is not None:
+            self.calibration = self.get_calibration(calibration_parameters)
 
     def duplicate(self):
         """
@@ -50,7 +52,7 @@ class MedDetector:
         """
         
         new = MedDetector()
-        new.parameters = copy(self.parameters)
+        # new.parameters = copy(self.parameters)
         new.calibration = copy(self.calibration)
         
         new.intensity = deepcopy(self.intensity)
@@ -196,10 +198,10 @@ class MedDetector:
                 
         return im_all
 
-    def conversion(self, e_in, calib, reverse=0, azm=None):
+
+    def conversion(self, e_in, azm=None, reverse=0):
         """
         :param e_in:
-        :param calib:
         :param reverse:
         :param azm:
         :return:
@@ -210,7 +212,7 @@ class MedDetector:
             # FIX ME: this is a horrible way to make the conversion work, but it is needed for
             # processing the guesses of MED detectors.
         else:
-            e_in = np.array([[0, e_in]])
+            e_in = np.array([[0, e_in]],dtype=object)
 
         # print('E_in',E_in, 'calib,', calib)
         # print('type E_in', type(E_in))
@@ -220,8 +222,8 @@ class MedDetector:
         wavelength = 4.135667662e-15 * (299792458 * 1e10) / (e_in[:, 1] * 1000)
 
         # determine which detector calibration goes with each energy.
-        sort_idx = np.array(calib["azimuths"]).argsort()
-        de = sort_idx[np.searchsorted(calib["azimuths"], e_in[:, 0], sorter=sort_idx)]
+        sort_idx = np.array(self.calibration["azimuths"]).argsort()
+        de = sort_idx[np.searchsorted(self.calibration["azimuths"], e_in[:, 0], sorter=sort_idx)]
 
         if not reverse:
             # convert energy to d-spacing
@@ -231,7 +233,7 @@ class MedDetector:
                     wavelength[i]
                     / 2
                     / np.sin(
-                        np.radians(calib["calibs"].mcas[i].calibration.two_theta / 2)
+                        np.radians(self.calibration["calibs"].mcas[i].calibration.two_theta / 2)
                     )
                 )
             dspc_out = np.squeeze(np.array(dspc_out))
@@ -244,10 +246,10 @@ class MedDetector:
                     wavelength[i]
                     / 2
                     / np.sin(
-                        np.radians(calib["calibs"].mcas[i].calibration.two_theta / 2)
+                        np.radians(self.calibration["calibs"].mcas[i].calibration.two_theta / 2)
                     )
                 )
-                print("dspc_out", dspc_out)
+                # print("dspc_out", dspc_out)
             dspc_out = np.array(dspc_out)
 
         return dspc_out
@@ -340,7 +342,7 @@ class MedDetector:
         # print(parms_dict['conversion_constant'])
         return parms_dict
 
-    def bins(self, azimu, orders):
+    def bins(self, orders_class):
         """
         Determine bins to use in initial fitting.
         Assign each data to a chunk corresponding to its azimuth value
@@ -349,15 +351,15 @@ class MedDetector:
         :param orders:
         :return:
         """
-        bin_vals = np.unique(azimu.data)
+        bin_mean_azi = np.unique(self.azm.data)
         chunks = []
-        azichunks = []
-        temp_azimuth = azimu.flatten()
-        for i in range(len(bin_vals)):
-            azi_chunk = np.where((temp_azimuth == bin_vals[i]))
+        # azichunks = []
+        temp_azimuth = self.azm.flatten()
+        for i in range(len(bin_mean_azi)):
+            azi_chunk = np.where((temp_azimuth == bin_mean_azi[i]))
             chunks.append(azi_chunk)
         
-        return chunks, bin_vals
+        return chunks, bin_mean_azi
 
     # FIX ME: DMF missing function from dioptas get_azimuthal_integration -- is it needed here?
 
@@ -473,17 +475,12 @@ class MedDetector:
         model2 = deepcopy(self.intensity)
         p = 0
         
-        # for i in range(len(self.intensity)):
-        #     for j in range(len(self.intensity[0])):
-        #         if not ma.is_masked(self.intensity[i][j]):
-        #             model2[i][j] = model[p]
-        #             p=p+1
         for i in range(len(self.intensity)):
             # for j in range(len(self.intensity[0])):
             if not ma.is_masked(self.intensity[i]):
-                model2[i] = model[p]
+                model2[i] = model.flatten()[p]
                 p=p+1
-                    
+        
         #match max and min of colour scales
         #FIXME: this is not used but should be used to set to colour ranges of the data -- by azimuth. 
         limits={'max': np.max([np.max(self.azm)]),

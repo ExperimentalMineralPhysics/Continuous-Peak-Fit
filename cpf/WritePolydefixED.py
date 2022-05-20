@@ -103,15 +103,15 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
     # FIX ME: should this be the average of all the two theat angles?
     text_file.write("# 2 theta angle (in degrees)\n")
     # text_file.write("%12.5f\n" % parms_dict["calibs"].mcas[0].calibration.two_theta)
-    text_file.write("%12.5f\n" % setting_class.data_class.parameters["calibs"].mcas[0].calibration.two_theta)
+    text_file.write("%12.5f\n" % setting_class.data_class.calibration["calibs"].mcas[0].calibration.two_theta)
 
     # Write detector properties.
     text_file.write("# Number of detector positions\n")
-    text_file.write("%6i\n" % len(setting_class.data_class.parameters["azimuths"]))
+    text_file.write("%6i\n" % len(setting_class.data_class.calibration["azimuths"]))
     text_file.write("# Angles for detector positions: Number. Use (1/0). Angle. \n")
 
     az_used = []
-    for x in range(len(setting_class.data_class.parameters["azimuths"])):
+    for x in range(len(setting_class.data_class.calibration["azimuths"])):
 
         # determine if detector masked
         if setting_class.calibration_mask is not None:
@@ -119,11 +119,11 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
                 use = 0
             else:
                 use = 1
-                az_used.append(setting_class.data_class.parameters["azimuths"][x])
+                az_used.append(setting_class.data_class.calibration["azimuths"][x])
 
         # print detector number, if it is being used, then angle, lastly just a number.
         text_file.write(
-            "%6i  %i  %7.3f  %i \n" % (x + 1, use, setting_class.data_class.parameters["azimuths"][x], 1)
+            "%6i  %i  %7.3f  %i \n" % (x + 1, use, setting_class.data_class.calibration["azimuths"][x], 1)
         )
 
         # FIX ME: if 10 element detector then turn detector 10 off.
@@ -193,7 +193,7 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
     text_file.write("# Fit offset for maximum stress 1 for yes. 0 for no\n")
     text_file.write("     1\n")
     text_file.write("# Starting offset value. in degrees\n")
-    text_file.write("%6i \n" % setting_class.data_class.parameters["azimuths"][0])
+    text_file.write("%6i \n" % setting_class.data_class.calibration["azimuths"][0])
 
     # Write material properties
     # FIX ME: need to be able to import material properties and write them to the file without messing about.
@@ -412,7 +412,7 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
                 else:
                     sym = 1
 
-                az = setting_class.data_class.parameters["azimuths"]
+                az = setting_class.data_class.calibration["azimuths"]
                 coef_type = ff.params_get_type(fit[x], "d", peak=y)
                 peak_d = ff.coefficient_expand(
                     np.array(az), fit[x]["peak"][y]["d-space"], coeff_type=coef_type
@@ -425,7 +425,7 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
                     coeff_type=coef_type,
                 )
                 n = -1
-                for w in range(len(setting_class.data_class.parameters["calibs"].mcas)):
+                for w in range(len(setting_class.data_class.calibration["calibs"].mcas)):
                     # determine if detector masked
                     if setting_class.calibration_mask:
                         if w + 1 in setting_class.calibration_mask:

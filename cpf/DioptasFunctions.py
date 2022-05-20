@@ -28,7 +28,7 @@ class DioptasDetector:
         """
         :param calibration_parameters:
         """
-        self.parameters = self.get_calibration(calibration_parameters)
+        # self.parameters = self.get_calibration(calibration_parameters)
         self.requirements = self.get_requirements(fit_parameters)
         self.detector = None
         self.intensity = None
@@ -63,6 +63,8 @@ class DioptasDetector:
         self.tth = self.get_two_theta(mask=self.intensity.mask)
         self.azm = self.get_azimuth(mask=self.intensity.mask)
         self.dspace = self.get_d_space(mask=self.intensity.mask)
+
+
 
     def get_detector(self, diff_file, settings=None):
         """
@@ -238,21 +240,18 @@ class DioptasDetector:
         else:
             return ma.array(im)
 
-    #def conversion(self, tth_in, conv, reverse=0, azm=None):
-    def conversion(self, tth_in, reverse=0, azm=None):
+
+    def conversion(self, tth_in, azm=None, reverse=0):
         """
         Convert two theta values into d-spacing.
         azm is needed to enable compatibility with the energy dispersive detectors
         :param tth_in:
-        :param conv:
         :param reverse:
         :param azm:
         :return:
         """
-
-        #wavelength = conv["conversion_constant"]
-        wavelength = self.parameters["Wavelength"] * 1e10
-        # print(wavelength)
+        
+        wavelength = self.calibration["wavelength"] * 1e10
         if not reverse:
             # convert tth to d_spacing
             dspc_out = wavelength / 2 / np.sin(np.radians(tth_in / 2))
@@ -261,8 +260,8 @@ class DioptasDetector:
             # N.B. this is the reverse function so that labels tth and d_spacing are not correct.
             # print(tth_in)
             dspc_out = 2 * np.degrees(np.arcsin(wavelength / 2 / tth_in))
-            # dspc_out = 2*np.degrees(np.arcsin(wavelength/2/tth_in[:,1]))
         return dspc_out
+
 
     def get_mask(self, msk_file, im_ints):
         """
@@ -402,35 +401,58 @@ class DioptasDetector:
         parms_dict = {k.lower(): v for k, v in parms_dict.items()}
         # report type
         parms_dict["DispersionType"] = "AngleDispersive"
+        
+        # print("parms_dict", parms_dict)
         return parms_dict
 
-    def bins(self, azimuth, orders):
+
+    def bins(self, orders_class):
         """
         Determine bins to use in initial fitting.
         Assign each data to a chunk corresponding to its azimuth value
         Returns array with indices for each bin and array of bin centroids
-        :param azimuth:
-        :param orders:
-        :return:
+        :param orders_class:
+        :return chunks:
+        :return bin_mean_azi:
         """
-        az_max = azimuth.max()
-        az_min = azimuth.min()
-        if "AziBins" in orders:
-            bins = orders["AziBins"]
+        
+        az_max = self.azm.max()
+        az_min = self.azm.min()
+        
+        if orders_class.fit_bin_type == 0:
+            # split the data into bins with an approximately constant number of data.      
+            # uses orders_class.fit_per_bin to determine bin size     
+            raise NotImplementedError
+            
+        elif orders_class.fit_bin_type == 1:
+            # split the data into a fixed number of bins     
+            # uses orders_class.fit_number_bins to determine bin size     
+            
+            # if "AziBins" in orders:
+            #     bins = orders["AziBins"]
+            # else:
+            #     bins = 90
+            # bin_size = (az_max - az_min) / bins
+            bin_size = (az_max - az_min) / orders_class.fit_number_bins
+            chunks = []
+            bin_mean_azi = []
+            temp_azimuth = self.azm.flatten()
+            for i in range(orders_class.fit_number_bins):
+                start = az_min + i * bin_size
+                end = az_min + (i + 1) * bin_size
+                azi_chunk = np.where((temp_azimuth > start) & (temp_azimuth <= end))
+                chunks.append(azi_chunk)
+                bin_mean_azi.append(((end - start) / 2) + start)
         else:
-            bins = 90
-        bin_size = (az_max - az_min) / bins
-        chunks = []
-        azi_chunks = []
-        temp_azimuth = azimuth.flatten()
-        for i in range(bins):
-            start = az_min + i * bin_size
-            end = az_min + (i + 1) * bin_size
-            azi_chunk = np.where((temp_azimuth > start) & (temp_azimuth <= end))
-            azi_chunks.append(((end - start) / 2) + start)
-            chunks.append(azi_chunk)
-        return chunks, azi_chunks
+            # issue an error
+            err_str = (
+                "The bin type is not recognised. Check input file."
+            )
+            raise ValueError(err_str)
+               
+        return chunks, bin_mean_azi
 
+        
     def get_azimuthal_integration(self):
         """
 
@@ -449,6 +471,7 @@ class DioptasDetector:
             wavelength=self.calibration["wavelength"],
         )
         return ai
+
 
     def get_two_theta(self, mask=None):
         """
@@ -503,7 +526,7 @@ class DioptasDetector:
 
     def set_limits(self, range_bounds=[-np.inf, np.inf]):
         """
-        Set limits to data 
+        Set limits to data in two theta
         :param range_bounds:
         :param i_max:
         :param i_min:
@@ -516,6 +539,23 @@ class DioptasDetector:
         self.dspace = self.dspace[local_mask]
 
 
+    # def set_azimuth_limits(self, azi_bounds=[-np.inf, np.inf], azi_flatten=True):
+    #     """
+    #     Set limits to data in azimuth
+    #     :param range_bounds:
+    #     :param i_max:
+    #     :param i_min:
+    #     :return:
+    #     """    
+    #     local_mask = np.where((self.azm >= azi_bounds[0]) & (self.azm <= azi_bounds[1]))
+    #     self.intensity = self.intensity[local_mask]
+    #     self.tth = self.tth[local_mask]
+    #     self.azm = self.azm[local_mask]
+    #     self.dspace = self.dspace[local_mask]
+        
+    #     if azi_flatten:
+    #         self.azm = np.mean(self.azm)
+            
 
     def set_mask(self, range_bounds=[-np.inf, np.inf], i_max=np.inf, i_min=-np.inf):
         """

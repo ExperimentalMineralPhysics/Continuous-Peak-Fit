@@ -85,9 +85,9 @@ class Settings:
         
         self.datafile_preprocess = None
         
-        self.fit_bin_type = 0
-        self.fit_per_bin = 200
-        self.fit_azi_bins = 90
+        self.fit_bin_type = None
+        self.fit_per_bin = None
+        self.fit_number_bins = None
         self.fit_orders = None
         self.fit_bounds = {
               "background": ['min', 'max'],
@@ -166,6 +166,15 @@ class Settings:
         :return fit_settings:
         """
         
+        # Fail gracefully
+        if (
+            settings_file is None
+        ):
+            raise ValueError(
+                "Either the settings file or the parameter dictionary need to be specified."
+            )
+            
+        
         if settings_file is not None:
             self.settings_file = settings_file
             
@@ -196,7 +205,7 @@ class Settings:
         # store all the settings from file in the class. then sort them in a useful way. 
         self.settings_from_file = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.settings_from_file)
-        print("you now need to chage all the refernces to fit_settings to self.settings_in_file")
+        print("In Fit_pattern and FitSubpattern: you now need to change all the refernces to fit_settings to self.settings_in_file")
         #stop
         #fit_settings = importlib.util.module_from_spec(spec)
         #spec.loader.exec_module(fit_settings)
@@ -212,16 +221,16 @@ class Settings:
         
         #add and check data files
         self.datafile_list, self.datafile_number = file_list(dir(self.settings_from_file), self.settings_from_file)
+        self.check_files_exist(self.datafile_list, write=False)
+        print("All the data files exist.")
         
-        # FIXME: datfil_base name should probably go because it is not a required variable it is only used in writing hte outputs.s
+        # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
         if "datafile_Basename" in dir(self.settings_from_file):
             self.datafile_basename  = self.settings_from_file.datafile_Basename
         # if "datafile_startnum" in self.settings_from_file:
         #     self.datafile_startnum  = self.settings_from_file.datafile_StartNum
         #     self.datafile_endnum    = self.settings_from_file.datafile_EndNum
         #     self.datafile_numdigits = self.settings_from_file.datafile_NumDigit
-        self.check_files_exist(self.datafile_list, write=False)
-        print("All the data files exist.")
         
         #add output directory if listed. 
         # change if listed among the inputs
@@ -255,7 +264,7 @@ class Settings:
         if "Calib_pixels" in dir(self.settings_from_file):
             self.calibration_pixel_size = self.settings_from_file.Calib_pixels
             
-            
+        # load the data class.
         self.data_class = detector_factory(self.calibration_type, self.calibration_parameters)
         
         
@@ -290,10 +299,13 @@ class Settings:
             self.fit_per_bin = self.AziDataPerBin
             self.fit_bin_type = 0
         elif "AziBins" in dir(self.settings_from_file):
-            self.fit_azi_bins = self.settings_from_file.AziBins
+            self.fit_number_bins = self.settings_from_file.AziBins
             self.fit_bin_type = 1
         if "AziBinType" in dir(self.settings_from_file):
             self.fit_bin_type = self.AziBinType        
+    
+    
+    
     
     
         if "Output_type" in dir(self.settings_from_file):
@@ -420,13 +432,25 @@ class Settings:
             # check range 
             if "range" not in orders[i]:
                 missing.append(order_str + " " + str(i) + " is missing a " "'range'")
-            elif (
+                
+            #check to see if range is list in list, e.g. [[16.0, 16.1]]. If so extract it to signle list.
+            #this is old notation and now depreciated
+            if (isinstance(orders[i]["range"], list) 
+                    and len(orders[i]["range"]) == 1
+                    and len(orders[i]["range"][0]) == 2):
+                self.fit_orders[i]["range"] = self.fit_orders[i]["range"][0] 
+            # check if  range is valid
+            if (
                     not isinstance(orders[i]["range"], list)
-                    and len(orders[i]["range"]) != 2
+                    or len(orders[i]["range"]) != 2
             ):
                 missing.append(
-                    order_str + " " + str(i) + " has an incorrectly formatted "+"'range'")
-    
+                    order_str + "[" + str(i) + "] has an incorrectly formatted "+"'range'")
+            
+            if (orders[i]["range"][0] > orders[i]["range"][1]):
+                missing.append(
+                    order_str + "[" + str(i) + "]['range'] has values in wrong order")
+            
             # check background
             if "background" not in orders[i]:
                 missing.append(order_str + " " + str(i) + " is missing a "+"'background'")
@@ -836,7 +860,6 @@ class Settings:
         self.subfit_filename = self.datafile_list[file_number]
         self.subfit_order_position = number_subpattern        
         self.subfit_orders = self.fit_orders[number_subpattern]
-    
     
 def get_output_options(output_type):
     """

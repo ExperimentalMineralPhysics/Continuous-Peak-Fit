@@ -5,26 +5,14 @@ __all__ = ["get_manual_guesses", "get_chunk_background_guess", "fit_chunks"]
 # CPF_XRD_FitSubpattern
 # Script fits subset of the data with peaks of pre-defined Fourier orders
 
-import os
-import sys
-import time
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 from lmfit import Parameters, Model
-from lmfit.model import save_modelresult  # , load_modelresult
-import json
 import cpf.PeakFunctions as pf
 import cpf.IO_functions as io
-import warnings
 
 
-
-# =========================
-#notes:
-# - remove get_manual_guesses from FitSubpattern. no longer required there.
-# - remove get_chunk_background_guess from FitSubpattern. no longer required there. 
-# =========================
 
 #def get_manual_guesses(peeks, orders, bounds, twotheta, debug=None):
 def get_manual_guesses(settings_as_class, data_as_class, debug=False):
@@ -78,10 +66,6 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
 
         # get coefficient type
         coeff_type = pf.params_get_type(settings_as_class.subfit_orders, comp, peak=j)
-        # if "d-space-type" in settings_as_class.subfit_orders["peak"][j]:
-        #     coeff_type = settings_as_class.subfit_orders["peak"][j]["d-space-type"]
-        # else:
-        #     coeff_type = "fourier"
 
         # for guesses make sure there are not too many coefficients.
         n_coeff = pf.get_number_coeff(settings_as_class.subfit_orders, comp)
@@ -118,7 +102,6 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
     return dfour
 
 
-# def get_chunk_background_guess(twotheta, azimu, intens, orders, chunks, background_type, count, n):
 def get_chunk_background_guess(settings_as_class, data_chunk_class, n, debug=False):
     """
     :param data_chunk_class:
@@ -192,13 +175,8 @@ def get_chunk_background_guess(settings_as_class, data_chunk_class, n, debug=Fal
     return background_guess
 
 
-# def get_chunk_guesses(peeks, orders, twotheta, intens, background_guess,
-#                       azimu, chunks, conversion_factor, data_as_class, count, n,
-#                       d_space, bounds, w_guess_fraction, dfour=None, debug=None):
 def get_chunk_peak_guesses(settings_as_class, data_chunk_class, 
                                                         background_guess,
-                                                        # chunks, 
-                                                        # count, 
                                                         n, w_guess_fraction,
                                                         dfour, debug=False):
     """
@@ -339,26 +317,7 @@ def get_chunk_peak_guesses(settings_as_class, data_chunk_class,
             )
         )
         data_chunk_class
-        # lims.append(
-        #     pf.parse_bounds(
-        #         settings_as_class.fit_bounds,
-        #         data_as_class.dspace.flatten()[chunks[j]],
-        #         data_as_class.intensity.flatten()[chunks[j]],
-        #         data_as_class.tth.flatten()[chunks[j]],
-        #         param=["height", "d-space", "width", "profile"],
-        #     )
-        # )
 
-    # limits = {
-    #     "background": pf.parse_bounds(
-    #             settings_as_class.fit_bounds,
-    #             data_as_class.dspace.flatten()[chunks[j]],
-    #             data_as_class.intensity.flatten()[chunks[j]],
-    #             data_as_class.tth.flatten()[chunks[j]],
-    #         param=["background"],
-    #     )["background"],
-    #     "peak": lims,
-    # }
     limits = {
         "background": pf.parse_bounds(
                 settings_as_class.fit_bounds,
@@ -488,8 +447,6 @@ def fit_chunks(
             
             # Define parameters to pass to fit
             params = Parameters()
-            # if orders: bg of form [num_orders_0,num_orders_1]
-            # if coeffs: bg of form [[coeff1],[coeff2, coeff3, coeff4]]
     
             # FIXME: not meeting this condition means no chunk fitting
             # is this correct?
@@ -501,17 +458,9 @@ def fit_chunks(
                 new_azi_chunks.append(azichunks[j])
         
                 # Background estimates
-                # background_guess = get_chunk_background_guess(twotheta, azimu, intens, orders,
-                #                                               chunks, background_type, count=j, n=n)
                 background_guess = get_chunk_background_guess(settings_as_class, chunk_data, n, debug=debug)
         
                 # # Organise guesses to be refined.
-                # peaks, limits, p_fixed = get_chunk_guesses(peeks, orders, twotheta, intens,
-                #                                            background_guess,
-                #                                            azimu, chunks, conversion_factor,
-                #                                            data_as_class, j, n,
-                #                                            d_space, bounds, w_guess_fraction,
-                #                                            dfour, debug)
                 peaks, limits, p_fixed = get_chunk_peak_guesses(settings_as_class, chunk_data, 
                                                             background_guess,
                                                             n, w_guess_fraction, dfour, debug)
@@ -574,35 +523,13 @@ def fit_chunks(
                     guess = params
             
                 # Run actual fit
-                fit = pf.fit_model2(
+                fit = pf.fit_model(
                     chunk_data, # needs to contain intensity, tth, azi (as chunks), conversion factor
                     settings_as_class.subfit_orders,
                     params,
-                    # intens.flatten()[chunks[j]],
-                    # twotheta.flatten()[chunks[j]],
-                    # azichunks[j],
-                    # num_peaks=len(peaks),
-                    # nterms_back=len(background_guess),
-                    # conv=conversion_factor,
-                    # fixed=p_fixed,
                     fit_method=fit_method,
                     weights=None,
-                    # params=params,
                 )  
-                    
-                
-                # out = pf.fit_model(
-                #     intens.flatten()[chunks[j]],
-                #     twotheta.flatten()[chunks[j]],
-                #     azichunks[j],
-                #     num_peaks=len(peaks),
-                #     nterms_back=len(background_guess),
-                #     conv=conversion_factor,
-                #     fixed=p_fixed,
-                #     fit_method=fit_method,
-                #     weights=None,
-                #     params=params,
-                # )  # , max_n_fev=peeks*default_max_f_eval)
                 params = fit.params  # update lmfit parameters
                 
                 if debug:
@@ -636,92 +563,18 @@ def fit_chunks(
                     # may have to set profile error when initiate params so have appropriate error value
                     # if fixed
                     
-            
-                    
-            
-                    # Temp addition: append chunk azimuths and fitted peak intensities to file
-                    '''
-                    azm_plot = np.tile(azimu.flatten()[chunks[j]][0], 300)
-                    azm_plot = ma.array(azm_plot, mask=(~np.isfinite(azm_plot)))
-                    gmodel = Model(
-                            pf.peaks_model, independent_vars=["two_theta", "azimuth"])
-                    tth_range = np.linspace(np.min(
-                        twotheta.flatten()[chunks[j]]),
-                        np.max(twotheta.flatten()[chunks[j]]),
-                        azm_plot.size,
-                    )
-                    mod_plot = gmodel.eval(
-                        params=params,
-                        two_theta=tth_range,
-                        azimuth=azm_plot,
-                        conv=conversion_factor,
-                    )
-                    # Get the highest peak
-                    temp_int = max(mod_plot)
-                    temp_peak_ints = [temp_int]
-                    temp_x = tth_range[np.where(mod_plot == temp_int)][0]
-                    temp_tth = [temp_x]
-                    temp_widths = []
-                    temp_tth_range = tth_range
-                    temp_mod_plot = mod_plot
-                    # Find the widest peak width
-                    for i in range(peeks):
-                        temp_widths.append(params["peak_" + str(i) + "_w0"].value)
-                    temp_max_width = max(temp_widths)
-                    # print(temp_int, temp_x, temp_max_width)
-                    # Use the max width to mask out array to search for next peak
-                    for pk in range(len(peaks)-1):
-                        upper = temp_x+(2*temp_max_width)
-                        lower = temp_x-(2*temp_max_width)
-                        # print(upper, lower)
-                        # temp_int = max(mod_plot[np.where(temp_tth_range)])
-                        temp_mod_plot = temp_mod_plot[np.where((temp_tth_range >= upper) | (temp_tth_range <= lower))]
-                        temp_int = max(temp_mod_plot)
-                        temp_peak_ints.append(temp_int)
-                        # temp_int = max(mod_plot[np.where((temp_tth_range >= upper) | (temp_tth_range <= lower))])
-                        temp_x = temp_tth_range[np.where(temp_mod_plot == temp_int)][0]
-                        temp_tth.append(temp_x)
-                        temp_tth_range = (temp_tth_range[(temp_tth_range >= upper) | (temp_tth_range <= lower)])
-                        # print('peak', temp_peak_ints, temp_tth)
-            
-                    # Work out which peak is which - assume in 2theta order
-                    temp_tth = sorted(temp_tth)
-                    # Write to file per sub-pattern per peak
-                    for pk in range(len(peaks)):
-                        filename = io.make_outfile_name(
-                                    f_name,
-                                    directory=fdir,
-                                    additional_text="ChunksHeights",
-                                    orders=orders,
-                                    extension=".txt",
-                                    overwrite=True,
-                                )
-                        # print(azichunks[j], temp_peak_ints[pk])
-                        if j==0:
-                            with open(filename, "w") as myfile:
-                                myfile.write("%f %f\n"  % (azichunks[j], temp_peak_ints[pk]))
-                        else:
-                            with open(filename, "a") as myfile:
-                                myfile.write("%f %f\n"  % (azichunks[j], temp_peak_ints[pk]))
-            
-                    # print(stop)
-                    # debug = True
-                    '''
-            
                 # plot the fits.
                 if debug:
-                    tth_plot = chunk_data.tth#twotheta.flatten()[chunks[j]]
-                    int_plot = chunk_data.intensity#intens.flatten()[chunks[j]]
-                    azm_plot = chunk_data.azm#np.tile(chunk_data.azm.flatten()[chunks[j]][0], 300)
+                    tth_plot = chunk_data.tth
+                    int_plot = chunk_data.intensity
+                    azm_plot = chunk_data.azm
+                    # required for plotting energy dispersive data. - but I am not sure why
                     azm_plot = ma.array(azm_plot, mask=(~np.isfinite(azm_plot)))
-                    # FIX ME: required for plotting energy dispersive data.
                     gmodel = Model(
-                        pf.peaks_model2, independent_vars=["two_theta", "azimuth"], data_class = chunk_data,
+                        pf.peaks_model, independent_vars=["two_theta", "azimuth"], data_class = chunk_data,
                                 orders = settings_as_class.subfit_orders, 
                     )
                     tth_range = np.linspace(
-                        # np.min(twotheta.flatten()[chunks[j]]),
-                        # np.max(twotheta.flatten()[chunks[j]]),
                         np.min(chunk_data.tth),
                         np.max(chunk_data.tth),
                         azm_plot.size,
@@ -730,13 +583,11 @@ def fit_chunks(
                         params=params,
                         two_theta=tth_range,
                         azimuth=azm_plot,
-                        #conv=conversion_factor,
                     )
                     guess_plot = gmodel.eval(
                         params=guess,
                         two_theta=tth_range,
                         azimuth=azm_plot,
-                        #conv=conversion_factor,
                     )
                     plt.plot(tth_plot, int_plot, ".", label="data")
                     plt.plot(
@@ -769,7 +620,6 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
     
     
     orders = settings_as_class.subfit_orders
-    
     
     # Initiate background parameters and perform an initial fit
     comp = "bg"
@@ -819,13 +669,6 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
     
         comp_list = ["h", "d", "w", "p"]
         comp_names = ["height", "d-space", "width", "profile"]
-        # arr_names = ["new_h_all", "new_d0", "new_w_all", "new_p_all"]
-        # arr_err_names = [
-        #     "new_h_all_err",
-        #     "new_d0_err",
-        #     "new_w_all_err",
-        #     "new_p_all_err",
-        # ]
     
         for cp in range(len(comp_list)):
             comp = comp_list[cp]
@@ -850,16 +693,6 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
             n_coeff = pf.get_number_coeff(
                 orders, comp, peak=j, azimuths=data[1]
             )
-            # master_params = pf.initiate_params(
-            #     master_params,
-            #     param_str,
-            #     comp,
-            #     coeff_type=coeff_type,
-            #     num_coeff=n_coeff,
-            #     trig_orders=orders["peak"][j][comp_names[cp]],
-            #     limits=lims[comp_names[cp]],
-            #     value=vals,
-            # )
             master_params = pf.un_vary_params(
                 master_params, param_str, comp
             )  # set other parameters to not vary
@@ -989,153 +822,3 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
             fig.savefig(filename)
         plt.show()
         plt.close()            
-            
-            
-            
-            
-        # ax1 = fig.add_subplot(5, 1, 1)
-        # ax1.set_title("D-spacing")
-        # for j in range(len(orders["peak"])):
-        #     param_str = "peak_" + str(j)
-        #     comp = "d"
-        #     temp = pf.gather_param_errs_to_list(
-        #         master_params, param_str, comp
-        #     )
-        #     temp_tp = pf.get_series_type(master_params, param_str, comp)
-        #     if temp_tp == 5:
-        #         az_plt = np.array(data[1])
-        #     else:
-        #         az_plt = azi_plot
-        #     gmod_plot = gmodel.eval(
-        #             params=master_params, 
-        #             azimuth=np.array(az_plt), 
-        #             param=temp[0], 
-        #             coeff_type=temp_tp
-        #     )
-        #     ax1.scatter(data[1], data[1]["d"][j], s=10)
-        #     ax1.plot(az_plt, gmod_plot, )
-    
-    
-        # # plt.subplot(512)
-        # ax2 = fig.add_subplot(5, 1, 2)
-        # ax2.set_title("height")
-        # for j in range(len(orders["peak"])):
-        #     if "symmetry" in orders["peak"][j].keys():
-        #         symm = orders["peak"][j]["symmetry"]
-        #     else:
-        #         symm = 1
-        #     param_str = "peak_" + str(j)
-        #     comp = "h"
-        #     temp = pf.gather_param_errs_to_list(
-        #         master_params, param_str, comp
-        #     )
-        #     temp_tp = pf.get_series_type(master_params, param_str, comp)
-        #     if temp_tp == 5:
-        #         az_plt = np.array(data[1])
-        #     else:
-        #         az_plt = azi_plot
-        #     gmod_plot = gmodel.eval(
-        #             params=master_params, 
-        #             azimuth=np.array(az_plt) * symm, 
-        #             param=temp[0], 
-        #             coeff_type=temp_tp
-        #     )
-        #     ax2.scatter(data[1], data[1]["h"][j], s=10)
-        #     ax2.plot(az_plt, gmod_plot, )
-    
-        # ax3 = fig.add_subplot(5, 1, 3)
-        # # plt.subplot(513)
-        # ax3.set_title("width")
-        # for j in range(len(orders["peak"])):
-        #     if "symmetry" in orders["peak"][j].keys():
-        #         symm = orders["peak"][j]["symmetry"]
-        #     else:
-        #         symm = 1
-        #     param_str = "peak_" + str(j)
-        #     comp = "w"
-        #     temp = pf.gather_param_errs_to_list(
-        #         master_params, param_str, comp
-        #     )
-        #     temp_tp = pf.get_series_type(master_params, param_str, comp)
-        #     if temp_tp == 5:
-        #         az_plt = np.array(data[1])
-        #     else:
-        #         az_plt = azi_plot
-        #     gmod_plot = gmodel.eval(
-        #             params=master_params, 
-        #             azimuth=np.array(az_plt) * symm, 
-        #             param=temp[0], 
-        #             coeff_type=temp_tp
-        #     )
-        #     ax3.scatter(data[1], data[1]["w"][j], s=10)
-        #     ax3.plot(az_plt, gmod_plot, )
-    
-        # ax4 = fig.add_subplot(5, 1, 4)
-        # # plt.subplot(514)
-        # ax4.set_title("Profile")
-        # for j in range(len(orders["peak"])):
-        #     if "symmetry" in orders["peak"][j].keys():
-        #         symm = orders["peak"][j]["symmetry"]
-        #     else:
-        #         symm = 1
-        #     param_str = "peak_" + str(j)
-        #     comp = "p"
-        #     temp = pf.gather_param_errs_to_list(
-        #         master_params, param_str, comp
-        #     )
-        #     temp_tp = pf.get_series_type(master_params, param_str, comp)
-        #     if temp_tp == 5:
-        #         az_plt = np.array(data[1])
-        #     else:
-        #         az_plt = azi_plot
-        #     gmod_plot = gmodel.eval(
-        #             params=master_params, 
-        #             azimuth=np.array(az_plt) * symm, 
-        #             param=temp[0], 
-        #             coeff_type=temp_tp
-        #     )
-        #     ax4.scatter(data[1], data[1]["p"][j], s=10)
-        #     ax4.plot(az_plt, gmod_plot, )
-    
-        # for k in range(len(len_bg)):
-        #     x_plt = len(len_bg)
-        #     y_plt = len(len_bg) * 4 + k + 1
-        #     ax5 = fig.add_subplot(5, x_plt, y_plt)
-        #     ax5.set_title("Background")
-    
-        #     param_str = "bg_c" + str(k)
-        #     comp = "f"
-        #     temp = pf.gather_param_errs_to_list(
-        #         master_params, param_str, comp
-        #     )
-        #     temp_tp = pf.get_series_type(master_params, param_str, comp)
-        #     if temp_tp == 5:
-        #         az_plt = np.array(data[1])
-        #     else:
-        #         az_plt = azi_plot
-        #     gmod_plot = gmodel.eval(
-        #             params=master_params, 
-        #             azimuth=np.array(az_plt),
-        #             param=temp[0], 
-        #             coeff_type=temp_tp
-        #     )
-        #     ax5.scatter(data[1], new_bg_all[k], s=10)
-        #     ax5.plot(az_plt, gmod_plot, )
-    
-        # fig.suptitle(io.peak_string(orders) + "; Fits to Chunks")
-    
-        # if save_fit:
-        #     filename = io.make_outfile_name(
-        #         f_name,
-        #         directory=fdir,
-        #         additional_text="ChunksFit",
-        #         orders=orders,
-        #         extension=".png",
-        #         overwrite=False,
-        #     )
-        #     fig.savefig(filename)
-        # plt.show()
-        # plt.close()
-    
-    # put fits into new_params data structure.
-    # new_params = ff.create_new_params(peeks, dfour, hfour, wfour, pfour, bgfour, orders['peak'])

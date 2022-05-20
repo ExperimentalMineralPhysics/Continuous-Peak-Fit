@@ -48,6 +48,11 @@ output_methods_modules = register_default_formats()
 
 
 class Settings:
+    """Settings class definitions.
+    The settings class is contains all the variables/informtion needed to execute
+    continuous peak fit. 
+    """
+    
     """
     # Need to end up with:
         self.inputfile -- name of the input file.
@@ -61,24 +66,37 @@ class Settings:
         
         self.outputs -- list of output processes to run
         
-        
-        
     """
     
     def __init__(self, 
                  settings_file=None, 
-                 inputs=None,
                  out_type=None,
                  report=False):
         """
-        :param settings_file:
+        Initialise the cpf settings class. 
+    
+        Parameters
+        ----------
+        option : settings_file
+            *.py file containing the fit settings
+    
+        option : out_type
+            Output type as list to override the settings in the file.
+            
+        option : report
+            Not implemented.
+    
+        Notes
+        -----
+        Each required value is initialised as a blank instance. 
+        These are then populated by the .populate(...) function if there is 
+        a settings_file.
+        
+        Required settings are callable as direct functions. 
+        Optional settings for the outputs are sored in a dictionary.
+        
         """
         
-        # set defaults that can be set, otherwise make an empty value.
-        # self.datafile_basename  = None
-        # self.datafile_startnum  = None
-        # self.datafile_endnum    = None
-        # self.datafile_numdigits = None
         self.datafile_list = None
         self.datafile_number = 0
         self.datafile_directory = "."
@@ -114,13 +132,13 @@ class Settings:
         self.calibration_pixel_size = None
         
         # initiate the subpattern settings.
-        # but do not set until called by 'set_subpatterns'. 
+        # not set until called by 'set_subpatterns'. 
         self.subfit_file_position  = None     
         self.subfit_filename       = None
         self.subfit_order_position = None       
         self.subfit_orders         = None
         
-
+        
         self.settings_file = settings_file
         #read the settings file given
         if self.settings_file is not None:
@@ -205,16 +223,9 @@ class Settings:
         # store all the settings from file in the class. then sort them in a useful way. 
         self.settings_from_file = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.settings_from_file)
-        print("In Fit_pattern and FitSubpattern: you now need to change all the refernces to fit_settings to self.settings_in_file")
-        #stop
-        #fit_settings = importlib.util.module_from_spec(spec)
-        #spec.loader.exec_module(fit_settings)
-        #fit_parameters = dir(fit_settings)
-    
-        #print(fit_parameters)
-        #print(fit_settings)
-        #print(self.settings_from_file)
-        #stop
+        
+        all_settings_from_file = dir(self.settings_from_file)
+        
         #add and check data directory        
         self.datafile_directory = self.settings_from_file.datafile_directory
         self.check_directory_exists(self.datafile_directory, write=True)
@@ -227,19 +238,13 @@ class Settings:
         # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
         if "datafile_Basename" in dir(self.settings_from_file):
             self.datafile_basename  = self.settings_from_file.datafile_Basename
-        # if "datafile_startnum" in self.settings_from_file:
-        #     self.datafile_startnum  = self.settings_from_file.datafile_StartNum
-        #     self.datafile_endnum    = self.settings_from_file.datafile_EndNum
-        #     self.datafile_numdigits = self.settings_from_file.datafile_NumDigit
         
         #add output directory if listed. 
         # change if listed among the inputs
         if "Output_directory" in dir(self.settings_from_file):
             self.output_directory = self.settings_from_file.Output_directory
             self.check_directory_exists(self.output_directory)
-            # if not os.path.isdir(self.output_directory):
-            #     raise ValueError("Output directory does not exist")
-    
+            
         # Load the detector class here to access relevant functions and check required parameters are present
         if "Calib_type" not in dir(self.settings_from_file):
             raise ValueError(
@@ -304,60 +309,10 @@ class Settings:
         if "AziBinType" in dir(self.settings_from_file):
             self.fit_bin_type = self.AziBinType        
     
-    
-    
-    
-    
         if "Output_type" in dir(self.settings_from_file):
             #self.output_types = get_output_options(fit_settings.Output_type)
             self.set_output_types(out_type_list = self.settings_from_file.Output_type)
         
-        
-            
-        
-        # # Check we can find and load settings file
-        # if self.setting_file:
-        #     try:
-        #         print("\nThe name of the settings file is: ", self.setting_file)
-        #         if not str.endswith(self.setting_file, ".py"):
-        #             self.setting_file = self.setting_file + ".py"
-        #         spec = importlib.util.spec_from_file_location(
-        #             "settings_module", self.setting_file
-        #         )
-        #         fit_settings = importlib.util.module_from_spec(spec)
-        #         spec.loader.exec_module(fit_settings)
-        #         fit_parameters = dir(fit_settings)
-        #         #fit_settings.inputfile = setting_file
-        #         #self.inputfile = setting_file
-    
-        #     except FileNotFoundError:
-        #         raise FileNotFoundError
-        # elif inputs:
-        #     raise NotImplementedError
-        # else:
-        #     raise ValueError("No inputs provided")
-    
-    # def exist_data_directory(self, directory=None):
-    #     # Data directory and file validation: check they exist.
-    #     if os.path.exists(self.datafiles_directory) is False:
-    #         raise ImportError(
-    #             "The data directory " + self.datafiles_directory + " does not exist."
-    #         )
-    #     else:
-    #         print("The data directory exists.")
-    
-    
-    # def exists_data_files(self):
-    #     for j in range(self.n_data_files):
-    #         if os.path.isfile(self.data_files[j]) is False:
-    #             raise ImportError(
-    #                 "The data file "
-    #                 + self.data_files[j]
-    #                 + " does not exist. Check the input file."
-    #             )
-    #     print("All the data files exist.")
-    
-   
     
     def check_files_exist(self,files_to_check, write=False):
         # Check if a file exists. If not issue an error
@@ -386,16 +341,6 @@ class Settings:
         else:
             if write==True:
                 print(directory + " is avaliable.")
-            
-            
-    # def exist_setting_file(self):
-    #     # Check we can find the settings file
-    #     if os.path.exists(self.settings_file):
-    #         print("\nThe name of the settings file is: ", self.settings_file)
-    #     else:
-    #         raise FileNotFoundError
-            
-
 
     
     
@@ -457,11 +402,6 @@ class Settings:
             elif not isinstance(orders[i]["background"], list):
                 missing.append(
                     order_str + " " + str(i) + " has an incorrectly formatted"+"'background'")
-            # if "background" + "_fixed" in self.fit_orders[i]:
-            #     self.validate_order_fixed()
-            # if "background" + "_type" in self.fit_orders[i]:
-            #     self.validate_order_type()
-                
     
             # check peaks
             if "peak" not in orders[i]:
@@ -498,12 +438,6 @@ class Settings:
                             status = self.validate_order_type(self.fit_orders[i]["peak"][j][comp_list[k]+"_type"], self.fit_orders[i]["peak"][j][comp_list[k]])
                             if isinstance(status,str):
                                 missing.append(status)
-                        #     else:
-                        #         self.validate_order_fixed(elf.fit_orders[i]["peak"][j][comp_list[k]+"_fixed"], self.fit_orders[i]["peak"][j][comp_list[k]], status)
-                            
-                        # if comp_list[k]+"_fixed" in self.fit_orders[i]["peak"][j]:
-                        #     # self.validate_order_fixed(height_fixed(contents), expected_order, expected_type )
-                        #     self.validate_order_fixed(self.fit_orders[i]["peak"][j][comp_list[k]+"_fixed"], self.fit_orders[i]["peak"][j][comp_list[k]])
      
                         if "PeakPositionSelection" in self.fit_orders[i]:
                             missing.append(self.validate_position_selection(peak_set=i, report=False))
@@ -639,21 +573,6 @@ class Settings:
                     )
         return miss
     
-    #         # list unrecognised entries
-    
-    #     if missing:
-    #         print("\nMissing Values:")
-    #         for i in range(len(missing)):
-    #             print(missing[i])
-    #         if not report:
-    #             raise ValueError("The problems listed above will prevent the data fitting.")
-    #         else:
-    #             print(
-    #                 "The problems listed above will prevent the data fitting and need to be rectified before execution"
-    #             )
-    #     else:
-    #         print("Fit_orders appears to be correct")
-            
     
     def validate_fit_bounds(self, report=False):
         # check the peak fitting bounds in the input file are not illicit.

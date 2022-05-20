@@ -49,12 +49,7 @@ def peak_parameters():
     comp_list = [["bg"], ["h", "d", "w", "p", "s"]]
     comp_names = [["background"], ["height", "d-space", "width", "profile", "symmetry"]]
     
-    
-    
-    
     return comp_list, comp_names
-
-
 
 
 
@@ -875,102 +870,102 @@ def vary_params(inp_param, param_str, comp):
     return inp_param
 
 
-def peaks_model(two_theta, azimuth, conv=None, **params):
-    """Full model of intensities at twotheta and azi given input parameters
-    :param two_theta: arr values float
-    :param azimuth: arr values float
-    :param num_peaks: total number of peaks int
-    :param nterms_back: total number of polynomial expansion components for the background int
-    :param conv: inputs for the conversion call dict
-    :param PenCalc: penalise background or not int
-    :param params: lmfit parameter class dict
-    :return lmfit model fit result
-    """
-    # N.B. params now doesn't persist as a parameter class, merely a dictionary, so e.g. call key/value pairs as
-    # normal not with '.value'
+# def peaks_model(two_theta, azimuth, conv=None, **params):
+#     """Full model of intensities at twotheta and azi given input parameters
+#     :param two_theta: arr values float
+#     :param azimuth: arr values float
+#     :param num_peaks: total number of peaks int
+#     :param nterms_back: total number of polynomial expansion components for the background int
+#     :param conv: inputs for the conversion call dict
+#     :param PenCalc: penalise background or not int
+#     :param params: lmfit parameter class dict
+#     :return lmfit model fit result
+#     """
+#     # N.B. params now doesn't persist as a parameter class, merely a dictionary, so e.g. call key/value pairs as
+#     # normal not with '.value'
 
-    # recreate background array to pass to fourier_background
-    background_keys = [
-        key for key, val in params.items() if "bg_c" in key and "tp" not in key
-    ]
-    n_term_fourier = []
+#     # recreate background array to pass to fourier_background
+#     background_keys = [
+#         key for key, val in params.items() if "bg_c" in key and "tp" not in key
+#     ]
+#     n_term_fourier = []
 
-    i = 0
-    backg = []
-    backg_tp = []
-    while sum(n_term_fourier) < len(background_keys):
+#     i = 0
+#     backg = []
+#     backg_tp = []
+#     while sum(n_term_fourier) < len(background_keys):
 
-        f = sum("bg_c" + str(i) in L for L in background_keys)
-        n_term_fourier.append(f)
-        fourier_background = []
-        for k in range(f):
-            fourier_background.append(params["bg_c" + str(i) + "_f" + str(k)])
-            if "bg_c" + str(i) + "_f_tp" in params:
-                b_tp = params["bg_c" + str(i) + "_f_tp"]
-            else:
-                b_tp = 0
+#         f = sum("bg_c" + str(i) in L for L in background_keys)
+#         n_term_fourier.append(f)
+#         fourier_background = []
+#         for k in range(f):
+#             fourier_background.append(params["bg_c" + str(i) + "_f" + str(k)])
+#             if "bg_c" + str(i) + "_f_tp" in params:
+#                 b_tp = params["bg_c" + str(i) + "_f_tp"]
+#             else:
+#                 b_tp = 0
 
-        backg.append(np.array(fourier_background))
-        backg_tp.append(b_tp)
-        i = i + 1
+#         backg.append(np.array(fourier_background))
+#         backg_tp.append(b_tp)
+#         i = i + 1
 
-    # for future logging
-    # print('recreate backg to pass to fourier_backg\n', 'background_keys is ', background_keys)
-    # print('backg is ', backg)
-    intensity = background_fourier_expansion((azimuth, two_theta), backg, coeff_type=backg_tp)
+#     # for future logging
+#     # print('recreate backg to pass to fourier_backg\n', 'background_keys is ', background_keys)
+#     # print('backg is ', backg)
+#     intensity = background_fourier_expansion((azimuth, two_theta), backg, coeff_type=backg_tp)
 
-    peak_keys = [
-        key for key, val in params.items() if "peak" in key and "tp" not in key
-    ]
-    num_peaks = 0
-    n_term_peaks = 0
-    while n_term_peaks < len(peak_keys):
-        f = sum("peak_" + str(num_peaks) in L for L in peak_keys)
-        n_term_peaks = n_term_peaks + f
-        num_peaks = num_peaks + 1
+#     peak_keys = [
+#         key for key, val in params.items() if "peak" in key and "tp" not in key
+#     ]
+#     num_peaks = 0
+#     n_term_peaks = 0
+#     while n_term_peaks < len(peak_keys):
+#         f = sum("peak_" + str(num_peaks) in L for L in peak_keys)
+#         n_term_peaks = n_term_peaks + f
+#         num_peaks = num_peaks + 1
 
-    # loop over the number of peaks
-    intens_peak = []
-    for a in range(int(num_peaks)):
+#     # loop over the number of peaks
+#     intens_peak = []
+#     for a in range(int(num_peaks)):
 
-        if "peak_" + str(a) + "_s0" in params:
-            symm = params["peak_" + str(a) + "_s0"]
-        else:
-            symm = 1
+#         if "peak_" + str(a) + "_s0" in params:
+#             symm = params["peak_" + str(a) + "_s0"]
+#         else:
+#             symm = 1
 
-        # May need to fix for multiple Fourier coefficients per component
-        param_str = "peak_" + str(a)
-        comp = "d"
-        parms = gather_params_from_dict(params, param_str, comp)
-        coeff_type = get_series_type(params, param_str, comp)
-        d_all = coefficient_expand(azimuth, parms, coeff_type=coeff_type)
-        comp = "h"
-        parms = gather_params_from_dict(params, param_str, comp)
-        coeff_type = get_series_type(params, param_str, comp)
-        h_all = coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type)
-        comp = "w"
-        parms = gather_params_from_dict(params, param_str, comp)
-        coeff_type = get_series_type(params, param_str, comp)
-        w_all = coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type)
-        comp = "p"
-        parms = gather_params_from_dict(params, param_str, comp)
-        coeff_type = get_series_type(params, param_str, comp)
-        p_all = coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type)
+#         # May need to fix for multiple Fourier coefficients per component
+#         param_str = "peak_" + str(a)
+#         comp = "d"
+#         parms = gather_params_from_dict(params, param_str, comp)
+#         coeff_type = get_series_type(params, param_str, comp)
+#         d_all = coefficient_expand(azimuth, parms, coeff_type=coeff_type)
+#         comp = "h"
+#         parms = gather_params_from_dict(params, param_str, comp)
+#         coeff_type = get_series_type(params, param_str, comp)
+#         h_all = coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type)
+#         comp = "w"
+#         parms = gather_params_from_dict(params, param_str, comp)
+#         coeff_type = get_series_type(params, param_str, comp)
+#         w_all = coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type)
+#         comp = "p"
+#         parms = gather_params_from_dict(params, param_str, comp)
+#         coeff_type = get_series_type(params, param_str, comp)
+#         p_all = coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type)
 
-        # conversion
-        two_theta_all = centroid_conversion(conv, d_all, azimuth)
-        intens_peak.append(pseudo_voigt_peak(two_theta, two_theta_all, w_all, h_all, p_all))
-        intensity = intensity + intens_peak[a]
+#         # conversion
+#         two_theta_all = centroid_conversion(conv, d_all, azimuth)
+#         intens_peak.append(pseudo_voigt_peak(two_theta, two_theta_all, w_all, h_all, p_all))
+#         intensity = intensity + intens_peak[a]
 
-    # Elapsed time for fitting
-    # t_end = time.time()
-    # t_elapsed = t_end - t_start
-    # print(t_elapsed)
+#     # Elapsed time for fitting
+#     # t_end = time.time()
+#     # t_elapsed = t_end - t_start
+#     # print(t_elapsed)
 
-    return intensity
+#     return intensity
 
 
-def peaks_model2(two_theta, azimuth, #forced to exist as independent values by lmfit
+def peaks_model(two_theta, azimuth, #forced to exist as independent values by lmfit
         data_class = None, # needs to contain conversion factor
         orders = None, # orders dictionary to get minimum position of the range.
         **params):
@@ -987,35 +982,6 @@ def peaks_model2(two_theta, azimuth, #forced to exist as independent values by l
     # N.B. params now doesn't persist as a parameter class, merely a dictionary, so e.g. call key/value pairs as
     # normal not with '.value'
 
-    # # recreate background array to pass to fourier_background
-    # background_keys = [
-    #     key for key, val in params.items() if "bg_c" in key and "tp" not in key
-    # ]
-    # n_term_fourier = []
-    # i = 0
-    # backg = []
-    # backg_tp = []
-    # while sum(n_term_fourier) < len(background_keys):
-
-    #     f = sum("bg_c" + str(i) in L for L in background_keys)
-    #     n_term_fourier.append(f)
-    #     fourier_background = []
-    #     for k in range(f):
-    #         fourier_background.append(params["bg_c" + str(i) + "_f" + str(k)])
-    #         if "bg_c" + str(i) + "_f_tp" in params:
-    #             b_tp = params["bg_c" + str(i) + "_f_tp"]
-    #         else:
-    #             b_tp = 0
-
-    #     backg.append(np.array(fourier_background))
-    #     backg_tp.append(b_tp)
-    #     i = i + 1
-
-    # for future logging
-    # print('recreate backg to pass to fourier_backg\n', 'background_keys is ', background_keys)
-    # print('backg is ', backg)
-    # intensity = background_fourier_expansion(data_as_class, settings_as_class, backg, coeff_type=backg_tp)
-    
     # expand the background 
     intensity = background_expansion((azimuth, two_theta), orders, params)
 
@@ -1096,17 +1062,10 @@ def peaks_model2(two_theta, azimuth, #forced to exist as independent values by l
 #     return I  # *pen
 
 
-def fit_model2(
+def fit_model(
         data_as_class, # needs to contain intensity, tth, azi (as chunks), conversion factor
         orders,
         params,
-        # intens.flatten()[chunks[j]],
-        # twotheta.flatten()[chunks[j]],
-        # azichunks[j],
-        # num_peaks=len(peaks),
-        # nterms_back=len(background_guess),
-        # conv=conversion_factor,
-        # fixed=p_fixed,
         fit_method="leastsq",
         weights=None,
         max_n_fev=None,
@@ -1126,14 +1085,9 @@ def fit_model2(
     :return: lmfit model result
     """
     
-                    
-
-    # bounds passed but not used
+    
     # FIX ME: DMF does the above statement need addressing?
-    gmodel = Model(peaks_model2, independent_vars=["two_theta", "azimuth"])
-    # print('parameter names: {}'.format(gmodel.param_names))
-    # print('independent variables: {}'.format(gmodel.independent_vars))
-
+    gmodel = Model(peaks_model, independent_vars=["two_theta", "azimuth"])
     
     if 1:
         with warnings.catch_warnings():
@@ -1146,11 +1100,6 @@ def fit_model2(
                 azimuth=data_as_class.azm,
                 data_class = data_as_class, # needs to contain tth, azi, conversion factor
                 orders = orders, # orders class to get peak lengths (if needed)
-                # intensity_fit,
-                # params,
-                # two_theta=two_theta,
-                # azimuth=azimuth,
-                # conv=conv,
                 nan_policy="propagate",
                 max_n_fev=max_n_fev,
                 xtol=1e-5,
@@ -1163,62 +1112,57 @@ def fit_model2(
             azimuth=data_as_class.azm,
             data_class = data_as_class, # needs to contain tth, azi, conversion factor
             orders = orders, # orders class to get peak lengths (if needed)
-            # intensity_fit,
-            # params,
-            # two_theta=two_theta,
-            # azimuth=azimuth,
-            # conv=conv,
             nan_policy="propagate",
             max_n_fev=max_n_fev,
             xtol=1e-5,
         )
     return out
 
-def fit_model(
-        intensity_fit,
-        two_theta,
-        azimuth,
-        params,
-        num_peaks,
-        nterms_back,
-        conv=None,
-        fixed=None,
-        fit_method="leastsq",
-        weights=None,
-        max_n_fev=None,
-):
-    """Initiate model of intensities at twotheta and azi given input parameters and fit
-    :param max_n_fev:
-    :param intensity_fit: intensity values to fit arr
-    :param two_theta: twotheta values arr
-    :param azimuth: azimuth values arr
-    :param params: lmfit Parameter class dict of parameters to fit
-    :param num_peaks: total number of peaks in model int
-    :param nterms_back: total number of polynomial component terms in background int
-    :param conv: inputs for the conversion call dict
-    :param fixed: unsure
-    :param method: lmfit choice of fitting method e.g. a least squares
-    :param weights: errors on intensity values arr of size intensity_fit
-    :return: lmfit model result
-    """
+# def fit_model(
+#         intensity_fit,
+#         two_theta,
+#         azimuth,
+#         params,
+#         num_peaks,
+#         nterms_back,
+#         conv=None,
+#         fixed=None,
+#         fit_method="leastsq",
+#         weights=None,
+#         max_n_fev=None,
+# ):
+#     """Initiate model of intensities at twotheta and azi given input parameters and fit
+#     :param max_n_fev:
+#     :param intensity_fit: intensity values to fit arr
+#     :param two_theta: twotheta values arr
+#     :param azimuth: azimuth values arr
+#     :param params: lmfit Parameter class dict of parameters to fit
+#     :param num_peaks: total number of peaks in model int
+#     :param nterms_back: total number of polynomial component terms in background int
+#     :param conv: inputs for the conversion call dict
+#     :param fixed: unsure
+#     :param method: lmfit choice of fitting method e.g. a least squares
+#     :param weights: errors on intensity values arr of size intensity_fit
+#     :return: lmfit model result
+#     """
 
-    # bounds passed but not used
-    # FIX ME: DMF does the above statement need addressing?
-    gmodel = Model(peaks_model, independent_vars=["two_theta", "azimuth"])
-    # print('parameter names: {}'.format(gmodel.param_names))
-    # print('independent variables: {}'.format(gmodel.independent_vars))
+#     # bounds passed but not used
+#     # FIX ME: DMF does the above statement need addressing?
+#     gmodel = Model(peaks_model, independent_vars=["two_theta", "azimuth"])
+#     # print('parameter names: {}'.format(gmodel.param_names))
+#     # print('independent variables: {}'.format(gmodel.independent_vars))
 
-    out = gmodel.fit(
-        intensity_fit,
-        params,
-        two_theta=two_theta,
-        azimuth=azimuth,
-        conv=conv,
-        nan_policy="propagate",
-        max_n_fev=max_n_fev,
-        xtol=1e-5,
-    )
-    return out
+#     out = gmodel.fit(
+#         intensity_fit,
+#         params,
+#         two_theta=two_theta,
+#         azimuth=azimuth,
+#         conv=conv,
+#         nan_policy="propagate",
+#         max_n_fev=max_n_fev,
+#         xtol=1e-5,
+#     )
+#     return out
 
 
 # def centroid_conversion(conv, args_in, azimuth):
@@ -1777,124 +1721,63 @@ def fourier_expand(azimuth, inp_param=None, comp_str=None, **params):
     return fout
 
 
-def fourier_fit(
-        ydata,
-        azimuth,
-        param,
-        terms=None,
-        errs=None,
-        param_str="peak_0",
-        symmetry=1,
-        fit_method="leastsq",
-):
-    """Fit the Fourier expansion to number of required terms
-    :param ydata: Component data array to fit float
-    :param azimuth: data array float
-    :param param: lmfit Parameter class dict
-    :param terms: number of terms to fit int
-    :param errs: Component data array errors of size ydata
-    :param param_str: str start of parameter name
-    :param symmetry: symmetry in azimuth of the fourier to be fit
-    :param fit_method: lmfit method default 'leastsq'
-    :return: lmfit Model result
-    """
-
-    # get NaN values.
-    idx = np.isfinite(azimuth) & np.isfinite(ydata)
-    if type(terms) == list:
-        terms = terms[0]
-    if param:
-        param = param
-    else:
-        # FIX ME: DMF assuming this isn't called as it shouldn't work!
-        param = Parameters()
-        for t in range(2 * terms + 1):
-            params.add(param_str + "_" + str(t), 1.0)  # need limits
-
-    if errs is None or errs.all is None:
-        errs = np.ones(ydata.shape)
-
-    # param.pretty_print()
-    f_model = Model(fourier_expand, independent_vars=["azimuth"])
-    # print('parameter names: {}'.format(f_model.param_names))
-    # print('independent variables: {}'.format(f_model.independent_vars))
-
-    # Attempt to mitigate failure of fit with weights containing 'None' values
-    # Replace with nan and alter dtype from object to float64
-    new_errs = errs[idx]
-    new_errs[new_errs is None] = 1000 * new_errs[new_errs is not None].max()
-    new_errs = new_errs.astype("float64")
-    out = f_model.fit(
-        ydata[idx],
-        param,
-        azimu=azimuth[idx] * symmetry,
-        method=fit_method,
-        sigma=new_errs,
-        comp_str=param_str,
-        nan_policy="propagate",
-    )
-    return out
-
-
-# # Not Needed?
-# def Fourier_backgrnd(azimutheta, param):
-#     """
-#     Calculate the Fourier expansion of the background terms
-#     :param azimutheta: list of arrays for azimuth and theta float
-#     :param param: list of input parameters
-#     :return: Fourier expansion result float arr
-#     """
-#     azimu, twotheta = azimutheta
-#     twothetaprime = twotheta - twotheta.min()
-#     backg = param
-#     bg_all = np.zeros(twotheta.shape)
-#     # print(backg, bg_all)
-
-#     # Not sure if this is correct, thought that if orders then array would be eg [5,0] and would want a fourier
-#     # expansion with 5 parms for offset and then no fourier expansion for slope i.e. 5 parms then 0.
-#     # But below would interpret this as effectively [0,0] instead.
-
-#     for i in range(len(backg)):
-#         try:
-#             nterms = len(backg[i])
-#         except TypeError:
-#             nterms = backg[i].size
-#         # print((nterms - 1) / 2)
-#         out = backg[i][0]
-#         for j in range(1, int((nterms - 1) / 2) + 1):
-#             out = (
-#                     out
-#                     + backg[i][(2 * j) - 1] * np.sin(np.deg2rad(azimu) * j)
-#                     + backg[i][2 * j] * np.cos(np.deg2rad(azimu) * j)
-#             )
-#         bg_all = bg_all + (out * (twothetaprime ** float(i)))
-#     return bg_all
-
-
-# # fourier expansion function
-# def background_fourier_expansion(azimuth_two_theta, inp_param, coeff_type=0):
-#     """
-#     Calculate the Fourier expansion of the background terms
-#     :param coeff_type:
-#     :param azimuth_two_theta: list of arrays for azimuth and theta float
-#     :param inp_param: list of input parameters
-#     :return: Fourier expansion result float arr
+# def fourier_fit(
+#         ydata,
+#         azimuth,
+#         param,
+#         terms=None,
+#         errs=None,
+#         param_str="peak_0",
+#         symmetry=1,
+#         fit_method="leastsq",
+# ):
+#     """Fit the Fourier expansion to number of required terms
+#     :param ydata: Component data array to fit float
+#     :param azimuth: data array float
+#     :param param: lmfit Parameter class dict
+#     :param terms: number of terms to fit int
+#     :param errs: Component data array errors of size ydata
+#     :param param_str: str start of parameter name
+#     :param symmetry: symmetry in azimuth of the fourier to be fit
+#     :param fit_method: lmfit method default 'leastsq'
+#     :return: lmfit Model result
 #     """
 
-#     azimuth, two_theta = azimuth_two_theta
-#     two_theta_prime = two_theta - two_theta.min()
-#     background = inp_param
-#     bg_all = np.zeros(two_theta.shape)
-#     # print(background, bg_all)
+#     # get NaN values.
+#     idx = np.isfinite(azimuth) & np.isfinite(ydata)
+#     if type(terms) == list:
+#         terms = terms[0]
+#     if param:
+#         param = param
+#     else:
+#         # FIX ME: DMF assuming this isn't called as it shouldn't work!
+#         param = Parameters()
+#         for t in range(2 * terms + 1):
+#             params.add(param_str + "_" + str(t), 1.0)  # need limits
 
-#     # Not sure if this is correct, thought that if orders then array would be eg [5,0] and would want a fourier
-#     # expansion with 5 parms for offset and then no fourier expansion for slope i.e. 5 parms then 0.
-#     # But below would interpret this as effectively [0,0] instead.
+#     if errs is None or errs.all is None:
+#         errs = np.ones(ydata.shape)
 
-#     for i in range(len(background)):
-#         out = coefficient_expand(azimuth, inp_param[i], coeff_type[i])
-#         bg_all = bg_all + (out * (two_theta_prime ** float(i)))
-#     return bg_all
+#     # param.pretty_print()
+#     f_model = Model(fourier_expand, independent_vars=["azimuth"])
+#     # print('parameter names: {}'.format(f_model.param_names))
+#     # print('independent variables: {}'.format(f_model.independent_vars))
+
+#     # Attempt to mitigate failure of fit with weights containing 'None' values
+#     # Replace with nan and alter dtype from object to float64
+#     new_errs = errs[idx]
+#     new_errs[new_errs is None] = 1000 * new_errs[new_errs is not None].max()
+#     new_errs = new_errs.astype("float64")
+#     out = f_model.fit(
+#         ydata[idx],
+#         param,
+#         azimu=azimuth[idx] * symmetry,
+#         method=fit_method,
+#         sigma=new_errs,
+#         comp_str=param_str,
+#         nan_policy="propagate",
+#     )
+#     return out
 
 
 # fourier expansion function

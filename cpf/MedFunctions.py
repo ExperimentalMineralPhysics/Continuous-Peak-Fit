@@ -43,6 +43,9 @@ class MedDetector:
         self.calibration = None
         if calibration_parameters is not None:
             self.calibration = self.get_calibration(calibration_parameters)
+            
+        # separate detectors around the ring so not continuous    
+        self.continuous_azm = False
 
     def duplicate(self):
         """

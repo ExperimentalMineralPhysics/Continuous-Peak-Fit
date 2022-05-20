@@ -36,6 +36,9 @@ class DioptasDetector:
         self.azm = None
         self.dspace = None
         self.calibration = None
+        
+        # image plate data to all azimuths are possible -- i.e. continuous   
+        self.continuous_azm = True
 
     def duplicate(self):
         """

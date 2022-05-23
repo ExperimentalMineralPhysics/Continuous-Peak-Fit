@@ -222,29 +222,6 @@ def fit_sub_pattern(
     :return:
     """
 
-    #============================================
-    # FIXME: these lines are here to get the data class into the file and make it run with minimum reorganisaion. They should be removed eventually when the file is reorganised.
-    orders = settings_as_class.subfit_orders
-    bounds = settings_as_class.fit_bounds
-
-    # f_name    = settings_as_class.subfit_filename
-    # fdir      = settings_as_class.output_directory
-    #directory = settings_as_class.output_directory
-    
-    twotheta = data_as_class.tth
-    d_space  = data_as_class.dspace
-    intens   = data_as_class.intensity
-    azimu    = data_as_class.azm
-    
-    # FIXME: this paramter is not needed. It is carried with the data class. 
-    #but getting rid of it in the code is time consuming.
-    conversion_factor = data_as_class.calibration 
-    #============================================
-    
-    t_th_range = settings_as_class.subfit_orders["range"]
-    
-    
-
     # set a limit to the maximum number of function evaluations.
     # make variable in case need more iterations for other data
     default_max_f_eval = 400
@@ -275,11 +252,11 @@ def fit_sub_pattern(
     peeks = len(settings_as_class.subfit_orders["peak"])
     
     # DMF: FIX ME: orders used before checked?
-    if settings_as_class.subfit_orders:
+    # if settings_as_class.subfit_orders:
         # If exists in input file setup peaks as appropriate for fitting
         # background_type = "order"
         # bg_order = orders["background"]
-        orders, backgnd = order_set_peaks(settings_as_class.subfit_orders, peeks, settings_as_class.subfit_orders["background"])
+        # orders, backgnd = order_set_peaks(settings_as_class.subfit_orders, peeks, settings_as_class.subfit_orders["background"])
 
     if previous_params:
         # check if the previous fit was 'good' i.e. constrains no 'null' values.
@@ -297,7 +274,7 @@ def fit_sub_pattern(
     else:
         step = 0
 
-    if previous_params and orders:
+    if previous_params and settings_as_class.subfit_orders:
         # If we have both, order takes precedence so update previous_params to match
         previous_params = update_previous_params_from_orders(peeks, previous_params, settings_as_class.subfit_orders)
 
@@ -372,7 +349,7 @@ def fit_sub_pattern(
                     % iterations
                 )
                 for j in range(iterations):
-                    for k in range(len(backgnd)):
+                    for k in range(len(settings_as_class.subfit_orders["background"])):
                         param_str = "bg_c" + str(k)
                         comp = "f"
                         # set other parameters to not vary
@@ -462,7 +439,7 @@ def fit_sub_pattern(
                 raise ValueError("The value of step here is not possible. Oops.")
 
             # set all parameters to vary
-            for k in range(len(backgnd)):
+            for k in range(len(settings_as_class.subfit_orders["background"])):
                 param_str = "bg_c" + str(k)
                 comp = "f"
                 # set these parameters to vary
@@ -640,9 +617,10 @@ def fit_sub_pattern(
         filename = io.make_outfile_name(
             settings_as_class.subfit_filename, directory=settings_as_class.output_directory, orders=settings_as_class.subfit_orders, extension=".sav", overwrite=True
         )
-
+        
         try:
             save_modelresult(fout, filename)
+            
         except BaseException:
             print("Cannot save lmfit object")
             # if os.path.isfile(filename):

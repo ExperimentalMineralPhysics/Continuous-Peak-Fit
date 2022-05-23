@@ -453,7 +453,8 @@ class MedDetector:
         local_mask2 = ma.getmask(ma.masked_outside(self.intensity, i_min, i_max))
         combined_mask = np.ma.mask_or(ma.getmask(self.intensity), local_mask)
         combined_mask = np.ma.mask_or(combined_mask, local_mask2)
-        if mask:
+        NoneType = type(None)
+        if not isinstance(mask, NoneType):# or mask.all() != None:
             combined_mask = np.ma.mask_or(combined_mask, mask)
         self.intensity.mask = combined_mask
         self.tth.mask = combined_mask

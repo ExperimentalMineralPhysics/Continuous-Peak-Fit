@@ -810,11 +810,8 @@ def image_preprocess(data_as_class, settings_for_fit):
         # print(asdf["nnew"], asdf["niter"])
         test.clean()
         msk = np.logical_or(data_as_class.intensity.mask, np.array(test.mask, dtype="bool"))
-        
-    # intens = ma.array(intens, mask=msk)
-    # azimuth = ma.array(azimuth, mask=intens.mask)
-    # twotheta = ma.array(twotheta, mask=intens.mask)
-    # dspace = ma.array(dspace, mask=intens.mask)
+    
+    #apply mask
     data_as_class.set_mask(mask=msk)
     
     return data_as_class

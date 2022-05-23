@@ -23,12 +23,14 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
     :return dfour:
     """
     
-    peeks = len(settings_as_class.subfit_orders)
+    peeks = len(settings_as_class.subfit_orders["peak"])
     t_th_guesses = np.array(settings_as_class.subfit_orders["PeakPositionSelection"])
+    # print(len(t_th_guesses), peeks)
+    # #confirm there are the same number of peaks selected as are to be fit.
+    # if len(t_th_guesses) != peeks:
+    #     raise ValueError("The number of peaks and the postion selection do not match.")
 
-    #confirm there are the same number of peaks selected as are to be fit.
-    if len(t_th_guesses) != peeks:
-        raise ValueError("The number of peaks and the postion selection do not match.")
+    settings_as_class.validate_position_selection(peak_set=settings_as_class.subfit_order_position, report=False)
 
     # for future use in setting limits
     dist = np.max(t_th_guesses[:, 2]) - np.min(t_th_guesses[:, 2])
@@ -45,24 +47,26 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
         param_str = "peak_" + str(j)
         comp = "d"
         lims = pf.parse_bounds(
-            settings_as_class.fit_bounds, data_as_class.tth.flatten(), 0, 0, param=["d-space"]
+            settings_as_class.fit_bounds, data_as_class, 0, 0, param=["d-space"]
         )
         # Confirm that peak position selections are within the bounds.
         # If not fail as gracefully as possible.
-        lims_tth = np.array(lims["d-space"])
-        if (
-                np.min(t_th_guess[:, 1]) < lims_tth[0]
-                or np.max(t_th_guess[:, 1]) > lims_tth[1]
-        ):
-            raise ValueError(
-                "At least one of the "
-                "PeakPositionSelection"
-                " values is outside of the bounds. Check values in "
-                "range"
-                " and "
-                "PeakPositionSelection"
-                "."
-            )
+        # lims_tth = np.array(lims["d-space"])
+        # print(lims_tth)
+        # print(t_th_guess)
+        # if (
+        #         np.min(t_th_guess[:, 1]) < lims_tth[0]
+        #         or np.max(t_th_guess[:, 1]) > lims_tth[1]
+        # ):
+        #     raise ValueError(
+        #         "At least one of the "
+        #         "PeakPositionSelection"
+        #         " values is outside of the bounds. Check values in "
+        #         "range"
+        #         " and "
+        #         "PeakPositionSelection"
+        #         "."
+        #     )
 
         # get coefficient type
         coeff_type = pf.params_get_type(settings_as_class.subfit_orders, comp, peak=j)
@@ -84,11 +88,11 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
             comp=comp,
             trig_orders=o,
             limits=lims["d-space"],
-            value=t_th_guess[1, 1],
+            value=data_as_class.conversion(t_th_guess[0, 1], azm=t_th_guess[0, 1]),
         )
         fout = pf.coefficient_fit(
-            azimuth=t_th_guess[:, 0],
-            ydata=t_th_guess[:, 1],
+            azimuth=t_th_guess[:,0],
+            ydata=data_as_class.conversion(t_th_guess[:, 1], azm=t_th_guess[:, 0]),
             inp_param=temp_param,
             param_str=param_str + "_" + comp,
             fit_method="leastsq",
@@ -206,23 +210,41 @@ def get_chunk_peak_guesses(settings_as_class, data_chunk_class,
         # FIX ME: altered from locals call as now passed as None - check!
         if dfour: # If the positions have been pre-guessed extract values from dfour.
             if debug and k == 0:
-                print("dfour in locals")
+                print("dfour in locals \n")
             
             coeff_type = pf.params_get_type(settings_as_class.subfit_orders, "d", peak=k)
             # if "d-space_type" in settings_as_class.subfit_orders["peak"][k]:
             #     coeff_type = settings_as_class.subfit_orders["peak"][k]["d-space_type"]
             # else:
             #     coeff_type = "fourier"
-            
-            t_th_guess = pf.coefficient_expand(
+            # print(coeff_type)
+            # t_th_guess = pf.coefficient_expand(
+            #     np.mean(data_chunk_class.azm),
+            #     dfour[k][0],
+            #     coeff_type=coeff_type,
+            # )
+            # print("t_th_guess", t_th_guess)
+            # d_guess = data_chunk_class.conversion(
+            #     t_th_guess,
+            #     azm=np.mean(data_chunk_class.azm),reverse=False
+            # )
+            # print(d_guess)
+            # d_guess = data_chunk_class.conversion(
+            #     t_th_guess,
+            #     azm=np.mean(data_chunk_class.azm),reverse=True
+            # )
+            # print(d_guess)
+            d_guess = pf.coefficient_expand(
                 np.mean(data_chunk_class.azm),
                 dfour[k][0],
                 coeff_type=coeff_type,
             )
-            d_guess = data_chunk_class.conversion(
-                t_th_guess,
-                azm=np.mean(data_chunk_class.azm),
+            # print(d_guess)
+            t_th_guess = data_chunk_class.conversion(
+                d_guess,
+                azm=np.mean(data_chunk_class.azm),reverse=True
             )
+            # print(t_th_guess)
             # Finds the index of the closest two-theta to the d-spacing input
             idx = (
                 np.abs(data_chunk_class.tth - t_th_guess)
@@ -371,14 +393,10 @@ def fit_chunks(
         # FIXME: Need to check that the num. of peaks for which we have parameters is the same as the
         # number of peaks guessed at.
         #dfour = get_manual_guesses(peeks, orders, bounds, twotheta, debug=None)
-        dfour = get_manual_guesses(settings_as_class, data_as_class, debug=False)
-        
+        dfour = get_manual_guesses(settings_as_class, data_as_class, debug=debug)
+                
     # Get chunks according to detector type.
     chunks, azichunks = data_as_class.bins(settings_as_class)
-    print(chunks)
-    print(azichunks)
-    print(len(chunks))
-    print(len(azichunks))
     # Final output list of azimuths with corresponding twotheta_0,h,w
     
     # setup arrays
@@ -521,7 +539,7 @@ def fit_chunks(
                     print("\n")
                     # keep the original params for plotting afterwards
                     guess = params
-            
+                    
                 # Run actual fit
                 fit = pf.fit_model(
                     chunk_data, # needs to contain intensity, tth, azi (as chunks), conversion factor
@@ -752,33 +770,34 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
         # loop over peak parameters and plot.
         ax=[]
         for i in range(len(comp_list)):
+            
+            ax.append(fig.add_subplot(5, 1, i+1))
+            ax[i].set_title(comp_names[i])
+            
             for j in range(len(orders["peak"])):
             
-                ax.append(fig.add_subplot(5, 1, i+1))
-                ax[i].set_title(comp_names[i])
-                for j in range(len(orders["peak"])):
-                    param_str = "peak_" + str(j)
-                    comp = comp_list[i]
-                    if "symmetry" in orders["peak"][j].keys() and comp != "d":
-                        symm = orders["peak"][j]["symmetry"]
-                    else:
-                        symm = 1
-                    temp = pf.gather_param_errs_to_list(
-                        master_params, param_str, comp
-                    )
-                    temp_tp = pf.get_series_type(master_params, param_str, comp)
-                    if temp_tp == 5:
-                        az_plt = np.array(data[1])
-                    else:
-                        az_plt = azi_plot
-                    gmod_plot = gmodel.eval(
-                            params=master_params, 
-                            azimuth=np.array(az_plt)*symm, 
-                            param=temp[0], 
-                            coeff_type=temp_tp
-                    )
-                    ax[i].scatter(data[1], data[0][comp][j], s=10)
-                    ax[i].plot(az_plt, gmod_plot, )
+                param_str = "peak_" + str(j)
+                comp = comp_list[i]
+                if "symmetry" in orders["peak"][j].keys() and comp != "d":
+                    symm = orders["peak"][j]["symmetry"]
+                else:
+                    symm = 1
+                temp = pf.gather_param_errs_to_list(
+                    master_params, param_str, comp
+                )
+                temp_tp = pf.get_series_type(master_params, param_str, comp)
+                if temp_tp == 5:
+                    az_plt = np.array(data[1])
+                else:
+                    az_plt = azi_plot
+                gmod_plot = gmodel.eval(
+                        params=master_params, 
+                        azimuth=np.array(az_plt)*symm, 
+                        param=temp[0], 
+                        coeff_type=temp_tp
+                )
+                ax[i].scatter(data[1], data[0][comp][j], s=10)
+                ax[i].plot(az_plt, gmod_plot, )
         
     
         #plot background 

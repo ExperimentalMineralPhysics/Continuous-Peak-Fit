@@ -209,8 +209,8 @@ def get_chunk_peak_guesses(settings_as_class, data_chunk_class,
                 print("dfour in locals")
             
             coeff_type = pf.params_get_type(settings_as_class.subfit_orders, "d", peak=k)
-            # if "d-space-type" in settings_as_class.subfit_orders["peak"][k]:
-            #     coeff_type = settings_as_class.subfit_orders["peak"][k]["d-space-type"]
+            # if "d-space_type" in settings_as_class.subfit_orders["peak"][k]:
+            #     coeff_type = settings_as_class.subfit_orders["peak"][k]["d-space_type"]
             # else:
             #     coeff_type = "fourier"
             

@@ -3,22 +3,14 @@
 
 __all__ = ["Settings"]
 
-import json
 import os
-import sys
 from copy import deepcopy
-import matplotlib.pyplot as plt
 import numpy as np
-import numpy.ma as ma
-import multiprocessing as mp
 import importlib.util
 import cpf.DioptasFunctions as DioptasFunctions
 import cpf.GSASIIFunctions as GSASIIFunctions
 import cpf.MedFunctions as MedFunctions
-import cpf
-from cpf.XRD_FitSubpattern import fit_sub_pattern
-from cpf.Cosmics import cosmicsimage
-from cpf.IO_functions import json_numpy_serializer, file_list, make_outfile_name, peak_string
+from cpf.IO_functions import file_list
 from cpf.PeakFunctions import coefficient_type_as_number, get_number_coeff
 
 
@@ -69,9 +61,11 @@ class Settings:
     """
     
     def __init__(self, 
-                 settings_file=None, 
-                 out_type=None,
-                 report=False):
+             settings_file=None,
+             out_type=None,
+             report=False,
+             debug=False,
+             ):
         """
         Initialise the cpf settings class. 
     
@@ -79,12 +73,15 @@ class Settings:
         ----------
         option : settings_file
             *.py file containing the fit settings
-    
+
         option : out_type
             Output type as list to override the settings in the file.
             
         option : report
             Not implemented.
+            
+        option : debug
+            Verbose outputs to find errors.
     
         Notes
         -----
@@ -108,36 +105,38 @@ class Settings:
         self.fit_number_bins = None
         self.fit_orders = None
         self.fit_bounds = {
-              "background": ['min', 'max'],
+              "background": ['0.95*min', '1.05*max'],
               "d-space":    ['min', 'max'],
-              "height":     [ 0,    '2*max'],
+              "height":     [ 0,    '1.05*max'],
               "profile":    [ 0,     1],
               "width":      [ 'range/(ndata)',  'range/2'],
               }
         
-        self.subfit_file_position = None
-        self.subfit_filename = None
-        self.subfit_order_position = None       
-        self.subfit_orders = None
-        
+        #output requirements
         self.output_directory = "."
         self.output_types = None
+        # output_settings is populated with additional requirements for each type (if any) 
         self.output_settings = dict()
-                
+        
+        # calibration type: dioptas etc.
         self.calibration_type = None
+        # file on which the calibration was done
         self.calibration_data = None
+        # mask file for data
         self.calibration_mask = None
+        # file with the calibration in it. 
         self.calibration_parameters = None
+        # FIXME: these are optional and should probalably be burried in an optional dictionary.
         self.calibration_detector = None
         self.calibration_pixel_size = None
         
         # initiate the subpattern settings.
+        # set to save diggging through self.fit_orders and carring values around
         # not set until called by 'set_subpatterns'. 
-        self.subfit_file_position  = None     
+        self.subfit_file_position  = None
         self.subfit_filename       = None
-        self.subfit_order_position = None       
+        self.subfit_order_position = None
         self.subfit_orders         = None
-        
         
         self.settings_file = settings_file
         #read the settings file given
@@ -169,19 +168,27 @@ class Settings:
     
     def populate(self, 
         settings_file=None,
-        inputs=None,
         out_type=None,
         report=False,
+        debug=False,
         ):
         """
         Fills the settings class from the settings file. 
-        :param report:
-        :param out_type:
-        :param initiate_data:
-        :param setting_file:
-        :param inputs:
-        :return fit_parameters:
-        :return fit_settings:
+
+        Parameters
+        ----------
+        option : settings_file
+            *.py file containing the fit settings
+    
+        option : out_type
+            Output type as list to override the settings in the file.
+            
+        option : report
+            Not implemented.
+            
+        option : debug
+            Verbose outputs to find errors.
+    
         """
         
         # Fail gracefully
@@ -189,16 +196,14 @@ class Settings:
             settings_file is None
         ):
             raise ValueError(
-                "Either the settings file or the parameter dictionary need to be specified."
+                "The settings file needs to be specified."
             )
             
-        
         if settings_file is not None:
             self.settings_file = settings_file
             
             if not str.endswith(self.settings_file, ".py"):
                 self.settings_file = self.settings_file + ".py"
-        
         
         self.check_files_exist(self.settings_file)
         self.read_settings_file()
@@ -210,12 +215,17 @@ class Settings:
             
     
     def reset(self):
-        # set the values in the settings class back to those in the settings file. 
+        """
+        set the values in the settings class back to those in the settings file. 
+        """
         self.populate()
         
                          
     def read_settings_file(self):
-        #reads the settings file and adds values to the class.
+        """
+        adds values to the class from the settings file.
+        Fails with a list of missing parameters if not complete.
+        """
         
         spec = importlib.util.spec_from_file_location(
                     "settings_module", self.settings_file
@@ -226,7 +236,7 @@ class Settings:
         
         all_settings_from_file = dir(self.settings_from_file)
         
-        #add and check data directory        
+        #add and check data directory
         self.datafile_directory = self.settings_from_file.datafile_directory
         self.check_directory_exists(self.datafile_directory, write=True)
         
@@ -272,7 +282,6 @@ class Settings:
         # load the data class.
         self.data_class = detector_factory(self.calibration_type, self.calibration_parameters)
         
-        
         if "Image_prepare" in dir(self.settings_from_file):
             self.datafile_preprocess = self.settings_from_file.Image_prepare
                 
@@ -291,8 +300,6 @@ class Settings:
     #     # exit if all parameters are not present
     
 
-            
-            
         self.fit_orders = self.settings_from_file.fit_orders
         self.validate_fit_orders()
 
@@ -314,9 +321,15 @@ class Settings:
             self.set_output_types(out_type_list = self.settings_from_file.Output_type)
         
     
-    def check_files_exist(self,files_to_check, write=False):
-        # Check if a file exists. If not issue an error
-        
+        # FIXME: it needs to fail if everything is not present as needed and report what is missing
+
+
+
+    def check_files_exist(self, files_to_check, write=False):
+        """
+        Check if a file exists. If not issue an error
+        """
+
         if isinstance(files_to_check, str):
             files_to_check = [files_to_check]    
         
@@ -329,22 +342,27 @@ class Settings:
                 )
             else:
                 if write==True:
-                    print(files_to_check[j] + " is avaliable.")
+                    print(files_to_check[j] + " exists.")
                     
         
     def check_directory_exists(self, directory, write=False):
-        # Check if a directory exists. If not issue an error
+        """
+        Check if a directory exists. If not issue an error
+        """
         if os.path.exists(directory) is False:
             raise ImportError(
                 "The directory " + directory + " is not found but is required."
             )
         else:
             if write==True:
-                print(directory + " is avaliable.")
+                print(directory + " exists.")
 
     
     
     def validate_fit_orders(self, report=False, peak=None, orders=None):
+        """
+        check that the orders of the fit contain all the needed parameters
+        """
         
         if not self.fit_orders and not orders:
             raise ValueError("There are no fit orders.")
@@ -355,9 +373,6 @@ class Settings:
             order_str = "fit_orders"
         else:
             order_str = "orders"
-        # check the peak fitting options in the input file are not illicit.
-        missing = []
-        extras = []
     
         # allow just one peak-set to be validated.
         if peak == None:
@@ -365,36 +380,38 @@ class Settings:
         else:
             validate = peak
     
+        # check the peak fitting options in the input file are not illicit.
+        missing = []
+        extras = []
         
         for i in validate:
             # FIX ME: we should check for incorrect or unneeded options
             required = ["background", "peak", "range"]
-            possible = ["PeakPositionSelection", "Imax", "Imin"]
+            possible = ["PeakPositionSelection", "imax", "imin"]
             comp_list = ["d-space", "width", "height", "profile"]
             comp_modifications= ["fixed", "type"]
-    
     
             # check range 
             if "range" not in orders[i]:
                 missing.append(order_str + " " + str(i) + " is missing a " "'range'")
-                
-            #check to see if range is list in list, e.g. [[16.0, 16.1]]. If so extract it to signle list.
-            #this is old notation and now depreciated
-            if (isinstance(orders[i]["range"], list) 
-                    and len(orders[i]["range"]) == 1
-                    and len(orders[i]["range"][0]) == 2):
-                self.fit_orders[i]["range"] = self.fit_orders[i]["range"][0] 
-            # check if  range is valid
-            if (
-                    not isinstance(orders[i]["range"], list)
-                    or len(orders[i]["range"]) != 2
-            ):
-                missing.append(
-                    order_str + "[" + str(i) + "] has an incorrectly formatted "+"'range'")
-            
-            if (orders[i]["range"][0] > orders[i]["range"][1]):
-                missing.append(
-                    order_str + "[" + str(i) + "]['range'] has values in wrong order")
+            else:
+                #check to see if range is list in list, e.g. [[16.0, 16.1]]. If so extract it to signle list.
+                #this is old notation and now depreciated
+                if (isinstance(orders[i]["range"], list) 
+                        and len(orders[i]["range"]) == 1
+                        and len(orders[i]["range"][0]) == 2):
+                    print("subpattern "+str(i)+": range is a now a simple list.")
+                    self.fit_orders[i]["range"] = self.fit_orders[i]["range"][0]
+                # check if range is valid
+                if (
+                        not isinstance(orders[i]["range"], list)
+                        or len(orders[i]["range"]) != 2
+                ):
+                    missing.append(
+                        order_str + "[" + str(i) + "] has an incorrectly formatted "+"'range'")
+                if (orders[i]["range"][0] > orders[i]["range"][1]):
+                    missing.append(
+                        order_str + "[" + str(i) + "]['range'] has values in wrong order")
             
             # check background
             if "background" not in orders[i]:
@@ -432,15 +449,32 @@ class Settings:
                                 "" + comp_list[k] + " "
                                 " "
                             )
-                            
-                        #validate component type and length if fixed
+
+                        # replace old component extansion naming convention.
+                        # bascially -- check if it is old nomlencature (*-*) and replace (with *_*)
+                        for l in range(len(comp_modifications)):
+                            if comp_list[k]+"-"+comp_modifications[l] in self.fit_orders[i]["peak"][j]:
+                                print("subpattern "+ str(i)+", peak "+str(j)+": "+comp_list[k]+"-"+comp_modifications[l]+" replaced with "+comp_list[k]+"_"+comp_modifications[l])
+                                self.fit_orders[i]["peak"][j][comp_list[k]+"_"+comp_modifications[l]] = self.fit_orders[i]["peak"][j].pop(comp_list[k]+"-"+comp_modifications[l])
+                        
+                        # validate component types
+                        # validate 
                         if comp_list[k]+"_type" in self.fit_orders[i]["peak"][j]:
-                            status = self.validate_order_type(self.fit_orders[i]["peak"][j][comp_list[k]+"_type"], self.fit_orders[i]["peak"][j][comp_list[k]])
+                            status = self.validate_order_type(self.fit_orders[i]["peak"][j][comp_list[k]+"_type"])
                             if isinstance(status,str):
                                 missing.append(status)
-     
-                        if "PeakPositionSelection" in self.fit_orders[i]:
-                            missing.append(self.validate_position_selection(peak_set=i, report=False))
+                        else:
+                            status=0
+                        # validate fixed components
+                        if comp_list[k]+"_fixed" in self.fit_orders[i]["peak"][j]:
+                            if not isinstance(status,str):
+                                mssng = self.validate_order_fixed(peak_set=i, peak=j, component=comp_list[k], report=report)
+                                missing.append(mssng)
+
+                    if "PeakPositionSelection" in self.fit_orders[i]:
+                        missing.append(self.validate_position_selection(peak_set=i, report=report))
+        
+        missing = [x for x in missing if x != []]    
             
         #report missing bits and bobs
         if len(missing) > 0:
@@ -458,74 +492,69 @@ class Settings:
                         
                             
                             
-    def validate_order_type(comp_type):
+    def validate_order_type(self, comp_type):
         """
         Checks that a set component type is valid -- i.e. it exists in PeakFunctions.
         """
-        
         rtrn = coefficient_type_as_number(comp_type, return_error=0)
         
         if isinstance(rtrn,str):
             status = comp_type + ": " + rtrn
         else:
-            status = status
+            status = 0
             
         return status
         
         
-    # def validate_order_fixed(self, comp_fixed, comp_orders, comp_type=None):
-    #     """
-    #     Checks that a fixed component set is the same size of the orders that govern it. 
-    #     FIXME: This should probably override one of the settings butI am not sure which.
-    #     """
-        
-    #     # get component type as a number
-    #     if isinstance(comp_type, str):
-    #         coefficient_type_as_number(comp_type, return_error=1)
-    #     elif isinstance(comp_type, None):
-    #         comp_type = 0
+    def validate_order_fixed(self, peak_set, peak, component, report=False):
+        """
+        Checks that a fixed component set is the same size of the orders that govern it.
+
+        FIXME: This should possibly override one of the settings but I am not sure which.
+        """
+
+        # get coefficient type and number of coefficients expected
+        if component+"_type" in self.fit_orders[peak_set]["peak"][peak]:
+            comp_type = coefficient_type_as_number(component, return_error=1)
+        else:
+            comp_type = 0
             
-            
-    #     if 
+        num_coeffs = get_number_coeff(self.fit_orders[peak], component, peak=0, azimuths=self.data_class.azm)
         
-        
-    #     get_number_coeff(orders, comp, peak=0, azimuths=self.azm)
-        
-        
-        
-    #     comp_list = ["d-space", "width", "height", "profile"]
-                
-    #     for cp in range(len(comp_list)):
-    #         comp = comp_list[cp]
-            
-    #         if comp_names[cp] + "_fixed" in self.fit_orders["peak"][peak]:
-    #             fixed = 1
-    #             vals = orders["peak"][j][
-    #                 comp_names[cp] + "_fixed"
-    #             ]  # values if fixed.
-    #     if "profile_fixed" in orders["peak"][y]:
-    #         if (
-    #             not pf.fourier_order(orders["peak"][y]["profile_fixed"])
-    #                 == orders["peak"][y]["profile"]
-    #         ):
-    #             print(
-    #                 "Peak "
-    #                 + str(y)
-    #                 + ": The order of the profile does not match that of the fixed profile. "
-    #                 "Changing profile to match fixed profile."
-    #             )
-    #             orders["peak"][y]["profile"] = pf.fourier_order(
-    #                 orders["peak"][y]["profile_fixed"]
-    #             )
-    #         # make sure the fixed profile is a list
-    #         if not isinstance(orders["peak"][y]["profile_fixed"], list):
-    #             orders["peak"][y]["profile_fixed"] = [
-    #                 orders["peak"][y]["profile_fixed"]
-    #             ]
-    # return orders, backgnd
+        out = []
+
+        if comp_type == 5:
+            # indepdentent values for each azimuth!
+            # this cannot be validated without referece to the data.
+            # FIXME: use the data_class when loaded to check this. 
+            out.append("subpattern "+str(peak_set)+", peak "+str(peak)+": "+component+"_fixed could be not validated because order type is independent")
+
+        else:
+            # make sure the fixed profile is a list
+            # the only reason for it not to be a list is if it is a single value. 
+            if not isinstance(self.fit_orders[peak_set]["peak"][peak][component+"_fixed"], list):
+                self.fit_orders[peak_set]["peak"][peak][component+"_fixed"] = [
+                    self.fit_orders[peak_set]["peak"][peak][component+"_fixed"]
+                ]
+                print("subpattern "+str(peak_set)+", peak "+str(peak)+": "+component+"_fixed changed to a list")
+
+
+            # validate
+            if not num_coeffs == len(self.fit_orders[peak_set]["peak"][peak][component+"_fixed"]):
+                out.append(
+                    "subpattern "+str(peak_set)+", peak"+str(peak)+" "+component+
+                    "_fixed: The order does not match that of the fixed component. "
+                )
+        return out
+
 
     def validate_position_selection(self, peak_set=0, report=False):
-    
+        """
+        Checks that the multiple peak position selections have the right number of parts.
+        """
+        if isinstance(peak_set,int):
+            peak_set=[peak_set]
+            
         miss = []
         for i in range(len(peak_set)):
     
@@ -552,30 +581,40 @@ class Settings:
                     )
                         
                 # if positions outside of range.
-                if np.min(tthguesses[:, 2]) < self.fit_orders[i]["range"][0][0]:
+                if np.min(tthguesses[:, 2]) < self.fit_orders[i]["range"][0]:
                     miss.append(
                         "fit_orders "
                         + str(i)
                         + ": PeakPositionSelection has at least one dispersion value (2theta or energy) that is too small"
                     )
-                if np.max(tthguesses[:, 2]) > self.fit_orders[i]["range"][0][1]:
+                if np.max(tthguesses[:, 2]) > self.fit_orders[i]["range"][1]:
                     miss.append(
                         "fit_orders "
                         + str(i)
                         + ": PeakPositionSelection has at least one dispersion value (2theta or energy) that is too large"
                     )
+
+                for j in range(len(self.fit_orders[i]["peak"])):
+                    # check that the number of selections is enough to make the expanded series from.
+                    # FIXME: implement
+                    pass
+
             else: #there is no PeakPositionSelection. can only be 1 peak.
                 if len(self.fit_orders[i]["peak"]) > 1:
                     miss.append(
-                        "fit_orders " + str(i) + ": There are more peaks than listed in "
+                        "fit_orders " + str(i) + ": There are multiple peaks but no "
                         "PeakPositionSelection"
-                        " than peaks listed"
+                        " listed"
                     )
+
         return miss
     
     
     def validate_fit_bounds(self, report=False):
-        # check the peak fitting bounds in the input file are not illicit.
+        """
+        check the peak fitting bounds in the input file are valid.
+        """
+
         if not self.fit_bounds:
             raise ValueError("There are no fit bounds.")
         
@@ -624,20 +663,19 @@ class Settings:
 
         
     def set_output_types(self, out_type_list=None, report=False):
-    
-    
-        # Load output function(s) and check output options are present and valid
+        """
+        set output types in settings class given a list of output types
+        """
         if out_type_list is not None:
             self.output_types = get_output_options(out_type_list)
             
         self.validate_output_types(self.output_types)
         
 
-            
-            
-        
     def validate_output_types(self, report=False):
-    
+        """
+        validate output types
+        """
         # Check output format exists
         for mod in self.output_types:
             if mod not in output_methods_modules.keys():
@@ -702,15 +740,15 @@ class Settings:
         
 
     def set_subpatterns(self, subpatterns="all"):
-
-        # restrict to sub-patterns listed
+        """
+        restrict to sub-patterns listed
+        """
         if subpatterns == "all":
             sub_pats = list(range(0, len(self.fit_orders)))
         elif isinstance(subpatterns, list):
             sub_pats = subpatterns
         else:
             sub_pats = [int(x) for x in str(subpatterns)]
-    
         # make new order search list
         orders_tmp = []
         for i in range(len(sub_pats)):
@@ -725,9 +763,10 @@ class Settings:
                         subpatterns="all",
                         search_peak=0,
                         search_series=["fourier", "spline"]):
-        
-        
-        # restrict to sub-patterns listed
+        """
+        set a range of orders to fit. 
+        This is used when determining what is best orders to use for fit.
+        """
         if subpatterns == "all":
             subpatterns = list(range(0, len(self.fit_orders)))
         elif isinstance(subpatterns, list):
@@ -750,7 +789,7 @@ class Settings:
                     if search_parameter != "background":
                         orders_s["peak"][search_peak][search_parameter] = search[k]
                         orders_s["peak"][search_peak][
-                            search_parameter + "-type"
+                            search_parameter + "_type"
                         ] = search_series[j]
                     else:
                         orders_s["background"][search_peak] = search[k]
@@ -771,7 +810,7 @@ class Settings:
     
     def set_subpattern(self, file_number, number_subpattern):
         """
-        Set the parameters for the subpattern to be fit as immetiately accesible. 
+        Set the parameters for the subpattern to be fit as immediately accesible. 
         It makes for shorter calls in XRD_Fit_Subpatten
         """
         

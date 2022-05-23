@@ -607,7 +607,7 @@ def fit_sub_pattern(
         fit_centroid = []
         for i in range(peeks):
             param = new_params["peak"][i]["d-space"]
-            param_type = new_params["peak"][i]["d-space-type"]
+            param_type = new_params["peak"][i]["d-space_type"]
             fit_centroid.append(
                 data_as_class.conversion(
                     pf.coefficient_expand(azi_plot, param=param, coeff_type=param_type), 

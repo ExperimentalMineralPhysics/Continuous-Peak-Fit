@@ -16,7 +16,7 @@ import importlib.util
 import cpf.DioptasFunctions as DioptasFunctions
 import cpf.GSASIIFunctions as GSASIIFunctions
 import cpf.MedFunctions as MedFunctions
-from cpf.Settings import Settings
+from cpf.settings import Settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 from cpf.Cosmics import cosmicsimage
 from cpf.IO_functions import json_numpy_serializer, file_list, make_outfile_name, peak_string

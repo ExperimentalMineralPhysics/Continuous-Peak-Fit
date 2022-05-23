@@ -182,16 +182,16 @@ def params_to_new_params(params, orders=None):
             tmp_peaks["hkl"] = orders["peak"][i]["hkl"]
         tmp_peaks["d-space"] = d_space[0]
         tmp_peaks["d-space_err"] = d_space[1]
-        tmp_peaks["d-space-type"] = coefficient_type_as_string(d_space_tp)
+        tmp_peaks["d-space_type"] = coefficient_type_as_string(d_space_tp)
         tmp_peaks["height"] = h_space[0]
         tmp_peaks["height_err"] = h_space[1]
-        tmp_peaks["height-type"] = coefficient_type_as_string(h_tp)
+        tmp_peaks["height_type"] = coefficient_type_as_string(h_tp)
         tmp_peaks["width"] = w_space[0]
         tmp_peaks["width_err"] = w_space[1]
-        tmp_peaks["width-type"] = coefficient_type_as_string(w_tp)
+        tmp_peaks["width_type"] = coefficient_type_as_string(w_tp)
         tmp_peaks["profile"] = p_space[0]
         tmp_peaks["profile_err"] = p_space[1]
-        tmp_peaks["profile-type"] = coefficient_type_as_string(p_tp)
+        tmp_peaks["profile_type"] = coefficient_type_as_string(p_tp)
         if "symmetry" in orders["peak"][i]:
             tmp_peaks["symmetry"] = orders["peak"][i]["symmetry"]
 
@@ -210,7 +210,7 @@ def params_to_new_params(params, orders=None):
     new_params = {
         "background": bg_space,
         "background_err": bg_space_err,
-        "background-type": bg_tp,
+        "background_type": bg_tp,
         "peak": peaks,
     }
 
@@ -249,16 +249,16 @@ def params_to_new_params(params, orders=None):
 #             tmp_peaks["hkl"] = order_peak[i]["hkl"]
 #         tmp_peaks["d-space"] = d_space[0]
 #         tmp_peaks["d-space_err"] = d_space[1]
-#         tmp_peaks["d-space-type"] = coefficient_type_as_string(d_space_tp)
+#         tmp_peaks["d-space_type"] = coefficient_type_as_string(d_space_tp)
 #         tmp_peaks["height"] = h_space[0]
 #         tmp_peaks["height_err"] = h_space[1]
-#         tmp_peaks["height-type"] = coefficient_type_as_string(h_tp)
+#         tmp_peaks["height_type"] = coefficient_type_as_string(h_tp)
 #         tmp_peaks["width"] = w_space[0]
 #         tmp_peaks["width_err"] = w_space[1]
-#         tmp_peaks["width-type"] = coefficient_type_as_string(w_tp)
+#         tmp_peaks["width_type"] = coefficient_type_as_string(w_tp)
 #         tmp_peaks["profile"] = p_space[0]
 #         tmp_peaks["profile_err"] = p_space[1]
-#         tmp_peaks["profile-type"] = coefficient_type_as_string(p_tp)
+#         tmp_peaks["profile_type"] = coefficient_type_as_string(p_tp)
 #         if "symmetry" in order_peak[i]:
 #             tmp_peaks["symmetry"] = order_peak[i]["symmetry"]
 
@@ -277,7 +277,7 @@ def params_to_new_params(params, orders=None):
 #     new_params = {
 #         "background": bg_space,
 #         "background_err": bg_space_err,
-#         "background-type": bg_tp,
+#         "background_type": bg_tp,
 #         "peak": peaks,
 #     }
 
@@ -1230,15 +1230,15 @@ def fit_model(
 
 
 def expand_comp_string(comp):
-    if comp == "d":
+    if comp == "d" or comp == "d-space":
         out = "d-space"
-    elif comp == "h":
+    elif comp == "h" or comp == "height":
         out = "height"
-    elif comp == "w":
+    elif comp == "w" or comp == "width":
         out = "width"
-    elif comp == "p":
+    elif comp == "p" or comp == "profile":
         out = "profile"
-    elif comp == "bg" or "f":
+    elif comp == "bg" or "f" or comp == "background":
         out = "background"
     else:
         raise ValueError("Unrecognised peak property type")
@@ -1261,7 +1261,7 @@ def params_get_type(orders, comp, peak=0):
     None.
 
     """
-    comp_str = expand_comp_string(comp) + "-type"
+    comp_str = expand_comp_string(comp) + "_type"
     if comp_str in orders:
         coeff_type = orders[comp_str]
     elif len(orders["peak"]) > peak and comp_str in orders["peak"][peak]:
@@ -1284,6 +1284,7 @@ def get_number_coeff(orders, comp, peak=0, azimuths=None):
 
     parm_str = params_get_type(orders, comp, peak)
     parm_num = coefficient_type_as_number(parm_str)
+    
     if parm_num == 5:  # independent
         if azimuths is None:
             raise ValueError(

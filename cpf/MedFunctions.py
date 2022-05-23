@@ -205,7 +205,7 @@ class MedDetector:
         return im_all
 
 
-    def conversion(self, e_in, azm=None, reverse=0):
+    def conversion(self, e_in, azm=None, reverse=False):
         """
         :param e_in:
         :param reverse:

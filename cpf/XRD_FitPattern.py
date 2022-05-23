@@ -130,9 +130,9 @@ def set_range(
     debug=False,
     refine=True,
     save_all=False,
-    propagate=True,
+    # propagate=True,
     iterations=1,
-    track=False,
+    # track=False,
     parallel=True,
     subpattern="all",
     **kwargs
@@ -175,9 +175,9 @@ def initial_peak_position(
     debug=False,
     refine=True,
     save_all=False,
-    propagate=True,
+    # propagate=True,
     iterations=1,
-    track=False,
+    # track=False,
     parallel=True,
     subpattern="all",
     **kwargs
@@ -313,9 +313,9 @@ def order_search(
     debug=False,
     refine=True,
     save_all=False,
-    propagate=True,
+    # propagate=True,
     iterations=1,
-    track=False,
+    # track=False,
     parallel=True,
     search_parameter="height",
     search_over=[0, 20],
@@ -428,9 +428,9 @@ def execute(
     debug=False,
     refine=True,
     save_all=False,
-    propagate=True,
+    # propagate=True, #moved this option to settings file
     iterations=1,
-    track=False,
+    # track=False,  #moved this option to settings file
     parallel=True,
     mode="fit",
     report=False,
@@ -525,7 +525,7 @@ def execute(
             plt.close()
             
         # Get previous fit (if it exists and is required)
-        if os.path.isfile(temporary_data_file) and propagate is True and mode == "fit":
+        if os.path.isfile(temporary_data_file) and settings_for_fit.fit_propagate is True and mode == "fit":
             # Read JSON data from file
             print("Loading previous fit results from %s" % temporary_data_file)
             with open(temporary_data_file) as json_data:
@@ -553,31 +553,48 @@ def execute(
                 params = []
                
             # Track the position of the peak centroid
-            # FIX ME; This is crude - the range doesn't change width. so can't account for massive change in stress.
+            # FIXME: This is crude - the range doesn't change width. so can't account for massive change in stress.
             # But does it need to?
             tth_range = settings_for_fit.subfit_orders["range"]
-            if track is True and "previous_fit" in locals():
-                print("tth_range", tth_range)
+            if settings_for_fit.fit_track is True and "previous_fit" in locals():
+                print("old subpattern range", tth_range)
                 mid = []
                 for k in range(len(params["peak"])):
                     mid.append(params["peak"][k]["d-space"][0])
+                    #FIXME: replace with caluculation of mean d-spacing.
+                    
                 # Replace this with call through to class structure?
+                # print(mid)
                 cent = new_data.conversion(
-                    np.sum(mid) / (k + 1), parms_dict, reverse=1, azm=None
+                    np.mean(mid), reverse=True
                 )
-                tth_range[0] = tth_range[0] - ((tth_range[1] + tth_range[0]) / 2) + cent
-                tth_range[1] = tth_range[1] - ((tth_range[1] + tth_range[0]) / 2) + cent
-                print("move by:", ((tth_range[1] + tth_range[0]) / 2) + cent)
-                print("tth_range", tth_range)
+                # print("cent", cent)
+                # print("mean tth_range", np.mean(tth_range))
+                # print((tth_range[1] + tth_range[0]) / 2)
+                move_by = cent-np.mean(tth_range)
+                print("move by",move_by)
+                tth_range = tth_range+move_by
+                # tth_range[0] = tth_range[0] - ((tth_range[1] + tth_range[0]) / 2) + cent
+                # tth_range[1] = tth_range[1] - ((tth_range[1] + tth_range[0]) / 2) + cent
+                # print("move by:", ((tth_range[1] + tth_range[0]) / 2) - cent)
+                print("new subpattern range", tth_range)
 
+                #copy new positions back into settings_for_fit
+                settings_for_fit.fit_orders[i]["range"] = settings_for_fit.fit_orders[i]["range"] + move_by
+                print(settings_for_fit.fit_orders[i]["range"])
+                
                 # The PeakPositionSelections are only used if the fits are not being propagated
-                if "PeakPositionSelection" in settings_for_fit.subpat_orders:
-                    for k in range(len(settings_for_fit.subpat_orders["PeakPositionSelection"])):
-                        settings_for_fit.subpat_orders["PeakPositionSelection"][k][2] = (
-                            settings_for_fit.subpat_orders["PeakPositionSelection"][k][2]
-                            - ((tth_range[1] + tth_range[0]) / 2)
-                            + cent
+                if "PeakPositionSelection" in settings_for_fit.fit_orders[i]:
+                    for k in range(len(settings_for_fit.fit_orders[i]["PeakPositionSelection"])):
+                        settings_for_fit.fit_orders[i]["PeakPositionSelection"][k][2] = (
+                            settings_for_fit.fit_orders[i]["PeakPositionSelection"][k][2]
+                            +move_by
+                            # - ((tth_range[1] + tth_range[0]) / 2)
+                            # + cent
                         )
+                
+                # re-get settings for current subpattern
+                settings_for_fit.set_subpattern(j, i)
 
             
             sub_data = new_data.duplicate()
@@ -702,7 +719,7 @@ def execute(
                 )
 
             # if propagating the fits write them to a temporary file
-            if propagate:
+            if settings_for_fit.fit_propagate:
                 # print json_string
                 with open(temporary_data_file, "w") as TempFile:
                     # Write a JSON string into the file.

@@ -235,7 +235,8 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
                                 savfilename, funcdefs={"peaks_model": pf.peaks_model}
                             )
                         except:
-                            raise FileNotFoundError
+                            #raise FileNotFoundError
+                            print("    Can't open file with the correlation coefficients in...")
                     # FIX ME: this will only work for one peak. Needs fixing if more then one peak in subpattern
                     try:
                         corr = gmodel.params["peak_0_d3"].correl["peak_0_d4"]
@@ -260,7 +261,7 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
 
                     out_peak = []
 
-                    if fit[y]["peak"][x]["d-space-type"] != "fourier":
+                    if fit[y]["peak"][x]["d-space_type"] != "fourier":
                         raise ValueError(
                             "This output type is not setup to process non-Fourier peak centroids."
                         )
@@ -388,7 +389,7 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
                     )
 
                     # height mean
-                    if fit[y]["peak"][x]["height-type"] == "fourier":
+                    if fit[y]["peak"][x]["height_type"] == "fourier":
                         out_h0 = fit[y]["peak"][x]["height"][0]
                         out_h0err = fit[y]["peak"][x]["height_err"][0]
                     else:
@@ -405,7 +406,7 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
                         out_h0err = np.nan
 
                     # width mean
-                    if fit[y]["peak"][x]["width-type"] == "fourier":
+                    if fit[y]["peak"][x]["width_type"] == "fourier":
                         out_w0 = fit[y]["peak"][x]["width"][0]
                         out_w0err = fit[y]["peak"][x]["width_err"][0]
                     else:
@@ -422,7 +423,7 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
                         out_w0err = np.nan
 
                     # profile mean
-                    if fit[y]["peak"][x]["profile-type"] == "fourier":
+                    if fit[y]["peak"][x]["profile_type"] == "fourier":
                         out_p0 = fit[y]["peak"][x]["profile"][0]
                         out_p0err = fit[y]["peak"][x]["profile_err"][0]
                     else:

@@ -112,6 +112,9 @@ class Settings:
               "width":      [ 'range/(ndata)',  'range/2'],
               }
         
+        self.fit_track = False
+        self.fit_propagate = False
+        
         #output requirements
         self.output_directory = "."
         self.output_types = None
@@ -306,11 +309,14 @@ class Settings:
 
         self.fit_orders = self.settings_from_file.fit_orders
         self.validate_fit_orders()
-
         if "fit_bounds" in dir(self.settings_from_file):
             self.fit_bounds = self.settings_from_file.fit_bounds
             self.validate_fit_bounds()
-        
+        if "fit_track" in dir(self.settings_from_file):
+            self.fit_track = self.settings_from_file.fit_track
+        if "fit_propagate" in dir(self.settings_from_file):
+            self.fit_propagate = self.settings_from_file.fit_propagate
+            
         if "AziDataPerBin" in dir(self.settings_from_file):
             self.fit_per_bin = self.AziDataPerBin
             self.fit_bin_type = 0

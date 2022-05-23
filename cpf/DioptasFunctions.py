@@ -244,7 +244,7 @@ class DioptasDetector:
             return ma.array(im)
 
 
-    def conversion(self, tth_in, azm=None, reverse=0):
+    def conversion(self, tth_in, azm=None, reverse=False):
         """
         Convert two theta values into d-spacing.
         azm is needed to enable compatibility with the energy dispersive detectors
@@ -280,7 +280,7 @@ class DioptasDetector:
 
         im_ints = ma.masked_less(im_ints, 0)
 
-
+        self.original_mask = im_mask
         # TALK TO SIMON ABOUT WHAT TO DO WITH THIS
         # SAH!! July 2021: we need a mask function that makes sure all the arrays have the same mask applied to them.
         #     == and possibly one that returns just the mask.
@@ -560,7 +560,7 @@ class DioptasDetector:
     #         self.azm = np.mean(self.azm)
             
 
-    def set_mask(self, range_bounds=[-np.inf, np.inf], i_max=np.inf, i_min=-np.inf):
+    def set_mask(self, range_bounds=[-np.inf, np.inf], i_max=np.inf, i_min=-np.inf, mask=None):
         """
         Set limits to data 
         :param range_bounds:
@@ -572,10 +572,25 @@ class DioptasDetector:
         local_mask2 = ma.getmask(ma.masked_outside(self.intensity, i_min, i_max))
         combined_mask = np.ma.mask_or(ma.getmask(self.intensity), local_mask)
         combined_mask = np.ma.mask_or(combined_mask, local_mask2)
+        if mask.all() != None:
+            combined_mask = np.ma.mask_or(combined_mask, mask)
         self.intensity.mask = combined_mask
         self.tth.mask = combined_mask
         self.azm.mask = combined_mask
         self.dspace.mask = combined_mask
+
+    def mask_restore(self):
+        """
+        Restores the loaded mask.
+        If the image data is still the same size as the original.
+        """
+        
+        print("Restore original mask.")
+        self.intensity.mask = self.original_mask
+        self.tth.mask = self.original_mask
+        self.azm.mask = self.original_mask
+        self.dspace.mask = self.original_mask
+        
 
     # def full_plot(self,
     #         plot_type="data",

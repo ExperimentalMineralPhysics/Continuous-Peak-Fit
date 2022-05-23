@@ -283,6 +283,10 @@ class Settings:
         self.data_class = detector_factory(self.calibration_type, self.calibration_parameters)
         
         if "Image_prepare" in dir(self.settings_from_file):
+            print("'Image_prepare' is depreciated nomenclature. Has been replased by 'image_preprocess'")
+            self.settings_from_file.image_preprocess = self.settings_from_file.Image_prepare
+            
+        if "image_preprocess" in dir(self.settings_from_file):
             self.datafile_preprocess = self.settings_from_file.Image_prepare
                 
     
@@ -538,7 +542,6 @@ class Settings:
                 ]
                 print("subpattern "+str(peak_set)+", peak "+str(peak)+": "+component+"_fixed changed to a list")
 
-
             # validate
             if not num_coeffs == len(self.fit_orders[peak_set]["peak"][peak][component+"_fixed"]):
                 out.append(
@@ -557,7 +560,6 @@ class Settings:
             
         miss = []
         for i in range(len(peak_set)):
-    
             # if PeakPositionSelection - there might be more than one peak
             if "PeakPositionSelection" in self.fit_orders[i]:
                 

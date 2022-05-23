@@ -299,6 +299,9 @@ class MedDetector:
             plt.close()
 
         im_ints = ma.array(im_ints, mask=im_mask)
+        
+        self.original_mask = im_mask
+        
         return im_ints
 
     def get_calibration(self, file_name):
@@ -435,7 +438,7 @@ class MedDetector:
         
     
 
-    def set_mask(self, range_bounds=[-np.inf, np.inf], i_max=np.inf, i_min=-np.inf):
+    def set_mask(self, range_bounds=[-np.inf, np.inf], i_max=np.inf, i_min=-np.inf, mask=None):
         """
         Set limits to data 
         :param range_bounds:
@@ -447,12 +450,25 @@ class MedDetector:
         local_mask2 = ma.getmask(ma.masked_outside(self.intensity, i_min, i_max))
         combined_mask = np.ma.mask_or(ma.getmask(self.intensity), local_mask)
         combined_mask = np.ma.mask_or(combined_mask, local_mask2)
+        if mask:
+            combined_mask = np.ma.mask_or(combined_mask, mask)
         self.intensity.mask = combined_mask
         self.tth.mask = combined_mask
         self.azm.mask = combined_mask
         self.dspace.mask = combined_mask
 
 
+    def mask_restore(self):
+        """
+        Restores the loaded mask.
+        If the image data is still the same size as the original.
+        """
+        
+        print("Restore original mask.")
+        self.intensity.mask = self.original_mask
+        self.tth.mask = self.original_mask
+        self.azm.mask = self.original_mask
+        self.dspace.mask = self.original_mask
 
 
     def plot_masked(self, fig_plot=None):

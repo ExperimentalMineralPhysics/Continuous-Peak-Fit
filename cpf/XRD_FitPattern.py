@@ -18,7 +18,7 @@ import cpf.GSASIIFunctions as GSASIIFunctions
 import cpf.MedFunctions as MedFunctions
 from cpf.settings import Settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
-from cpf.Cosmics import cosmicsimage
+from cpf.Cosmics import image_preprocess as cosmicsimage_preprocess
 from cpf.IO_functions import json_numpy_serializer, file_list, make_outfile_name, peak_string
 
 np.set_printoptions(threshold=sys.maxsize)
@@ -500,63 +500,19 @@ def execute(
 
     # Process the diffraction patterns #
     for j in range(settings_for_fit.datafile_number):
+
         print("Process ", settings_for_fit.datafile_list[j])
-
         # Get diffraction pattern to process.
-        intens = new_data.import_image(settings_for_fit.datafile_list[j], debug=debug)
-        # FIXME: remove "intens = " when have sorted cosmics.
-        
-        # DMF FIX ME: No test data seems to use the image_prepare setting. What should be the equivalent when it's not
-        # used?
-        # ANSWER: do nothing when it is not used. 
-        
-        # FIXME: move all this code to the Cosmics file.
-        if settings_for_fit.datafile_preprocess is not None: #"Image_prepare" in fit_parameters:
+        new_data.import_image(settings_for_fit.datafile_list[j], debug=debug)
+                
+        if settings_for_fit.datafile_preprocess is not None: 
+            # needed because image preprocessing adds to the mask and is different for each image.
+            new_data.mask_restore()
             if "cosmics" in settings_for_fit.datafile_preprocess:
-                # FIXME: remove "intens = " when have sorted cosmics.
-        
-                print("Remove Cosmics")
-                # set defaults
-                gain = 2.2
-
-                sigclip = 1.5  # 3 is dioptas default
-                objlim = 3.0  # 3 is dioptas default
-                sigfrac = 0.3
-                if bool(settings_for_fit.datafile_preprocess["cosmics"]):
-                    if "gain" in settings_for_fit.datafile_preprocess["cosmics"]:
-                        gain = settings_for_fit.datafile_preprocess["cosmics"]["gain"]
-                    if "sigclip" in settings_for_fit.datafile_preprocess["cosmics"]:
-                        sigclip = settings_for_fit.datafile_preprocess["cosmics"]["sigclip"]
-                    if "objlim" in settings_for_fit.datafile_preprocess["cosmics"]:
-                        objlim = settings_for_fit.datafile_preprocess["cosmics"]["objlim"]
-                    if "sigfrac" in settings_for_fit.datafile_preprocess["cosmics"]:
-                        sigfrac = settings_for_fit.datafile_preprocess["cosmics"]["sigfrac"]
-                    # FIX ME: use argparse or someway of passing any argument into cosmics.
-
-    
-                test = cosmicsimage(
-                    intens, sigclip=sigclip, objlim=objlim, gain=gain, sigfrac=sigfrac
-                )
-                num = 2
-                for i in range(num):
-                    test.lacosmiciteration(True)
-                    # print(asdf["nnew"], asdf["niter"])
-                    test.clean()
-                    msk = np.logical_or(original_mask, np.array(test.mask, dtype="bool"))
-                    # need to keep original mask and keep referencing to it because we overwrite the mask in azimuth
-                    # below.
-                intens = ma.array(intens, mask=msk)
-                azimuth = ma.array(azimuth, mask=intens.mask)
-                twotheta = ma.array(twotheta, mask=intens.mask)
-                dspace = ma.array(dspace, mask=intens.mask)
-                
-                
-                new_data.set_mask()
-                stop
-                
-                # FIX ME: applying a mask to the data should mask all the arrays. This should be a class function.
-                # FIX ME: I think these calls should all be class applications rather than as it is now. -- but it seems
-                # to work
+                new_data = cosmicsimage_preprocess(new_data, settings_for_fit)
+        else:
+            # nothing is done here. 
+            pass
 
         # plot input file
         if debug:

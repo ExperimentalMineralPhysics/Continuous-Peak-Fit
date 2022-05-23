@@ -344,8 +344,8 @@ def fit_sub_pattern(
                 
                 #fit the chunk values with fourier/spline series.
                 # iterate over each parameter in turn
-                fit_series(master_params, (chunk_fits, chunk_positions), settings_as_class, debug=debug, save_fit=save_fit)
-                
+                master_params = fit_series(master_params, (chunk_fits, chunk_positions), settings_as_class, debug=debug, save_fit=save_fit)
+                                
             else:
                 # FIX ME: This should load the saved lmfit Parameter class object.
                 # Need to initiate usage (save and load).
@@ -360,7 +360,7 @@ def fit_sub_pattern(
                 
             chunks_end = time.time()
             step = step + 10
-                
+            
             
         if step >= 10:
 
@@ -390,7 +390,6 @@ def fit_sub_pattern(
                             max_n_fev=default_max_f_eval,
                         )
                         master_params = fout.params
-                        master_params.pretty_print()
 
                     for k in range(peeks):
                         param_str = "peak_" + str(k)

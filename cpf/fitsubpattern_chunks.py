@@ -804,7 +804,6 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
         for k in range(len(orders["background"])):
             x_plt = len(orders["background"])
             y_plt = len(orders["background"]) * 4 + k +1
-            print(x_plt, y_plt, i+k+1)
             ax.append(fig.add_subplot(5, x_plt, y_plt))
             ax[i+k+1].set_title("Background "+str(k))
     
@@ -841,3 +840,5 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
             fig.savefig(filename)
         plt.show()
         plt.close()            
+
+    return master_params

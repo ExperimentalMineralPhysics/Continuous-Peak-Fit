@@ -47,6 +47,9 @@ class MedDetector:
         # separate detectors around the ring so not continuous    
         self.continuous_azm = False
 
+        if calibration_parameters:
+            self.calibration = self.get_calibration(calibration_parameters)
+            
     def duplicate(self):
         """
         Makes a "deep" copy of an Mca instance, using copy.deepcopy() on all of

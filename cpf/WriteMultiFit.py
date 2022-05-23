@@ -38,7 +38,7 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
     elif setting_class is None:
         import cpf.XRD_FitPattern.initiate as initiate
         setting_class = initiate(setting_file)
-    
+        
     
     #FitParameters = dir(FitSettings)
 
@@ -63,7 +63,7 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
         Num_Azi = setting_class.output_settings["Output_NumAziWrite"]
 
     # wavelength = parms_dict["conversion_constant"]
-    wavelength = setting_class.data_class.parameters["conversion_constant"]
+    wavelength = setting_class.data_class.calibration["conversion_constant"]
 
     for z in range(setting_class.datafile_number):
 
@@ -200,13 +200,13 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
                 inter = ff.coefficient_expand(
                     az,
                     data_to_write[j]["background"][0],
-                    data_to_write[j]["background-type"],
+                    data_to_write[j]["background_type"],
                 )
                 if len(data_to_write[j]["background"]) > 1:
                     slop = ff.coefficient_expand(
                         az,
                         data_to_write[j]["background"][1],
-                        data_to_write[j]["background-type"],
+                        data_to_write[j]["background_type"],
                     )
                 else:
                     slop = 0
@@ -256,19 +256,19 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
                             ff.coefficient_expand(
                                 (az) * sym,
                                 param=data_to_write[j]["peak"][k]["height"],
-                                coeff_type=data_to_write[j]["peak"][k]["height-type"],
+                                coeff_type=data_to_write[j]["peak"][k]["height_type"],
                             ),
                         ]
                     )  # FIX ME - Is this the height of the peak or the integral under it?
                     peak_w = ff.coefficient_expand(
                         (az) * sym,
                         param=data_to_write[j]["peak"][k]["width"],
-                        coeff_type=data_to_write[j]["peak"][k]["width-type"],
+                        coeff_type=data_to_write[j]["peak"][k]["width_type"],
                     )  # FIX ME - is this the correct half width?
                     peak_p = ff.coefficient_expand(
                         (az) * sym,
                         param=data_to_write[j]["peak"][k]["profile"],
-                        coeff_type=data_to_write[j]["peak"][k]["profile-type"],
+                        coeff_type=data_to_write[j]["peak"][k]["profile_type"],
                     )  # FIX ME - is this 1 or 0 for Gaussian?
 
                     text_file.write(

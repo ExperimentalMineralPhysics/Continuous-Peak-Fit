@@ -24,7 +24,7 @@ class DioptasDetector:
     #   -   Load mask
     #   -   Load Calibration
 
-    def __init__(self, calibration_parameters, fit_parameters=None):
+    def __init__(self, calibration_parameters=None, fit_parameters=None):
         """
         :param calibration_parameters:
         """
@@ -39,6 +39,9 @@ class DioptasDetector:
         
         # image plate data to all azimuths are possible -- i.e. continuous   
         self.continuous_azm = True
+
+        if calibration_parameters:
+            self.calibration = self.get_calibration(calibration_parameters)
 
     def duplicate(self):
         """

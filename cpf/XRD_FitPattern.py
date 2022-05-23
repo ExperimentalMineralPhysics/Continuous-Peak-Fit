@@ -19,7 +19,7 @@ import cpf.MedFunctions as MedFunctions
 from cpf.settings import Settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 from cpf.Cosmics import image_preprocess as cosmicsimage_preprocess
-from cpf.IO_functions import json_numpy_serializer, file_list, make_outfile_name, peak_string
+from cpf.IO_functions import json_numpy_serializer, make_outfile_name, peak_string, any_terms_null
 
 np.set_printoptions(threshold=sys.maxsize)
 # FIX ME: Need to add complexity here.
@@ -557,44 +557,51 @@ def execute(
             # But does it need to?
             tth_range = settings_for_fit.subfit_orders["range"]
             if settings_for_fit.fit_track is True and "previous_fit" in locals():
-                print("old subpattern range", tth_range)
-                mid = []
-                for k in range(len(params["peak"])):
-                    mid.append(params["peak"][k]["d-space"][0])
-                    #FIXME: replace with caluculation of mean d-spacing.
+                clean = any_terms_null(params, val_to_find=None)
+                if clean == 0:
+                    # the previous fit has problems so discard it
+                    print(
+                        "Propagated fit has problems so not sesible to track the centre of the fit."
+                    )
+                else:
+                    print("old subpattern range", tth_range)
+                    mid = []
+                    for k in range(len(params["peak"])):
+                        mid.append(params["peak"][k]["d-space"][0])
+                        #FIXME: replace with caluculation of mean d-spacing.
+                        
+                    # Replace this with call through to class structure?
+                    # print(mid)
+                    cent = new_data.conversion(
+                        np.mean(mid), reverse=True
+                    )
+                    # print("cent", cent)
+                    # print("mean tth_range", np.mean(tth_range))
+                    # print((tth_range[1] + tth_range[0]) / 2)
+                    move_by = cent-np.mean(tth_range)
+                    print("move by",move_by)
+                    tth_range = tth_range+move_by
+                    # tth_range[0] = tth_range[0] - ((tth_range[1] + tth_range[0]) / 2) + cent
+                    # tth_range[1] = tth_range[1] - ((tth_range[1] + tth_range[0]) / 2) + cent
+                    # print("move by:", ((tth_range[1] + tth_range[0]) / 2) - cent)
+                    print("new subpattern range", tth_range)
+    
+                    #copy new positions back into settings_for_fit
+                    settings_for_fit.fit_orders[i]["range"] = settings_for_fit.fit_orders[i]["range"] + move_by
+                    print(settings_for_fit.fit_orders[i]["range"])
                     
-                # Replace this with call through to class structure?
-                # print(mid)
-                cent = new_data.conversion(
-                    np.mean(mid), reverse=True
-                )
-                # print("cent", cent)
-                # print("mean tth_range", np.mean(tth_range))
-                # print((tth_range[1] + tth_range[0]) / 2)
-                move_by = cent-np.mean(tth_range)
-                print("move by",move_by)
-                tth_range = tth_range+move_by
-                # tth_range[0] = tth_range[0] - ((tth_range[1] + tth_range[0]) / 2) + cent
-                # tth_range[1] = tth_range[1] - ((tth_range[1] + tth_range[0]) / 2) + cent
-                # print("move by:", ((tth_range[1] + tth_range[0]) / 2) - cent)
-                print("new subpattern range", tth_range)
-
-                #copy new positions back into settings_for_fit
-                settings_for_fit.fit_orders[i]["range"] = settings_for_fit.fit_orders[i]["range"] + move_by
-                print(settings_for_fit.fit_orders[i]["range"])
-                
-                # The PeakPositionSelections are only used if the fits are not being propagated
-                if "PeakPositionSelection" in settings_for_fit.fit_orders[i]:
-                    for k in range(len(settings_for_fit.fit_orders[i]["PeakPositionSelection"])):
-                        settings_for_fit.fit_orders[i]["PeakPositionSelection"][k][2] = (
-                            settings_for_fit.fit_orders[i]["PeakPositionSelection"][k][2]
-                            +move_by
-                            # - ((tth_range[1] + tth_range[0]) / 2)
-                            # + cent
-                        )
-                
-                # re-get settings for current subpattern
-                settings_for_fit.set_subpattern(j, i)
+                    # The PeakPositionSelections are only used if the fits are not being propagated
+                    if "PeakPositionSelection" in settings_for_fit.fit_orders[i]:
+                        for k in range(len(settings_for_fit.fit_orders[i]["PeakPositionSelection"])):
+                            settings_for_fit.fit_orders[i]["PeakPositionSelection"][k][2] = (
+                                settings_for_fit.fit_orders[i]["PeakPositionSelection"][k][2]
+                                +move_by
+                                # - ((tth_range[1] + tth_range[0]) / 2)
+                                # + cent
+                            )
+                    
+                    # re-get settings for current subpattern
+                    settings_for_fit.set_subpattern(j, i)
 
             
             sub_data = new_data.duplicate()

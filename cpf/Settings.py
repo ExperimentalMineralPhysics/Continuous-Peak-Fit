@@ -473,10 +473,13 @@ class Settings:
                         if comp_list[k]+"_fixed" in self.fit_orders[i]["peak"][j]:
                             if not isinstance(status,str):
                                 mssng = self.validate_order_fixed(peak_set=i, peak=j, component=comp_list[k], report=report)
-                                missing.append(mssng)
+                                for m in range(len(mssng)):
+                                    missing.append(mssng[m])
 
-                    if "PeakPositionSelection" in self.fit_orders[i]:
-                        missing.append(self.validate_position_selection(peak_set=i, report=report))
+                if "PeakPositionSelection" in self.fit_orders[i]:
+                    mssng = self.validate_position_selection(peak_set=i, report=report)
+                    for m in range(len(mssng)):
+                        missing.append(mssng[m])
         
         missing = [x for x in missing if x != []]    
             
@@ -523,7 +526,7 @@ class Settings:
         else:
             comp_type = 0
             
-        num_coeffs = get_number_coeff(self.fit_orders[peak], component, peak=0, azimuths=self.data_class.azm)
+        num_coeffs = get_number_coeff(self.fit_orders[peak_set], component, peak=0, azimuths=self.data_class.azm)
         
         out = []
 

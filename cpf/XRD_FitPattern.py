@@ -214,7 +214,7 @@ def initial_peak_position(
     print("To restore the inline plotting afterwards call '%matplotlib inline'")
     print("To move to the next peak selection close the window.\n")
 
-    execute(setting_class=settings_for_fit, debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
+    execute(setting_class=settings_for_fit, debug=debug, refine=refine, save_all=save_all, iterations=iterations,
             parallel=parallel, mode="set-guess", report=True)
 
 
@@ -362,7 +362,7 @@ def order_search(
                         search_peak=search_peak,
                         search_series=search_series)
         
-    execute(setting_class=settings_for_fit, debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
+    execute(setting_class=settings_for_fit, debug=debug, refine=refine, save_all=save_all, iterations=iterations,
             parallel=parallel, report=True)
 
     # write a differential strain output file

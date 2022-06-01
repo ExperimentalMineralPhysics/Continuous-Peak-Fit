@@ -354,6 +354,7 @@ def make_outfile_name(
         additional_text=None,
         extension=None,
         orders=None,
+        peak="all",
         overwrite=True,
 ):
     """
@@ -395,7 +396,7 @@ def make_outfile_name(
         filename = filename + "_" + ending
 
     if orders:  # add phase and hkl to file name
-        filename = filename + "__" + peak_string(orders, fname=True)
+        filename = filename + "__" + peak_string(orders, fname=True, peak=peak)
     if additional_text:  # add additional text -- i.e. notes from orders
         filename = filename + "__" + additional_text
     if orders and "note" in orders:  # add additional text from note in orders.

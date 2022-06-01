@@ -358,7 +358,7 @@ def fit_chunks(
     save_fit=False,
     debug=False,
     fit_method=None,
-    give_back = "fitted",
+    mode="fit",
 ):
     """
     Take the raw data, fit the chunks and return the chunk fits
@@ -396,24 +396,15 @@ def fit_chunks(
         dfour = get_manual_guesses(settings_as_class, data_as_class, debug=debug)
                 
     # Get chunks according to detector type.
-    chunks, azichunks = data_as_class.bins(settings_as_class)
+    if mode != "fit": #cascade:
+        chunks, azichunks = data_as_class.bins(settings_as_class, cascade=True)
+    else:
+        chunks, azichunks = data_as_class.bins(settings_as_class)
     # Final output list of azimuths with corresponding twotheta_0,h,w
     
     # setup arrays
     new_azi_chunks = []
-    if give_back == "fitted":
-        out_vals = {}
-        out_vals["d"] = [[] for _ in range(peeks)]
-        out_vals["d_err"] = [[] for _ in range(peeks)]
-        out_vals["h"] = [[] for _ in range(peeks)]
-        out_vals["h_err"] = [[] for _ in range(peeks)]
-        out_vals["w"] = [[] for _ in range(peeks)]
-        out_vals["w_err"] = [[] for _ in range(peeks)]
-        out_vals["p"] = [[] for _ in range(peeks)]
-        out_vals["p_err"] = [[] for _ in range(peeks)]
-        out_vals["bg"] = [[] for _ in range(bg_length)]
-        out_vals["bg_err"] = [[] for _ in range(bg_length)]
-        
+    if mode == "fit" or mode=="cascade": 
         #bunch of settings
         # only compute the fit and save it if there are sufficient data
         min_dat = 21  # minimum data in each chunk
@@ -424,8 +415,22 @@ def fit_chunks(
         # FIXME: possibly do this better using scipy.signal.find or scipy.signal.find_peaks_cwt
     
     else:
-        out_vals = []
+        pass
     
+    out_vals = {}
+    out_vals["chunks"] = []
+    out_vals["d"] = [[] for _ in range(peeks)]
+    out_vals["d_err"] = [[] for _ in range(peeks)]
+    out_vals["h"] = [[] for _ in range(peeks)]
+    out_vals["h_err"] = [[] for _ in range(peeks)]
+    out_vals["w"] = [[] for _ in range(peeks)]
+    out_vals["w_err"] = [[] for _ in range(peeks)]
+    out_vals["p"] = [[] for _ in range(peeks)]
+    out_vals["p_err"] = [[] for _ in range(peeks)]
+    out_vals["bg"] = [[] for _ in range(bg_length)]
+    out_vals["bg_err"] = [[] for _ in range(bg_length)]
+    
+    out_vals["peak"] = io.peak_string(settings_as_class.subfit_orders)
     
     for j in range(len(chunks)):
         # print('\nFitting to data chunk ' + str(j + 1) + ' of ' + str(len(chunks)) + '\n')
@@ -450,18 +455,26 @@ def fit_chunks(
         
         
         # find other output from intensities
-        if give_back == "maxima":
+        if mode == "maxima":
             # get maximum from each chunk
-            out_vals.append(np.max(chunk_data.intensity))
+            out_vals["h"][0].append(np.max(chunk_data.intensity))
+            out_vals["chunks"].append(azichunks[j])
             new_azi_chunks.append(azichunks[j])
             
-        elif give_back == "98thpercentile":
+            
+        elif mode == "range":
+            # get maximum from each chunk
+            out_vals["h"][0].append(np.max(chunk_data.intensity)-np.min(chunk_data.intensity))
+            out_vals["chunks"].append(azichunks[j])
+            new_azi_chunks.append(azichunks[j])
+            
+        elif mode == "98thpercentile":
             # FIXME: this is crude and could be done better -- i.e. with a switch for the percentile
             # get 98th percentils from each chunk
             raise NotImplementedError
             #out_vals.append(np.max(chunk_data.intensity))
             
-        elif give_back == "fitted":
+        elif mode == "fit" or mode=="cascade":
             
             # Define parameters to pass to fit
             params = Parameters()
@@ -580,7 +593,9 @@ def fit_chunks(
                     )
                     # may have to set profile error when initiate params so have appropriate error value
                     # if fixed
-                    
+                
+                out_vals["chunks"].append(azichunks[j])
+            
                 # plot the fits.
                 if debug:
                     tth_plot = chunk_data.tth
@@ -630,7 +645,9 @@ def fit_chunks(
                     plt.title(((io.peak_string(settings_as_class.subfit_orders) + "; azimuth = %.1f" ) % azichunks[j]))
                     plt.show()
         
-    
+        else:
+            raise ValueError("The mode for processing the chunks is not recognised.")
+            
     return out_vals, new_azi_chunks
     
 
@@ -658,16 +675,11 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
             master_params = pf.un_vary_part_params(
                 master_params, param_str, comp, orders["background"][b]
             )
-            
-        master_params.pretty_print()
         
         azimuth = data[1]
         data_vals = data[0]["bg"][b]
         data_val_errors = data[0]["bg_err"][b]
-            
-        print(data_vals)
-        print(data_val_errors)
-                
+                            
         fout = pf.coefficient_fit(
             azimuth=azimuth,
             ydata=data_vals,

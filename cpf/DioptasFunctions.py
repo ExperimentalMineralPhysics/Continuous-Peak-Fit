@@ -412,7 +412,7 @@ class DioptasDetector:
         return parms_dict
 
 
-    def bins(self, orders_class):
+    def bins(self, orders_class, cascade=False):
         """
         Determine bins to use in initial fitting.
         Assign each data to a chunk corresponding to its azimuth value
@@ -422,42 +422,89 @@ class DioptasDetector:
         :return bin_mean_azi:
         """
         
-        az_max = self.azm.max()
-        az_min = self.azm.min()
         
-        if orders_class.fit_bin_type == 0:
+        # determine how to divide the data into bins and how many.
+        if cascade:
+            bt = orders_class.cascade_bin_type
+            if bt==1:
+                b_num = orders_class.cascade_number_bins
+            else:
+                b_num = orders_class.cascade_per_bin
+        else:
+            bt    = orders_class.fit_bin_type
+            if bt==1:
+                b_num = orders_class.fit_number_bins
+            else:
+                b_num = orders_class.fit_per_bin
+        
+        #make the bins
+        if bt == 0:
             # split the data into bins with an approximately constant number of data.      
-            # uses orders_class.fit_per_bin to determine bin size     
-            raise NotImplementedError
-            
-        elif orders_class.fit_bin_type == 1:
+            # uses b_num to determine bin size
+            num_bins = int(np.round(len(self.azm[self.azm.mask == False])/b_num))
+            bin_boundaries = self.equalObs(np.sort(self.azm[self.azm.mask == False]), num_bins)
+        elif bt==1:
             # split the data into a fixed number of bins     
-            # uses orders_class.fit_number_bins to determine bin size     
+            # uses b_num to determine bin size            
+            lims = np.array([np.min(self.azm[self.azm.mask == False]), np.max(self.azm[self.azm.mask == False]+0.01)])
+            lims = np.around(lims / 45) * 45
+            bin_boundaries = np.linspace(lims[0],lims[1],num=b_num+1)
             
-            # if "AziBins" in orders:
-            #     bins = orders["AziBins"]
-            # else:
-            #     bins = 90
-            # bin_size = (az_max - az_min) / bins
-            bin_size = (az_max - az_min) / orders_class.fit_number_bins
-            chunks = []
-            bin_mean_azi = []
-            temp_azimuth = self.azm.flatten()
-            for i in range(orders_class.fit_number_bins):
-                start = az_min + i * bin_size
-                end = az_min + (i + 1) * bin_size
-                azi_chunk = np.where((temp_azimuth > start) & (temp_azimuth <= end))
-                chunks.append(azi_chunk)
-                bin_mean_azi.append(((end - start) / 2) + start)
         else:
             # issue an error
             err_str = (
                 "The bin type is not recognised. Check input file."
             )
             raise ValueError(err_str)
-               
+            
+        if 0: #for debugging
+            print(bin_boundaries)
+            # print(np.sort(bin_boundaries))
+            #create histogram with equal-frequency bins 
+            n, bins, patches = plt.hist(self.azm[self.azm.mask == False], bin_boundaries, edgecolor='black')
+            plt.show()
+            #display bin boundaries and frequency per bin 
+            print("bins and occupancy", bins, n)
+            print("expected number of data per bin", orders_class.cascade_per_bin)
+            print("total data", np.sum(n))
+            
+        #fit the data to the bins
+        chunks = []
+        bin_mean_azi = []
+        temp_azimuth = self.azm.flatten()
+        for i in range(len(bin_boundaries)-1):
+            start = bin_boundaries[i]
+            end = bin_boundaries[i+1]
+            azi_chunk = np.where((temp_azimuth > start) & (temp_azimuth <= end))
+            chunks.append(azi_chunk)
+            bin_mean_azi.append(np.mean(temp_azimuth[azi_chunk]))
+            
         return chunks, bin_mean_azi
 
+
+    def equalObs(self,x, nbin):
+        """
+        get equally populated bins for data set. 
+        copied from: https://www.statology.org/equal-frequency-binning-python/ on 26th May 2022.
+
+        Parameters
+        ----------
+        x : TYPE
+            data to disperse.
+        nbin : TYPE
+            number of bins.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
+        nlen = len(x)
+        x = np.sort(x)
+        return np.interp(np.linspace(0, nlen, nbin + 1),
+                         np.arange(nlen),
+                         np.sort(x))
         
     def get_azimuthal_integration(self):
         """

@@ -351,13 +351,14 @@ class MedDetector:
         # print(parms_dict['conversion_constant'])
         return parms_dict
 
-    def bins(self, orders_class):
+    def bins(self, orders_class, **kwargs):
         """
         Determine bins to use in initial fitting.
         Assign each data to a chunk corresponding to its azimuth value
         Returns array with indices for each bin and array of bin centroids
         :param azimu:
         :param orders:
+        :param **kwargs: - to ensure compatibility
         :return:
         """
         bin_mean_azi = np.unique(self.azm.data)

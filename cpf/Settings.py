@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__all__ = ["Settings"]
+__all__ = ["settings", "get_output_options", "detector_factory"]
 
 import os
 from copy import deepcopy
@@ -10,7 +10,7 @@ import importlib.util
 import cpf.DioptasFunctions as DioptasFunctions
 import cpf.GSASIIFunctions as GSASIIFunctions
 import cpf.MedFunctions as MedFunctions
-from cpf.IO_functions import file_list
+from cpf.IO_functions import file_list#, get_output_options, detector_factory, register_default_formats
 from cpf.PeakFunctions import coefficient_type_as_number, get_number_coeff
 
 
@@ -39,7 +39,7 @@ def register_default_formats() -> object:
 output_methods_modules = register_default_formats()
 
 
-class Settings:
+class settings:
     """Settings class definitions.
     The settings class is contains all the variables/informtion needed to execute
     continuous peak fit. 
@@ -65,6 +65,7 @@ class Settings:
              out_type=None,
              report=False,
              debug=False,
+             mode="fit",
              ):
         """
         Initialise the cpf settings class. 
@@ -94,12 +95,29 @@ class Settings:
         
         """
         
+        # # Load potential output formats
+        output_methods_modules = register_default_formats()
+        
         self.datafile_list = None
         self.datafile_number = 0
         self.datafile_directory = "."
         
         self.datafile_preprocess = None
         
+        
+        # calibration type: dioptas etc.
+        self.calibration_type = None
+        # file on which the calibration was done
+        self.calibration_data = None
+        # mask file for data
+        self.calibration_mask = None
+        # file with the calibration in it. 
+        self.calibration_parameters = None
+        # FIXME: these are optional and should probalably be burried in an optional dictionary.
+        self.calibration_detector = None
+        self.calibration_pixel_size = None
+        
+                
         self.fit_bin_type = None
         self.fit_per_bin = None
         self.fit_number_bins = None
@@ -113,7 +131,12 @@ class Settings:
               }
         
         self.fit_track = False
-        self.fit_propagate = False
+        self.fit_propagate = True
+        
+        self.cascade_bin_type = None
+        self.cascade_per_bin = None
+        self.cascade_number_bins = None
+        self.cascade_track = False
         
         #output requirements
         self.output_directory = "."
@@ -121,17 +144,6 @@ class Settings:
         # output_settings is populated with additional requirements for each type (if any) 
         self.output_settings = dict()
         
-        # calibration type: dioptas etc.
-        self.calibration_type = None
-        # file on which the calibration was done
-        self.calibration_data = None
-        # mask file for data
-        self.calibration_mask = None
-        # file with the calibration in it. 
-        self.calibration_parameters = None
-        # FIXME: these are optional and should probalably be burried in an optional dictionary.
-        self.calibration_detector = None
-        self.calibration_pixel_size = None
         
         # initiate the subpattern settings.
         # set to save diggging through self.fit_orders and carring values around
@@ -306,7 +318,16 @@ class Settings:
     #                     possible[x][y].append(0)
     #     # exit if all parameters are not present
     
-
+    
+        #organise the cascade properties
+        if "cascade_bin_type" in dir(self.settings_from_file):
+            self.cascade_bin_type = self.settings_from_file.cascade_bin_type
+        if "cascade_per_bin" in dir(self.settings_from_file):
+            self.cascade_per_bin = self.settings_from_file.cascade_per_bin
+        if "cascade_number_bins" in dir(self.settings_from_file):
+            self.cascade_number_bins = self.settings_from_file.cascade_number_bins
+    
+        #organise the fits
         self.fit_orders = self.settings_from_file.fit_orders
         self.validate_fit_orders()
         if "fit_bounds" in dir(self.settings_from_file):

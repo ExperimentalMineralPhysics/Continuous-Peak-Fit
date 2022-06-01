@@ -196,14 +196,16 @@ def check_num_azimuths(peeks, azimu, orders):
 
 
 def fit_sub_pattern(
-    data_as_class,
-    settings_as_class,
+    data_as_class=None,
+    settings_as_class=None,
     previous_params=None,
     save_fit=False,
     debug=False,
     refine=True,
     iterations=2,
     fit_method=None,
+    mode="fit",
+    cascade=False, 
 ):
     """
     Perform the various fitting stages to the data
@@ -221,7 +223,7 @@ def fit_sub_pattern(
     :param iterations:
     :return:
     """
-
+    
     # set a limit to the maximum number of function evaluations.
     # make variable in case need more iterations for other data
     default_max_f_eval = 400
@@ -306,10 +308,15 @@ def fit_sub_pattern(
                 chunk_fits, chunk_positions = fit_chunks(
                         data_as_class,
                         settings_as_class,
+                        mode=mode,
+                        # cascade=cascade,
                         debug=debug,
                     )
                 # using manual guesses ("PeakPositionSelection") if they exist. 
                 
+                if mode != "fit": # cascade==True:
+                    # some cascade option. so exit returning values. 
+                    return chunk_fits, chunk_positions
                 
                 # Fitting stage 2:
                 print("\n Performing Series fits...")
@@ -322,7 +329,7 @@ def fit_sub_pattern(
                 #fit the chunk values with fourier/spline series.
                 # iterate over each parameter in turn
                 master_params = fit_series(master_params, (chunk_fits, chunk_positions), settings_as_class, debug=debug, save_fit=save_fit)
-                                
+                
             else:
                 # FIX ME: This should load the saved lmfit Parameter class object.
                 # Need to initiate usage (save and load).

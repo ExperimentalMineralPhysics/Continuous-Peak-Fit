@@ -1,4 +1,5 @@
 __all__ = [
+    "settings",
     "XRD_FitPattern",
     "XRD_FitSubpattern",
     "DioptasFunctions",
@@ -15,9 +16,11 @@ __all__ = [
     "Med",
     "generate_inputs",
     "Cosmics",
-    "Settings"
+    "Cascade",
 ]
 
+
+from . import settings
 from . import XRD_FitPattern
 from . import XRD_FitSubpattern
 from . import PeakFunctions
@@ -32,7 +35,7 @@ from . import WriteDifferentialStrain
 from . import Mca
 from . import Med
 from . import Cosmics
-from . import Settings
+from . import Cascade
 
 
 def generate_inputs():

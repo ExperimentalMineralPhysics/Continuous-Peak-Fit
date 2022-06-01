@@ -635,8 +635,8 @@ def execute(
 
                 fig_1.savefig(filename)
 
-                if debug:
-                    plt.show()
+                #if debug:
+                plt.show()
                 plt.close()
 
             elif mode == "set-guess":

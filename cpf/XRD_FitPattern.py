@@ -164,7 +164,7 @@ def set_range(
     settings_for_fit.set_subpatterns(subpatterns=subpattern)
     
 
-    execute(setting_class=settings_for_fit, debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
+    execute(setting_class=settings_for_fit, debug=debug, refine=refine, save_all=save_all, iterations=iterations,
             parallel=parallel, mode="set-range", report=True)
 
 

@@ -1002,6 +1002,7 @@ class DioptasDetector:
             #organise colour scale as azimuth
             plot_i = self.azm
             label_y = "Intensity (a.u.)"
+            y_ticks = False
         else: #if y_axis is "default" or "azimuth"
             plot_y = self.azm
             plot_i = self.intensity
@@ -1012,6 +1013,7 @@ class DioptasDetector:
             )
             y_lims = np.around(y_lims / 180) * 180
             axis_plot.set_ylim(y_lims)
+            y_ticks = list(range(int(y_lims[0]),int(y_lims[1]+1),45))
 
         # organise the data to plot
         if data is not None:
@@ -1064,6 +1066,8 @@ class DioptasDetector:
         #set axis limits
         x_lims = [np.min(plot_x.flatten()), np.max(plot_x.flatten())]
         axis_plot.set_xlim(x_lims)
+        if y_ticks:
+            axis_plot.set_yticks(y_ticks)
         
         the_plot = axis_plot.scatter(
             plot_x,

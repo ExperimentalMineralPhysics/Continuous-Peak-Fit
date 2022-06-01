@@ -756,6 +756,7 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
 
         y_lims = np.array([np.min(data[1]), np.max(data[1])])
         y_lims = np.around(y_lims / 180) * 180
+        y_ticks = list(range(int(y_lims[0]),int(y_lims[1]+1),45))
         azi_plot = range(np.int(y_lims[0]), np.int(y_lims[1]), 2)
         # azi_plot = range(0, 360, 2)
         gmodel = Model(pf.coefficient_expand, independent_vars=["azimuth"])
@@ -773,7 +774,7 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
             
             ax.append(fig.add_subplot(5, 1, i+1))
             ax[i].set_title(comp_names[i])
-            
+            ax[i].set_yticks(y_ticks)
             for j in range(len(orders["peak"])):
             
                 param_str = "peak_" + str(j)

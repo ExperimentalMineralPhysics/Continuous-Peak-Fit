@@ -396,9 +396,9 @@ def fit_chunks(
         dfour = get_manual_guesses(settings_as_class, data_as_class, debug=debug)
                 
     # Get chunks according to detector type.
-    if mode != "fit": #cascade:
+    if mode != "fit": #cascade
         chunks, azichunks = data_as_class.bins(settings_as_class, cascade=True)
-    else:
+    else: 
         chunks, azichunks = data_as_class.bins(settings_as_class)
     # Final output list of azimuths with corresponding twotheta_0,h,w
     
@@ -766,10 +766,10 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
     
         # plot output of fourier fits....
 
-        y_lims = np.array([np.min(data[1]), np.max(data[1])])
-        y_lims = np.around(y_lims / 180) * 180
-        y_ticks = list(range(int(y_lims[0]),int(y_lims[1]+1),45))
-        azi_plot = range(np.int(y_lims[0]), np.int(y_lims[1]), 2)
+        x_lims = np.array([np.min(data[1]), np.max(data[1])])
+        x_lims = np.around(x_lims / 90) * 90
+        x_ticks = list(range(int(x_lims[0]),int(x_lims[1]+1),45))
+        azi_plot = range(np.int(x_lims[0]), np.int(x_lims[1]), 2)
         # azi_plot = range(0, 360, 2)
         gmodel = Model(pf.coefficient_expand, independent_vars=["azimuth"])
     
@@ -786,7 +786,8 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
             
             ax.append(fig.add_subplot(5, 1, i+1))
             ax[i].set_title(comp_names[i])
-            ax[i].set_yticks(y_ticks)
+            # ax[i].set_xticks(x_ticks)
+            ax[i].set_xlim(x_lims)
             for j in range(len(orders["peak"])):
             
                 param_str = "peak_" + str(j)
@@ -838,7 +839,8 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
             )
             ax[i+k+1].scatter(data[1], data[0]["bg"][k], s=10)
             ax[i+k+1].plot(az_plt, gmod_plot, )
-    
+            ax[i+k+1].set_xlim(x_lims)
+            
         fig.suptitle(io.peak_string(orders) + "; Fits to Chunks")
     
         if save_fit:

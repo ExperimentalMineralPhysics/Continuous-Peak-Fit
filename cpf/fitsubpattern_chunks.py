@@ -13,8 +13,6 @@ import cpf.PeakFunctions as pf
 import cpf.IO_functions as io
 
 
-
-#def get_manual_guesses(peeks, orders, bounds, twotheta, debug=None):
 def get_manual_guesses(settings_as_class, data_as_class, debug=False):
     """ 
     :param data_as_class:
@@ -25,10 +23,6 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
     
     peeks = len(settings_as_class.subfit_orders["peak"])
     t_th_guesses = np.array(settings_as_class.subfit_orders["PeakPositionSelection"])
-    # print(len(t_th_guesses), peeks)
-    # #confirm there are the same number of peaks selected as are to be fit.
-    # if len(t_th_guesses) != peeks:
-    #     raise ValueError("The number of peaks and the postion selection do not match.")
 
     settings_as_class.validate_position_selection(peak_set=settings_as_class.subfit_order_position, report=False)
 
@@ -49,25 +43,6 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
         lims = pf.parse_bounds(
             settings_as_class.fit_bounds, data_as_class, 0, 0, param=["d-space"]
         )
-        # Confirm that peak position selections are within the bounds.
-        # If not fail as gracefully as possible.
-        # lims_tth = np.array(lims["d-space"])
-        # print(lims_tth)
-        # print(t_th_guess)
-        # if (
-        #         np.min(t_th_guess[:, 1]) < lims_tth[0]
-        #         or np.max(t_th_guess[:, 1]) > lims_tth[1]
-        # ):
-        #     raise ValueError(
-        #         "At least one of the "
-        #         "PeakPositionSelection"
-        #         " values is outside of the bounds. Check values in "
-        #         "range"
-        #         " and "
-        #         "PeakPositionSelection"
-        #         "."
-        #     )
-
         # get coefficient type
         coeff_type = pf.params_get_type(settings_as_class.subfit_orders, comp, peak=j)
 
@@ -118,8 +93,6 @@ def get_chunk_background_guess(settings_as_class, data_chunk_class, n, debug=Fal
         
     FIXME: background_type has been removed/depreciated. It is no longer needed. It should be replaced by background_fixed
     """
-    # j = count
-    
     # Get indices of sorted two theta values excluding the masked values
     tth_ord = ma.argsort(data_chunk_class.tth.compressed())
     
@@ -204,7 +177,6 @@ def get_chunk_peak_guesses(settings_as_class, data_chunk_class,
     p_fixed = 0
     peaks = []
     lims = []
-    # j = count
 
     for k in range(len(settings_as_class.subfit_orders["peak"])):
         # FIX ME: altered from locals call as now passed as None - check!
@@ -213,38 +185,15 @@ def get_chunk_peak_guesses(settings_as_class, data_chunk_class,
                 print("dfour in locals \n")
             
             coeff_type = pf.params_get_type(settings_as_class.subfit_orders, "d", peak=k)
-            # if "d-space_type" in settings_as_class.subfit_orders["peak"][k]:
-            #     coeff_type = settings_as_class.subfit_orders["peak"][k]["d-space_type"]
-            # else:
-            #     coeff_type = "fourier"
-            # print(coeff_type)
-            # t_th_guess = pf.coefficient_expand(
-            #     np.mean(data_chunk_class.azm),
-            #     dfour[k][0],
-            #     coeff_type=coeff_type,
-            # )
-            # print("t_th_guess", t_th_guess)
-            # d_guess = data_chunk_class.conversion(
-            #     t_th_guess,
-            #     azm=np.mean(data_chunk_class.azm),reverse=False
-            # )
-            # print(d_guess)
-            # d_guess = data_chunk_class.conversion(
-            #     t_th_guess,
-            #     azm=np.mean(data_chunk_class.azm),reverse=True
-            # )
-            # print(d_guess)
             d_guess = pf.coefficient_expand(
                 np.mean(data_chunk_class.azm),
                 dfour[k][0],
                 coeff_type=coeff_type,
             )
-            # print(d_guess)
             t_th_guess = data_chunk_class.conversion(
                 d_guess,
                 azm=np.mean(data_chunk_class.azm),reverse=True
             )
-            # print(t_th_guess)
             # Finds the index of the closest two-theta to the d-spacing input
             idx = (
                 np.abs(data_chunk_class.tth - t_th_guess)
@@ -442,7 +391,6 @@ def fit_chunks(
             end="\r",
         )
         
-        
         #make data class for chunks.
         chunk_data = data_as_class.duplicate()
         #reduce data to a subset
@@ -472,16 +420,11 @@ def fit_chunks(
             # FIXME: this is crude and could be done better -- i.e. with a switch for the percentile
             # get 98th percentils from each chunk
             raise NotImplementedError
-            #out_vals.append(np.max(chunk_data.intensity))
             
         elif mode == "fit" or mode=="cascade":
             
             # Define parameters to pass to fit
             params = Parameters()
-    
-            # FIXME: not meeting this condition means no chunk fitting
-            # is this correct?
-            # yes. 
             
             if ma.MaskedArray.count(chunk_data.intensity) >= min_dat:
         
@@ -509,41 +452,20 @@ def fit_chunks(
                         params.add(
                             "bg_c" + str(b) + "_f" + str(0), background_guess[b][0]
                         )
-        
+                comp_list = ["h", "d", "w", "p"]
+                comp_names = ["height", "d-space", "width", "profile"]
                 for pk in range(len(peaks)):
-                                        
-                    params.add(
-                        "peak_" + str(pk) + "_h0",
-                        peaks[pk]["height"][0],
-                        min=limits["peak"][pk]["height"][0],
-                        max=limits["peak"][pk]["height"][1],
-                    )
-                    params.add(
-                        "peak_" + str(pk) + "_d0",
-                        peaks[pk]["d-space"][0],
-                        min=limits["peak"][pk]["d-space"][0],
-                        max=limits["peak"][pk]["d-space"][1],
-                    )
-                    params.add(
-                        "peak_" + str(pk) + "_w0",
-                        peaks[pk]["width"][0],
-                        min=limits["peak"][pk]["width"][0],
-                        max=limits["peak"][pk]["width"][1],
-                    )
-                    if "profile_fixed" in settings_as_class.subfit_orders["peak"][pk]:
+                    for cp in range(len(comp_list)):
+                        if comp_names[cp]+"_fixed" in settings_as_class.subfit_orders["peak"][pk]:
+                            vary=False
+                        else:
+                            vary=True
                         params.add(
-                            "peak_" + str(pk) + "_p0",
-                            peaks[pk]["profile"][0],
-                            min=limits["peak"][pk]["profile"][0],
-                            max=limits["peak"][pk]["profile"][1],
-                            vary=False,
-                        )
-                    else:
-                        params.add(
-                            "peak_" + str(pk) + "_p0",
-                            peaks[pk]["profile"][0],
-                            min=limits["peak"][pk]["profile"][0],
-                            max=limits["peak"][pk]["profile"][1],
+                            "peak_" + str(pk) + "_"+comp_list[cp]+"0",
+                            peaks[pk][comp_names[cp]][0],
+                            min=limits["peak"][pk][comp_names[cp]][0],
+                            max=limits["peak"][pk][comp_names[cp]][1],
+                            vary=vary
                         )
     
                 if debug:
@@ -567,32 +489,20 @@ def fit_chunks(
                     print("Final chunk fit; "+str(j)+"/"+str(len(chunks)))
                     params.pretty_print()
                 
+                # get values from fit and append to arrays for output
                 for i in range(len(background_guess)):
                     out_vals["bg"][i].append(params["bg_c" + str(i) + "_f0"].value)
                     out_vals["bg_err"][i].append(
                         params["bg_c" + str(i) + "_f0"].stderr
                     )
-                for i in range(peeks):
-                    
-                    out_vals["h"][i].append(params["peak_" + str(i) + "_h0"].value)
-                    out_vals["h_err"][i].append(
-                        params["peak_" + str(i) + "_h0"].stderr
-                    )
-                    out_vals["d"][i].append(params["peak_" + str(i) + "_d0"].value)
-                    out_vals["d_err"][i].append(params["peak_" + str(i) + "_d0"].stderr)
-                    
-                    out_vals["w"][i].append(params["peak_" + str(i) + "_w0"].value)
-                    out_vals["w_err"][i].append(
-                        params["peak_" + str(i) + "_w0"].stderr
-                    )
-                    
-                    # profile should now be bound by the settings in the parameter
-                    out_vals["p"][i].append(params["peak_" + str(i) + "_p0"].value)
-                    out_vals["p_err"][i].append(
-                        params["peak_" + str(i) + "_p0"].stderr
-                    )
-                    # may have to set profile error when initiate params so have appropriate error value
-                    # if fixed
+                comp_list = ["h", "d", "w", "p"]
+                comp_names = ["height", "d-space", "width", "profile"]
+                for pk in range(len(peaks)):
+                    for cp in range(len(comp_list)):
+                        out_vals[comp_list[cp]][pk].append(params["peak_"+str(pk)+"_"+comp_list[cp]+"0"].value)
+                        out_vals[comp_list[cp]+"_err"][pk].append(
+                            params["peak_" + str(pk) + "_"+comp_list[cp]+"0"].stderr
+                        )
                 
                 out_vals["chunks"].append(azichunks[j])
             
@@ -640,10 +550,12 @@ def fit_chunks(
                         linewidth=2,
                         label="fit",
                     )
-                    #plt.xlim(tth_range)
                     plt.legend()
                     plt.title(((io.peak_string(settings_as_class.subfit_orders) + "; azimuth = %.1f" ) % azichunks[j]))
                     plt.show()
+            else:
+                #there are not enough data to fit for the chunks
+                pass
         
         else:
             raise ValueError("The mode for processing the chunks is not recognised.")
@@ -762,31 +674,23 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
     if 1:#debug:
         print("Parameters after initial Fourier fits")
         master_params.pretty_print()
-    
-    
+        
         # plot output of fourier fits....
-
         x_lims = np.array([np.min(data[1]), np.max(data[1])])
         x_lims = np.around(x_lims / 90) * 90
         x_ticks = list(range(int(x_lims[0]),int(x_lims[1]+1),45))
         azi_plot = range(np.int(x_lims[0]), np.int(x_lims[1]), 2)
-        # azi_plot = range(0, 360, 2)
         gmodel = Model(pf.coefficient_expand, independent_vars=["azimuth"])
     
-        fig = plt.figure()
-        
-        
         comp_list = ["h", "d", "w", "p"]
         comp_names = ["height", "d-space", "width", "profile"]
         
-        
         # loop over peak parameters and plot.
+        fig = plt.figure()
         ax=[]
         for i in range(len(comp_list)):
-            
             ax.append(fig.add_subplot(5, 1, i+1))
             ax[i].set_title(comp_names[i])
-            # ax[i].set_xticks(x_ticks)
             ax[i].set_xlim(x_lims)
             for j in range(len(orders["peak"])):
             

@@ -450,6 +450,14 @@ class settings:
             elif not isinstance(orders[i]["background"], list):
                 missing.append(
                     order_str + " " + str(i) + " has an incorrectly formatted"+"'background'")
+            else:
+                 # replace old component extansion naming convention.
+                # bascially -- check if it is old nomlencature (*-*) and replace (with *_*)
+                for l in range(len(comp_modifications)):
+                    if "background"+"-"+comp_modifications[l] in self.fit_orders[i]:
+                        print("subpattern "+ str(i)+": "+"background"+"-"+comp_modifications[l]+" replaced with "+"background"+"-"+comp_modifications[l])
+                        self.fit_orders[i]["background"+"_"+comp_modifications[l]] = self.fit_orders[i].pop("background"+"-"+comp_modifications[l])
+                    
     
             # check peaks
             if "peak" not in orders[i]:

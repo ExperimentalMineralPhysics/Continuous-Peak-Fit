@@ -9,10 +9,7 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
-# import multiprocessing as mp
 import pathos.multiprocessing as mp
-#import multiprocessing_on_dill as mp
-#from joblib import Parallel, delayed
 import importlib.util
 import cpf.DioptasFunctions as DioptasFunctions
 import cpf.GSASIIFunctions as GSASIIFunctions
@@ -666,32 +663,14 @@ def execute(
             else:
                 if parallel is True:  # setup parallel version
                     kwargs = {
-                        # "data_as_class": sub_data,
-                        # "settings_as_class": settings_for_fit,
-                        
                         "previous_params": params,
                         "save_fit": save_figs,
                         "debug": debug,
                         "refine": refine,
                         "iterations": iterations,
-                        
-                        # "file_number": j, #added
-                        # "subpattern_number": i, #added
-                        # "f_name": diff_files[j],
-                        # "fdir": fit_settings.Output_directory,
-                        # "num": i
+                       
                     }
-                    # args = (
-                    #     [twotheta_sub, d_spacing_sub, parms_dict],
-                    #     azimuth_sub,
-                    #     intens_sub,
-                    #     sub_data,
-                    #     orders,
-                    #     params,
-                    #     bounds,
-                    # )
-                    # parallel_pile.append((args, kwargs))
-                    arg = (sub_data, settings_for_fit)
+                    arg = (sub_data, settings_for_fit.duplicate())
                     parallel_pile.append((arg, kwargs))
 
                 else:  # non-parallel version

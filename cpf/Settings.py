@@ -4,7 +4,7 @@
 __all__ = ["settings", "get_output_options", "detector_factory"]
 
 import os
-from copy import deepcopy
+from copy import deepcopy, copy
 import numpy as np
 import importlib.util
 import cpf.DioptasFunctions as DioptasFunctions
@@ -168,7 +168,19 @@ class settings:
         # self.parallel=True,
         # self.mode="fit",
         # self.report=False,
-        
+       
+    def duplicate(self):
+        """
+        Makes a copy of an settings instance. But make deep copies of the sub_fit settings. 
+        This is for the parallel processing that needs an immutable object to work.
+        """
+        new = copy(self)
+        new.subfit_file_position  = deepcopy(self.subfit_file_position)
+        new.subfit_filename       = deepcopy(self.subfit_filename)
+        new.subfit_order_position = deepcopy(self.subfit_order_position)
+        new.subfit_orders         = deepcopy(self.subfit_orders)
+        return new
+                
     
     def populate(self, 
         settings_file=None,

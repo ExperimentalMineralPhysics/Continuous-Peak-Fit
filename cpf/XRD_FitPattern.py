@@ -9,14 +9,15 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
-#import multiprocessing as mp
+# import multiprocessing as mp
 import pathos.multiprocessing as mp
 #import multiprocessing_on_dill as mp
+#from joblib import Parallel, delayed
 import importlib.util
 import cpf.DioptasFunctions as DioptasFunctions
 import cpf.GSASIIFunctions as GSASIIFunctions
 import cpf.MedFunctions as MedFunctions
-from cpf.settings import Settings
+from cpf.settings import settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 from cpf.Cosmics import image_preprocess as cosmicsimage_preprocess
 from cpf.IO_functions import json_numpy_serializer, make_outfile_name, peak_string, any_terms_null
@@ -116,7 +117,7 @@ def initiate(
         )
     # If no params_dict then initiate. Check all the output functions are present and valid.
     
-    settings_for_fit = Settings()
+    settings_for_fit = settings()
     settings_for_fit.populate(settings_file = setting_file, report=report)    
         
     return settings_for_fit
@@ -495,7 +496,8 @@ def execute(
         
     # if parallel processing start the pool
     if parallel is True:
-        p = mp.Pool(processes=mp.cpu_count())
+        # p = mp.Pool(processes=mp.cpu_count())
+        p = mp.ProcessPool(nodes=mp.cpu_count())
         #p = mp.Pool()
 
     # Process the diffraction patterns #
@@ -664,15 +666,20 @@ def execute(
             else:
                 if parallel is True:  # setup parallel version
                     kwargs = {
+                        # "data_as_class": sub_data,
+                        # "settings_as_class": settings_for_fit,
+                        
+                        "previous_params": params,
                         "save_fit": save_figs,
                         "debug": debug,
                         "refine": refine,
                         "iterations": iterations,
-                        "file_number": j, #added
-                        "subpattern_number": i, #added
+                        
+                        # "file_number": j, #added
+                        # "subpattern_number": i, #added
                         # "f_name": diff_files[j],
                         # "fdir": fit_settings.Output_directory,
-                        "num": i
+                        # "num": i
                     }
                     # args = (
                     #     [twotheta_sub, d_spacing_sub, parms_dict],

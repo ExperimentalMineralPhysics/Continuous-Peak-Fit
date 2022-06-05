@@ -168,17 +168,6 @@ class settings:
         # self.parallel=True,
         # self.mode="fit",
         # self.report=False,
-     
-    # def __getstate__(self):
-    #     state = self
-    #     # Don't pickle baz
-    #     del builtins
-    #     return state
-
-    # def __setstate__(self, state):
-    #     self.__dict__.update(state)
-    #     # Add baz back since it doesn't exist in the pickle
-    #     self.baz = 0
         
     
     def populate(self, 
@@ -242,14 +231,17 @@ class settings:
         Fails with a list of missing parameters if not complete.
         """
         
+        # store all the settings from file in a mocule class. 
+        module_name, _ = os.path.splitext(os.path.basename(self.settings_file))
         spec = importlib.util.spec_from_file_location(
-                    "settings_module", self.settings_file
+                    module_name, self.settings_file
                 )
-        # store all the settings from file in the class. then sort them in a useful way. 
         self.settings_from_file = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.settings_from_file)
+        #then sort them in a useful way...
         
-        all_settings_from_file = dir(self.settings_from_file)
+        
+        ##all_settings_from_file = dir(self.settings_from_file)#
         
         #add and check data directory
         self.datafile_directory = self.settings_from_file.datafile_directory
@@ -895,3 +887,6 @@ def detector_factory(calibration_type, calibration_param, fit_settings=None):
         return detector_class(calibration_param, fit_settings)
     else:
         raise ValueError("Unrecognized calibration type.")
+        
+if __name__ == '__main__':
+    settings = settings()

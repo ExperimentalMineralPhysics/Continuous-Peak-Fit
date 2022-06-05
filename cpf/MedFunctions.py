@@ -696,7 +696,7 @@ class MedDetector:
                 orientation="vertical"
             s_map = cm.ScalarMappable(norm=normalize, cmap=c_map)
             # label colour bar with unique azimuths if there are less than 10
-            if len(self.intensity) <= 10:
+            if len(np.unique(self.azm)) <= 10:
                 ticks = np.unique(plot_c)
             else:
                 ticks = None

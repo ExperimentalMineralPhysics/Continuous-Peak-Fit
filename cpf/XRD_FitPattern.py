@@ -50,42 +50,6 @@ def register_default_formats() -> object:
 output_methods_modules = register_default_formats()
 
 
-def get_output_options(output_type):
-    """
-    Check if input is string or list of strings
-    :param output_type: string or list of strings
-    :return: list of strings
-    """
-    output_mod_type = []
-    if isinstance(output_type, str):
-        output_mod_type.append(output_type)
-    else:
-        output_mod_type = output_type
-    return output_mod_type
-
-
-def detector_factory(calibration_param, calibration_type, fit_settings=None):
-    """
-    Factory function to provide appropriate class for data dependent on type.
-    Currently, supported options are Dioptas, GSASII and Med.
-    :rtype: object
-    :param fit_settings:
-    :param calibration_param:
-    :param calibration_type:
-    :return:
-    """
-    if calibration_type == "Dioptas":
-        detector_class = DioptasFunctions.DioptasDetector
-        return detector_class(calibration_param, fit_settings)
-    if calibration_type == "GSASII":
-        detector_class = GSASIIFunctions.GSASIIDetector
-        return detector_class(calibration_param, fit_settings)
-    if calibration_type == "Med":
-        detector_class = MedFunctions.MedDetector
-        return detector_class(calibration_param, fit_settings)
-    else:
-        raise ValueError("Unrecognized calibration type.")
-
 
 def initiate(
     setting_file=None,

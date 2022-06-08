@@ -8,7 +8,7 @@ Modifications:
     Stripped out parts that are not required:
         - spline function and option to align the called data. 
 """
-from cpf import Mca
+from cpf.input_types import Mca
 import numpy as Numeric
 
 # FIX ME: DMF Need to rationalise this code and keep what's needed.

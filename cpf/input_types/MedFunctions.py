@@ -11,7 +11,7 @@ import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
 from matplotlib import cm, colors, gridspec
-from cpf import Med
+from cpf.input_types import Med
 
 
 # For MED files from Energy dispersive diffraction patterns at X17B2, 6-BMB and others.

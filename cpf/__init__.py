@@ -2,25 +2,21 @@ __all__ = [
     "settings",
     "XRD_FitPattern",
     "XRD_FitSubpattern",
-    "DioptasFunctions",
-    "GSASIIFunctions",
-    "MedFunctions",
+    "input_types",
     "peak_functions",
     "series_functions",
     "lmfit_model",
-    "Plot85Functions",
-    "WriteMultiFit",
-    "WritePolydefixED",
+    "output_formatters",
     "XRD_FitPattern",
     "XRD_FitSubpattern",
     "ImageMetaData",
-    "Mca",
-    "Med",
     "generate_inputs",
     "Cosmics",
     "Cascade",
 ]
 
+from . import input_types
+from . import output_formatters
 
 from . import settings
 from . import XRD_FitPattern
@@ -28,16 +24,6 @@ from . import XRD_FitSubpattern
 from . import peak_functions
 from . import series_functions
 from . import lmfit_model
-from . import DioptasFunctions
-from . import GSASIIFunctions
-from . import MedFunctions
-from . import Plot85Functions
-from . import WriteMultiFit
-from . import WritePolydefix
-from . import WritePolydefixED
-from . import WriteDifferentialStrain
-from . import Mca
-from . import Med
 from . import Cosmics
 from . import Cascade
 

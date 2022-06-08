@@ -35,7 +35,7 @@ def register_default_formats() -> object:
     ]
     new_module = {}
     for output_module in output_list:
-        module = __import__("cpf.Write" + output_module, fromlist=[None])
+        module = __import__("cpf.output_formatters.Write" + output_module, fromlist=[None])
         new_module[output_module] = module
     return new_module
 

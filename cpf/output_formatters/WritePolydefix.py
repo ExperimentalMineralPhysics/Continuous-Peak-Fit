@@ -6,7 +6,7 @@ import os
 import numpy as np
 
 # import cpf.PeakFunctions as ff
-import cpf.WriteMultiFit as WriteMultiFit
+import cpf.output_formatters.WriteMultiFit as WriteMultiFit
 import json
 import cpf.IO_functions as IO
 

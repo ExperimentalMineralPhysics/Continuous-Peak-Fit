@@ -7,9 +7,9 @@ import os
 from copy import deepcopy, copy
 import numpy as np
 import importlib.util
-import cpf.DioptasFunctions as DioptasFunctions
-import cpf.GSASIIFunctions as GSASIIFunctions
-import cpf.MedFunctions as MedFunctions
+import cpf.input_types.DioptasFunctions as DioptasFunctions
+import cpf.input_types.GSASIIFunctions as GSASIIFunctions
+import cpf.input_types.MedFunctions as MedFunctions
 from cpf.IO_functions import file_list#, get_output_options, detector_factory, register_default_formats
 from cpf.PeakFunctions import coefficient_type_as_number, get_number_coeff
 
@@ -30,7 +30,7 @@ def register_default_formats() -> object:
     ]
     new_module = {}
     for output_module in output_list:
-        module = __import__("cpf.Write" + output_module, fromlist=[None])
+        module = __import__("cpf.output_formatters.Write" + output_module, fromlist=[None])
         new_module[output_module] = module
     return new_module
 

@@ -524,8 +524,9 @@ def execute(
                 if clean == 0:
                     # the previous fit has problems so discard it
                     print(
-                        "Propagated fit has problems so not sesible to track the centre of the fit."
+                        "Propagated fit has problems so not sensible to track the centre of the fit."
                     )
+                    params=[]
                 else:
                     print("old subpattern range", tth_range)
                     mid = []
@@ -566,7 +567,6 @@ def execute(
                     # re-get settings for current subpattern
                     settings_for_fit.set_subpattern(j, i)
 
-            
             sub_data = new_data.duplicate()
             sub_data.set_limits(range_bounds=tth_range)
             

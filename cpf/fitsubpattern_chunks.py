@@ -9,8 +9,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 from lmfit import Parameters, Model
-import cpf.PeakFunctions as pf
 import cpf.IO_functions as io
+import cpf.series_functions as sf
+import cpf.lmfit_model as lmm
 
 
 def get_manual_guesses(settings_as_class, data_as_class, debug=False):
@@ -40,14 +41,14 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
         t_th_guess = t_th_guesses[t_th_guesses[:, 0] == peek, 1:]
         param_str = "peak_" + str(j)
         comp = "d"
-        lims = pf.parse_bounds(
+        lims = lmm.parse_bounds(
             settings_as_class.fit_bounds, data_as_class, 0, 0, param=["d-space"]
         )
         # get coefficient type
-        coeff_type = pf.params_get_type(settings_as_class.subfit_orders, comp, peak=j)
+        coeff_type = sf.params_get_type(settings_as_class.subfit_orders, comp, peak=j)
 
         # for guesses make sure there are not too many coefficients.
-        n_coeff = pf.get_number_coeff(settings_as_class.subfit_orders, comp)
+        n_coeff = sf.get_number_coeff(settings_as_class.subfit_orders, comp)
         
         if n_coeff > len(t_th_guess[:, 0]):
             o = int(np.floor(len(t_th_guess[:, 0]) / 2 - 1))
@@ -56,7 +57,7 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
             o = settings_as_class.subfit_orders["peak"][j]["d-space"]
 
         temp_param = Parameters()
-        temp_param = pf.initiate_params(
+        temp_param = lmm.initiate_params(
             inp_param=temp_param,
             param_str=param_str,
             coeff_type=coeff_type,
@@ -65,7 +66,7 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
             limits=lims["d-space"],
             value=data_as_class.conversion(t_th_guess[0, 1], azm=t_th_guess[0, 1]),
         )
-        fout = pf.coefficient_fit(
+        fout = lmm.coefficient_fit(
             azimuth=t_th_guess[:,0],
             ydata=data_as_class.conversion(t_th_guess[:, 1], azm=t_th_guess[:, 0]),
             inp_param=temp_param,
@@ -76,7 +77,7 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
         if debug:
             temp_param.pretty_print()
         dfour.append(
-            pf.gather_param_errs_to_list(temp_param, param_str, comp)
+            lmm.gather_param_errs_to_list(temp_param, param_str, comp)
         )
     return dfour
 
@@ -184,8 +185,8 @@ def get_chunk_peak_guesses(settings_as_class, data_chunk_class,
             if debug and k == 0:
                 print("dfour in locals \n")
             
-            coeff_type = pf.params_get_type(settings_as_class.subfit_orders, "d", peak=k)
-            d_guess = pf.coefficient_expand(
+            coeff_type = sf.params_get_type(settings_as_class.subfit_orders, "d", peak=k)
+            d_guess = sf.coefficient_expand(
                 np.mean(data_chunk_class.azm),
                 dfour[k][0],
                 coeff_type=coeff_type,
@@ -260,13 +261,16 @@ def get_chunk_peak_guesses(settings_as_class, data_chunk_class,
             # Profile fixed is the list of coefficients if the profile is fixed.
             # FIX ME: profile fixed must have the same number of coefficients as required by
             # profile.
+            
+            coeff_type = sf.params_get_type(settings_as_class.subfit_orders, "p", peak=k)
             if "symmetry" in settings_as_class.subfit_orders["peak"][k]:
                 symm = settings_as_class.subfit_orders["peak"][k]["symmetry"]
             else:
                 symm = 1
-            p_guess = pf.fourier_expand(
+            p_guess = sf.coefficient_expand(
                 np.mean(data_chunk_class.azm) * symm,
-                inp_param=settings_as_class.subfit_orders["peak"][k]["profile_fixed"],
+                params=settings_as_class.subfit_orders["peak"][k]["profile_fixed"],
+                coeff_type=coeff_type,
             )
             p_fixed = 1
 
@@ -281,7 +285,7 @@ def get_chunk_peak_guesses(settings_as_class, data_chunk_class,
 
         # DMF added needs checking - required to drive fit and avoid failures
         lims.append(
-            pf.parse_bounds(
+            lmm.parse_bounds(
                 settings_as_class.fit_bounds,
                 data_chunk_class,
                 param=["height", "d-space", "width", "profile"],
@@ -290,7 +294,7 @@ def get_chunk_peak_guesses(settings_as_class, data_chunk_class,
         data_chunk_class
 
     limits = {
-        "background": pf.parse_bounds(
+        "background": lmm.parse_bounds(
                 settings_as_class.fit_bounds,
                 data_chunk_class,
             param=["background"],
@@ -476,7 +480,7 @@ def fit_chunks(
                     guess = params
                     
                 # Run actual fit
-                fit = pf.fit_model(
+                fit = lmm.fit_model(
                     chunk_data, # needs to contain intensity, tth, azi (as chunks), conversion factor
                     settings_as_class.subfit_orders,
                     params,
@@ -514,7 +518,7 @@ def fit_chunks(
                     # required for plotting energy dispersive data. - but I am not sure why
                     azm_plot = ma.array(azm_plot, mask=(~np.isfinite(azm_plot)))
                     gmodel = Model(
-                        pf.peaks_model, independent_vars=["two_theta", "azimuth"], data_class = chunk_data,
+                        lmm.peaks_model, independent_vars=["two_theta", "azimuth"], data_class = chunk_data,
                                 orders = settings_as_class.subfit_orders, 
                     )
                     tth_range = np.linspace(
@@ -575,16 +579,16 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
         comp = "f"
         
         master_params.pretty_print()
-        master_params = pf.un_vary_params(
+        master_params = lmm.un_vary_params(
             master_params, param_str, comp
         )  # set other parameters to not vary
-        master_params = pf.vary_params(
+        master_params = lmm.vary_params(
             master_params, param_str, comp
         )  # set these parameters to vary
         if isinstance(
             orders["background"][b], list
         ):  # set part of these parameters to not vary
-            master_params = pf.un_vary_part_params(
+            master_params = lmm.un_vary_part_params(
                 master_params, param_str, comp, orders["background"][b]
             )
         
@@ -592,7 +596,7 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
         data_vals = data[0]["bg"][b]
         data_val_errors = data[0]["bg_err"][b]
                             
-        fout = pf.coefficient_fit(
+        fout = lmm.coefficient_fit(
             azimuth=azimuth,
             ydata=data_vals,
             inp_param=master_params,
@@ -632,20 +636,20 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
             #     # FIX ME: this was not checked properly.the values it feeds are not necessarily correct
             #     # and the fixed parameters might be fit for.
             # coeff_type = pf.params_get_type(orders, comp, peak=j)
-            n_coeff = pf.get_number_coeff(
+            n_coeff = sf.get_number_coeff(
                 orders, comp, peak=j, azimuths=data[1]
             )
-            master_params = pf.un_vary_params(
+            master_params = lmm.un_vary_params(
                 master_params, param_str, comp
             )  # set other parameters to not vary
             if fixed == 0:
-                master_params = pf.vary_params(
+                master_params = lmm.vary_params(
                     master_params, param_str, comp
                 )  # set these parameters to vary
                 if isinstance(
                     orders["peak"][j][comp_names[cp]], list
                 ):  # set part of these parameters to not vary
-                    master_params = pf.un_vary_part_params(
+                    master_params = lmm.un_vary_part_params(
                         master_params,
                         param_str,
                         comp,
@@ -655,8 +659,8 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
                 if n_coeff > len(np.unique(data[1])):  
                     o = int(np.floor(len(np.unique(data[1])) / 2 - 1))
                     un_vary = [x for x in range(0, o)]
-                    master_params = pf.un_vary_part_params(master_params, param_str, comp, un_vary)
-                fout = pf.coefficient_fit(
+                    master_params = lmm.un_vary_part_params(master_params, param_str, comp, un_vary)
+                fout = lmm.coefficient_fit(
                     azimuth=data[1],
                     ydata=data_vals,
                     inp_param=master_params,
@@ -680,7 +684,7 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
         x_lims = np.around(x_lims / 90) * 90
         x_ticks = list(range(int(x_lims[0]),int(x_lims[1]+1),45))
         azi_plot = range(np.int(x_lims[0]), np.int(x_lims[1]), 2)
-        gmodel = Model(pf.coefficient_expand, independent_vars=["azimuth"])
+        gmodel = Model(sf.coefficient_expand, independent_vars=["azimuth"])
     
         comp_list = ["h", "d", "w", "p"]
         comp_names = ["height", "d-space", "width", "profile"]
@@ -700,10 +704,10 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
                     symm = orders["peak"][j]["symmetry"]
                 else:
                     symm = 1
-                temp = pf.gather_param_errs_to_list(
+                temp = lmm.gather_param_errs_to_list(
                     master_params, param_str, comp
                 )
-                temp_tp = pf.get_series_type(master_params, param_str, comp)
+                temp_tp = sf.get_series_type(master_params, param_str, comp)
                 if temp_tp == 5:
                     az_plt = np.array(data[1])
                 else:
@@ -727,10 +731,10 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
     
             param_str = "bg_c" + str(k)
             comp = "f"
-            temp = pf.gather_param_errs_to_list(
+            temp = lmm.gather_param_errs_to_list(
                 master_params, param_str, comp
             )
-            temp_tp = pf.get_series_type(master_params, param_str, comp)
+            temp_tp = sf.get_series_type(master_params, param_str, comp)
             if temp_tp == 5:
                 az_plt = np.array(data[1])
             else:

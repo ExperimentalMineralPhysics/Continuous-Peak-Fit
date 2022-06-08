@@ -5,15 +5,9 @@ __all__ = ["execute", "write_output"]
 import json
 import os
 import sys
-from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
-import numpy.ma as ma
 import pathos.multiprocessing as mp
-import importlib.util
-import cpf.DioptasFunctions as DioptasFunctions
-import cpf.GSASIIFunctions as GSASIIFunctions
-import cpf.MedFunctions as MedFunctions
 from cpf.settings import settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 from cpf.Cosmics import image_preprocess as cosmicsimage_preprocess

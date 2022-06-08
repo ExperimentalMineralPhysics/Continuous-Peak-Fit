@@ -5,16 +5,14 @@ __all__ = ["fit_sub_pattern"]
 # CPF_XRD_FitSubpattern
 # Script fits subset of the data with peaks of pre-defined Fourier orders
 
-import os
 import sys
 import time
 import matplotlib.pyplot as plt
 import numpy as np
-import numpy.ma as ma
-from lmfit import Parameters, Model
 from lmfit.model import save_modelresult  # , load_modelresult
 import json
-import cpf.PeakFunctions as pf
+import cpf.series_functions as sf
+import cpf.lmfit_model as lmm
 import cpf.IO_functions as io
 from cpf.fitsubpattern_chunks import fit_chunks, fit_series
 
@@ -40,7 +38,7 @@ def order_set_peaks(orders, peeks, bg_order):
         # FIX ME: should this generate an error?
         if "profile_fixed" in orders["peak"][y]:
             if (
-                not pf.fourier_order(orders["peak"][y]["profile_fixed"])
+                not sf.fourier_order(orders["peak"][y]["profile_fixed"])
                     == orders["peak"][y]["profile"]
             ):
                 print(
@@ -49,7 +47,7 @@ def order_set_peaks(orders, peeks, bg_order):
                     + ": The order of the profile does not match that of the fixed profile. "
                     "Changing profile to match fixed profile."
                 )
-                orders["peak"][y]["profile"] = pf.fourier_order(
+                orders["peak"][y]["profile"] = sf.fourier_order(
                     orders["peak"][y]["profile_fixed"]
                 )
             # make sure the fixed profile is a list
@@ -74,9 +72,9 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
     for y in range(peeks):
         # loop over parameters
         for param in choice_list:
-            coeff_type = pf.params_get_type(previous_params, param, peak=y)
+            coeff_type = sf.params_get_type(previous_params, param, peak=y)
             if coeff_type != 5:  # if parameters are not independent
-                if np.max(orders["peak"][y][param]) > pf.fourier_order(
+                if np.max(orders["peak"][y][param]) > sf.fourier_order(
                         previous_params["peak"][y][param]
                 ):
                     change_by = (
@@ -87,7 +85,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                     previous_params["peak"][y][param] = (
                             previous_params["background"][y] + [0] * change_by
                     )
-                elif np.max(orders["peak"][y][param]) < pf.fourier_order(
+                elif np.max(orders["peak"][y][param]) < sf.fourier_order(
                         previous_params["peak"][y][param]
                 ):
                     # print 'smaller'
@@ -105,7 +103,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
 
     # loop for background orders/size
     if (
-            pf.params_get_type(previous_params, "background") != 5
+            sf.params_get_type(previous_params, "background") != 5
     ):  # if parameters are not independent
         for y in range(
                 np.max([len(orders["background"]), len(previous_params["background"])])
@@ -116,7 +114,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                     and len(orders["background"]) - 1 >= y
             ):
                 # if present in both arrays make sure it is the right size.
-                if np.max(orders["background"][y]) > pf.fourier_order(
+                if np.max(orders["background"][y]) > sf.fourier_order(
                         previous_params["background"][y]
                 ):
                     # print 'longer'
@@ -128,7 +126,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                     previous_params["background"][y] = (
                             previous_params["background"][y] + [0] * change_by
                     )
-                elif np.max(orders["background"][y]) < pf.fourier_order(
+                elif np.max(orders["background"][y]) < sf.fourier_order(
                         previous_params["background"][y]
                 ):
                     # print 'smaller'
@@ -177,12 +175,12 @@ def check_num_azimuths(peeks, azimu, orders):
     for y in range(peeks):
         # loop over parameters
         for param in choice_list:
-            coeff_type = pf.params_get_type(orders, param, peak=y)
+            coeff_type = sf.params_get_type(orders, param, peak=y)
             if coeff_type != 5:  # if parameters are not independent
                 max_coeff = np.max([max_coeff, np.max(orders["peak"][y][param]) * 2 + 1])
     param = "background"
     for y in range(np.max([len(orders["background"])])):
-        coeff_type = pf.params_get_type(orders, param, peak=y)
+        coeff_type = sf.params_get_type(orders, param, peak=y)
         if coeff_type != 5:  # if parameters are not independent
             max_coeff = np.max([max_coeff, np.max(orders["background"][y]) * 2 + 1])
     #print(max_coeff, len(np.unique(azimu)))
@@ -190,7 +188,7 @@ def check_num_azimuths(peeks, azimu, orders):
         err_str = (
                 "The maximum order, %i, needs more coefficients than the number of unique azimuths, %i. "
                 "It is not possible to fit."
-                % (pf.get_order_from_coeff(max_coeff), len(np.unique(azimu)))
+                % (sf.get_order_from_coeff(max_coeff), len(np.unique(azimu)))
         )
         raise ValueError(err_str)
 
@@ -324,7 +322,7 @@ def fit_sub_pattern(
                 # get lmfit parameters as output.
                 
                 #initiate the model parameter set
-                master_params = pf.initiate_all_params_for_fit(settings_as_class, data_as_class, debug=debug)
+                master_params = lmm.initiate_all_params_for_fit(settings_as_class, data_as_class, debug=debug)
                 
                 #fit the chunk values with fourier/spline series.
                 # iterate over each parameter in turn
@@ -340,7 +338,7 @@ def fit_sub_pattern(
                 # FIX ME: need to confirm the number of parameters matches the orders of the fits.
                 
                 #initiate the model parameter set
-                master_params = pf.initiate_all_params_for_fit(settings_as_class, data_as_class, values=previous_params, debug=debug)
+                master_params = lmm.initiate_all_params_for_fit(settings_as_class, data_as_class, values=previous_params, debug=debug)
                 
             chunks_end = time.time()
             step = step + 10
@@ -360,12 +358,12 @@ def fit_sub_pattern(
                         param_str = "bg_c" + str(k)
                         comp = "f"
                         # set other parameters to not vary
-                        master_params = pf.un_vary_params(master_params, param_str, comp)
+                        master_params = lmm.un_vary_params(master_params, param_str, comp)
                         # set these parameters to vary
-                        master_params = pf.vary_params(master_params, param_str, comp)
+                        master_params = lmm.vary_params(master_params, param_str, comp)
                         # set part of these parameters to not vary
                         #master_params = ff.un_vary_part_params(master_params, param_str, comp, orders['background'][k])
-                        fout = pf.fit_model(
+                        fout = lmm.fit_model(
                             data_as_class,
                             settings_as_class.subfit_orders,
                             master_params,
@@ -389,12 +387,12 @@ def fit_sub_pattern(
                         for cp in range(len(comp_list)):
                             comp = comp_list[cp]
                             # set other parameters to not vary
-                            master_params = pf.un_vary_params(master_params, param_str, comp)
+                            master_params = lmm.un_vary_params(master_params, param_str, comp)
                             # set these parameters to vary
-                            master_params = pf.vary_params(master_params, param_str, comp)
+                            master_params = lmm.vary_params(master_params, param_str, comp)
                             # set part of these parameters to not vary
                             if isinstance(settings_as_class.subfit_orders["peak"][k][comp_names[cp]], list):
-                                master_params = pf.un_vary_part_params(
+                                master_params = lmm.un_vary_part_params(
                                     master_params,
                                     param_str,
                                     comp,
@@ -404,7 +402,7 @@ def fit_sub_pattern(
                                 refine_max_f_eval = 5 * peeks * default_max_f_eval
                             else:
                                 refine_max_f_eval = default_max_f_eval
-                            fout = pf.fit_model(
+                            fout = lmm.fit_model(
                                 data_as_class,
                                 settings_as_class.subfit_orders,
                                 master_params,
@@ -450,7 +448,7 @@ def fit_sub_pattern(
                 param_str = "bg_c" + str(k)
                 comp = "f"
                 # set these parameters to vary
-                master_params = pf.vary_params(master_params, param_str, comp)
+                master_params = lmm.vary_params(master_params, param_str, comp)
                 # set part of these parameters to not vary
             for k in range(peeks):
                 param_str = "peak_" + str(k)
@@ -464,19 +462,19 @@ def fit_sub_pattern(
                     # if the profile is not fixed iterate over this as well.
                     comp_list.append("p")
                 for cp in range(len(comp_list)):
-                    master_params = pf.vary_params(
+                    master_params = lmm.vary_params(
                         master_params, param_str, comp_list[cp]
                     )
                     # set part of these parameters to not vary
                     if isinstance(settings_as_class.subfit_orders["peak"][k][comp_names[cp]], list):
-                        master_params = pf.un_vary_part_params(
+                        master_params = lmm.un_vary_part_params(
                             master_params,
                             param_str,
                             comp_list[cp],
                             settings_as_class.subfit_orders["peak"][k][comp_names[cp]],
                         )
 
-            fout = pf.fit_model(
+            fout = lmm.fit_model(
                 data_as_class,
                 settings_as_class.subfit_orders,
                 master_params,
@@ -518,7 +516,7 @@ def fit_sub_pattern(
     print("ChiSquared", fout.chisqr)
 
     # Write master_params to new_params dict object
-    new_params = pf.params_to_new_params(master_params, orders=settings_as_class.subfit_orders)
+    new_params = lmm.params_to_new_params(master_params, orders=settings_as_class.subfit_orders)
 
     # get all correlation coefficients
     # FIX ME: this lists all the coefficients rather than just the unique half -- ie.
@@ -573,7 +571,7 @@ def fit_sub_pattern(
         y_lims = np.array([np.min(data_as_class.azm.flatten()), np.max(data_as_class.azm.flatten())])
         y_lims = np.around(y_lims / 180) * 180
 
-        gmodel = Model(pf.peaks_model, independent_vars=["two_theta", "azimuth"], data_class = data_as_class,
+        gmodel = Model(lmm.peaks_model, independent_vars=["two_theta", "azimuth"], data_class = data_as_class,
                                 orders = settings_as_class.subfit_orders, 
                     )
         full_fit_intens = gmodel.eval(
@@ -593,7 +591,7 @@ def fit_sub_pattern(
             param_type = new_params["peak"][i]["d-space_type"]
             fit_centroid.append(
                 data_as_class.conversion(
-                    pf.coefficient_expand(azi_plot, param=param, coeff_type=param_type), 
+                    sf.coefficient_expand(azi_plot, param=param, coeff_type=param_type), 
                     azi_plot, reverse=1)
             )
         

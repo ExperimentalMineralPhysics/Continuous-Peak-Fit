@@ -5,7 +5,9 @@ __all__ = [
     "DioptasFunctions",
     "GSASIIFunctions",
     "MedFunctions",
-    "PeakFunctions",
+    "peak_functions",
+    "series_functions",
+    "lmfit_model",
     "Plot85Functions",
     "WriteMultiFit",
     "WritePolydefixED",
@@ -23,7 +25,9 @@ __all__ = [
 from . import settings
 from . import XRD_FitPattern
 from . import XRD_FitSubpattern
-from . import PeakFunctions
+from . import peak_functions
+from . import series_functions
+from . import lmfit_model
 from . import DioptasFunctions
 from . import GSASIIFunctions
 from . import MedFunctions

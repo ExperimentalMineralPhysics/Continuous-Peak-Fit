@@ -4,7 +4,8 @@ __all__ = ["Requirements", "WriteOutput"]
 import os
 
 import numpy as np
-import cpf.PeakFunctions as ff
+# import cpf.PeakFunctions as ff
+import cpf.series_functions as sf
 import cpf.IO_functions as IO
 import json
 import re
@@ -413,13 +414,13 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
                     sym = 1
 
                 az = setting_class.data_class.calibration["azimuths"]
-                coef_type = ff.params_get_type(fit[x], "d", peak=y)
-                peak_d = ff.coefficient_expand(
+                coef_type = sf.params_get_type(fit[x], "d", peak=y)
+                peak_d = sf.coefficient_expand(
                     np.array(az), fit[x]["peak"][y]["d-space"], coeff_type=coef_type
                 )
                 # peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
-                coef_type = ff.params_get_type(fit[x], "h", peak=y)
-                peak_i = ff.coefficient_expand(
+                coef_type = sf.params_get_type(fit[x], "h", peak=y)
+                peak_i = sf.coefficient_expand(
                     np.array(az_used) * sym,
                     fit[x]["peak"][y]["height"],
                     coeff_type=coef_type,

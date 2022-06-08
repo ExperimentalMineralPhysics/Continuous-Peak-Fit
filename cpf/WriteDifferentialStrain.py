@@ -4,10 +4,10 @@ __all__ = ["Requirements", "WriteOutput"]
 import os
 
 import numpy as np
-import cpf.PeakFunctions as pf
+# import cpf.PeakFunctions as pf
 import json
-import lmfit
 from lmfit.model import load_modelresult
+import cpf.lmfit_model as lmm
 
 # import cpf.XRD_FitPattern as XRD_FP
 # from cpf.IO_functions import ReplaceNullTerms, FileList, lmfit_fix_int_data_type
@@ -226,13 +226,13 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
                 if os.path.isfile(savfilename):
                     try:
                         gmodel = load_modelresult(
-                            savfilename, funcdefs={"peaks_model": pf.peaks_model}
+                            savfilename, funcdefs={"peaks_model": lmm.peaks_model}
                         )
                     except:
                         IO.lmfit_fix_int_data_type(savfilename)
                         try:
                             gmodel = load_modelresult(
-                                savfilename, funcdefs={"peaks_model": pf.peaks_model}
+                                savfilename, funcdefs={"peaks_model": lmm.peaks_model}
                             )
                         except:
                             #raise FileNotFoundError

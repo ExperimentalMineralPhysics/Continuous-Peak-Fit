@@ -3,9 +3,10 @@ __all__ = ["Requirements", "WriteOutput"]
 import os
 
 import numpy as np
-import cpf.PeakFunctions as ff
+# import cpf.PeakFunctions as ff
 import json
 import cpf.IO_functions as IO
+import cpf.series_functions as sf
 
 
 def Requirements():
@@ -197,13 +198,13 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
             text_file.write("# background coefficients\n")
             for k in range(int(Num_Azi)):
                 az = np.array([k / Num_Azi * 360])
-                inter = ff.coefficient_expand(
+                inter = sf.coefficient_expand(
                     az,
                     data_to_write[j]["background"][0],
                     data_to_write[j]["background_type"],
                 )
                 if len(data_to_write[j]["background"]) > 1:
-                    slop = ff.coefficient_expand(
+                    slop = sf.coefficient_expand(
                         az,
                         data_to_write[j]["background"][1],
                         data_to_write[j]["background_type"],
@@ -245,7 +246,7 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
                         d_coef = d_coef[:5]  # truncate array to 5 numbers.
                         d_coef[1] = 0  #
                         d_coef[2] = 0
-                    peak_d = ff.fourier_expand((az), d_coef)
+                    peak_d = sf.fourier_expand((az), d_coef)
                     peak_tth = 2.0 * np.degrees(np.arcsin(wavelength / 2 / peak_d))
                     # peak_i = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['height'])  #FIX ME - Is this the height of the peak or the integral under it?
                     # peak_w = ff.Fourier_expand((az)*sym, data_to_write[j]['peak'][k]['width'])   #FIX ME - is this the correct half width?
@@ -253,19 +254,19 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
                     peak_i = np.max(
                         [
                             0,
-                            ff.coefficient_expand(
+                            sf.coefficient_expand(
                                 (az) * sym,
                                 param=data_to_write[j]["peak"][k]["height"],
                                 coeff_type=data_to_write[j]["peak"][k]["height_type"],
                             ),
                         ]
                     )  # FIX ME - Is this the height of the peak or the integral under it?
-                    peak_w = ff.coefficient_expand(
+                    peak_w = sf.coefficient_expand(
                         (az) * sym,
                         param=data_to_write[j]["peak"][k]["width"],
                         coeff_type=data_to_write[j]["peak"][k]["width_type"],
                     )  # FIX ME - is this the correct half width?
-                    peak_p = ff.coefficient_expand(
+                    peak_p = sf.coefficient_expand(
                         (az) * sym,
                         param=data_to_write[j]["peak"][k]["profile"],
                         coeff_type=data_to_write[j]["peak"][k]["profile_type"],

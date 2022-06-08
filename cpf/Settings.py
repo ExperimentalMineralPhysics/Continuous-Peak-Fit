@@ -11,7 +11,7 @@ import cpf.input_types.DioptasFunctions as DioptasFunctions
 import cpf.input_types.GSASIIFunctions as GSASIIFunctions
 import cpf.input_types.MedFunctions as MedFunctions
 from cpf.IO_functions import file_list#, get_output_options, detector_factory, register_default_formats
-from cpf.PeakFunctions import coefficient_type_as_number, get_number_coeff
+from cpf.series_functions import coefficient_type_as_number, get_number_coeff
 
 
 def register_default_formats() -> object:

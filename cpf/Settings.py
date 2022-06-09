@@ -7,9 +7,7 @@ import os
 from copy import deepcopy, copy
 import numpy as np
 import importlib.util
-import cpf.input_types.DioptasFunctions as DioptasFunctions
-import cpf.input_types.GSASIIFunctions as GSASIIFunctions
-import cpf.input_types.MedFunctions as MedFunctions
+import cpf.input_types as input_types
 import cpf.output_formatters as output_formatters
 from cpf.IO_functions import file_list#, get_output_options, detector_factory, register_default_formats
 from cpf.series_functions import coefficient_type_as_number, get_number_coeff
@@ -854,24 +852,24 @@ def get_output_options(output_type):
 def detector_factory(calibration_type, calibration_param, fit_settings=None):
     """
     Factory function to provide appropriate class for data dependent on type.
-    Currently, supported options are Dioptas, GSASII and Med.
+    *should* support any option that is named *Functions and contains *Detector as class. 
     :rtype: object
     :param fit_settings:
     :param calibration_type:
     :param calibration_param:
     :return:
     """
-    if calibration_type == "Dioptas":
-        detector_class = DioptasFunctions.DioptasDetector
-        return detector_class(calibration_param, fit_settings)
-    if calibration_type == "GSASII":
-        detector_class = GSASIIFunctions.GSASIIDetector
-        return detector_class(calibration_param, fit_settings)
-    if calibration_type == "Med":
-        detector_class = MedFunctions.MedDetector
+    
+    def_func = calibration_type+"Functions"
+    def_def  = calibration_type+"Detector"
+    
+    if def_func in input_types.module_list:
+        detector = getattr(input_types, def_func)
+        detector_class = getattr(detector, def_def)
         return detector_class(calibration_param, fit_settings)
     else:
         raise ValueError("Unrecognized calibration type.")
+
         
 if __name__ == '__main__':
     settings = settings()

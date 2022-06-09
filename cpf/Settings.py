@@ -10,33 +10,10 @@ import importlib.util
 import cpf.input_types.DioptasFunctions as DioptasFunctions
 import cpf.input_types.GSASIIFunctions as GSASIIFunctions
 import cpf.input_types.MedFunctions as MedFunctions
+import cpf.output_formatters as output_formatters
 from cpf.IO_functions import file_list#, get_output_options, detector_factory, register_default_formats
 from cpf.series_functions import coefficient_type_as_number, get_number_coeff
 
-
-def register_default_formats() -> object:
-    """
-    Load all available output modules
-    :return:
-    """
-    # FIX ME: We could add extra checks here to make sure the required functions exist in each case.
-    # FIX ME: Really these should live in their own sub-folder
-    output_list = [
-        "CoefficientTable",
-        "DifferentialStrain",
-        "MultiFit",
-        "Polydefix",
-        "PolydefixED",
-    ]
-    new_module = {}
-    for output_module in output_list:
-        module = __import__("cpf.output_formatters.Write" + output_module, fromlist=[None])
-        new_module[output_module] = module
-    return new_module
-
-
-# Load potential output formats
-output_methods_modules = register_default_formats()
 
 
 class settings:
@@ -94,16 +71,12 @@ class settings:
         Optional settings for the outputs are sored in a dictionary.
         
         """
-        
-        # # Load potential output formats
-        output_methods_modules = register_default_formats()
-        
+                
         self.datafile_list = None
         self.datafile_number = 0
         self.datafile_directory = "."
         
         self.datafile_preprocess = None
-        
         
         # calibration type: dioptas etc.
         self.calibration_type = None
@@ -722,7 +695,7 @@ class settings:
         """
         # Check output format exists
         for mod in self.output_types:
-            if mod not in output_methods_modules.keys():
+            if "Write"+mod not in output_formatters.module_list:
                 raise ImportError(
                     "The 'Output_type' "
                     + mod
@@ -736,7 +709,7 @@ class settings:
         
         missing = []
         for i in range(len(self.output_types)):
-            wr = output_methods_modules[self.output_types[i]]
+            wr = getattr(output_formatters, "Write"+self.output_types[i])
             #print(self.output_types[i])
             required, optional = wr.Requirements()
             for j in range(len(required)):

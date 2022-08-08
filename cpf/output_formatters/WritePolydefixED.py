@@ -214,9 +214,9 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
         # left empty on purpose
         text_file.write("")
 
-    elif "Output_ElasticProperties" in setting_class.output_settings:
+    elif "ElasticProperties" in setting_class.output_settings:
 
-        fid = open(setting_class.output_settings["Output_ElasticProperties"], "r")
+        fid = open(setting_class.output_settings["ElasticProperties"], "r")
 
         # pipe ealstic properties to the output file.
         text_file.write(fid.read())

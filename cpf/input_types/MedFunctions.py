@@ -190,6 +190,11 @@ class MedDetector:
             im_all = []
             for x in range(dat.n_detectors):
                 im_all.append(dat.mcas[x].get_data())
+
+            # FIX ME: Convert the input data from integer to float because otherwise the model inherits Integer properties somewhere along the line.
+            # FIX ME: I am not sure if this is the correct way to do it but it now works.
+            im_all = np.array(im_all, dtype="f")
+
             if mask is not None:
                 im_all = ma.array(im_all, mask=mask)
             else:

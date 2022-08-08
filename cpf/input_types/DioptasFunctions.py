@@ -226,6 +226,11 @@ class DioptasDetector:
             im_all = fabio.open(image_name)
             im = im_all.data
         
+        # FIX ME: Copied from MED_functions. 
+        # FIX ME: Convert the input data from integer to float because otherwise the model inherits Integer properties somewhere along the line.
+        # FIX ME: I dont know if this needed here but given everything else is the same I have copied it from MED_functions.
+        im = np.array(im, dtype="f")
+        
         # Dioptas flips the images to match the orientations in Plot2D.
         # Therefor implemented here to be consistent with Dioptas.
         im = np.array(im)[::-1]

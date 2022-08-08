@@ -720,7 +720,9 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
                 )
                 ax[i].scatter(data[1], data[0][comp][j], s=10)
                 ax[i].plot(az_plt, gmod_plot, )
-        
+                # set x-labels by data type.
+                label_x = settings_as_class.data_class.dispersion_ticks(disp_ticks=ax[i].get_xticks)
+                ax[i].set_xticks(label_x)
     
         #plot background 
         for k in range(len(orders["background"])):
@@ -748,6 +750,9 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
             ax[i+k+1].scatter(data[1], data[0]["bg"][k], s=10)
             ax[i+k+1].plot(az_plt, gmod_plot, )
             ax[i+k+1].set_xlim(x_lims)
+            # set x-labels by data type.
+            label_x = settings_as_class.data_class.dispersion_ticks(disp_ticks=ax[i+k+1].get_xticks)
+            ax[i+k+1].set_xticks(label_x)
             
         fig.suptitle(io.peak_string(orders) + "; Fits to Chunks")
     

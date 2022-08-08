@@ -476,6 +476,20 @@ class MedDetector:
         self.dspace.mask = self.original_mask
 
 
+    def dispersion_ticks(self, disp_ticks=None, unique=10):
+        """
+        Returns the labels for the dispersion axis/colour bars. 
+        
+        :param disp_ticks:
+        :param unique:
+        :return new_tick_positions:
+        """    
+        if len(np.unique(self.azm)) <= unique:
+            disp_ticks = np.unique(np.unique(self.azm))
+            
+        return disp_ticks
+    
+    
     def plot_masked(self, fig_plot=None):
         """
         Plot all the information needed to mask the data well. 
@@ -696,10 +710,8 @@ class MedDetector:
                 orientation="vertical"
             s_map = cm.ScalarMappable(norm=normalize, cmap=c_map)
             # label colour bar with unique azimuths if there are less than 10
-            if len(np.unique(self.azm)) <= 10:
-                ticks = np.unique(plot_c)
-            else:
-                ticks = None
+            # set colour bar labels with unique azimuths (if there are less than 'unique' azimuths - see function for value of unique).  
+            ticks = self.dispersion_ticks()
             if colourbar is True:
                 cbar = fig_plot.colorbar(s_map, ticks=ticks, orientation=orientation)
                 cbar.set_label("Azimuth")

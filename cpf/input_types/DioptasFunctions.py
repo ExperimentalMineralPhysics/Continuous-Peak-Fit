@@ -642,6 +642,24 @@ class DioptasDetector:
         self.azm.mask = self.original_mask
         self.dspace.mask = self.original_mask
         
+    def dispersion_ticks(self, disp_ticks=None, unique=10):
+        """
+        Returns the labels for the dispersion axis/colour bars.
+        
+        :param disp_ticks: -- unused for maintained for compatibility with MED functions
+        :param unique:     
+        :return new_tick_positions:
+        """    
+        
+        if len(np.unique(self.azm)) >= unique:
+            disp_lims = np.array(
+                [np.min(self.azm.flatten()), np.max(self.azm.flatten())]
+            )
+            disp_lims = np.around(disp_lims / 180) * 180
+            disp_ticks = list(range(int(disp_lims[0]),int(disp_lims[1]+1),45))
+            
+        return disp_ticks
+    
 
     # def full_plot(self,
     #         plot_type="data",
@@ -1060,8 +1078,10 @@ class DioptasDetector:
             )
             y_lims = np.around(y_lims / 180) * 180
             axis_plot.set_ylim(y_lims)
-            y_ticks = list(range(int(y_lims[0]),int(y_lims[1]+1),45))
+            # y_ticks = list(range(int(y_lims[0]),int(y_lims[1]+1),45))
 
+            y_ticks = self.dispersion_ticks()
+            
         # organise the data to plot
         if data is not None:
             plot_i = data

@@ -269,7 +269,7 @@ def get_chunk_peak_guesses(settings_as_class, data_chunk_class,
                 symm = 1
             p_guess = sf.coefficient_expand(
                 np.mean(data_chunk_class.azm) * symm,
-                params=settings_as_class.subfit_orders["peak"][k]["profile_fixed"],
+                param=settings_as_class.subfit_orders["peak"][k]["profile_fixed"],
                 coeff_type=coeff_type,
             )
             p_fixed = 1

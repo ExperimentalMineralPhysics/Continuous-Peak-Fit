@@ -455,6 +455,12 @@ def execute(
         p = mp.ProcessPool(nodes=mp.cpu_count())
         #p = mp.Pool()
 
+        # Since we may have already closed the pool, try to restart it
+        try:
+            p.restart()
+        except AssertionError:
+            pass
+            
     # Process the diffraction patterns #
     for j in range(settings_for_fit.datafile_number):
 

@@ -521,24 +521,26 @@ def fit_chunks(
                         lmm.peaks_model, independent_vars=["two_theta", "azimuth"], data_class = chunk_data,
                                 orders = settings_as_class.subfit_orders, 
                     )
-                    tth_range = np.linspace(
+                    tth_model = np.linspace(
                         np.min(chunk_data.tth),
                         np.max(chunk_data.tth),
-                        azm_plot.size,
+                        100,
                     )
+                    azm_model = tth_model*0 + np.mean(azm_plot)
+                    
                     mod_plot = gmodel.eval(
                         params=params,
-                        two_theta=tth_range,
-                        azimuth=azm_plot,
+                        two_theta=tth_model,
+                        azimuth=azm_model,
                     )
                     guess_plot = gmodel.eval(
                         params=guess,
-                        two_theta=tth_range,
-                        azimuth=azm_plot,
+                        two_theta=tth_model,
+                        azimuth=azm_model,
                     )
                     plt.plot(tth_plot, int_plot, ".", label="data")
                     plt.plot(
-                        tth_range,
+                        tth_model,
                         np.array(guess_plot).flatten(),
                         marker="",
                         color="green",
@@ -547,7 +549,7 @@ def fit_chunks(
                         label="guess",
                     )
                     plt.plot(
-                        tth_range,
+                        tth_model,
                         np.array(mod_plot).flatten(),
                         marker="",
                         color="red",

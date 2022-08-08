@@ -693,7 +693,7 @@ def execute(
         write_output(setting_file=setting_file,setting_class=settings_for_fit, debug=True)
 
     if parallel is True:
-        p.close()
+        p.clear()
 
 
 def parallel_processing(p):

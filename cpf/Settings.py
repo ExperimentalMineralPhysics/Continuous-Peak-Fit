@@ -415,7 +415,7 @@ class settings:
                 ):
                     missing.append(
                         order_str + "[" + str(i) + "] has an incorrectly formatted "+"'range'")
-                if (orders[i]["range"][0] > orders[i]["range"][1]):
+                if (orders[i]["range"][0] >= orders[i]["range"][1]):
                     missing.append(
                         order_str + "[" + str(i) + "]['range'] has values in wrong order")
             

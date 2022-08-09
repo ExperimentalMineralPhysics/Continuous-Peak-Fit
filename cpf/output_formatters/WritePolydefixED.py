@@ -359,16 +359,16 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
         "# Peak number.  h.  k.  l.  d-spacing.  intensity.  detector number. step number E t \n"
     )
     for z in range(setting_class.datafile_number):
-
-        # filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
-        # filename = filename+'.json'
-
+        
+        setting_class.set_subpattern(z,0)
+        
         filename = IO.make_outfile_name(
-            setting_class.datafile_list[x],
+            setting_class.subfit_filename,
             directory=setting_class.output_directory,
             extension=".json",
-            overwrite=True,
-        )
+            overwrite=True, # overwrite = True to get the file name without incrlemeting it.
+        )  
+        
         # Read JSON data from file
         with open(filename) as json_data:
             fit = json.load(json_data)
@@ -443,7 +443,7 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
                             "%8i        %s   %s   %s   %8.4f  %10.3f       %3i           %3i\n"
                             % (peak, h, k, l, peak_d[w], peak_i[n], w + 1, z + 1)
                         )
-                    else:  # if the detetor is masked fill with zeor heights
+                    else:  # if the detetor is masked fill with zero heights
                         text_file.write(
                             "%8i        %s   %s   %s   %8.4f  %10.3f       %3i           %3i\n"
                             % (peak, h, k, l, peak_d[w], 0, w + 1, z + 1)

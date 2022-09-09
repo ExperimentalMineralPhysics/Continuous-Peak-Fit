@@ -270,7 +270,7 @@ class settings:
             self.calibration_pixel_size = self.settings_from_file.Calib_pixels
             
         # load the data class.
-        self.data_class = detector_factory(self.calibration_type, self.calibration_parameters)
+        self.data_class = detector_factory(fit_settings=self)
         
         if "Image_prepare" in dir(self.settings_from_file):
             print("'Image_prepare' is depreciated nomenclature. Has been replased by 'image_preprocess'")
@@ -848,8 +848,8 @@ def get_output_options(output_type):
     return output_mod_type
 
 
-
-def detector_factory(calibration_type, calibration_param, fit_settings=None):
+        
+def detector_factory(fit_settings=None):
     """
     Factory function to provide appropriate class for data dependent on type.
     *should* support any option that is named *Functions and contains *Detector as class. 
@@ -860,13 +860,13 @@ def detector_factory(calibration_type, calibration_param, fit_settings=None):
     :return:
     """
     
-    def_func = calibration_type+"Functions"
-    def_def  = calibration_type+"Detector"
+    def_func = fit_settings.calibration_type+"Functions"
+    def_def  = fit_settings.calibration_type+"Detector"
     
     if def_func in input_types.module_list:
         detector = getattr(input_types, def_func)
         detector_class = getattr(detector, def_def)
-        return detector_class(calibration_param, fit_settings)
+        return detector_class(settings_class=fit_settings)
     else:
         raise ValueError("Unrecognized calibration type.")
 

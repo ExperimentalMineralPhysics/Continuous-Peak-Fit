@@ -96,7 +96,7 @@ fit_orders = [
               "hkl": 211,
               "d-space": 3,
               "height": 8,
-              "profile": 0,
+              "profile": 1,
               "profile_fixed": [0.5, 0.25, 0.25],
               "width": 0,
               "symmetry": 2
@@ -146,7 +146,7 @@ fit_orders = [
 AziBins = 90
 
 #Output settings
-Output_directory   = './'
+Output_directory   = './results/'
 Output_type        = 'Polydefix'
 Output_NumAziWrite = 90
 phase              = 'Fe-BCC'

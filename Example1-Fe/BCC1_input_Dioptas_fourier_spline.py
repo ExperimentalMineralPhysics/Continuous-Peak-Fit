@@ -16,7 +16,17 @@ Calib_param    = datafile_directory + 'CeO2_cal_Dioptas.poni'
 Calib_mask     = datafile_directory + 'DiffractionMask_Dioptas.mask'
 #Calib_pixels   = 172
 
+
+#cascade settings
+cascade_bin_type = 0
+cascade_per_bin = 100
+#cascade_number_bins = 90
+
 # Fitting properties for peaks.
+# Image_prepare = {'cosmics': {#'gain':    1.0, 
+#                               'sigclip': 8, # 3 is dioptas default
+#                               'objlim':  6, # 3 is dioptas default
+#                               'sigfrac': 0.3}}
 fit_bounds = {
               "background": ['min', 'max'],
               "d-space":    ['min', 'max'],
@@ -136,6 +146,7 @@ fit_orders = [
                "width": 0,
                "symmetry": 2
              }],
+             "imin": 1
          },
 #        {
 #          "range": [[19.8, 20.27]],
@@ -194,7 +205,7 @@ fit_orders = [
 AziBins = 90
 
 #Output settings
-Output_directory   = './'
+Output_directory   = './results/'
 Output_type        = ['DifferentialStrain', 'Polydefix']
 Output_NumAziWrite = 90
 phase              = 'Fe-BCC'

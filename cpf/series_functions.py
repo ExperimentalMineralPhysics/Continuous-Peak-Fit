@@ -116,7 +116,7 @@ def coefficient_type_as_string(series_type):
         # or series_type == 'cubic-open' or series_type == 'spline-open':
         out = "spline_cubic_open"
     elif series_type == 5:  # or series_type == 'independent':
-        out = 5
+        out = "independent"
     else:
         raise ValueError(
             "Unrecognised coefficient series type, the valid options are "

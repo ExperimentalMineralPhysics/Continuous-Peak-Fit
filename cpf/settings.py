@@ -226,15 +226,10 @@ class settings:
         
         ##all_settings_from_file = dir(self.settings_from_file)#
         
-        #add and check data directory
+        #add data directory and data files
         self.datafile_directory = self.settings_from_file.datafile_directory
-        self.check_directory_exists(self.datafile_directory, write=True)
-        
-        #add and check data files
         self.datafile_list, self.datafile_number = file_list(dir(self.settings_from_file), self.settings_from_file)
-        self.check_files_exist(self.datafile_list, write=False)
-        print("All the data files exist.")
-        
+                
         # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
         if "datafile_Basename" in dir(self.settings_from_file):
             self.datafile_basename  = self.settings_from_file.datafile_Basename
@@ -243,23 +238,13 @@ class settings:
         # change if listed among the inputs
         if "Output_directory" in dir(self.settings_from_file):
             self.output_directory = self.settings_from_file.Output_directory
-            self.check_directory_exists(self.output_directory)
-            
+        
         # Load the detector class here to access relevant functions and check required parameters are present
-        if "Calib_type" not in dir(self.settings_from_file):
-            raise ValueError(
-                "There is no 'Calib_type' in the settings. The fitting cannot proceed until a recognised "
-                "calibration type is present."
-            )
-        else:
+        if "Calib_type" in dir(self.settings_from_file):
             self.calibration_type = self.settings_from_file.Calib_type
-        if "Calib_param" not in dir(self.settings_from_file):
-            raise ValueError(
-                "There is no 'Calib_param' in the settings. The fitting cannot proceed until recognised "
-                "calibration parameters are present."
-            )
-        else:
-            self.calibration_parameters = self.settings_from_file.Calib_param
+        if "Calib_param" in dir(self.settings_from_file):
+            self.calibration_parameters = self.settings_from_file.Calib_param  
+            
         if "Calib_data" in dir(self.settings_from_file):
             self.calibration_data = self.settings_from_file.Calib_data
         if "Calib_mask" in dir(self.settings_from_file):
@@ -303,11 +288,10 @@ class settings:
             self.cascade_number_bins = self.settings_from_file.cascade_number_bins
     
         #organise the fits
-        self.fit_orders = self.settings_from_file.fit_orders
-        self.validate_fit_orders()
+        if "fit_orders" in dir(self.settings_from_file):
+            self.fit_orders = self.settings_from_file.fit_orders
         if "fit_bounds" in dir(self.settings_from_file):
             self.fit_bounds = self.settings_from_file.fit_bounds
-            self.validate_fit_bounds()
         if "fit_track" in dir(self.settings_from_file):
             self.fit_track = self.settings_from_file.fit_track
         if "fit_propagate" in dir(self.settings_from_file):
@@ -326,10 +310,47 @@ class settings:
             #self.output_types = get_output_options(fit_settings.Output_type)
             self.set_output_types(out_type_list = self.settings_from_file.Output_type)
         
-    
+        
+        self.validate_settings_file()
         # FIXME: it needs to fail if everything is not present as needed and report what is missing
 
 
+    def validate_settings_file(self):
+        """
+        Does all the validation of the settings file. 
+        Fails with missing parameters if not complete. 
+        """
+        
+        # check data files and directory
+        if self.datafile_basename != None or self.datafile_directory != None: 
+            self.validate_datafiles()
+        
+        #check output directoy
+        if self.output_directory != None:
+            self.check_directory_exists(self.output_directory)
+        
+        #check calibration
+        if self.calibration_type == None:
+            raise ValueError(
+                "There is no 'Calib_type' in the settings. The fitting cannot proceed until a recognised "
+                "calibration type is present."
+            )
+        if self.calibration_parameters == None:
+            raise ValueError(
+                "There is no 'Calib_param' in the settings. The fitting cannot proceed until recognised "
+                "calibration parameters are present."
+            )
+        
+        #validate fit_orders and bounds
+        if self.fit_orders != None:
+            self.validate_fit_orders()
+        if self.fit_bounds != None:
+            self.validate_fit_bounds()
+            
+        #validate output types
+        if self.output_types != None:
+            self.validate_output_types()
+            
 
     def check_files_exist(self, files_to_check, write=False):
         """
@@ -364,6 +385,14 @@ class settings:
                 print(directory + " exists.")
 
     
+    def validate_datafiles(self):
+        """
+        Checks if the input directory and files all exist. 
+        """
+        self.check_directory_exists(self.datafile_directory, write=True)
+        self.check_files_exist(self.datafile_list, write=False)
+        print("All the data files exist.")
+        
     
     def validate_fit_orders(self, report=False, peak=None, orders=None):
         """
@@ -684,7 +713,6 @@ class settings:
         if out_type_list is not None:
             self.output_types = get_output_options(out_type_list)
             
-        self.validate_output_types(self.output_types)
         
 
     def validate_output_types(self, report=False):

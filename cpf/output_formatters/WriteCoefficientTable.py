@@ -129,7 +129,7 @@ def WriteOutput(setting_class=None,setting_file=None, debug=False, **kwargs):
 
     text_file.write("\n")
 
-    for z in range(setting_class.datafile_number):
+    for z in range(setting_class.image_number):
 
         setting_class.set_subpattern(z,0)   
         
@@ -187,7 +187,16 @@ def WriteOutput(setting_class=None,setting_file=None, debug=False, **kwargs):
             # get parameters to write to output file.
             # strip directory and ending from filename
             # out_name = os.path.splitext(os.path.basename(diff_files[z]))[0]
-            out_name = os.path.splitext(os.path.basename(setting_class.datafile_list[z]))[0]
+            #out_name = os.path.splitext(os.path.basename(setting_class.datafile_list[z]))[0]
+            
+            
+            setting_class.set_subpattern(z,)        
+            out_name = IO.make_outfile_name(
+                setting_class.subfit_filename,#diff_files[z],
+                directory=setting_class.output_directory,
+                extension=".json",
+                overwrite=True,
+            )
 
             for x in range(len(orders["peak"])):
 

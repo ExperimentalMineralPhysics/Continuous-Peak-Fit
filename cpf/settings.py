@@ -9,7 +9,7 @@ import numpy as np
 import importlib.util
 import cpf.input_types as input_types
 import cpf.output_formatters as output_formatters
-from cpf.IO_functions import file_list#, get_output_options, detector_factory, register_default_formats
+from cpf.IO_functions import file_list, image_list#, get_output_options, detector_factory, register_default_formats
 from cpf.series_functions import coefficient_type_as_number, get_number_coeff
 
 
@@ -72,6 +72,8 @@ class settings:
                 
         self.datafile_list = None
         self.datafile_number = 0
+        self.image_list = None
+        self.image_number = 0
         self.datafile_directory = "."
         
         self.datafile_preprocess = None
@@ -228,7 +230,7 @@ class settings:
         
         #add data directory and data files
         self.datafile_directory = self.settings_from_file.datafile_directory
-        self.datafile_list, self.datafile_number = file_list(dir(self.settings_from_file), self.settings_from_file)
+        self.datafile_list, self.datafile_number, self.image_list, self.image_number = image_list(dir(self.settings_from_file), self.settings_from_file)
                 
         # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
         if "datafile_Basename" in dir(self.settings_from_file):
@@ -258,7 +260,7 @@ class settings:
         self.data_class = detector_factory(fit_settings=self)
         
         if "Image_prepare" in dir(self.settings_from_file):
-            print("'Image_prepare' is depreciated nomenclature. Has been replased by 'image_preprocess'")
+            logging.warning("'Image_prepare' is depreciated nomenclature. Has been replased by 'image_preprocess'")
             self.settings_from_file.image_preprocess = self.settings_from_file.Image_prepare
             
         if "image_preprocess" in dir(self.settings_from_file):
@@ -324,6 +326,7 @@ class settings:
         # check data files and directory
         if self.datafile_basename != None or self.datafile_directory != None: 
             self.validate_datafiles()
+        #FIX ME: check all the images exist.
         
         #check output directoy
         if self.output_directory != None:
@@ -361,6 +364,7 @@ class settings:
             files_to_check = [files_to_check]    
         
         for j in range(len(files_to_check)):
+            #print(files_to_check[j])
             if os.path.isfile(files_to_check[j]) is False:
                 raise ImportError(
                     "The file "
@@ -778,8 +782,10 @@ class settings:
         elif end is None:
             end=len(self.datafile_list)
         
-        self.datafile_list = self.datafile_list[start:end]
-        self.datafile_number = len(self.datafile_list)   
+        # self.datafile_list = self.datafile_list[start:end]
+        # self.datafile_number = len(self.datafile_list)   
+        self.image_list = self.image_list[start:end]
+        self.image_number = len(self.image_list)   
         
 
     def set_subpatterns(self, subpatterns="all"):
@@ -858,7 +864,8 @@ class settings:
         """
         
         self.subfit_file_position = number_subpattern   
-        self.subfit_filename = self.datafile_list[file_number]
+        #self.subfit_filename = self.datafile_list[file_number]
+        self.subfit_filename = self.image_list[file_number]
         self.subfit_order_position = number_subpattern        
         self.subfit_orders = self.fit_orders[number_subpattern]
     

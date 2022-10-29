@@ -8,6 +8,7 @@ import sys
 from copy import deepcopy
 import fabio
 import h5py
+import cpf.h5_functions as h5_functions
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
@@ -16,7 +17,7 @@ from PIL import Image
 from matplotlib import gridspec
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from matplotlib import cm, colors
-
+from cpf import IO_functions
 
 class DioptasDetector:
     # For Dioptas functions to change
@@ -140,9 +141,10 @@ class DioptasDetector:
         :param calibration_mask:
         :return:
         """
-        im_all = fabio.open(calibration_data)
-        im=im_all.data
-        im = np.array(im)[::-1]
+        
+        im = self.import_image(calibration_data)
+        # im=im_all.data
+        # im = np.array(im)[::-1]
         
         # im = im_a.data # self.ImportImage(calibration_data, debug=debug)
         intens = ma.array(im.data)
@@ -218,13 +220,21 @@ class DioptasDetector:
         :return: intensity array
         """
         # FIX ME: why is mask in here? should it inherit from previous data if it exists?
+        
+        # FIX ME: nxs files need to be checked. But they should be read like h5 files. 
+        
         # im = Image.open(ImageName) ##always tiff?- no
-        filename, file_extension = os.path.splitext(image_name)
-        if file_extension == ".nxs":
-            im_all = h5py.File(image_name, "r")
-            # FIX ME: This assumes that there is only one image in the nxs file.
-            # If there are more, then it will only read 1.
-            im = np.array(im_all["/entry1/instrument/detector/data"])
+        #filename, file_extension = os.path.splitext(image_name)
+        if isinstance(image_name,list):
+            # then it is a h5 type file
+            
+            im = h5_functions.get_images(image_name)
+            
+        # elif file_extension == ".nxs":
+        #     im_all = h5py.File(image_name, "r")
+        #     # FIX ME: This assumes that there is only one image in the nxs file.
+        #     # If there are more, then it will only read 1.
+        #     im = np.array(im_all["/entry1/instrument/detector/data"])
         else:
             im_all = fabio.open(image_name)
             im = im_all.data
@@ -234,21 +244,32 @@ class DioptasDetector:
         # FIX ME: I dont know if this needed here but given everything else is the same I have copied it from MED_functions.
         im = np.array(im, dtype="f")
         
-        # Dioptas flips the images to match the orientations in Plot2D.
-        # Therefor implemented here to be consistent with Dioptas.
+        # Dioptas flips the images to match the orientations in Plot2D (should this be Fit2D?).
+        # Therefore implemented here to be consistent with Dioptas.
+        # FIX ME: what to do about this? 
         im = np.array(im)[::-1]
-        
-        self.intensity = ma.array(im, mask=self.intensity.mask)
-                
+
+
         if debug:
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)            
             self.plot_collected(fig_plot=fig, axis_plot=ax)
-            plt.title(os.path.split(image_name)[1])
+            #plt.title(os.path.split(image_name)[1])
+            plt.title(IO_functions.title_file_names(image_name = image_name))
             plt.show()
             plt.close()
-            
-        
+
+        if mask==None and ma.is_masked(self.intensity)==False:
+            self.intensity = ma.array(im)
+            return ma.array(im)
+        elif mask is not None:
+            self.intensity = ma.array(im, mask=mask)
+            return ma.array(im, mask=mask)
+        else:
+            self.intensity = ma.array(im, mask=self.intensity.mask)
+            return ma.array(im)
+                
+                
         if mask is not None:
             return ma.array(im, mask=mask)
         else:

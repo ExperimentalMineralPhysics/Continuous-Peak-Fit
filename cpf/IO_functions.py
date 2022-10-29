@@ -7,7 +7,8 @@ Created on Tue Jul  6 05:44:13 2021
 
 import numpy as np
 import os
-
+import re
+import cpf.h5_functions as h5_functions
 
 # Needed for JSON to save fitted parameters.
 # Copied from https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array#24375113
@@ -59,6 +60,64 @@ def json_numpy_serializer(o):
         raise TypeError(
             "{} of type {} is not JSON serializable".format(repr(o), type(o))
         )
+
+
+
+def image_list(fit_parameters, fit_settings):
+    """
+    From the Settings make a list of all the data images to be processed. 
+    If the images are h5 type files a list of files is made first then the list is expanded for the images in the h5 files.
+    
+    #FIXME: This function is called by the output writing scripts to make sure the file names are called consistently.
+    
+
+    Parameters
+    ----------
+    fit_parameters : TYPE
+        DESCRIPTION.
+    fit_settings : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+    
+    
+    # make the file list
+    diff_files, n_diff_files = file_list(fit_parameters, fit_settings)
+    
+    # iterate for h5 files.
+    image_list = []
+    if "h5_key_names" in fit_parameters:
+        
+        for i in range(n_diff_files):
+            
+            h5_key_list  = fit_settings.h5_key_list
+            
+            h5_key_names = fit_settings.h5_key_names
+            h5_key_start = fit_settings.h5_key_start
+            k5_hey_end   = fit_settings.k5_hey_end
+            h5_key_step  = fit_settings.h5_key_step
+            h5_data      = fit_settings.h5_data
+            
+            h5_list = h5_functions.get_image_keys(diff_files[i], h5_key_list, h5_key_names, key_start=h5_key_start, key_end=k5_hey_end, key_step=h5_key_step, bottom_level=h5_data)
+    
+            for j in range(len(h5_list)):  
+                image_list.append([diff_files[i], h5_list[j]])
+            
+    else:
+            image_list = diff_files
+        
+        
+    n_images = len(image_list)
+        
+    
+    # print(image_list)
+    # print(n_images)
+    return diff_files, n_diff_files, image_list, n_images
+    
 
 
 def file_list(fit_parameters, fit_settings):
@@ -348,6 +407,37 @@ def peak_phase(orders, peak="all"):
 
 
 
+def title_file_names(settings_for_fit = None, num=0, image_name=None, string=True):
+    
+    if string==True:
+        joint = ";  "
+    else:
+        joint = "_"
+        
+    
+    if image_name == None:
+        image_name = settings_for_fit.image_list[num]
+    
+    print(image_name)
+    
+    if isinstance(image_name, list):
+        t_f_str = os.path.split(image_name[0])[1]
+        t_f_str, _ = os.path.splitext(t_f_str)
+        t_f_str += joint
+        t_f_str += image_name[1][2]
+        # t_f_str += joint
+        # t_f_str += str(image_name[1][1])
+        
+        
+    else:
+        _, t_f_str = os.path.split(image_name)
+        t_f_str, _ = os.path.splitext(t_f_str)
+        
+        
+    return t_f_str
+    
+    
+
 def make_outfile_name(
         base_filename,
         directory=None,
@@ -369,16 +459,32 @@ def make_outfile_name(
     :return:
     """
 
-    # strip directory if it is in the name and there is a new directory
-    if directory or directory == "":
-        base_filename = os.path.basename(base_filename)
-
-    if base_filename:  # catch in case the string does not exist.
-        filename, ending = os.path.splitext(base_filename)
+    #if the file type is h5 the name arrives as a list of bits
+    if isinstance(base_filename, list):
+        #root_name = base_filename[0]
+        filename = title_file_names(image_name=base_filename, string=False)
+        
+        #get the file extension
+        _, ending = os.path.splitext(base_filename[0])
         ending = ending[1:]
     else:
-        filename = "Fit2Peak"
-        ending = ""
+        filename, ending = os.path.splitext(base_filename)
+        ending = ending[1:]
+
+
+    # strip directory if it is in the name and there is a new directory
+    if directory or directory == "":
+        #base_filename = os.path.basename(base_filename)
+        filename = os.path.basename(filename)
+
+    # if base_filename:  # catch in case the string does not exist.
+    #     filename, ending = os.path.splitext(base_filename)
+    #     ending = ending[1:]
+    # else:
+    #     # FIX ME: we can never arrive at this option.
+    #     filename = "Fit2Peak"
+    #     ending = ""
+
 
     if filename[-1:] == "_":  # if the base file name ends in an '_' remove it.
         filename = filename[0:-1]
@@ -441,3 +547,31 @@ def lmfit_fix_int_data_type(fname):
     obj_read = open(fname, "w")
     obj_read.write(txt_content)
     obj_read.close()
+
+
+
+def number_to_string(number, replace=".", withthis="pt"):
+    """
+    Turns a number into a string and then replaces the decimal place with a "pt". 
+    """
+    number = str(number)
+    number = re.sub(r'\.+', "pt",number)
+    return number
+
+
+
+def licit_filename(fname,  replacement="=="):
+    """
+    This makes sure that a file name generated from a string is licit.
+    It replaces the illegal characters [<>:/\|?*] with a replacement character
+    It also replaces all '.' with 'pt' -- assuming any occurance is a number. 
+    
+    after https://gist.github.com/AaronLaw/a936bebfbbd691fc954252444767e6de -- Find NTFS illegal characters in black list and rename filename.
+    """
+    blacklist=r'[<>:/\|?*]'
+    
+    fname = re.sub(blacklist, replacement, fname)
+
+    fname = number_to_string(fname)
+    
+    return fname

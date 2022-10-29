@@ -13,19 +13,21 @@ __all__ = [
     "generate_inputs",
     "Cosmics",
     "Cascade",
+    "h5_functions",
 ]
 
-from . import input_types
-from . import output_formatters
-
-from . import settings
 from . import XRD_FitPattern
 from . import XRD_FitSubpattern
+from . import settings
 from . import peak_functions
 from . import series_functions
+from . import h5_functions
 from . import lmfit_model
 from . import Cosmics
 from . import Cascade
+
+from . import input_types
+from . import output_formatters
 
 
 def generate_inputs():

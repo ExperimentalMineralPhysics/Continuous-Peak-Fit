@@ -66,7 +66,7 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
     # wavelength = parms_dict["conversion_constant"]
     wavelength = setting_class.data_class.calibration["conversion_constant"]
 
-    for z in range(setting_class.datafile_number):
+    for z in range(setting_class.image_number):
 
         # read file to write output for
         # filename = os.path.splitext(os.path.basename(diff_files[z]))[0]

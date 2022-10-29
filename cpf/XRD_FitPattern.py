@@ -11,7 +11,7 @@ import pathos.multiprocessing as mp
 from cpf.settings import settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 from cpf.Cosmics import image_preprocess as cosmicsimage_preprocess
-from cpf.IO_functions import json_numpy_serializer, make_outfile_name, peak_string, any_terms_null
+from cpf.IO_functions import json_numpy_serializer, make_outfile_name, peak_string, any_terms_null, title_file_names
 
 np.set_printoptions(threshold=sys.maxsize)
 # FIX ME: Need to add complexity here.
@@ -428,7 +428,8 @@ def execute(
     if settings_for_fit.calibration_data:
         data_to_fill = os.path.abspath(settings_for_fit.calibration_data)
     else:
-        data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
+        #data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
+        data_to_fill = settings_for_fit.image_list[0]
         
     new_data.fill_data(
         data_to_fill,
@@ -462,11 +463,13 @@ def execute(
             pass
             
     # Process the diffraction patterns #
-    for j in range(settings_for_fit.datafile_number):
+    for j in range(settings_for_fit.image_number):
 
-        print("Process ", settings_for_fit.datafile_list[j])
+        # print("Process ", settings_for_fit.image_list[j])
+        print("Process ", title_file_names(image_name=settings_for_fit.image_list[j]))
+        
         # Get diffraction pattern to process.
-        new_data.import_image(settings_for_fit.datafile_list[j], debug=debug)
+        new_data.import_image(settings_for_fit.image_list[j], debug=debug)
                 
         if settings_for_fit.datafile_preprocess is not None: 
             # needed because image preprocessing adds to the mask and is different for each image.
@@ -483,7 +486,8 @@ def execute(
             ax = fig.add_subplot(1, 1, 1)
             ax_o1 = plt.subplot(111)
             new_data.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity")            
-            plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
+            #plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
+            plt.title(title_file_names(settings_for_fit=settings_for_fit, num=j))
             plt.show()
             plt.close()
             
@@ -587,15 +591,23 @@ def execute(
                 sub_data.plot_masked(fig_plot=fig_1)
                 plt.suptitle(peak_string(settings_for_fit.subfit_orders) + "; masking")
                                                 
+                # filename = make_outfile_name(
+                #     settings_for_fit.datafile_list[j],
+                #     directory=settings_for_fit.output_directory,
+                #     additional_text="mask",
+                #     orders=settings_for_fit.subfit_orders,
+                #     extension=".png",
+                #     overwrite=True,
+                # )
                 filename = make_outfile_name(
-                    settings_for_fit.datafile_list[j],
+                    settings_for_fit.image_list[j],
                     directory=settings_for_fit.output_directory,
                     additional_text="mask",
                     orders=settings_for_fit.subfit_orders,
                     extension=".png",
                     overwrite=True,
                 )
-
+                
                 fig_1.savefig(filename)
 
                 #if debug:

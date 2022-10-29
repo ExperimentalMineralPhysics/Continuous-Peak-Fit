@@ -159,7 +159,7 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
         )
     text_file.write("\n")
 
-    for z in range(setting_class.datafile_number):# n_diff_files):
+    for z in range(setting_class.image_number):# n_diff_files):
 
         setting_class.set_subpattern(z,0)        
 
@@ -609,5 +609,4 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
                         )
 
                     text_file.write("\n")
-
     text_file.close()

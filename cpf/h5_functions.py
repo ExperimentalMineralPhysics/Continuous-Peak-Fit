@@ -204,9 +204,12 @@ def get_image_keys(datafile, h5key_list, h5key_names, key_start=0, key_end=-1, k
                 
                 #print("data set with the key:", datafile[key])
                 number_data = datafile[key].shape[index]
+                #print('number_data', number_data)
+                
                 # if we are using all the data make sure we run to the end.
+                #print('keyend',key_end)
                 if key_end[0] == -1:
-                    key_end[0] = number_data+1
+                    key_end[0] = number_data
                 else:
                     key_end[0]+1
                 
@@ -232,8 +235,9 @@ def get_image_keys(datafile, h5key_list, h5key_names, key_start=0, key_end=-1, k
                         #print(labels_temp)
                         labels_temp = unique_labels(labels_temp, number_data = number_data)
                         labels.append(labels_temp)
-                else: #it must be a string.
-                    #print('single')
+                elif isinstance(h5key_names[0], str) and h5key_names[0] is not "": #it must be a string.
+                    #print('string')
+                    #print(key_route+'/'+h5key_names[0])
                     #print(datafile[key_route+'/'+h5key_names[0]])
                     labels = [datafile[key_route+'/'+h5key_names[0]][()]]
                     
@@ -241,27 +245,46 @@ def get_image_keys(datafile, h5key_list, h5key_names, key_start=0, key_end=-1, k
                     
                     h5key_names= [h5key_names]
                         
-                #print(labels)
+                else: #the key is empty and so use numbers
+                    labels = list(range(number_data))
+                    labels = [unique_labels(labels, number_data = number_data)]
+                    #sprint('labels', labels)
+                    
+                    h5key_names= [h5key_names]
+
+                # print(h5key_names)      
+                # print(labels)
                 #print(type(labels))
                 
                 #make the list of labels
-                for i in [*range(key_start[0], key_end[0]+1, key_step[0])]:
+                for i in [*range(key_start[0], key_end[0], key_step[0])]:
                     lbl_str = ""
                     for j in range(len(h5key_names[0])):
-                        #print(j)
-                        # print(os.path.basename(os.path.normpath(key_route+'/'+h5key_names[0][j])))
-                        lbl_str=lbl_str+os.path.basename(os.path.normpath(key_route+'/'+h5key_names[0][j]))
-
-                        if np.size(labels[j])==1:
-                            lbl_str = lbl_str+sep2+str(labels[j])
+                        # print(i, j, "'",h5key_names[0],"'")
+                        if isinstance(h5key_names[0][j], str) and len(h5key_names[0][j])==0:
+                            pass
                         else:
-                            lbl_str = lbl_str+sep2+str(labels[j][i])
-                        if j != np.size(labels[j]):
+                            lbl_str=lbl_str+os.path.basename(os.path.normpath(key_route+'/'+h5key_names[0][j]))
+                            
+                        if len(h5key_names[0][j]) == 0: #then there is no name to paste into the file name string 
+                            if np.size(labels[j])==1:
+                                lbl_str = lbl_str+str(labels[j])
+                            else:
+                                lbl_str = lbl_str+str(labels[j][i])
+                        else:
+                            if np.size(labels[j])==1:
+                                lbl_str = lbl_str+sep2+str(labels[j])
+                            else:
+                                lbl_str = lbl_str+sep2+str(labels[j][i])
+                        if j != len(h5key_names[0])-1:#np.size(labels[j]):
                             lbl_str = lbl_str+sep1
                             
                     #Make label string and replace all illegal filename characters in label_string.
                     # also replace . with pt in the string
-                    lbl_str = IO.licit_filename(key_str+sep1+lbl_str)
+                    if len(key_str) != 0:
+                        lbl_str = key_str+sep1+lbl_str
+                        
+                    IO.licit_filename(lbl_str)
                     
                     out.append([key, i, lbl_str])
                 return out[:]
@@ -269,18 +292,27 @@ def get_image_keys(datafile, h5key_list, h5key_names, key_start=0, key_end=-1, k
             else:
                 print('oops')
                 stop
-    
+        else:
+            print('oops, key is wrong')
+            stop
     else:
         # step inside the key_list
         
         # make current key
         key_str = key_str+'/'+h5key_list[0]
-        #print(key_str)
+        # print(key_str)
         
         #make list of values
-        key_lst = list(datafile[h5key_list[0]].keys())
-        #print(key_lst)
-        
+        if isinstance(h5key_names[0], str) and len(h5key_names[0])==0:
+            key_lst = list(datafile[h5key_list[0]].keys())
+            key_strings = list(range(len(key_lst)))
+            # print('1)', len(key_str))
+        else:
+            key_lst = list(datafile[h5key_list[0]].keys())
+            key_strings = key_lst
+        #     print('2)')
+        # print(key_lst)
+        # print(key_strings)
         #cut to what we want ot iterate over
         # if we are using all the data make sure we run to the end.
         if key_end[0] == -1:
@@ -309,7 +341,7 @@ def get_image_keys(datafile, h5key_list, h5key_names, key_start=0, key_end=-1, k
                     index = key_lst[i]
             #print('index', index, key_lst[i])
             
-            keys.extend(get_image_keys(datafile, h5key_list[1:], h5key_names[1:], key_start=key_start[1:], key_end=key_end[1:], key_step=key_step[1:], key_route=key_lst[i],bottom_level=bottom_level, index = index, key_str=key_lst[i]))
+            keys.extend(get_image_keys(datafile, h5key_list[1:], h5key_names[1:], key_start=key_start[1:], key_end=key_end[1:], key_step=key_step[1:], key_route=key_lst[i],bottom_level=bottom_level, index = index, key_str=str(key_strings[i])))
             
             #print(keys)
         

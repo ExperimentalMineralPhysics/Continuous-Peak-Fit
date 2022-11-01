@@ -84,25 +84,84 @@ def image_list(fit_parameters, fit_settings):
 
     """
     
-    
     # make the file list
     diff_files, n_diff_files = file_list(fit_parameters, fit_settings)
     
     # iterate for h5 files.
     image_list = []
-    if "h5_key_names" in fit_parameters:
+    if "h5_key_list" in fit_parameters:
+        
+        # FIX ME: all this code should be moved to settings and validation. 
+        h5_key_list  = fit_settings.h5_key_list
+        
+        if "h5_key_names" in fit_parameters:
+            h5_key_names = fit_settings.h5_key_names
+        else:
+            h5_key_names = []
+            
+        if "h5_key_start" in fit_parameters:
+            h5_key_start = fit_settings.h5_key_start
+        else:
+            h5_key_start = 0
+        #h5_key_start = fit_settings.h5_key_start
+        
+        if "h5_key_end" in fit_parameters:
+            h5_key_end = fit_settings.h5_key_end
+        else:
+            h5_key_end = -1
+        #            h5_key_end   = fit_settings.h5_key_end
+        if isinstance(h5_key_end, int):
+            h5_key_end = [h5_key_end]
+        # print("end", h5_key_end, type(h5_key_end))
+
+        if "h5_key_step" in fit_parameters:
+            h5_key_step = fit_settings.h5_key_step
+        else:
+            h5_key_step = 1
+        # h5_key_step  = fit_settings.h5_key_step
+        
+        if "h5_data" in fit_parameters:
+            h5_data = fit_settings.h5_data
+        else:
+            h5_data = "iterate"
+        #h5_data      = fit_settings.h5_data
         
         for i in range(n_diff_files):
             
-            h5_key_list  = fit_settings.h5_key_list
+            # h5_key_list  = fit_settings.h5_key_list
+            # if "h5_key_names" in fit_parameters:
+            #     h5_key_names = fit_settings.h5_key_names
+            # else:
+            #     h5_key_names = []
+                
+            # if "h5_key_start" in fit_parameters:
+            #     h5_key_start = fit_settings.h5_key_start
+            # else:
+            #     h5_key_start = 0
+            # #h5_key_start = fit_settings.h5_key_start
             
-            h5_key_names = fit_settings.h5_key_names
-            h5_key_start = fit_settings.h5_key_start
-            k5_hey_end   = fit_settings.k5_hey_end
-            h5_key_step  = fit_settings.h5_key_step
-            h5_data      = fit_settings.h5_data
+            # if "h5_key_end" in fit_parameters:
+            #     h5_key_end = fit_settings.h5_key_end
+            # else:
+            #     h5_key_end = -1
+            # #            h5_key_end   = fit_settings.h5_key_end
+            # if isinstance(h5_key_end, int):
+            #     h5_key_end = [h5_key_end]
+            # print("end", h5_key_end, type(h5_key_end))
+
+            # if "h5_key_step" in fit_parameters:
+            #     h5_key_step = fit_settings.h5_key_step
+            # else:
+            #     h5_key_step = 1
+            # # h5_key_step  = fit_settings.h5_key_step
             
-            h5_list = h5_functions.get_image_keys(diff_files[i], h5_key_list, h5_key_names, key_start=h5_key_start, key_end=k5_hey_end, key_step=h5_key_step, bottom_level=h5_data)
+            # if "h5_data" in fit_parameters:
+            #     h5_data = fit_settings.h5_data
+            # else:
+            #     h5_data = "iterate"
+            # #h5_data      = fit_settings.h5_data
+            
+            h5_list = h5_functions.get_image_keys(diff_files[i], h5_key_list, h5_key_names, key_start=h5_key_start, key_end=h5_key_end, key_step=h5_key_step, bottom_level=h5_data)
     
             for j in range(len(h5_list)):  
                 image_list.append([diff_files[i], h5_list[j]])

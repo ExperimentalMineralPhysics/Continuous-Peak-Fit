@@ -147,7 +147,7 @@ AziBins = 90
 
 #Output settings
 Output_directory   = './results/'
-Output_type        = 'Polydefix'
+Output_type        = ['Polydefix', 'DifferentialStrain']
 Output_NumAziWrite = 90
 phase              = 'Fe-BCC'
 Output_ElasticProperties = 'Properties_Fe-BCC.txt'

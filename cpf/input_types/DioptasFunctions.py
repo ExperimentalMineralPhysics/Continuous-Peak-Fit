@@ -16,6 +16,7 @@ import pyFAI
 from PIL import Image
 from matplotlib import gridspec
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from pyFAI.io import ponifile
 from matplotlib import cm, colors
 from cpf import IO_functions
 
@@ -42,7 +43,7 @@ class DioptasDetector:
         self.continuous_azm = True
         
         if settings_class:
-            self.calibration = self.get_calibration(settings=settings_class)
+            self.get_calibration(settings=settings_class)
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
         
@@ -63,10 +64,10 @@ class DioptasDetector:
         :param debug:
         :param calibration_mask: -- now removed because calibration mask file is contained in settings class
         """
+        
         # self.detector = self.detector_check(calibration_data, detector)
         #        print(settings.Calib_param)
-        self.calibration = self.get_calibration(settings.calibration_parameters)
-        #self.calibration = self.get_calibration(settings.Calib_param)
+        self.get_calibration(settings.calibration_parameters)
         self.get_detector(diff_file, settings)
 
         self.intensity = self.get_masked_calibration(diff_file, debug, calibration_mask=settings.calibration_mask)
@@ -82,6 +83,9 @@ class DioptasDetector:
         :param settings:
         :return:
         """
+
+        # if self.calibration:
+        #     self.detector = self.calibration.detector
 
         #if hasattr(settings, "Calib_detector"):
         if settings.calibration_detector is not None:
@@ -251,6 +255,7 @@ class DioptasDetector:
 
 
         if debug:
+            print("min+max:", np.min(im), np.max(im))
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)            
             self.plot_collected(fig_plot=fig, axis_plot=ax)
@@ -286,7 +291,7 @@ class DioptasDetector:
         :return:
         """
         
-        wavelength = self.calibration["wavelength"] * 1e10
+        wavelength = self.calibration.wavelength * 1e10
         if not reverse:
             # convert tth to d_spacing
             dspc_out = wavelength / 2 / np.sin(np.radians(tth_in / 2))
@@ -358,92 +363,16 @@ class DioptasDetector:
         """
 
         if settings != None:
-            parms_file = open(settings.calibration_parameters, "r")
+            parms_file = settings.calibration_parameters
         else:
-            parms_file = open(file_name, "r")
-        #print(parms_file)
-        file_lines = parms_file.readlines()
-        parms_dict = {}
-        for item in file_lines:
-            new_parms = item.strip("\n").split(":", 1)
-            parm = new_parms[1].strip()
-            value = None
-            # print parm
-            try:
-                value = int(parm)
-                parms_dict[(str(new_parms[0]).lower())] = value
-            except ValueError:
-                try:
-                    value = float(parm)
-                    parms_dict[new_parms[0]] = value
-                except ValueError:
-                    if parm.startswith("["):
-                        list_vals = parm.strip("[").strip("]").split(",")
-                        new_list = []
-                        for val in list_vals:
-                            new_value = None
-                            try:
-                                new_value = int(val)
-                                new_list.append(new_value)
-                            except ValueError:
-                                try:
-                                    new_value = float(val)
-                                    new_list.append(new_value)
-                                except ValueError:
-                                    new_list.append(
-                                        val.replace("'", "")
-                                            .replace(" ", "")
-                                            .replace('"', "")
-                                    )
-                        parms_dict[new_parms[0]] = new_list
-                    elif parm.startswith("{"):
-                        # print parm
-                        list_vals = parm.strip("{").strip("}").split(",")
-                        new_dict = {}
-                        for key_val in list_vals:
-                            # print key_val
-                            new_key = (
-                                key_val.split(":")[0]
-                                    .replace("'", "")
-                                    .replace(" ", "")
-                                    .replace('"', "")
-                            )
-                            val = key_val.split(":")[1]
-                            new_value = None
-                            try:
-                                new_value = int(val)
-                                new_dict[str(new_key)] = new_value
-                            except ValueError:
-                                try:
-                                    new_value = float(val)
-                                    new_dict[str(new_key)] = new_value
-                                except ValueError:
-                                    new_dict[str(new_key)] = (
-                                        val.replace("'", "")
-                                            .replace(" ", "")
-                                            .replace('"', "")
-                                    )
-                        parms_dict[new_parms[0]] = new_dict
-                    elif not parm:
-                        parms_dict[new_parms[0]] = ""
-
-                    else:
-                        parms_dict[new_parms[0]] = str(parm)
-
-        # process 'detector_config' into pixel sizes if needed.
-        if "Detector_config" in parms_dict:
-            # print(parms_dict['Detector_config'])
-            parms_dict["pixelsize1"] = parms_dict["Detector_config"]["pixel1"]
-            parms_dict["pixelsize2"] = parms_dict["Detector_config"]["pixel2"]
-        # get wavelengths in Angstrom
-        parms_dict["conversion_constant"] = parms_dict["Wavelength"] * 1e10
-        # force all dictionary labels to be lower case -- makes s
-        parms_dict = {k.lower(): v for k, v in parms_dict.items()}
-        # report type
-        parms_dict["DispersionType"] = "AngleDispersive"
+            parms_file = file_name
+            
         
-        # print("parms_dict", parms_dict)
-        return parms_dict
+        pf = ponifile.PoniFile()
+        pf.read_from_file(parms_file)
+
+        self.calibration = pf
+        self.conversion_constant = pf.wavelength * 1e10
 
 
     def bins(self, orders_class, cascade=False):
@@ -545,17 +474,17 @@ class DioptasDetector:
 
         :return:
         """
+        
         ai = AzimuthalIntegrator(
-            self.calibration["distance"],
-            self.calibration["poni1"],
-            self.calibration["poni2"],
-            self.calibration["rot1"],
-            self.calibration["rot2"],
-            self.calibration["rot3"],
-            pixel1=self.calibration["pixelsize1"],
-            pixel2=self.calibration["pixelsize2"],
-            detector=self.detector,
-            wavelength=self.calibration["wavelength"],
+            dist=self.calibration.dist,
+            poni1=self.calibration.poni1,
+            poni2=self.calibration.poni2,
+            rot1=self.calibration.rot1,
+            rot2=self.calibration.rot2,
+            rot3=self.calibration.rot3,
+            detector=self.detector, 
+            wavelength=self.calibration.wavelength
+            
         )
         return ai
 
@@ -595,7 +524,7 @@ class DioptasDetector:
         ai = self.get_azimuthal_integration()
         if mask is not None:
             return ma.array(
-                self.calibration["wavelength"]
+                self.calibration.wavelength
                 * 1e10
                 / 2
                 / np.sin(ai.twoThetaArray() / 2),
@@ -603,7 +532,7 @@ class DioptasDetector:
             )
         else:
             return ma.array(
-                self.calibration["wavelength"]
+                self.calibration.wavelength
                 * 1e10
                 / 2
                 / np.sin(ai.twoThetaArray() / 2)

@@ -64,7 +64,8 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
         Num_Azi = setting_class.output_settings["Output_NumAziWrite"]
 
     # wavelength = parms_dict["conversion_constant"]
-    wavelength = setting_class.data_class.calibration["conversion_constant"]
+    #wavelength = setting_class.data_class.calibration["conversion_constant"]
+    wavelength = setting_class.data_class.conversion_constant
 
     for z in range(setting_class.image_number):
 

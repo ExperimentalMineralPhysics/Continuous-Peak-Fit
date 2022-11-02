@@ -477,7 +477,7 @@ def title_file_names(settings_for_fit = None, num=0, image_name=None, string=Tru
     if image_name == None:
         image_name = settings_for_fit.image_list[num]
     
-    print(image_name)
+    #print(image_name)
     
     if isinstance(image_name, list):
         t_f_str = os.path.split(image_name[0])[1]

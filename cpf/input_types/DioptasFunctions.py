@@ -361,7 +361,7 @@ class DioptasDetector:
             parms_file = open(settings.calibration_parameters, "r")
         else:
             parms_file = open(file_name, "r")
-        print(parms_file)
+        #print(parms_file)
         file_lines = parms_file.readlines()
         parms_dict = {}
         for item in file_lines:
@@ -858,19 +858,22 @@ class DioptasDetector:
         
 
 
-    def plot_calibrated(self, fig_plot=None, axis_plot=None, show="intensity", x_axis="default", y_axis="default", data=None, limits=[0, 99.9], colourmap = "jet"):
+    def plot_calibrated(self, fig_plot=None, axis_plot=None, show="intensity", x_axis="default", y_axis="default", data=None, limits=[0, 99.9], colourmap = "jet", rastered=False, point_scale=3):
         """
         add data to axes. 
         :param ax:
         :param show:
         :return:
         """
-        rstr=False
+        
         if self.intensity.size > 50000:
             print(
                 " Have patience. The plot(s) will appear but it can take its time to render."
             )
-            rstr = True
+            rastered = True
+            # print(type(axis_plot))
+            # axis_plot = raster_axes.RasterAxes(axes=axis_plot)
+            # print(type(axis_plot))
             
         if x_axis == "default":
             plot_x = self.tth
@@ -889,6 +892,7 @@ class DioptasDetector:
             plot_y = self.azm
             plot_i = self.intensity
             label_y = "Azimuth (deg)"
+            
             
             y_lims = np.array(
                 [np.min(plot_y.flatten()), np.max(plot_y.flatten())]
@@ -962,7 +966,7 @@ class DioptasDetector:
             cmap=colourmap,
             vmin=IMin,
             vmax=IMax,
-            rasterized=rstr 
+            rasterized=rastered 
         )    
         axis_plot.set_xlabel(r"2$\theta$ (deg)")
         axis_plot.set_ylabel(label_y)

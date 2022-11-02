@@ -505,7 +505,7 @@ def save_images(settings_file=None, settings_class=None, image_num=None, export_
         
         fnam = IO.make_outfile_name(settings_for_fit.image_list[n][0],additional_text=settings_for_fit.image_list[n][1][2], directory=settings_for_fit.output_directory, extension=export_type)
 
-        print(im_data.shape)
+        #print(im_data.shape)
         cv2.imwrite(fnam, im_data[0,:,:])
         print("Writing:",fnam)
 

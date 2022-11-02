@@ -9,6 +9,7 @@ import numpy as np
 import os
 import re
 import cpf.h5_functions as h5_functions
+from copy import deepcopy
 
 # Needed for JSON to save fitted parameters.
 # Copied from https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array#24375113
@@ -161,7 +162,9 @@ def image_list(fit_parameters, fit_settings):
             #     h5_data = "iterate"
             # #h5_data      = fit_settings.h5_data
             
-            h5_list = h5_functions.get_image_keys(diff_files[i], h5_key_list, h5_key_names, key_start=h5_key_start, key_end=h5_key_end, key_step=h5_key_step, bottom_level=h5_data)
+            
+            h5_list = h5_functions.get_image_keys(diff_files[i], h5_key_list, h5_key_names, key_start=h5_key_start, key_end=deepcopy(h5_key_end), key_step=h5_key_step, bottom_level=h5_data)
+            # N.B. deepcopying of h5_key_end is needed otherwise it is reset for subsequent h5 files. 
     
             for j in range(len(h5_list)):  
                 image_list.append([diff_files[i], h5_list[j]])

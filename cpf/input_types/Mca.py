@@ -817,7 +817,7 @@ class Mca(object):
             b = self.calibration.slope
             c = self.calibration.offset - energy
             # There are 2 roots.  I think we always want the "+" root?
-            channel = (-b + Numeric.sqrt(b ** 2 - 4.0 * a * c)) / (2.0 * a)
+            channel = (-b + Numeric.sqrt(b**2 - 4.0 * a * c)) / (2.0 * a)
         channel = Numeric.around(channel)
         if clip != 0:
             nchans = len(self.data)

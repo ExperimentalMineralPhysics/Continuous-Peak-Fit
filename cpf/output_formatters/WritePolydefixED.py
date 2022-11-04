@@ -4,6 +4,7 @@ __all__ = ["Requirements", "WriteOutput"]
 import os
 
 import numpy as np
+
 # import cpf.PeakFunctions as ff
 import cpf.series_functions as sf
 import cpf.IO_functions as IO
@@ -22,16 +23,22 @@ def Requirements():
         "ElasticProperties",  # FIX ME: this needs to be included
         "tc",  # which thermocoule to include from 6BMB/X17B2 collection system. default to 1. #FIX ME: this needs to be included
         ###"Output_directory",  # if no direcrtory is specified write to current directory.
-        "phase", #the phase we are interested in 
+        "phase",  # the phase we are interested in
         "Output_TemperaturePower",
-        "Output_tc"
+        "Output_tc",
     ]
 
     return RequiredParams, OptionalParams
 
 
 # def WriteOutput(FitSettings, parms_dict, **kwargs):
-def WriteOutput(setting_class=None,setting_file=None,differential_only=False, debug=False, **kwargs):
+def WriteOutput(
+    setting_class=None,
+    setting_file=None,
+    differential_only=False,
+    debug=False,
+    **kwargs
+):
     # writes *.exp files required by polydefixED.
     # N.B. this is a different file than that required by polydefix for monochromatic diffraction.
     # This file contains a list of all the diffraction information. Hence it has to be written after the fitting as a single operation.
@@ -42,9 +49,9 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
         )
     elif setting_class is None:
         import cpf.XRD_FitPattern.initiate as initiate
+
         setting_class = initiate(setting_file)
-    
-    
+
     # FitParameters = dir(FitSettings)
 
     # Parse the required inputs.
@@ -58,7 +65,7 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
     #     print("No base filename, using input filename instead.")
     #     base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
 
-    base = setting_class.datafile_basename 
+    base = setting_class.datafile_basename
     if base is None:
         print("No base filename, using input filename instead.")
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
@@ -68,12 +75,12 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
     #     base, directory=FitSettings.Output_directory, extension=".exp", overwrite=True
     # )
     out_file = IO.make_outfile_name(
-            base,
-            directory=setting_class.output_directory,#directory=FitSettings.Output_directory,
-            extension=".exp",
-            overwrite=True,
-        )
-    
+        base,
+        directory=setting_class.output_directory,  # directory=FitSettings.Output_directory,
+        extension=".exp",
+        overwrite=True,
+    )
+
     # if 'Output_directory' in FitParameters:
     #     out_dir = FitSettings.Output_directory
     # else:
@@ -104,7 +111,10 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
     # FIX ME: should this be the average of all the two theat angles?
     text_file.write("# 2 theta angle (in degrees)\n")
     # text_file.write("%12.5f\n" % parms_dict["calibs"].mcas[0].calibration.two_theta)
-    text_file.write("%12.5f\n" % setting_class.data_class.calibration["calibs"].mcas[0].calibration.two_theta)
+    text_file.write(
+        "%12.5f\n"
+        % setting_class.data_class.calibration["calibs"].mcas[0].calibration.two_theta
+    )
 
     # Write detector properties.
     text_file.write("# Number of detector positions\n")
@@ -124,7 +134,8 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
 
         # print detector number, if it is being used, then angle, lastly just a number.
         text_file.write(
-            "%6i  %i  %7.3f  %i \n" % (x + 1, use, setting_class.data_class.calibration["azimuths"][x], 1)
+            "%6i  %i  %7.3f  %i \n"
+            % (x + 1, use, setting_class.data_class.calibration["azimuths"][x], 1)
         )
 
         # FIX ME: if 10 element detector then turn detector 10 off.
@@ -331,22 +342,36 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
                     st = "LVP_furnace_calcs.D"
                     if st in line:
                         pwr = float(re.findall(r'"(.*?)"', line)[0])
-                        for i in range(len(setting_class.output_settings["Output_TemperaturePower"])):
+                        for i in range(
+                            len(
+                                setting_class.output_settings["Output_TemperaturePower"]
+                            )
+                        ):
                             temp = (
-                                temp + setting_class.output_settings["Output_TemperaturePower"][i] * pwr ** i
+                                temp
+                                + setting_class.output_settings[
+                                    "Output_TemperaturePower"
+                                ][i]
+                                * pwr**i
                             )
                         temp = temp + 273
                 else:  # get temperature from thermocouple reading
                     if not "Output_tc" in setting_class.output_settings:
                         st = "LVP_tc1_calcs.I"
                     else:
-                        st = "LVP_tc" + setting_class.output_settings["Output_tc"] + "_calcs.I"
+                        st = (
+                            "LVP_tc"
+                            + setting_class.output_settings["Output_tc"]
+                            + "_calcs.I"
+                        )
                     if st in line:
                         temp = re.findall(r'"(.*?)"', line)
                         temp = float(temp[0]) + 273.0
 
         # strip directory and ending from filename
-        diff_name = os.path.splitext(os.path.basename(setting_class.datafile_list[x]))[0]
+        diff_name = os.path.splitext(os.path.basename(setting_class.datafile_list[x]))[
+            0
+        ]
 
         text_file.write(
             "%8i        %s  %8.8g            %6.1f\n"
@@ -359,16 +384,16 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
         "# Peak number.  h.  k.  l.  d-spacing.  intensity.  detector number. step number E t \n"
     )
     for z in range(setting_class.datafile_number):
-        
-        setting_class.set_subpattern(z,0)
-        
+
+        setting_class.set_subpattern(z, 0)
+
         filename = IO.make_outfile_name(
             setting_class.subfit_filename,
             directory=setting_class.output_directory,
             extension=".json",
-            overwrite=True, # overwrite = True to get the file name without incrlemeting it.
-        )  
-        
+            overwrite=True,  # overwrite = True to get the file name without incrlemeting it.
+        )
+
         # Read JSON data from file
         with open(filename) as json_data:
             fit = json.load(json_data)
@@ -426,7 +451,9 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
                     coeff_type=coef_type,
                 )
                 n = -1
-                for w in range(len(setting_class.data_class.calibration["calibs"].mcas)):
+                for w in range(
+                    len(setting_class.data_class.calibration["calibs"].mcas)
+                ):
                     # determine if detector masked
                     if setting_class.calibration_mask:
                         if w + 1 in setting_class.calibration_mask:

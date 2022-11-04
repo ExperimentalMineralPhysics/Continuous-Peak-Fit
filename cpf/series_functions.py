@@ -7,14 +7,14 @@ peak shape and background properties.
 
 __all__ = [
     "coefficient_types",
-    "coefficient_type_as_number", 
-    "coefficient_type_as_string", 
-    "get_series_type", 
-    "params_get_type", 
-    "get_number_coeff", 
-    "get_order_from_coeff", 
-    "get_order_from_params", #not needed? 
-    "fourier_order", # same as get order from params?
+    "coefficient_type_as_number",
+    "coefficient_type_as_string",
+    "get_series_type",
+    "params_get_type",
+    "get_number_coeff",
+    "get_order_from_coeff",
+    "get_order_from_params",  # not needed?
+    "fourier_order",  # same as get order from params?
     "coefficient_expand",
     "spline_expand",
     "fourier_expand",
@@ -33,19 +33,19 @@ def coefficient_types():
     :return: dictionary of key, value pairs.
     """
     coeff_types = {
-        "fourier":          0,
-        "spline_linear":    1,
-        "linear":           1,
+        "fourier": 0,
+        "spline_linear": 1,
+        "linear": 1,
         "spline_quadratic": 2,
-        "quadratic":        2,
+        "quadratic": 2,
         "spline_cubic_closed": 3,
-        "spline_cubic":     3,
-        "spline-cubic":     3,
-        "cubic":            3,
-        "spline":           3,
+        "spline_cubic": 3,
+        "spline-cubic": 3,
+        "cubic": 3,
+        "spline": 3,
         "spline_cubic_open": 4,
-        "independent":      5,
-        }
+        "independent": 5,
+    }
     return coeff_types
 
 
@@ -60,15 +60,17 @@ def coefficient_type_as_number(coeff_type, return_error=1):
         out = 0
     elif coeff_type == "spline_linear" or coeff_type == "linear" or coeff_type == 1:
         out = 1
-    elif coeff_type == "spline_quadratic" or coeff_type == "quadratic" or coeff_type == 2:
+    elif (
+        coeff_type == "spline_quadratic" or coeff_type == "quadratic" or coeff_type == 2
+    ):
         out = 2
     elif (
-            coeff_type == "spline_cubic_closed"
-            or coeff_type == "spline_cubic"
-            or coeff_type == "spline-cubic"
-            or coeff_type == "cubic"
-            or coeff_type == "spline"
-            or coeff_type == 3
+        coeff_type == "spline_cubic_closed"
+        or coeff_type == "spline_cubic"
+        or coeff_type == "spline-cubic"
+        or coeff_type == "cubic"
+        or coeff_type == "spline"
+        or coeff_type == 3
     ):
         out = 3
     elif coeff_type == "spline_cubic_open" or coeff_type == 4:
@@ -77,10 +79,8 @@ def coefficient_type_as_number(coeff_type, return_error=1):
         out = 5
     else:
         error_str = "Unrecognised coefficient series type, the valid options are fourier, etc..."
-        if return_error==0:
-            raise ValueError(
-                error_str
-            )
+        if return_error == 0:
+            raise ValueError(error_str)
             # FIX ME: write out all the licit options in the error message.
         else:
             out = error_str
@@ -97,21 +97,21 @@ def coefficient_type_as_string(series_type):
     if series_type == 0:  # or series_type=='fourier':
         out = "fourier"
     elif (
-            series_type == 1
+        series_type == 1
     ):  # or series_type == 'spline_linear' or series_type == 'linear':
         out = "spline_linear"
     elif (
-            series_type == 2
+        series_type == 2
     ):  # or series_type == 'spline_quadratic' or series_type == 'quadratic':
         out = "spline_quadratic"
     elif (
-            series_type == 3
+        series_type == 3
     ):  # or series_type == 'spline_cubic_closed' or series_type == 'spline_cubic'
         # or series_type == 'spline-cubic' or series_type == 'cubic'
         # or series_type == 'spline':
         out = "spline_cubic"
     elif (
-            series_type == 4
+        series_type == 4
     ):  # series_type == 'spline_cubic_open' or series_type == 'spline-cubic-open'
         # or series_type == 'cubic-open' or series_type == 'spline-open':
         out = "spline_cubic_open"
@@ -179,7 +179,7 @@ def params_get_type(orders, comp, peak=0):
 def get_number_coeff(orders, comp, peak=0, azimuths=None):
     """
     Gets the expected number of coefficients from orders.
-    IF independent this needs the azimuths as well. 
+    IF independent this needs the azimuths as well.
     :param orders:
     :param comp:
     :param peak:
@@ -189,7 +189,7 @@ def get_number_coeff(orders, comp, peak=0, azimuths=None):
 
     parm_str = params_get_type(orders, comp, peak)
     parm_num = coefficient_type_as_number(parm_str)
-    
+
     if parm_num == 5:  # independent
         if azimuths is None:
             raise ValueError(
@@ -267,8 +267,9 @@ def fourier_order(params):
     return order
 
 
-
-def coefficient_expand(azimuth, param=None, coeff_type="fourier", comp_str=None, **params):
+def coefficient_expand(
+    azimuth, param=None, coeff_type="fourier", comp_str=None, **params
+):
     """
     Expand the coefficients to give one value for each azimuth.
     :param azimuth:
@@ -346,13 +347,13 @@ def coefficient_expand(azimuth, param=None, coeff_type="fourier", comp_str=None,
 
 # spline expansion function
 def spline_expand(
-        azimuth,
-        inp_param=None,
-        comp_str=None,
-        start_end=[0, 360],
-        bc_type="periodic",
-        kind="cubic",
-        **params
+    azimuth,
+    inp_param=None,
+    comp_str=None,
+    start_end=[0, 360],
+    bc_type="periodic",
+    kind="cubic",
+    **params
 ):
     """Calculate Spline interpolation given input coefficients.
     :param kind:
@@ -405,7 +406,7 @@ def spline_expand(
     fout = np.ones(azimuth.shape)
 
     if (
-            azimuth.size == 1
+        azimuth.size == 1
     ):  # this line is required to catch error when out is single number.
         try:
             fout = inp_param[0]
@@ -416,7 +417,9 @@ def spline_expand(
     # essentially d_0, h_0 or w_0
     if not isinstance(inp_param, np.float64) and np.size(inp_param) > 1:
         if k == 3:
-            spl = CubicSpline(points, inp_param, bc_type=bc_type, extrapolate="periodic")
+            spl = CubicSpline(
+                points, inp_param, bc_type=bc_type, extrapolate="periodic"
+            )
         else:
             spl = make_interp_spline(points, inp_param, k=k)
 
@@ -466,9 +469,9 @@ def fourier_expand(azimuth, inp_param=None, comp_str=None, **params):
         for i in range(1, int((len(inp_param) - 1) / 2) + 1):
             # len(param)-1 should never be odd because of initial a_0 parameter
             fout = (
-                    fout
-                    + inp_param[(2 * i) - 1] * np.sin(np.deg2rad(azimuth) * i)
-                    + inp_param[2 * i] * np.cos(np.deg2rad(azimuth) * i)
+                fout
+                + inp_param[(2 * i) - 1] * np.sin(np.deg2rad(azimuth) * i)
+                + inp_param[2 * i] * np.cos(np.deg2rad(azimuth) * i)
             )  # single col array
     return fout
 
@@ -512,7 +515,7 @@ def background_expansion(azimuth_two_theta, orders, params):
     # Not sure if this is correct, thought that if orders then array would be eg [5,0] and would want a fourier
     # expansion with 5 parms for offset and then no fourier expansion for slope i.e. 5 parms then 0.
     # But below would interpret this as effectively [0,0] instead.
-    # ANSWER: I am not sure this is true any more. 
+    # ANSWER: I am not sure this is true any more.
 
     bg_all = np.zeros(azimuth.shape)
     for i in range(len(backg)):

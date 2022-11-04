@@ -4,6 +4,7 @@ __all__ = ["Requirements", "WriteOutput"]
 import os
 
 import numpy as np
+
 # import cpf.PeakFunctions as pf
 import json
 from lmfit.model import load_modelresult
@@ -28,7 +29,7 @@ def Requirements():
 
 
 # def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
-def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
+def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
     """
 
     writes some of the fitted coeficients to a table. With a focus on the differential strain coefficents
@@ -48,24 +49,19 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
     None.
 
     """
-    
+
     if setting_class is None and setting_file is None:
         raise ValueError(
             "Either the settings file or the setting class need to be specified."
         )
     elif setting_class is None:
         import cpf.XRD_FitPattern.initiate as initiate
+
         setting_class = initiate(setting_file)
-    
-    
-    
-    
-    
+
     # writes some of the fitted coeficients to a table. With a focus on the differential strain coefficents
 
     # FitParameters = dir(FitSettings)
-
-    
 
     # Parse the required inputs.
     # base_file_name = FitSettings.datafile_Basename
@@ -89,22 +85,19 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
 
     # out_file = out_dir + base + '.dat'
 
-    #base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
+    # base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
     base = setting_class.datafile_basename
-    
+
     # if not base:
-    if base is None or len(base)==0:
+    if base is None or len(base) == 0:
         print("No base filename, trying ending without extension instead.")
         base = setting_class.datafile_ending
-    
+
     if base is None:
         print("No base filename, using input filename instead.")
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
     out_file = IO.make_outfile_name(
-                    base, 
-                    directory=setting_class.output_directory, 
-                    extension=".dat", 
-                    overwrite=True
+        base, directory=setting_class.output_directory, extension=".dat", overwrite=True
     )
 
     text_file = open(out_file, "w")
@@ -112,7 +105,7 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
 
     text_file.write(
         "# Summary of fits produced by continuous_peak_fit for input file: %s.\n"
-        % setting_class.settings_file #FitSettings.inputfile
+        % setting_class.settings_file  # FitSettings.inputfile
     )
     text_file.write("# For more information: http://www.github.com/me/something\n")
     text_file.write("# File version: %i \n" % 1.1)
@@ -166,14 +159,14 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
         )
     text_file.write("\n")
 
-    for z in range(setting_class.image_number):# n_diff_files):
+    for z in range(setting_class.image_number):  # n_diff_files):
 
-        setting_class.set_subpattern(z,0)        
+        setting_class.set_subpattern(z, 0)
 
         # filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
         # filename = filename+'.json'
         filename = IO.make_outfile_name(
-            setting_class.subfit_filename,#diff_files[z],
+            setting_class.subfit_filename,  # diff_files[z],
             directory=setting_class.output_directory,
             extension=".json",
             overwrite=True,
@@ -189,7 +182,7 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
             num_subpatterns = len(fit)
             for y in range(num_subpatterns):
 
-                # setting_class.set_subpattern(z,y) 
+                # setting_class.set_subpattern(z,y)
                 # try:
                 #     #orders = FitSettings.fit_orders[y]
                 #     orders = setting_class.subfit_orders
@@ -216,16 +209,17 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
                 #         subfilename = subfilename + '_'
 
                 out_name = IO.make_outfile_name(
-                    setting_class.subfit_filename,#diff_files[z], 
-                    directory="", overwrite=True
+                    setting_class.subfit_filename,  # diff_files[z],
+                    directory="",
+                    overwrite=True,
                 )
 
                 # print('  Incorporating ' + subfilename)
                 print("  Incorporating: " + out_name + ", " + IO.peak_string(fit[y]))
 
                 savfilename = IO.make_outfile_name(
-                    setting_class.subfit_filename,#diff_files[z],
-                    directory=setting_class.output_directory,#directory=FitSettings.Output_directory,
+                    setting_class.subfit_filename,  # diff_files[z],
+                    directory=setting_class.output_directory,  # directory=FitSettings.Output_directory,
                     orders=fit[y],
                     extension=".sav",
                     overwrite=True,
@@ -242,8 +236,10 @@ def WriteOutput(setting_class=None,setting_file=None,debug=True, **kwargs):
                                 savfilename, funcdefs={"peaks_model": lmm.peaks_model}
                             )
                         except:
-                            #raise FileNotFoundError
-                            print("    Can't open file with the correlation coefficients in...")
+                            # raise FileNotFoundError
+                            print(
+                                "    Can't open file with the correlation coefficients in..."
+                            )
                     # FIX ME: this will only work for one peak. Needs fixing if more then one peak in subpattern
                     try:
                         corr = gmodel.params["peak_0_d3"].correl["peak_0_d4"]

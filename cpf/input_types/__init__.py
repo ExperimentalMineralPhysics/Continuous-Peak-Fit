@@ -15,12 +15,12 @@ This allows the addition of new output types by just adding them to the director
 """
 module_list = []
 for module in os.listdir(os.path.dirname(__file__)):
-    if module == '__init__.py' or module[-3:] != '.py' or not 'Functions' in module:
+    if module == "__init__.py" or module[-3:] != ".py" or not "Functions" in module:
         # do not list the file to be loaded
         pass
     else:
         module_list.append(module[:-3])
-        
+
 new_module = {}
 for output_module in module_list:
     module = __import__("cpf.input_types." + output_module, fromlist=[None])

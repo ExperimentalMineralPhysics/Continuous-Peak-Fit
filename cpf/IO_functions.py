@@ -63,14 +63,13 @@ def json_numpy_serializer(o):
         )
 
 
-
 def image_list(fit_parameters, fit_settings):
     """
-    From the Settings make a list of all the data images to be processed. 
+    From the Settings make a list of all the data images to be processed.
     If the images are h5 type files a list of files is made first then the list is expanded for the images in the h5 files.
-    
+
     #FIXME: This function is called by the output writing scripts to make sure the file names are called consistently.
-    
+
 
     Parameters
     ----------
@@ -84,28 +83,28 @@ def image_list(fit_parameters, fit_settings):
     None.
 
     """
-    
+
     # make the file list
     diff_files, n_diff_files = file_list(fit_parameters, fit_settings)
-    
+
     # iterate for h5 files.
     image_list = []
     if "h5_key_list" in fit_parameters:
-        
-        # FIX ME: all this code should be moved to settings and validation. 
-        h5_key_list  = fit_settings.h5_key_list
-        
+
+        # FIX ME: all this code should be moved to settings and validation.
+        h5_key_list = fit_settings.h5_key_list
+
         if "h5_key_names" in fit_parameters:
             h5_key_names = fit_settings.h5_key_names
         else:
             h5_key_names = []
-            
+
         if "h5_key_start" in fit_parameters:
             h5_key_start = fit_settings.h5_key_start
         else:
             h5_key_start = 0
-        #h5_key_start = fit_settings.h5_key_start
-        
+        # h5_key_start = fit_settings.h5_key_start
+
         if "h5_key_end" in fit_parameters:
             h5_key_end = fit_settings.h5_key_end
         else:
@@ -120,27 +119,27 @@ def image_list(fit_parameters, fit_settings):
         else:
             h5_key_step = 1
         # h5_key_step  = fit_settings.h5_key_step
-        
+
         if "h5_data" in fit_parameters:
             h5_data = fit_settings.h5_data
         else:
             h5_data = "iterate"
-        #h5_data      = fit_settings.h5_data
-        
+        # h5_data      = fit_settings.h5_data
+
         for i in range(n_diff_files):
-            
+
             # h5_key_list  = fit_settings.h5_key_list
             # if "h5_key_names" in fit_parameters:
             #     h5_key_names = fit_settings.h5_key_names
             # else:
             #     h5_key_names = []
-                
+
             # if "h5_key_start" in fit_parameters:
             #     h5_key_start = fit_settings.h5_key_start
             # else:
             #     h5_key_start = 0
             # #h5_key_start = fit_settings.h5_key_start
-            
+
             # if "h5_key_end" in fit_parameters:
             #     h5_key_end = fit_settings.h5_key_end
             # else:
@@ -155,31 +154,35 @@ def image_list(fit_parameters, fit_settings):
             # else:
             #     h5_key_step = 1
             # # h5_key_step  = fit_settings.h5_key_step
-            
+
             # if "h5_data" in fit_parameters:
             #     h5_data = fit_settings.h5_data
             # else:
             #     h5_data = "iterate"
             # #h5_data      = fit_settings.h5_data
-            
-            
-            h5_list = h5_functions.get_image_keys(diff_files[i], h5_key_list, h5_key_names, key_start=h5_key_start, key_end=deepcopy(h5_key_end), key_step=h5_key_step, bottom_level=h5_data)
-            # N.B. deepcopying of h5_key_end is needed otherwise it is reset for subsequent h5 files. 
-    
-            for j in range(len(h5_list)):  
+
+            h5_list = h5_functions.get_image_keys(
+                diff_files[i],
+                h5_key_list,
+                h5_key_names,
+                key_start=h5_key_start,
+                key_end=deepcopy(h5_key_end),
+                key_step=h5_key_step,
+                bottom_level=h5_data,
+            )
+            # N.B. deepcopying of h5_key_end is needed otherwise it is reset for subsequent h5 files.
+
+            for j in range(len(h5_list)):
                 image_list.append([diff_files[i], h5_list[j]])
-            
+
     else:
-            image_list = diff_files
-        
-        
+        image_list = diff_files
+
     n_images = len(image_list)
-        
-    
+
     # print(image_list)
     # print(n_images)
     return diff_files, n_diff_files, image_list, n_images
-    
 
 
 def file_list(fit_parameters, fit_settings):
@@ -191,16 +194,16 @@ def file_list(fit_parameters, fit_settings):
     :return:
     """
     # Define step
-    if ('datafile_Step' in fit_parameters):
+    if "datafile_Step" in fit_parameters:
         step = fit_settings.datafile_Step
-    elif ('datafile_Files' in fit_parameters):
+    elif "datafile_Files" in fit_parameters:
         step = 1
-    else: #if just datafile_StartNum and datafile_EndNum
+    else:  # if just datafile_StartNum and datafile_EndNum
         if fit_settings.datafile_EndNum >= fit_settings.datafile_StartNum:
             step = 1
         else:
             step = -1
-    
+
     if "datafile_NumDigit" not in fit_parameters:
         fit_settings.datafile_NumDigit = 1
 
@@ -209,7 +212,8 @@ def file_list(fit_parameters, fit_settings):
     if "datafile_Files" not in fit_parameters:
         n_diff_files = int(
             np.floor(
-                (fit_settings.datafile_EndNum - fit_settings.datafile_StartNum) / step + 1
+                (fit_settings.datafile_EndNum - fit_settings.datafile_StartNum) / step
+                + 1
             )
         )
         for j in range(n_diff_files):
@@ -333,7 +337,7 @@ def peak_string(orders, fname=False, peak="all"):
     p_str = ""
     for x in peek:
         if "phase" in orders["peak"][x]:
-            #p_str = p_str + orders["peak"][x]["phase"]
+            # p_str = p_str + orders["peak"][x]["phase"]
             p_str = p_str + peak_phase(orders, peak=x)[0]
         else:
             p_str = p_str + "Peak"
@@ -342,7 +346,7 @@ def peak_string(orders, fname=False, peak="all"):
         else:
             p_str = p_str + "-"
         if "hkl" in orders["peak"][x]:
-            #p_str = p_str + str(orders["peak"][x]["hkl"])
+            # p_str = p_str + str(orders["peak"][x]["hkl"])
             p_str = p_str + peak_hkl(orders, peak=x, string=True)[0]
         else:
             p_str = p_str + str(x + 1)
@@ -468,20 +472,18 @@ def peak_phase(orders, peak="all"):
     return out
 
 
+def title_file_names(settings_for_fit=None, num=0, image_name=None, string=True):
 
-def title_file_names(settings_for_fit = None, num=0, image_name=None, string=True):
-    
-    if string==True:
+    if string == True:
         joint = ";  "
     else:
         joint = "_"
-        
-    
+
     if image_name == None:
         image_name = settings_for_fit.image_list[num]
-    
-    #print(image_name)
-    
+
+    # print(image_name)
+
     if isinstance(image_name, list):
         t_f_str = os.path.split(image_name[0])[1]
         t_f_str, _ = os.path.splitext(t_f_str)
@@ -489,25 +491,22 @@ def title_file_names(settings_for_fit = None, num=0, image_name=None, string=Tru
         t_f_str += image_name[1][2]
         # t_f_str += joint
         # t_f_str += str(image_name[1][1])
-        
-        
+
     else:
         _, t_f_str = os.path.split(image_name)
         t_f_str, _ = os.path.splitext(t_f_str)
-        
-        
+
     return t_f_str
-    
-    
+
 
 def make_outfile_name(
-        base_filename,
-        directory=None,
-        additional_text=None,
-        extension=None,
-        orders=None,
-        peak="all",
-        overwrite=True,
+    base_filename,
+    directory=None,
+    additional_text=None,
+    extension=None,
+    orders=None,
+    peak="all",
+    overwrite=True,
 ):
     """
     Make file names for output files.
@@ -521,22 +520,21 @@ def make_outfile_name(
     :return:
     """
 
-    #if the file type is h5 the name arrives as a list of bits
+    # if the file type is h5 the name arrives as a list of bits
     if isinstance(base_filename, list):
-        #root_name = base_filename[0]
+        # root_name = base_filename[0]
         filename = title_file_names(image_name=base_filename, string=False)
-        
-        #get the file extension
+
+        # get the file extension
         _, ending = os.path.splitext(base_filename[0])
         ending = ending[1:]
     else:
         filename, ending = os.path.splitext(base_filename)
         ending = ending[1:]
 
-
     # strip directory if it is in the name and there is a new directory
     if directory or directory == "":
-        #base_filename = os.path.basename(base_filename)
+        # base_filename = os.path.basename(base_filename)
         filename = os.path.basename(filename)
 
     # if base_filename:  # catch in case the string does not exist.
@@ -546,7 +544,6 @@ def make_outfile_name(
     #     # FIX ME: we can never arrive at this option.
     #     filename = "Fit2Peak"
     #     ending = ""
-
 
     if filename[-1:] == "_":  # if the base file name ends in an '_' remove it.
         filename = filename[0:-1]
@@ -611,29 +608,27 @@ def lmfit_fix_int_data_type(fname):
     obj_read.close()
 
 
-
 def number_to_string(number, replace=".", withthis="pt"):
     """
-    Turns a number into a string and then replaces the decimal place with a "pt". 
+    Turns a number into a string and then replaces the decimal place with a "pt".
     """
     number = str(number)
-    number = re.sub(r'\.+', "pt",number)
+    number = re.sub(r"\.+", "pt", number)
     return number
 
 
-
-def licit_filename(fname,  replacement="=="):
+def licit_filename(fname, replacement="=="):
     """
     This makes sure that a file name generated from a string is licit.
     It replaces the illegal characters [<>:/\|?*] with a replacement character
-    It also replaces all '.' with 'pt' -- assuming any occurance is a number. 
-    
+    It also replaces all '.' with 'pt' -- assuming any occurance is a number.
+
     after https://gist.github.com/AaronLaw/a936bebfbbd691fc954252444767e6de -- Find NTFS illegal characters in black list and rename filename.
     """
-    blacklist=r'[<>:/\|?*]'
-    
+    blacklist = r"[<>:/\|?*]"
+
     fname = re.sub(blacklist, replacement, fname)
 
     fname = number_to_string(fname)
-    
+
     return fname

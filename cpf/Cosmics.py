@@ -788,7 +788,7 @@ def image_preprocess(data_as_class, settings_for_fit):
     sigclip = 1.5  # 3 is dioptas default
     objlim = 3.0  # 3 is dioptas default
     sigfrac = 0.3
-    
+
     if bool(settings_for_fit.datafile_preprocess["cosmics"]):
         if "gain" in settings_for_fit.datafile_preprocess["cosmics"]:
             gain = settings_for_fit.datafile_preprocess["cosmics"]["gain"]
@@ -800,21 +800,23 @@ def image_preprocess(data_as_class, settings_for_fit):
             sigfrac = settings_for_fit.datafile_preprocess["cosmics"]["sigfrac"]
         # FIX ME: use argparse or someway of passing any argument into cosmics.
 
-
     test = cosmicsimage(
-        data_as_class.intensity, sigclip=sigclip, objlim=objlim, gain=gain, sigfrac=sigfrac
+        data_as_class.intensity,
+        sigclip=sigclip,
+        objlim=objlim,
+        gain=gain,
+        sigfrac=sigfrac,
     )
     num = 2
     for i in range(num):
         test.lacosmiciteration(True)
         # print(asdf["nnew"], asdf["niter"])
         test.clean()
-        msk = np.logical_or(data_as_class.intensity.mask, np.array(test.mask, dtype="bool"))
-    
-    #apply mask
+        msk = np.logical_or(
+            data_as_class.intensity.mask, np.array(test.mask, dtype="bool")
+        )
+
+    # apply mask
     data_as_class.set_mask(mask=msk)
-    
+
     return data_as_class
-    
-    
-    

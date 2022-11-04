@@ -13,10 +13,11 @@ __all__ = [
     "expand_component_string",
     "gaussian_peak",
     "lorentzian_peak",
-    "pseudo_voigt_peak"
+    "pseudo_voigt_peak",
 ]
 
 import numpy as np
+
 
 def peak_components(full=False):
     """
@@ -35,7 +36,7 @@ def peak_components(full=False):
         comp_names.append("background")
         comp_list.append("s")
         comp_names.append("symmetry")
-        
+
     return comp_list, comp_names
 
 
@@ -81,7 +82,7 @@ def gaussian_peak(two_theta, two_theta_0, w_all, h_all):
     :return:
     """
     w_all = w_all / np.sqrt(np.log(4))
-    gauss_peak = h_all * np.exp((-((two_theta - two_theta_0) ** 2)) / (2 * w_all ** 2))
+    gauss_peak = h_all * np.exp((-((two_theta - two_theta_0) ** 2)) / (2 * w_all**2))
     return gauss_peak
 
 
@@ -94,7 +95,7 @@ def lorentzian_peak(two_theta, two_theta_0, w_all, h_all):
     :param h_all:
     :return:
     """
-    l_peak = h_all * w_all ** 2 / ((two_theta - two_theta_0) ** 2 + w_all ** 2)
+    l_peak = h_all * w_all**2 / ((two_theta - two_theta_0) ** 2 + w_all**2)
     return l_peak
 
 
@@ -109,8 +110,6 @@ def pseudo_voigt_peak(two_theta, two_theta_0, w_all, h_all, l_g_ratio):
     :return:
     """
     p_v_peak = l_g_ratio * gaussian_peak(two_theta, two_theta_0, w_all, h_all) + (
-            1 - l_g_ratio
+        1 - l_g_ratio
     ) * lorentzian_peak(two_theta, two_theta_0, w_all, h_all)
     return p_v_peak
-
-

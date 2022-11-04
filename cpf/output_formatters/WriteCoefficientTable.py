@@ -17,14 +17,14 @@ def Requirements():
     ]
     OptionalParams = [
         ##"Output_directory"  # if no direcrtory is specified write to current directory.
-        "coefs_vals_write" # -- pick which set of coefficients to write
+        "coefs_vals_write"  # -- pick which set of coefficients to write
     ]
 
     return RequiredParams, OptionalParams
 
 
 # def WriteOutput(FitSettings, parms_dict, **kwargs):
-def WriteOutput(setting_class=None,setting_file=None, debug=False, **kwargs):
+def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     # writes some of the fitted coeficients to a table.
     # More general version of WriteDifferentialStrain.
     # Focused on d-spacing coefficents but generalisible to all coefficients.
@@ -35,13 +35,12 @@ def WriteOutput(setting_class=None,setting_file=None, debug=False, **kwargs):
         )
     elif setting_class is None:
         import cpf.XRD_FitPattern.initiate as initiate
+
         setting_class = initiate(setting_file)
-    
-    
+
     coefs_vals_write = "d-space"
     if "coefs_vals_write" in setting_class.output_settings:
         coefs_vals_write = setting_class.output_settings["coefs_vals_write"]
-    
 
     # FitParameters = dir(FitSettings)
 
@@ -67,7 +66,7 @@ def WriteOutput(setting_class=None,setting_file=None, debug=False, **kwargs):
 
     # out_file = out_dir + base + '.dat'
 
-    base = setting_class.datafile_basename 
+    base = setting_class.datafile_basename
     if base is None:
         print("No base filename, using input filename instead.")
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
@@ -78,11 +77,6 @@ def WriteOutput(setting_class=None,setting_file=None, debug=False, **kwargs):
     out_file = IO.make_outfile_name(
         base, directory=setting_class.output_directory, extension=".dat", overwrite=True
     )
-    
-    
-    
-
-
 
     # get number of coefficients.
     num_subpatterns = len(setting_class.fit_orders)
@@ -131,17 +125,17 @@ def WriteOutput(setting_class=None,setting_file=None, debug=False, **kwargs):
 
     for z in range(setting_class.image_number):
 
-        setting_class.set_subpattern(z,0)   
-        
+        setting_class.set_subpattern(z, 0)
+
         filename = IO.make_outfile_name(
             # diff_files[z],
             # directory=FitSettings.Output_directory,
-            setting_class.subfit_filename,#diff_files[z],
-            directory=setting_class.output_directory,#directory=FitSettings.Output_directory,
+            setting_class.subfit_filename,  # diff_files[z],
+            directory=setting_class.output_directory,  # directory=FitSettings.Output_directory,
             extension=".json",
             overwrite=True,
         )  # overwrite =false to get the file name without incrlemeting it.
-        
+
         # filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
         # filename = filename + ".json"
 
@@ -187,12 +181,13 @@ def WriteOutput(setting_class=None,setting_file=None, debug=False, **kwargs):
             # get parameters to write to output file.
             # strip directory and ending from filename
             # out_name = os.path.splitext(os.path.basename(diff_files[z]))[0]
-            #out_name = os.path.splitext(os.path.basename(setting_class.datafile_list[z]))[0]
-            
-            
-            setting_class.set_subpattern(z,)        
+            # out_name = os.path.splitext(os.path.basename(setting_class.datafile_list[z]))[0]
+
+            setting_class.set_subpattern(
+                z,
+            )
             out_name = IO.make_outfile_name(
-                setting_class.subfit_filename,#diff_files[z],
+                setting_class.subfit_filename,  # diff_files[z],
                 directory=setting_class.output_directory,
                 extension=".json",
                 overwrite=True,
@@ -298,12 +293,12 @@ def WriteOutput(setting_class=None,setting_file=None, debug=False, **kwargs):
                 for w in range(max_coefs):
                     text_file.write(
                         ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
-                            fit[y]["peak"][x][coefs_vals_write+"_err"][2 * w + 1]
+                            fit[y]["peak"][x][coefs_vals_write + "_err"][2 * w + 1]
                         )
                     )
                     text_file.write(
                         ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
-                            fit[y]["peak"][x][coefs_vals_write+"_err"][2 * w + 2]
+                            fit[y]["peak"][x][coefs_vals_write + "_err"][2 * w + 2]
                         )
                     )
 

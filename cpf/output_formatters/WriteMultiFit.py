@@ -3,6 +3,7 @@ __all__ = ["Requirements", "WriteOutput"]
 import os
 
 import numpy as np
+
 # import cpf.PeakFunctions as ff
 import json
 import cpf.IO_functions as IO
@@ -14,37 +15,38 @@ def Requirements():
 
     RequiredParams = [
         #'apparently none!
-        ]
+    ]
     OptionalParams = [
-        #"Output_ElasticProperties",  # FIX ME: this needs to be included -- not needed or multifit. only for WritePolyDefix
-        #"Output_directory",  # if no direcrtory is specified write to current directory. -- not wrapped in the settings class and set by default
-        "Output_NumAziWrite", # now set by default here therefore optional
+        # "Output_ElasticProperties",  # FIX ME: this needs to be included -- not needed or multifit. only for WritePolyDefix
+        # "Output_directory",  # if no direcrtory is specified write to current directory. -- not wrapped in the settings class and set by default
+        "Output_NumAziWrite",  # now set by default here therefore optional
     ]
 
     return RequiredParams, OptionalParams
 
 
 # def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
-def WriteOutput(setting_class=None,setting_file=None,differential_only=False, debug=True, **kwargs):
-    
+def WriteOutput(
+    setting_class=None, setting_file=None, differential_only=False, debug=True, **kwargs
+):
+
     # writes output from multifit in the form of *.fit files required for polydefix.
     # writes a separate file for each diffraction pattern.
     # uses the parameters in the json files to do so.
-    
-    
+
     if setting_class is None and setting_file is None:
         raise ValueError(
             "Either the settings file or the setting class need to be specified."
         )
     elif setting_class is None:
         import cpf.XRD_FitPattern.initiate as initiate
+
         setting_class = initiate(setting_file)
-        
-    
-    #FitParameters = dir(FitSettings)
+
+    # FitParameters = dir(FitSettings)
 
     # Parse the required inputs.
-    #base_file_name = FitSettings.datafile_Basename
+    # base_file_name = FitSettings.datafile_Basename
 
     # diffraction patterns
     # diff_files, n_diff_files = IO.file_list(FitParameters, FitSettings)
@@ -64,7 +66,7 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
         Num_Azi = setting_class.output_settings["Output_NumAziWrite"]
 
     # wavelength = parms_dict["conversion_constant"]
-    #wavelength = setting_class.data_class.calibration["conversion_constant"]
+    # wavelength = setting_class.data_class.calibration["conversion_constant"]
     wavelength = setting_class.data_class.conversion_constant
 
     for z in range(setting_class.image_number):
@@ -72,13 +74,13 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
         # read file to write output for
         # filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
         # filename = filename+'.json'
-        setting_class.set_subpattern(z,0)   
-        
+        setting_class.set_subpattern(z, 0)
+
         filename = IO.make_outfile_name(
             # diff_files[z],
             # directory=FitSettings.Output_directory,
-            setting_class.subfit_filename,#diff_files[z],
-            directory=setting_class.output_directory,#directory=FitSettings.Output_directory,
+            setting_class.subfit_filename,  # diff_files[z],
+            directory=setting_class.output_directory,  # directory=FitSettings.Output_directory,
             extension=".json",
             overwrite=True,
         )  # overwrite =false to get the file name without incrlemeting it.
@@ -88,7 +90,7 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
             data_to_write = json.load(json_data)
 
         # create output file name from passed name
-        base = setting_class.subfit_filename 
+        base = setting_class.subfit_filename
         if base is None:
             print("No base filename, using input filename instead.")
             base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
@@ -101,8 +103,8 @@ def WriteOutput(setting_class=None,setting_file=None,differential_only=False, de
         out_file = IO.make_outfile_name(
             # diff_files[z],
             # directory=FitSettings.Output_directory,
-            base,#diff_files[z],
-            directory=setting_class.output_directory,#directory=FitSettings.Output_directory,
+            base,  # diff_files[z],
+            directory=setting_class.output_directory,  # directory=FitSettings.Output_directory,
             extension=".fit",
             overwrite=True,
         )

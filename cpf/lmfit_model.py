@@ -6,26 +6,20 @@ Functions using lmfit to make a semi-bounded fitting model.
 
 __all__ = [
     "parse_bounds",
-    
     # "create_new_params",
     "params_to_new_params",
-    #"param_fit_array",
-    
+    # "param_fit_array",
     "gather_param_errs_to_list",
     "gather_params_to_list",
     "gather_params_from_dict",
-    
     "initiate_all_params_for_fit",
     "initiate_params",
-
     "vary_params",
     "un_vary_params",
     "un_vary_part_params",
     "un_vary_single_param",
-    
     "peaks_model",
     "fit_model",
-    
     "coefficient_fit",
 ]
 
@@ -68,7 +62,7 @@ def parse_bounds(bounds, data_as_class, ndat=None, n_peaks=1, param=None):
         choice_list = param
 
     for par in choice_list:
-        if par == 'height' or par == 'background':
+        if par == "height" or par == "background":
             vals = data_as_class.intensity
         elif par == "width":
             vals = data_as_class.tth
@@ -86,8 +80,6 @@ def parse_bounds(bounds, data_as_class, ndat=None, n_peaks=1, param=None):
         limits[par] = b
 
     return limits
-
-
 
 
 # def create_new_params(num_peaks, dfour, hfour, wfour, pfour, bg_four, order_peak):
@@ -131,7 +123,6 @@ def parse_bounds(bounds, data_as_class, ndat=None, n_peaks=1, param=None):
 #     return new_params
 
 
-
 def params_to_new_params(params, orders=None):
     """
     Gather Parameters class to new_params dictionary format
@@ -141,9 +132,9 @@ def params_to_new_params(params, orders=None):
     :param order_peak:
     :return:
     """
-    
-    num_peaks=len(orders["peak"])
-    num_bg   =len(orders["background"])
+
+    num_peaks = len(orders["peak"])
+    num_bg = len(orders["background"])
 
     peaks = []
     for i in range(num_peaks):
@@ -239,9 +230,8 @@ def params_to_new_params(params, orders=None):
 #     return new_arr
 
 
-
 def gather_param_errs_to_list(
-        inp_param, param_str, comp=None, nterms=None
+    inp_param, param_str, comp=None, nterms=None
 ):  # fix me: Doesn't run without Comp=None.
     # Maybe it was never validated before SAH ran it.
     """
@@ -259,7 +249,9 @@ def gather_param_errs_to_list(
     param_list = []
     err_list = []
     total_params = []
-    str_keys = [key for key, val in inp_param.items() if new_str in key and "tp" not in key]
+    str_keys = [
+        key for key, val in inp_param.items() if new_str in key and "tp" not in key
+    ]
     # print('yes', new_str, str_keys)
     for i in range(len(str_keys)):
         param_list.append(inp_param[new_str + str(i)].value)
@@ -305,44 +297,47 @@ def gather_params_from_dict(inp_param, param_str, comp):
     else:
         new_str = param_str
     param_list = []
-    str_keys = [key for key, val in inp_param.items() if new_str in key and "tp" not in key]
+    str_keys = [
+        key for key, val in inp_param.items() if new_str in key and "tp" not in key
+    ]
     for i in range(len(str_keys)):
         param_list.append(inp_param[new_str + str(i)])
     return param_list
 
 
-
-def initiate_all_params_for_fit(settings_as_class, data_as_class, values=None, debug=False):
+def initiate_all_params_for_fit(
+    settings_as_class, data_as_class, values=None, debug=False
+):
     """
     Initiate all the parameters needed for the fitting with lmfit.
-    
+
     :param inp_param: dict with multiple coefficients per component
     :param param_str: base string to select parameters
     :param comp: component to add to base string to select parameters
     :return: list of parameters in alphanumerical order
     """
-    
+
     comp_list, comp_names = pf.peak_components(full=False)
-    
-    
+
     master_params = Parameters()  # Initiate total Parameter class to add to
-    
-    lims = parse_bounds(settings_as_class.fit_bounds, data_as_class)#d_space.flatten(), intens.flatten(), twotheta.flatten()
-    #)
-    
+
+    lims = parse_bounds(
+        settings_as_class.fit_bounds, data_as_class
+    )  # d_space.flatten(), intens.flatten(), twotheta.flatten()
+    # )
+
     # for i in range(len(comp_list)):
-        
+
     #     comp_list_section = comp_list[i]
     #     comp_names_section = comp_names[i]
-        
+
     #     for j in range(len(comp_list_section)):
-            
+
     #         comps = comp_list_section[j]
     #         comp_name = comp_names_section[j]
-            
+
     #         if comps[0] == "bg":
-                
-    
+
     # Initiate background parameters
     comps = "bg"
     coeff_type = sf.params_get_type(settings_as_class.subfit_orders, comps)
@@ -357,10 +352,10 @@ def initiate_all_params_for_fit(settings_as_class, data_as_class, values=None, d
             settings_as_class.subfit_orders, comps, peak=k, azimuths=data_as_class.azm
         )
         # add values is present
-        vals=None
+        vals = None
         if values:
-            vals = values["background"][k],
-        #intiate parameters
+            vals = (values["background"][k],)
+        # intiate parameters
         master_params = initiate_params(
             master_params,
             param_str,
@@ -371,17 +366,15 @@ def initiate_all_params_for_fit(settings_as_class, data_as_class, values=None, d
             trig_orders=settings_as_class.subfit_orders["background"][k],
             limits=limits,
         )
-        
-        
+
     # initiate peak(s)
     peak_comp_list = comp_list
     comp_names_list = comp_names
-    
+
     for j in range(len(settings_as_class.subfit_orders["peak"])):
         # defines peak string to start parameter name
         param_str = "peak_" + str(j)
-    
-    
+
         # initiate symmetry
         comp = "s"
         if "symmetry" in settings_as_class.subfit_orders["peak"][j].keys():
@@ -397,17 +390,17 @@ def initiate_all_params_for_fit(settings_as_class, data_as_class, values=None, d
             value=np.array(symm),
             vary=False,
         )
-    
+
         comp_list = ["h", "d", "w", "p"]
         comp_names = ["height", "d-space", "width", "profile"]
-    
+
         for cp in range(len(comp_list)):
             comp = comp_list[cp]
             if comp == "d":
                 symmetry = 1
             else:
                 symmetry = symm
-                
+
             # fixed = 0
             vals = None
             if comp_names[cp] + "_fixed" in settings_as_class.subfit_orders["peak"][j]:
@@ -417,13 +410,17 @@ def initiate_all_params_for_fit(settings_as_class, data_as_class, values=None, d
                 ]  # values if fixed.
             elif values:
                 vals = values["peak"][j][comp_names[cp]]
-                
-                
-            coeff_type = sf.params_get_type(settings_as_class.subfit_orders, comp, peak=j)
-            n_coeff = sf.get_number_coeff(
-                settings_as_class.subfit_orders, comp, peak=j, azimuths=data_as_class.azm
+
+            coeff_type = sf.params_get_type(
+                settings_as_class.subfit_orders, comp, peak=j
             )
-            
+            n_coeff = sf.get_number_coeff(
+                settings_as_class.subfit_orders,
+                comp,
+                peak=j,
+                azimuths=data_as_class.azm,
+            )
+
             master_params = initiate_params(
                 master_params,
                 param_str,
@@ -434,23 +431,24 @@ def initiate_all_params_for_fit(settings_as_class, data_as_class, values=None, d
                 limits=lims[comp_names[cp]],
                 value=vals,
             )
-            
+
             # FIX ME. Check which params should be varying and which should not.
             # Need to incorporate vary and un-vary params as well as partial vary
     return master_params
 
+
 def initiate_params(
-        inp_param,
-        param_str,
-        comp,
-        coeff_type=None,
-        num_coeff=None,
-        trig_orders=None,
-        limits=None,
-        expr=None,
-        value=None,
-        ind_vars=None,
-        vary=True,
+    inp_param,
+    param_str,
+    comp,
+    coeff_type=None,
+    num_coeff=None,
+    trig_orders=None,
+    limits=None,
+    expr=None,
+    value=None,
+    ind_vars=None,
+    vary=True,
 ):
     """
     Create all required coefficients for no. terms
@@ -485,7 +483,7 @@ def initiate_params(
 
     coeff_type = sf.coefficient_type_as_number(coeff_type)
     if (
-            coeff_type == 5
+        coeff_type == 5
     ):  # if the values at each azimuth are independent we have to have a number of coefficients given.
         if num_coeff is not None:
             num_coeff = num_coeff
@@ -571,7 +569,9 @@ def vary_params(inp_param, param_str, comp):
         new_str = param_str + "_" + comp
     else:
         new_str = param_str
-    str_keys = [key for key, val in inp_param.items() if new_str in key and "tp" not in key]
+    str_keys = [
+        key for key, val in inp_param.items() if new_str in key and "tp" not in key
+    ]
     for p in str_keys:
         inp_param[p].set(vary=True)
     return inp_param
@@ -589,7 +589,9 @@ def un_vary_params(inp_param, param_str, comp):
         new_str = param_str + "_" + comp
     else:
         new_str = param_str
-    str_keys = [key for key, val in inp_param.items() if new_str in key and "tp" not in key]
+    str_keys = [
+        key for key, val in inp_param.items() if new_str in key and "tp" not in key
+    ]
     for p in inp_param:
         if p not in str_keys:
             inp_param[p].set(vary=False)
@@ -609,14 +611,18 @@ def un_vary_part_params(inp_param, param_str, comp, order=None):
         new_str = param_str + "_" + comp
     else:
         new_str = param_str
-    str_keys = [key for key, val in inp_param.items() if new_str in key and "tp" not in key]
+    str_keys = [
+        key for key, val in inp_param.items() if new_str in key and "tp" not in key
+    ]
     new_order = int((len(str_keys) - 1) / 2)
     if isinstance(order, list):
         for i in range(new_order):
             if not np.isin(i, order):
                 inp_param = un_vary_single_param(inp_param, param_str, comp, 2 * i)
                 if i > 0:
-                    inp_param = un_vary_single_param(inp_param, param_str, comp, 2 * i - 1)
+                    inp_param = un_vary_single_param(
+                        inp_param, param_str, comp, 2 * i - 1
+                    )
     return inp_param
 
 
@@ -641,13 +647,13 @@ def un_vary_single_param(inp_param, param_str, comp, val):
     return inp_param
 
 
-
-
-
-def peaks_model(two_theta, azimuth, #forced to exist as independent values by lmfit
-        data_class = None, # needs to contain conversion factor
-        orders = None, # orders dictionary to get minimum position of the range.
-        **params):
+def peaks_model(
+    two_theta,
+    azimuth,  # forced to exist as independent values by lmfit
+    data_class=None,  # needs to contain conversion factor
+    orders=None,  # orders dictionary to get minimum position of the range.
+    **params
+):
     """Full model of intensities at twotheta and azi given input parameters
     :param two_theta: arr values float
     :param azimuth: arr values float
@@ -661,7 +667,7 @@ def peaks_model(two_theta, azimuth, #forced to exist as independent values by lm
     # N.B. params now doesn't persist as a parameter class, merely a dictionary, so e.g. call key/value pairs as
     # normal not with '.value'
 
-    # expand the background 
+    # expand the background
     intensity = sf.background_expansion((azimuth, two_theta), orders, params)
 
     peak_keys = [
@@ -703,8 +709,12 @@ def peaks_model(two_theta, azimuth, #forced to exist as independent values by lm
         p_all = sf.coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type)
 
         # conversion
-        two_theta_all = data_class.conversion(d_all, reverse=1)# centroid_conversion(conv, d_all, azimuth)
-        intens_peak.append(pf.pseudo_voigt_peak(two_theta, two_theta_all, w_all, h_all, p_all))
+        two_theta_all = data_class.conversion(
+            d_all, reverse=1
+        )  # centroid_conversion(conv, d_all, azimuth)
+        intens_peak.append(
+            pf.pseudo_voigt_peak(two_theta, two_theta_all, w_all, h_all, p_all)
+        )
         intensity = intensity + intens_peak[a]
 
     # Elapsed time for fitting
@@ -716,12 +726,12 @@ def peaks_model(two_theta, azimuth, #forced to exist as independent values by lm
 
 
 def fit_model(
-        data_as_class, # needs to contain intensity, tth, azi (as chunks), conversion factor
-        orders,
-        params,
-        fit_method="leastsq",
-        weights=None,
-        max_n_fev=None,
+    data_as_class,  # needs to contain intensity, tth, azi (as chunks), conversion factor
+    orders,
+    params,
+    fit_method="leastsq",
+    weights=None,
+    max_n_fev=None,
 ):
     """Initiate model of intensities at twotheta and azi given input parameters and fit
     :param max_n_fev:
@@ -737,34 +747,33 @@ def fit_model(
     :param weights: errors on intensity values arr of size intensity_fit
     :return: lmfit model result
     """
-    
-    
+
     # FIX ME: DMF does the above statement need addressing?
     gmodel = Model(peaks_model, independent_vars=["two_theta", "azimuth"])
-    
+
     if 1:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            
+
             out = gmodel.fit(
-                data_as_class.intensity, # this is what we are fitting to
-                params, # parameter class to feed in
+                data_as_class.intensity,  # this is what we are fitting to
+                params,  # parameter class to feed in
                 two_theta=data_as_class.tth,
                 azimuth=data_as_class.azm,
-                data_class = data_as_class, # needs to contain tth, azi, conversion factor
-                orders = orders, # orders class to get peak lengths (if needed)
+                data_class=data_as_class,  # needs to contain tth, azi, conversion factor
+                orders=orders,  # orders class to get peak lengths (if needed)
                 nan_policy="propagate",
                 max_n_fev=max_n_fev,
                 xtol=1e-5,
             )
     else:
         out = gmodel.fit(
-            data_as_class.intensity, # this is what we are fitting to
-            params, # parameter class to feed in
+            data_as_class.intensity,  # this is what we are fitting to
+            params,  # parameter class to feed in
             two_theta=data_as_class.tth,
             azimuth=data_as_class.azm,
-            data_class = data_as_class, # needs to contain tth, azi, conversion factor
-            orders = orders, # orders class to get peak lengths (if needed)
+            data_class=data_as_class,  # needs to contain tth, azi, conversion factor
+            orders=orders,  # orders class to get peak lengths (if needed)
             nan_policy="propagate",
             max_n_fev=max_n_fev,
             xtol=1e-5,
@@ -773,14 +782,14 @@ def fit_model(
 
 
 def coefficient_fit(
-        ydata,
-        azimuth,
-        inp_param,
-        terms=None,
-        errs=None,
-        param_str="peak_0",
-        symmetry=1,
-        fit_method="leastsq",
+    ydata,
+    azimuth,
+    inp_param,
+    terms=None,
+    errs=None,
+    param_str="peak_0",
+    symmetry=1,
+    fit_method="leastsq",
 ):
     """Fit the Fourier expansion to number of required terms
     :param ydata: Component data array to fit float
@@ -794,8 +803,6 @@ def coefficient_fit(
     :return: lmfit Model result
     """
 
-    
-
     # get NaN values.
     idx = np.isfinite(azimuth) & np.isfinite(ydata)
     if type(terms) == list:
@@ -806,7 +813,7 @@ def coefficient_fit(
         # FIX ME: DMF assuming this isn't called as it shouldn't work....
         inp_param = Parameters()  # FIX ME: where is this function?
         for t in range(
-                2 * terms + 1
+            2 * terms + 1
         ):  # FIX ME: coefficient series length -- make into separate function.
             inp_param.add(param_str + "_" + str(t), 1.0)  # need limits
 
@@ -814,7 +821,7 @@ def coefficient_fit(
         errs = np.ones(ydata.shape)
     else:
         errs = np.array(errs)
-        
+
     ydata = np.array(ydata)
     azimuth = np.array(azimuth)
 
@@ -844,5 +851,3 @@ def coefficient_fit(
         nan_policy="propagate",
     )
     return out
-
-

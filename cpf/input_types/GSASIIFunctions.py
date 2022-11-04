@@ -363,9 +363,9 @@ class GSASIIDetector:
                                     new_value = float(val)
                                     new_dict[str(new_key)] = new_value
                                 except ValueError:
-                                    new_dict[str(new_key)] = val.replace("'", "").replace(
-                                        " ", ""
-                                    )
+                                    new_dict[str(new_key)] = val.replace(
+                                        "'", ""
+                                    ).replace(" ", "")
                         parms_dict[new_parms[0]] = new_dict
                     elif not parm:
                         parms_dict[new_parms[0]] = ""
@@ -541,15 +541,15 @@ class GSASIIDetector:
         azmthoff = data["azmthoff"]
         dx = np.array(x - cent[0], dtype=np.float32)
         dy = np.array(y - cent[1], dtype=np.float32)
-        D = (dx - x0) ** 2 + dy ** 2 + data["distance"] ** 2  # sample to pixel distance
+        D = (dx - x0) ** 2 + dy**2 + data["distance"] ** 2  # sample to pixel distance
         X = np.array(([dx, dy, np.zeros_like(dx)]), dtype=np.float32).T
         # print np.array(([dx,dy,np.zeros_like(dx)]),dtype=np.float32).shape
         X = np.dot(X, makeMat(phi, 2))
         Z = np.dot(X, makeMat(tilt, 0)).T[2]
-        tth = npatand(np.sqrt(dx ** 2 + dy ** 2 - Z ** 2) / (dist - Z))
+        tth = npatand(np.sqrt(dx**2 + dy**2 - Z**2) / (dist - Z))
         dxy = peneCorr(tth, dep, tilt, npatan2d(dy, dx))
         DX = dist - Z + dxy
-        DY = np.sqrt(dx ** 2 + dy ** 2 - Z ** 2)
+        DY = np.sqrt(dx**2 + dy**2 - Z**2)
         tth = npatan2d(DY, DX)
         dsp = wave / (2.0 * npsind(tth / 2.0))
         azm = (npatan2d(dy, dx) + azmthoff + 720.0) % 360.0
@@ -578,7 +578,7 @@ class GSASIIDetector:
         im = ImportImage(image_name)
         imarray = np.array(im)
 
-        gd = np.mgrid[0 : imarray.shape[0], 0: imarray.shape[1]]  ##SAH: edit
+        gd = np.mgrid[0 : imarray.shape[0], 0 : imarray.shape[1]]  ##SAH: edit
         # print gd.shape
         y = gd[0, :, :] + 1  ##SAH: edit
         x = gd[1, :, :] + 1  ##SAH: edit

@@ -1,45 +1,73 @@
 <component name="ProjectDictionaryState">
   <dictionary name="dmf">
     <words>
+      <w>arcsin</w>
       <w>azichunks</w>
+      <w>azimu</w>
       <w>backg</w>
       <w>bgguess</w>
+      <w>calib</w>
+      <w>calibs</w>
+      <w>cmap</w>
       <w>coeff</w>
       <w>coeffs</w>
+      <w>cosmics</w>
       <w>dbounds</w>
       <w>dfour</w>
       <w>dguess</w>
       <w>dioptas</w>
       <w>dmax</w>
       <w>dmin</w>
+      <w>dspacings</w>
       <w>dspc</w>
+      <w>dtype</w>
+      <w>edgecolors</w>
       <w>fname</w>
       <w>fout</w>
       <w>gmodel</w>
+      <w>gsas</w>
+      <w>gsasii</w>
       <w>hfour</w>
       <w>hguess</w>
       <w>imax</w>
       <w>imin</w>
+      <w>inputfile</w>
+      <w>intens</w>
+      <w>leastsq</w>
       <w>lenbg</w>
       <w>lims</w>
+      <w>linewidth</w>
       <w>lmfit</w>
+      <w>modelresult</w>
       <w>ndat</w>
       <w>newd</w>
       <w>nexpr</w>
       <w>nterms</w>
+      <w>objlim</w>
+      <w>parallelisation</w>
       <w>parms</w>
       <w>pfixed</w>
       <w>pfour</w>
       <w>pguess</w>
+      <w>picam</w>
+      <w>pixelsize</w>
+      <w>polydefix</w>
       <w>scipy</w>
+      <w>sigclip</w>
+      <w>sigfrac</w>
       <w>singlelenbg</w>
       <w>symm</w>
       <w>tthguess</w>
       <w>tthguesses</w>
       <w>twotheta</w>
       <w>vals</w>
+      <w>vmax</w>
+      <w>vmin</w>
+      <w>voigt</w>
       <w>wfour</w>
       <w>wguess</w>
+      <w>xlabel</w>
+      <w>ylim</w>
     </words>
   </dictionary>
 </component>

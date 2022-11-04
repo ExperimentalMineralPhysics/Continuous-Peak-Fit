@@ -1,0 +1,9 @@
+
+hpython:S5795"MReplace this "is" operator with "=="; identity operator is not reliable here.(öÜû–þÿÿÿÿ
+hpython:S5795"MReplace this "is" operator with "=="; identity operator is not reliable here.(öÜû–þÿÿÿÿ
+bpython:S5795"MReplace this "is" operator with "=="; identity operator is not reliable here.(Ë€“m
+;python:S1481"%Remove the unused local variable "y".(Ã¾ôÇ
+@python:S1481"%Remove the unused local variable "y".(„ìÞ—ÿÿÿÿÿ
+ipython:S3776"TRefactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed.(¹¤±2
+jpython:S3776"TRefactor this function to reduce its Cognitive Complexity from 26 to the 15 allowed.(âÚ›Ï
+Jpython:S1656"/Remove or correct this useless self-assignment.(øŠùýÿÿÿÿÿ

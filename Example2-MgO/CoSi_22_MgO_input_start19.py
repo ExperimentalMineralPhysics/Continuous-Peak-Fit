@@ -19,13 +19,16 @@ datafile_NumDigit  = 4
 # Calibration and masking.
 Calib_type     = 'Med'
 Calib_detector = '10-element'
+#Calib_detector = 'W2010_10element_moved.txt'
 Calib_data     = "COSI_021_0001.med"
 Calib_param    = 'COSI_021_0001.med'
 Calib_mask     = [5,10]
 
 # Fitting properties for peaks.
+fit_track = True
+fit_propagate = True
 fit_bounds = {
-              "background": ['min', 'max'],
+              "background": ['0.9*min', 'max'],
               "d-space":    ['min', 'max'],
               "height":     [ 0,    '1.2*max'],
               "profile":    [ 0,     1],
@@ -100,5 +103,6 @@ fit_orders = [
     ]
 
 #Output settings
+Output_directory   = './results/'
 Output_type        = "PolydefixED"
 Output_ElasticProperties = "MgO_elastic_properties.txt"

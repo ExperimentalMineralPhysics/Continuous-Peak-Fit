@@ -5,6 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/venv" />
       <excludeFolder url="file://$MODULE_DIR$/newvenv" />
     </content>
+    <orderEntry type="jdk" jdkName="Python 3.8 (Continuous-Peak-Fit)" jdkType="Python SDK" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>

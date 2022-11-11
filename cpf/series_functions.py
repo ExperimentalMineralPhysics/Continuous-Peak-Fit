@@ -149,6 +149,42 @@ def get_series_type(param, param_str, comp=None):
     return out
 
 
+def get_series_mean(param, param_str, comp=None):
+    """
+    Calcualte the mean of the parameter series a lmfit Parameters class
+    :param param: dict with multiple coefficients per component
+    :param param_str: base string to select parameters
+    :param comp: component to add to base string to select parameters
+    :return: weighted mean of parameters
+    """
+    
+    if comp is not None:
+        new_str = param_str + "_" + comp
+    else:
+        new_str = param_str
+    
+    mean_tmp = []
+    
+    if get_series_type(param, param_str, comp=comp)==0:
+        #if it is a Fourier series justget the first value. 
+        mean = (param[param_str+"_"+comp+"0"].value)
+    else:
+        # get a mean of all the coefficients
+        done = 0
+        n = 0
+        while done==0:
+            try:
+                mean_tmp.append(param[param_str+"_"+comp+str(n)].value)
+                n = n+1
+            except:
+                # now we have run out of coefficients. So get the mean and then leave the loop.
+                mean = (np.mean(mean_tmp))
+                done = 1
+                
+    
+    return mean
+    
+
 def params_get_type(orders, comp, peak=0):
     """
     Parameters

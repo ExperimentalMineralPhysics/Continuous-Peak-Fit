@@ -393,7 +393,17 @@ def fit_sub_pattern(
                         )
                         master_params = fout.params
 
+
+                    # iterate over the peaks in order of size (height)
+                    # get mean height of peak from parameters
+                    peak_mean = []
                     for k in range(peeks):
+                        peak_mean.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
+                    #get order to process peaks in -- reverse order starting with the most intense.
+                    peak_order = np.array(peak_mean).argsort()[::-1]
+                    
+                    for l in range(peeks):
+                        k = peak_order[l]
                         param_str = "peak_" + str(k)
                         # always need to iterate over d, height and width
                         comp_list = ["h", "d", "w"]

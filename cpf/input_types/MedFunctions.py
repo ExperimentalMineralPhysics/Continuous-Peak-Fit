@@ -58,7 +58,7 @@ class MedDetector:
         new objects.
         """
 
-        new = Med2Detector()
+        new = MedDetector()
         # new.parameters = copy(self.parameters)
         new.calibration = copy(self.calibration)
 

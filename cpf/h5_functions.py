@@ -246,9 +246,8 @@ def get_image_keys(
                             labels_temp, number_data=number_data
                         )
                         labels.append(labels_temp)
-                elif (
-                    isinstance(h5key_names[0], str) and h5key_names[0] is not ""
-                ):  # it must be a string.
+                elif (isinstance(h5key_names[0], str) and h5key_names[0] != ""):  
+                    # it must be a string.
                     # print('string')
                     # print(key_route+'/'+h5key_names[0])
                     # print(datafile[key_route+'/'+h5key_names[0]])

@@ -113,7 +113,8 @@ def WriteOutput(
     # text_file.write("%12.5f\n" % parms_dict["calibs"].mcas[0].calibration.two_theta)
     text_file.write(
         "%12.5f\n"
-        % setting_class.data_class.calibration["calibs"].mcas[0].calibration.two_theta
+        #% setting_class.data_class.calibration["calibs"].mcas[0].calibration.two_theta
+        % setting_class.data_class.calibration["two_theta"][0]
     )
 
     # Write detector properties.
@@ -452,7 +453,7 @@ def WriteOutput(
                 )
                 n = -1
                 for w in range(
-                    len(setting_class.data_class.calibration["calibs"].mcas)
+                    len(setting_class.data_class.calibration["two_theta"])
                 ):
                     # determine if detector masked
                     if setting_class.calibration_mask:

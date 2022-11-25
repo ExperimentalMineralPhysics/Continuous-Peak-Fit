@@ -15,6 +15,37 @@ from cpf.IO_functions import (
 )  # , get_output_options, detector_factory, register_default_formats
 from cpf.series_functions import coefficient_type_as_number, get_number_coeff
 
+import sys
+import logging
+from vosk import SetLogLevel
+
+# logging.basicConfig(filename='cpf.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+# # You can set log level to -1 to disable debug messages
+# logger = logging.getLogger(__name__)
+#SetLogLevel(0)
+
+# logging.basicConfig(filename='logfile.log',
+#                     filemode='a',
+#                     format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+#                     datefmt='%H:%M:%S',
+#                     level=logging.DEBUG)
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+#formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
+
+stdout_handler = logging.StreamHandler(sys.stdout)
+#stdout_handler.setLevel(logging.DEBUG)
+#stdout_handler.setFormatter(formatter)
+
+file_handler = logging.FileHandler('logs.log')
+#file_handler.setLevel(logging.DEBUG)
+#file_handler.setFormatter(formatter)
+
+
+logger.addHandler(file_handler)
+logger.addHandler(stdout_handler)
 
 class settings:
     """Settings class definitions.
@@ -365,7 +396,7 @@ class settings:
                 )
             else:
                 if write == True:
-                    print(files_to_check[j] + " exists.")
+                    logger.info(files_to_check[j] + " exists.")
 
     def check_directory_exists(self, directory, write=False):
         """
@@ -377,7 +408,7 @@ class settings:
             )
         else:
             if write == True:
-                print(directory + " exists.")
+               logger.info(directory + " exists.")
 
     def validate_datafiles(self):
         """
@@ -385,7 +416,7 @@ class settings:
         """
         self.check_directory_exists(self.datafile_directory, write=True)
         self.check_files_exist(self.datafile_list, write=False)
-        print("All the data files exist.")
+        logger.info("All the data files exist.")
 
     def validate_fit_orders(self, report=False, peak=None, orders=None):
         """
@@ -430,7 +461,7 @@ class settings:
                     and len(orders[i]["range"]) == 1
                     and len(orders[i]["range"][0]) == 2
                 ):
-                    print("subpattern " + str(i) + ": range is a now a simple list.")
+                    logger.info("subpattern " + str(i) + ": range is a now a simple list.")
                     self.fit_orders[i]["range"] = self.fit_orders[i]["range"][0]
                 # check if range is valid
                 if (
@@ -470,7 +501,7 @@ class settings:
                 # bascially -- check if it is old nomlencature (*-*) and replace (with *_*)
                 for l in range(len(comp_modifications)):
                     if "background" + "-" + comp_modifications[l] in self.fit_orders[i]:
-                        print(
+                        logger.warning(
                             "subpattern "
                             + str(i)
                             + ": "
@@ -525,7 +556,7 @@ class settings:
                                 comp_list[k] + "-" + comp_modifications[l]
                                 in self.fit_orders[i]["peak"][j]
                             ):
-                                print(
+                                logger.info(
                                     "subpattern "
                                     + str(i)
                                     + ", peak "
@@ -577,18 +608,18 @@ class settings:
         # report missing bits and bobs
         if len(missing) > 0:
             for i in range(len(missing)):
-                print(missing[i])
+                logger.info(missing[i])
 
             if not report:
                 raise ValueError(
                     "The problems listed above will prevent the data fitting."
                 )
             else:
-                print(
+                logger.info(
                     "The problems listed above will prevent the data fitting and need to be rectified before execution"
                 )
         else:
-            print("fit_orders appears to be correct")
+            logger.info("fit_orders appears to be correct")
 
     def validate_order_type(self, comp_type):
         """
@@ -645,7 +676,7 @@ class settings:
                 self.fit_orders[peak_set]["peak"][peak][component + "_fixed"] = [
                     self.fit_orders[peak_set]["peak"][peak][component + "_fixed"]
                 ]
-                print(
+                logger.info(
                     "subpattern "
                     + str(peak_set)
                     + ", peak "
@@ -759,26 +790,26 @@ class settings:
         # report findings
         incorrect = False
         if missing:
-            print("\nMissing Values:")
+            logger.info("\nMissing Values:")
             for i in range(len(missing)):
-                print(missing[i])
+                logger.info(missing[i])
             incorrect = True
         if extras:
-            print("\nExtra Values:")
+            logger.info("\nExtra Values:")
             for i in range(len(extras)):
-                print(extras[i])
+                logging.warning(extras[i])
             incorrect = True
         if incorrect:
             if not report:
-                raise ValueError(
+                logger.info(
                     "The problems listed above will prevent the data fitting."
                 )
             else:
-                print(
+                logger.info(
                     "The problems listed above will prevent the data fitting and need to be rectified before execution"
                 )
         else:
-            print("fit_bounds appears to be correct")
+            logger.info("fit_bounds appears to be correct")
 
     def set_output_types(self, out_type_list=None, report=False):
         """
@@ -837,12 +868,12 @@ class settings:
                     )
 
         if missing:
-            print("\nMissing output settings:")
+            logging.warning("\nMissing output settings:")
             for i in range(len(missing)):
-                print(missing[i])
-            print("The issues listed above may prevent outputs being written correctly")
+                logging.warning(missing[i])
+            logging.warning("The issues listed above may prevent outputs being written correctly")
         else:
-            print("The output settings appear to be in order")
+            logging.warning("The output settings appear to be in order")
 
     def set_data_files(self, start=0, end=None, keep=None):
         """

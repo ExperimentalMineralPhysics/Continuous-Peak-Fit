@@ -12,38 +12,17 @@ import cpf.output_formatters as output_formatters
 from cpf.IO_functions import (
     file_list,
     image_list,
-)  # , get_output_options, detector_factory, register_default_formats
+)  
 from cpf.series_functions import coefficient_type_as_number, get_number_coeff
 
 import sys
 import logging
-from vosk import SetLogLevel
-
-# logging.basicConfig(filename='cpf.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
-# # You can set log level to -1 to disable debug messages
-# logger = logging.getLogger(__name__)
-#SetLogLevel(0)
-
-# logging.basicConfig(filename='logfile.log',
-#                     filemode='a',
-#                     format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-#                     datefmt='%H:%M:%S',
-#                     level=logging.DEBUG)
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-#formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
-
+logger.setLevel(logging.DEBUG)
 stdout_handler = logging.StreamHandler(sys.stdout)
-#stdout_handler.setLevel(logging.DEBUG)
-#stdout_handler.setFormatter(formatter)
-
-file_handler = logging.FileHandler('logs.log')
-#file_handler.setLevel(logging.DEBUG)
-#file_handler.setFormatter(formatter)
-
-
+file_handler = logging.FileHandler('../logs/logs.log')
 logger.addHandler(file_handler)
 logger.addHandler(stdout_handler)
 

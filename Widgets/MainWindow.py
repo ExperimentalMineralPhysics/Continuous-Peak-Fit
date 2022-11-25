@@ -31,6 +31,9 @@ from Output_Widget import Output
 import cpf
 from cpf.settings import settings
 
+from matplotlib_qt import matplotlib_qt
+from matplotlib_inline import matplotlib_inline
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -122,6 +125,7 @@ class MainWindow(QMainWindow):
             self.Console_output.setText(text)
                    
     def Run_Range(self):
+        self.matplotlib_inline = matplotlib_inline()
         if self.input_file_path == None:
             mess = QMessageBox()
             mess.setIcon(QMessageBox.Warning)
@@ -135,6 +139,7 @@ class MainWindow(QMainWindow):
             self.Console_output.setText(text)
    
     def Run_Initial_Position(self):
+        self.matplotlib_qt = matplotlib_qt()
         if self.input_file_path == None:
             mess = QMessageBox()
             mess.setIcon(QMessageBox.Warning)

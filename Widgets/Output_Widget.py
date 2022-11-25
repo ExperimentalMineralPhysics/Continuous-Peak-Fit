@@ -1,16 +1,22 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Oct 25 16:35:15 2022
-
-@author: g05296ar
-"""
-
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.uic import loadUi
 import sys
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QWidget, QAction, QTabWidget,QVBoxLayout
 from PyQt5.QtGui import QIcon
+from PyQt5.uic import loadUi
+from PyQt5 import QtWidgets
+from PyQt5 import (
+    QtCore, 
+    QtGui, 
+    QtWidgets
+)
+from PyQt5.QtWidgets import (
+    QMainWindow, 
+    QApplication, 
+    QPushButton, 
+    QWidget, 
+    QAction, 
+    QTabWidget,
+    QVBoxLayout
+)
+
 from string import Template
 
 class Output(QWidget):

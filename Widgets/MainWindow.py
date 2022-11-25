@@ -1,4 +1,3 @@
-
 import sys
 from PyQt5 import (
     QtWidgets, 
@@ -34,17 +33,13 @@ from cpf.settings import settings
 
 
 class MainWindow(QMainWindow):
-    
-
     def __init__(self):
         super(MainWindow, self).__init__()
         loadUi("MainWindow.ui", self)
-   
         self.set_cl = cpf.settings.settings()
         self.input_file_path = None   
         self.clickcount = 0 
         self.clickcountout = 0 
-
         self.Main_Tab.setMinimumHeight(40);
         self.Directory.setMinimumHeight(40);
         self.Basename.setMinimumHeight(40);
@@ -77,8 +72,6 @@ class MainWindow(QMainWindow):
         self.Output_Dir_2.setMinimumHeight(40);
         self.Console_output.setReadOnly(True)
         self.Console_output.textCursor
-        
-        # Function Call aginast button click event   
         self.AddRange_Btn.clicked.connect(self.Insert_Range)
         self.RemoveRange_Btn.clicked.connect(self.Remove_Range)
         self.Add_Output_Btn.clicked.connect(self.Insert_Output)
@@ -92,15 +85,12 @@ class MainWindow(QMainWindow):
         self.Run_initial_Btn.clicked.connect(self.Run_Initial_Position)
         self.Execute_Btn.clicked.connect(self.Execute_Fits)
         self.Make_Output_Btn.clicked.connect(self.Make_Outputs)
-        
     
     def Load_Inputs(self):
         fname= QFileDialog.getOpenFileName(self, "Load Input File", "", "Python Files (*.py)")
-        
         if fname:
             self.input_file_path = f"{fname[0]}"
             print(self.input_file_path)
-        
         self.set_cl.populate(settings_file=(f"{self.input_file_path}"))
         self.Directory.setText(self.set_cl.datafile_directory)
         self.Basename.setText(self.set_cl.datafile_basename)
@@ -117,16 +107,12 @@ class MainWindow(QMainWindow):
         self.Calib_Data.setText(self.set_cl.calibration_data);
         self.fit_bin_type.setText(str(self.set_cl.fit_bin_type))
         self.fit_per_bin.setText(str(self.set_cl.fit_per_bin))
-        self.fit_number_bins.setText(str(self.set_cl.fit_number_bins))
-        
-           
+        self.fit_number_bins.setText(str(self.set_cl.fit_number_bins)) 
         with open("../logs/logs.log",'w') as file:
            file.close()
         cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
         text=open('../logs/logs.log').read()
         self.Console_output.setText(text)
-        
-        
         
     def Validate_Inputs(self):
             with open("../logs/logs.log",'a') as file:
@@ -134,8 +120,7 @@ class MainWindow(QMainWindow):
             cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
             text=open('../logs/logs.log').read()
             self.Console_output.setText(text)
-            
-            
+                   
     def Run_Range(self):
         if self.input_file_path == None:
             mess = QMessageBox()
@@ -148,8 +133,7 @@ class MainWindow(QMainWindow):
             cpf.XRD_FitPattern.set_range(f"{self.input_file_path}", save_all=True)
             text=open('../logs/logs.log').read()
             self.Console_output.setText(text)
-            
-        
+   
     def Run_Initial_Position(self):
         if self.input_file_path == None:
             mess = QMessageBox()
@@ -162,8 +146,7 @@ class MainWindow(QMainWindow):
             cpf.XRD_FitPattern.initial_peak_position(f"{self.input_file_path}", save_all=True)
             text=open('../logs/logs.log').read()
             self.Console_output.setText(text)
-            
-        
+   
     def Execute_Fits(self):
         if self.input_file_path == None:
             mess = QMessageBox()
@@ -176,8 +159,7 @@ class MainWindow(QMainWindow):
             cpf.XRD_FitPattern.execute(f"{self.input_file_path}", save_all=True)
             text=open('../logs/logs.log').read()
             self.Console_output.setText(text)
-            
-        
+ 
     def Make_Outputs(self):
         if self.input_file_path == None:
             mess = QMessageBox()
@@ -190,9 +172,7 @@ class MainWindow(QMainWindow):
             cpf.XRD_FitPattern.write_output(f"{self.input_file_path}", save_all=True)
             text=open('../logs/logs.log').read()
             self.Console_output.setText(text)
-        
 
-        
     def Insert_Button(self):  
         directory = self.Directory.text()
         basename = self.Basename.text()
@@ -219,8 +199,7 @@ class MainWindow(QMainWindow):
         wdt_1 =self.wdt_1.text()
         wdt_2 =self.wdt_2.text()
         AziBins = self.AziBins.text()
-              
-            
+     
         data = "\
  datafile_directory = '$dr/'         \n\
  datafile_Basename  = '$bn'     \n\
@@ -281,9 +260,6 @@ class MainWindow(QMainWindow):
                       mess.setStandardButtons(QMessageBox.Ok)
                       mess.setWindowTitle("MessageBox")
                       returnValue = mess.exec_()
-            
-        
-        
 
     def select_Data_Dir(self):
             dialog = QtWidgets.QFileDialog()
@@ -326,7 +302,6 @@ class MainWindow(QMainWindow):
                     path = QtCore.QFileInfo(dialog.selectedFiles()[0]).absoluteFilePath()
                     self.Directory.setText(path)
 
-    
     def selectTarget(self):
             dialog = QtWidgets.QFileDialog()
 
@@ -367,34 +342,27 @@ class MainWindow(QMainWindow):
                     path = QtCore.QFileInfo(dialog.selectedFiles()[0]).absoluteFilePath()
                     self.Output_Dir_1.setText(path)
                     self.Output_Dir_2.setText(path)
-                    
-        
+
     def Insert_Range(self):
         self.clickcount += 1 
         self.Range_Tab.addTab(Range() , QIcon("Location of the icon"),"Range "+str(self.clickcount))
-        
-        
+
     def Remove_Range(self):
         self.Range_Tab.removeTab(self.Range_Tab.currentIndex())
-        
-         
+    
     def Insert_Output(self):
         self.clickcountout += 1 
         self.Output_Tab.addTab(Output() , QIcon("Location of the icon"),"Output "+str(self.clickcountout))
-    
-     
+
     def Remove_Output(self):
         self.Output_Tab.removeTab(self.Output_Tab.currentIndex())
-    
-
 
 if __name__=='__main__':
     app = QApplication(sys.argv)
     mainwindow = MainWindow()
     widget = QtWidgets.QStackedWidget()
     widget.addWidget(mainwindow)
-    widget.show()
-    
+    widget.show() 
     try: 
         sys.exit(app.exec_())
     except:

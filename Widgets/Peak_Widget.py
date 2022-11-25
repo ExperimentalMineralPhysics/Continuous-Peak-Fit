@@ -1,27 +1,24 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Oct 25 16:35:37 2022
-
-@author: g05296ar
-"""
-
-
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.uic import loadUi
-
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QWidget, QAction, QTabWidget,QVBoxLayout
+from PyQt5.QtWidgets import (
+    QMainWindow, 
+    QApplication, 
+    QPushButton, 
+    QWidget, 
+    QAction, 
+    QTabWidget,
+    QVBoxLayout
+)
 from PyQt5.QtGui import QIcon
 
 import sys
 from string import Template
 
-
 class Peak(QWidget):
     def __init__(self):
         super(Peak, self).__init__()
         loadUi("Peak_Widget.ui", self)
-
         self.phase_peak.setMinimumHeight(40);
         self.hkl.setMinimumHeight(40);
         self.d_space_peak.setMinimumHeight(40);

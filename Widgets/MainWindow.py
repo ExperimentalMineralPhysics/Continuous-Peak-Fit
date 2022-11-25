@@ -366,4 +366,4 @@ if __name__=='__main__':
     try: 
         sys.exit(app.exec_())
     except:
-        print("Exiting")
+        os._exit(00)

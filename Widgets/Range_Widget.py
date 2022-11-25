@@ -15,7 +15,6 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     )
 
-
 import sys
 from string import Template
 

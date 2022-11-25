@@ -1,16 +1,11 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Oct 25 16:34:38 2022
-
-@author: g05296ar
-"""
-
+from PyQt5.QtGui import QIcon
+from PyQt5.uic import loadUi
+from PyQt5 import QtWidgets
 from PyQt5 import (
     QtCore, 
     QtGui, 
     QtWidgets,
     )
-from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import (
     QMainWindow, 
     QApplication, 
@@ -19,17 +14,12 @@ from PyQt5.QtWidgets import (
     QTabWidget,
     QVBoxLayout,
     )
-from PyQt5.QtGui import QIcon
 
-from PyQt5.uic import loadUi
 
 import sys
 from string import Template
 
 from Peak_Widget import Peak
-
-
-
 
 class Range(QWidget):
     def __init__(self):
@@ -48,7 +38,6 @@ class Range(QWidget):
         self.bg_fixed_lineEdit.setMinimumHeight(40);
         self.Save_Range_Btn.clicked.connect(self.Save_Ranges)
 
-        
     def Save_Ranges(self):
         Range_min= self.Range_min.text()
         Range_max= self.Range_max.text()

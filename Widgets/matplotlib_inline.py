@@ -5,8 +5,6 @@ Created on Fri Nov 25 21:59:16 2022
 @author: g05296ar
 """
 
-#%matplotlib auto
-
 import matplotlib.pyplot as pl
 
 

@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Oct 25 16:35:37 2022
-
-@author: g05296ar
-"""
-
-
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.uic import loadUi
 

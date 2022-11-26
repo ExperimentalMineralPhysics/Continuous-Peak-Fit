@@ -504,11 +504,15 @@ def fourier_expand(azimuth, inp_param=None, comp_str=None, **params):
     if not isinstance(inp_param, np.float64) and np.size(inp_param) > 1:
         for i in range(1, int((len(inp_param) - 1) / 2) + 1):
             # len(param)-1 should never be odd because of initial a_0 parameter
-            fout = (
-                fout
-                + inp_param[(2 * i) - 1] * np.sin(np.deg2rad(azimuth) * i)
-                + inp_param[2 * i] * np.cos(np.deg2rad(azimuth) * i)
-            )  # single col array
+            try:
+                # try/except is a ctch for expanding a fourier series that has failed and has nones as coefficient values.
+                fout = (
+                    fout
+                    + inp_param[(2 * i) - 1] * np.sin(np.deg2rad(azimuth) * i)
+                    + inp_param[2 * i] * np.cos(np.deg2rad(azimuth) * i)
+                )  # single col array
+            except:
+                pass
     return fout
 
 

@@ -414,6 +414,7 @@ def execute(
     parallel=True,
     mode="fit",
     report=False,
+    intensity_threshold = 0,
     **kwargs
 ):
     """
@@ -690,6 +691,7 @@ def execute(
                         "debug": debug,
                         "refine": refine,
                         "iterations": iterations,
+                        "intensity_threshold":intensity_threshold,
                     }
                     arg = (sub_data, settings_for_fit.duplicate())
                     parallel_pile.append((arg, kwargs))
@@ -703,6 +705,7 @@ def execute(
                         debug=debug,
                         refine=refine,
                         iterations=iterations,
+                        intensity_threshold=intensity_threshold,
                     )
                     fitted_param.append(tmp[0])
                     lmfit_models.append(tmp[1])

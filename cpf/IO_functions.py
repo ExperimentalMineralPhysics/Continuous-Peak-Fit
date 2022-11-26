@@ -288,7 +288,7 @@ def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", clean=None):
     return clean
 
 
-def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", clean=None):
+def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", clean=None, replace_with=0):
     """
     This function accepts a nested dictionary and list as argument
     and iterates over all values of nested dictionaries and lists.
@@ -315,7 +315,7 @@ def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", clean=No
             )
 
     if obj_to_inspect == val_to_find:
-        obj_to_inspect = np.nan
+        obj_to_inspect = replace_with
         print(f"Value {val_to_find} found at {index_path}")
 
     return obj_to_inspect

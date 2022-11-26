@@ -137,7 +137,7 @@ fit_orders = [
                "width": 0,
                "symmetry": 2
              }],
-           "Imax":27,
+           "imax":27,
         },
     ]
 

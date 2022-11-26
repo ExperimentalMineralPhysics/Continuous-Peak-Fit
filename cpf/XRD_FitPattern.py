@@ -523,6 +523,11 @@ def execute(
             print("Loading previous fit results from %s" % temporary_data_file)
             with open(temporary_data_file) as json_data:
                 previous_fit = json.load(json_data)
+                
+                # if the previous_fit is not the same size as fit_orders the inout file must have been changed. 
+                # so discard the previous fit and start again.
+                if len(previous_fit) != len(settings_for_fit.fit_orders):
+                    del previous_fit
 
         # Switch to save the first fit in each sequence.
         if j == 0 or save_all is True:

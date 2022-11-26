@@ -312,8 +312,7 @@ def get_image_keys(
                 print("oops")
                 stop
         else:
-            print("oops, key is wrong")
-            stop
+            print("There is no key ", key, ". Skipping over.")
     else:
         # step inside the key_list
 

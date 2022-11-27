@@ -57,9 +57,10 @@ class MainWindow(QMainWindow):
         self.Calib_Mask.setMinimumHeight(40);
         self.Calib_Pixels.setMinimumHeight(40);
         self.Calib_Data.setMinimumHeight(40);
-        self.fit_bin_type.setMinimumHeight(40);
-        self.fit_per_bin.setMinimumHeight(40);
-        self.fit_number_bins.setMinimumHeight(40);
+        self.cascade_bin_type.setMinimumHeight(40);
+        self.cascade_per_bin.setMinimumHeight(40);
+        self.cascade_number_bins.setMinimumHeight(40);
+        self.cascade_track.setMinimumHeight(40);
         self.bg_1.setMinimumHeight(40);
         self.bg_2.setMinimumHeight(40);
         self.ds_1.setMinimumHeight(40);
@@ -108,9 +109,20 @@ class MainWindow(QMainWindow):
         self.Calib_Mask.setText(self.set_cl.calibration_mask);
         self.Calib_Pixels.setText(str(self.set_cl.calibration_pixel_size));
         self.Calib_Data.setText(self.set_cl.calibration_data);
-        self.fit_bin_type.setText(str(self.set_cl.fit_bin_type))
-        self.fit_per_bin.setText(str(self.set_cl.fit_per_bin))
-        self.fit_number_bins.setText(str(self.set_cl.fit_number_bins)) 
+        self.cascade_bin_type.setText(str(self.set_cl.cascade_bin_type))
+        self.cascade_per_bin.setText(str(self.set_cl.cascade_per_bin))
+        self.cascade_number_bins.setText(str(self.set_cl.cascade_number_bins))
+        self.cascade_track.setText(str(self.set_cl.cascade_track))
+        self.bg_1.setText(self.set_cl.fit_bounds.get("background")[0])
+        self.bg_2.setText(self.set_cl.fit_bounds.get("background")[1])
+        self.ds_1.setText(self.set_cl.fit_bounds.get("d-space")[0])
+        self.ds_2.setText(self.set_cl.fit_bounds.get("d-space")[1])
+        self.h_1.setText(str(self.set_cl.fit_bounds.get("height")[0]))
+        self.h_2.setText(str(self.set_cl.fit_bounds.get("height")[1]))
+        self.pro_1.setText(str(self.set_cl.fit_bounds.get("profile")[0]))
+        self.pro_2.setText(str(self.set_cl.fit_bounds.get("profile")[1]))
+        self.wdt_1.setText(self.set_cl.fit_bounds.get("width")[0])
+        self.wdt_2.setText(self.set_cl.fit_bounds.get("width")[1])
         with open("../logs/logs.log",'w') as file:
            file.close()
         cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")

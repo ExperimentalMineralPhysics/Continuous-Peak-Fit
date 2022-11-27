@@ -123,6 +123,7 @@ class MainWindow(QMainWindow):
         self.pro_2.setText(str(self.set_cl.fit_bounds.get("profile")[1]))
         self.wdt_1.setText(self.set_cl.fit_bounds.get("width")[0])
         self.wdt_2.setText(self.set_cl.fit_bounds.get("width")[1])
+        self.Output_Dir_1.setText(self.set_cl.output_directory)
         with open("../logs/logs.log",'w') as file:
            file.close()
         cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")

@@ -1,7 +1,7 @@
 # Input parameters for Example 1 -- BCC1_2GPa_100s_001. 
 
 # properties of the data files.
-datafile_directory = './'
+datafile_directory = '../Example1-Fe/'
 datafile_Basename  = 'BCC1_2GPa_10s_001_'
 datafile_Ending    = '.tif'
 datafile_StartNum  = 1

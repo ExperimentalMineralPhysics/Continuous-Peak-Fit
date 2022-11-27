@@ -15,4 +15,3 @@ class matplotlib_qt():
             get_ipython().magic("matplotlib qt")
         except:
             pl.ion()
-        import numpy as np

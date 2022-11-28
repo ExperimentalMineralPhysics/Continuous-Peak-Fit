@@ -128,6 +128,39 @@ class MainWindow(QMainWindow):
         self.wdt_1.setText(self.set_cl.fit_bounds.get("width")[0])
         self.wdt_2.setText(self.set_cl.fit_bounds.get("width")[1])
         self.Output_Dir_1.setText(self.set_cl.output_directory)
+        
+        self.range_length = len(self.set_cl.fit_orders)
+        
+        for range_tab in range(0, self.range_length):
+            self.range_object = Range()
+            self.Range_Tab.addTab(self.range_object , QIcon("Location of the icon"),"Range")
+            self.range_object.Range_min.setText(str(self.set_cl.fit_orders[range_tab].get("range")[0]))
+            self.range_object.Range_max.setText(str(self.set_cl.fit_orders[range_tab].get("range")[1]))
+            self.range_object.Range_Background_Val.setText(str(self.set_cl.fit_orders[range_tab].get("background")))
+            self.range_object.Intensity_max.setText(str(self.set_cl.fit_orders[range_tab].get("Imax")))   
+            self.range_object.Intensity_min.setText(str(self.set_cl.fit_orders[range_tab].get("Imin")))   
+            self.range_object.Peak_Pos_Selection.setPlainText(str(self.set_cl.fit_orders[range_tab].get("PeakPositionSelection")))
+            self.peak_length = len(self.set_cl.fit_orders[range_tab]["peak"])
+            
+            for peak_tab in range(0, self.peak_length):
+                self.peak_ta_wid = Peak()
+                self.range_object.Peak_Tab.addTab(self.peak_ta_wid , QIcon("Location of the icon"),"Peak ")#+str(self.clickcount))
+                self.peak_ta_wid.phase_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("phase")))
+                self.peak_ta_wid.hkl.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("hkl")))
+                self.peak_ta_wid.d_space_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("d-space")))
+                #self.peak_ta_wid.d_space_type.setText()   
+                #self.peak_ta_wid.dspace_fixed.setText(str(self.set_cl.fit_orders[range_tab].get("d-space")))
+                self.peak_ta_wid.height_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("height")))
+                #self.peak_ta_wid.height_peak_type.setText()
+                #self.peak_ta_wid.height_fixed.setText(str(self.set_cl.fit_orders[range_tab].get("height")))
+                self.peak_ta_wid.profile_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("profile")))
+                #self.peak_ta_wid.profile_peak_type.setText()
+                self.peak_ta_wid.profile_fixed.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("profile_fixed")))
+                self.peak_ta_wid.width_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("width")))
+                #self.peak_ta_wid.width_peak_type.setText()
+                #self.peak_ta_wid.width_fixed.setText(str(self.set_cl.fit_orders[range_tab].get("height")))
+                self.peak_ta_wid.symmetry_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("symmetry")))
+                
         with open("../logs/logs.log",'w') as file:
            file.close()
         cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")

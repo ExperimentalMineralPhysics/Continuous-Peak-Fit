@@ -36,13 +36,17 @@ from matplotlib_inline import matplotlib_inline
 
 
 class MainWindow(QMainWindow):
+    
     def __init__(self):
         super(MainWindow, self).__init__()
         loadUi("MainWindow.ui", self)
+        self.gui_layout()
         self.set_cl = cpf.settings.settings()
         self.input_file_path = None   
         self.clickcount = 0 
         self.clickcountout = 0 
+        
+    def gui_layout(self):
         self.Main_Tab.setMinimumHeight(40);
         self.Directory.setMinimumHeight(40);
         self.Basename.setMinimumHeight(40);

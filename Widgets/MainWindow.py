@@ -95,7 +95,7 @@ class MainWindow(QMainWindow):
         self.Make_Output_Btn.clicked.connect(self.Make_Outputs)
     
     def Load_Inputs(self):
-        fname= QFileDialog.getOpenFileName(self, "Load Input File", "", "Python Files (*.py)")
+        fname= QFileDialog.getOpenFileName(self, "Load Input File", "..\\", "Python Files (*.py)")
         if fname:
             self.input_file_path = f"{fname[0]}"
             print(self.input_file_path)

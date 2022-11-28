@@ -32,7 +32,7 @@ import cpf
 from cpf.settings import settings
 
 from matplotlib_qt import matplotlib_qt
-from matplotlib_inline import matplotlib_inline
+from matplotlib_auto import matplotlib_inline
 
 
 class MainWindow(QMainWindow):
@@ -144,7 +144,7 @@ class MainWindow(QMainWindow):
             
             for peak_tab in range(0, self.peak_length):
                 self.peak_object = Peak()
-                self.range_object.Peak_Tab.addTab(self.peak_ta_wid , QIcon("Location of the icon"),"Peak ")#+str(self.clickcount))
+                self.range_object.Peak_Tab.addTab(self.peak_object , QIcon("Location of the icon"),"Peak ")#+str(self.clickcount))
                 self.peak_object.phase_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("phase")))
                 self.peak_object.hkl.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("hkl")))
                 self.peak_object.d_space_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("d-space")))

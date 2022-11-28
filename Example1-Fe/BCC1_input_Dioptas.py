@@ -68,6 +68,6 @@ AziBins = 90
 
 
 # Output settings
-Output_directory   = './'
+Output_directory   = '../Example1-Fe/results/'
 Output_type        = 'MultiFit'
 Output_NumAziWrite = 90

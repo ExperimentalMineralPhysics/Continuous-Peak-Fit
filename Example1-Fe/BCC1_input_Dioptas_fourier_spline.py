@@ -205,7 +205,7 @@ fit_orders = [
 AziBins = 90
 
 #Output settings
-Output_directory   = './results/'
+Output_directory   = '../Example1-Fe/results/'
 Output_type        = ['DifferentialStrain', 'Polydefix']
 Output_NumAziWrite = 90
 phase              = 'Fe-BCC'

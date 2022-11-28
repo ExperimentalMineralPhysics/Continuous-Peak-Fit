@@ -638,32 +638,42 @@ QGroupBox::title {
                <item row="0" column="0">
                 <widget class="QLabel" name="label_14">
                  <property name="text">
-                  <string>fit_bin_type</string>
+                  <string>Cascade Bin Type</string>
                  </property>
                 </widget>
                </item>
                <item row="0" column="2">
-                <widget class="QLineEdit" name="fit_bin_type"/>
-               </item>
-               <item row="1" column="0" colspan="2">
-                <widget class="QLabel" name="label_27">
-                 <property name="text">
-                  <string>fit_per_bin</string>
-                 </property>
-                </widget>
+                <widget class="QLineEdit" name="cascade_bin_type"/>
                </item>
                <item row="2" column="0">
                 <widget class="QLabel" name="label_28">
                  <property name="text">
-                  <string>fit_number_bins</string>
+                  <string>Cascade Number Bins</string>
                  </property>
                 </widget>
                </item>
                <item row="1" column="2">
-                <widget class="QLineEdit" name="fit_per_bin"/>
+                <widget class="QLineEdit" name="cascade_per_bin"/>
                </item>
                <item row="2" column="2">
-                <widget class="QLineEdit" name="fit_number_bins"/>
+                <widget class="QLineEdit" name="cascade_number_bins"/>
+               </item>
+               <item row="1" column="0" colspan="2">
+                <widget class="QLabel" name="label_27">
+                 <property name="text">
+                  <string>Cascade Per Bin</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="label_29">
+                 <property name="text">
+                  <string>Cascade Track</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="2">
+                <widget class="QLineEdit" name="cascade_track"/>
                </item>
               </layout>
              </widget>

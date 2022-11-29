@@ -302,11 +302,11 @@ class MainWindow(QMainWindow):
                       mess.setStandardButtons(QMessageBox.Ok)
                       mess.setWindowTitle("MessageBox")
                       returnValue = mess.exec_()
-                      if os.path.exists("template_3.py"):
+                      if os.path.exists("input.py"):
                          os.remove("template_3.py")
                       
         else:
-                      file1 = open('template_3.py', 'w')
+                      file1 = open('input.py', 'w')
                       file1.writelines((after_replacing))
                       file1.close()                         
                       mess = QMessageBox()

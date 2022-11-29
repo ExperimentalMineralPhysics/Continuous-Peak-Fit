@@ -43,8 +43,6 @@ class MainWindow(QMainWindow):
         self.gui_layout()
         self.set_cl = cpf.settings.settings()
         self.input_file_path = None   
-        self.clickcount = 0 
-        self.clickcountout = 0 
         
     def gui_layout(self):
         self.Main_Tab.setMinimumHeight(40);
@@ -402,14 +400,14 @@ class MainWindow(QMainWindow):
 
     def Insert_Range(self):
         self.clickcount += 1 
-        self.Range_Tab.addTab(Range() , QIcon("Location of the icon"),"Range "+str(self.clickcount))
+        self.Range_Tab.addTab(Range() , QIcon(""),"Range")
 
     def Remove_Range(self):
         self.Range_Tab.removeTab(self.Range_Tab.currentIndex())
     
     def Insert_Output(self):
         self.clickcountout += 1 
-        self.Output_Tab.addTab(Output() , QIcon("Location of the icon"),"Output "+str(self.clickcountout))
+        self.Output_Tab.addTab(Output() , QIcon(""),"Output")
 
     def Remove_Output(self):
         self.Output_Tab.removeTab(self.Output_Tab.currentIndex())

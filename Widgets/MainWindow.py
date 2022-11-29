@@ -98,7 +98,6 @@ class MainWindow(QMainWindow):
         fname= QFileDialog.getOpenFileName(self, "Load Input File", "..\\", "Python Files (*.py)")
         if fname:
             self.input_file_path = f"{fname[0]}"
-            print(self.input_file_path)
         self.set_cl.populate(settings_file=(f"{self.input_file_path}"))
         self.Directory.setText(self.set_cl.datafile_directory)
         self.Basename.setText(self.set_cl.datafile_basename)
@@ -107,7 +106,7 @@ class MainWindow(QMainWindow):
         # self.End_Num.setText(40);
         # self.Num_Digit.setText(40);
         # self.Step.setText(40);
-        self.Calib_Type.setWhatsThis(self.set_cl.calibration_type);
+        self.Calib_Type.setCurrentText(f"{self.set_cl.calibration_type}");
         self.Calib_Detect.setText(self.set_cl.calibration_detector);
         self.Calib_Param.setText(self.set_cl.calibration_parameters); 
         self.Calib_Mask.setText(self.set_cl.calibration_mask);
@@ -131,9 +130,12 @@ class MainWindow(QMainWindow):
         
         self.range_length = len(self.set_cl.fit_orders)
         
+        for remove_range in range(0, self.Range_Tab.count()):
+            self.Remove_Range()
+        
         for range_tab in range(0, self.range_length):
             self.range_object = Range()
-            self.Range_Tab.addTab(self.range_object , QIcon("Location of the icon"),"Range")
+            self.Range_Tab.addTab(self.range_object , QIcon(""),"Range")
             self.range_object.Range_min.setText(str(self.set_cl.fit_orders[range_tab].get("range")[0]))
             self.range_object.Range_max.setText(str(self.set_cl.fit_orders[range_tab].get("range")[1]))
             self.range_object.Range_Background_Val.setText(str(self.set_cl.fit_orders[range_tab].get("background")))
@@ -144,7 +146,7 @@ class MainWindow(QMainWindow):
             
             for peak_tab in range(0, self.peak_length):
                 self.peak_object = Peak()
-                self.range_object.Peak_Tab.addTab(self.peak_object , QIcon("Location of the icon"),"Peak ")#+str(self.clickcount))
+                self.range_object.Peak_Tab.addTab(self.peak_object , QIcon(""),"Peak ")#+str(self.clickcount))
                 self.peak_object.phase_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("phase")))
                 self.peak_object.hkl.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("hkl")))
                 self.peak_object.d_space_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("d-space")))

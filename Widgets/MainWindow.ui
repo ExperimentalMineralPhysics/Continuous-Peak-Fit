@@ -527,27 +527,12 @@ QGroupBox::title {
                  </item>
                  <item>
                   <property name="text">
-                   <string>WriteCoefficientTable</string>
+                   <string>Dioptas</string>
                   </property>
                  </item>
                  <item>
                   <property name="text">
-                   <string>WriteDifferentialStrain</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>WriteMultiFit</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>WritePolydefix</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>WritePolydefixED</string>
+                   <string>GSAS-II</string>
                   </property>
                  </item>
                 </widget>

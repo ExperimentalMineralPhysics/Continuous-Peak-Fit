@@ -95,7 +95,7 @@ class Peak(QWidget):
                                                   width_fixed  =width_fixed ,
                                                   symmetry_peak = symmetry_peak
                                                   )
-            file1 = open('template_3.py', 'a')
+            file1 = open('input.py', 'a')
             file1.writelines((after_replacing))
             file1.close()
         else:

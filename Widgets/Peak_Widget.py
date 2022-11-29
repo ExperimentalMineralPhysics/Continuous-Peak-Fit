@@ -16,9 +16,13 @@ import sys
 from string import Template
 
 class Peak(QWidget):
+    
     def __init__(self):
         super(Peak, self).__init__()
         loadUi("Peak_Widget.ui", self)
+        self.peak_layout()
+        
+    def peak_layout(self):
         self.phase_peak.setMinimumHeight(40);
         self.hkl.setMinimumHeight(40);
         self.d_space_peak.setMinimumHeight(40);
@@ -34,10 +38,8 @@ class Peak(QWidget):
         self.height_peak_type.setMinimumHeight(40);
         self.profile_peak_type.setMinimumHeight(40);
         self.width_peak_type.setMinimumHeight(40);
-        
         self.Save_Peak_Btn.clicked.connect(self.Save_Peaks)
         self.clickcount = 1
-        
         
     def Save_Peaks(self):
         phase_peak = self.phase_peak.text()

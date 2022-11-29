@@ -21,9 +21,13 @@ from string import Template
 from Peak_Widget import Peak
 
 class Range(QWidget):
+   
     def __init__(self):
         super(Range, self).__init__()
         loadUi("Range_Widget.ui", self)
+        self.range_layout()
+        
+    def range_layout(self):
         self.Peak_Tab.currentChanged.connect(self.tabChanged)
         self.Add_Peak_Btn.clicked.connect(self.Insert_Peak)
         self.Remove_Peak_Btn.clicked.connect(self.Remove_Peak)
@@ -84,8 +88,7 @@ class Range(QWidget):
         print("Tab was changed to : ", self.Peak_Tab.currentIndex())
         
     def Insert_Peak(self):
-        self.clickcount += 1 
-        self.Peak_Tab.addTab(Peak() , QIcon("Location of the icon"),"Peak "+str(self.clickcount))
+        self.Peak_Tab.addTab(Peak() , QIcon("Location of the icon"),"Peak")
      
     def Remove_Peak(self):
         self.Peak_Tab.removeTab(self.Peak_Tab.currentIndex())

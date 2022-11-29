@@ -2,24 +2,33 @@
 
 ## Installation
 
-Installation is available through git or via pip
+### From Source
+Source code can be obtained from this respository using `git`. `pip` can be used to build / install the dependencies.
 
-From git use
+Obtain the code using:
 
 `git clone https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit.git`
 
-To install the required dependencies use, in the Continuous-Peak-Fit directory use 
+To install the required dependencies, in the Continuous-Peak-Fit directory use:
 
-`pip install requirements.txt`
+`pip install requirements.txt` or `pip3 install -r requirements.txt` if using Python 3.
 
-# 
+### From Pip
 
-For pip installation use
+For pip installation use:
 
-`pip install continuous-peak-fit`
+`pip install continuous-peak-fit` or `pip3 install continous-peak-fit` if using Python 3.
 
-this should automatically install the required dependencies.
+This should automatically install the required dependencies.
 
+---
+
+⚠️ **If this process fails to build the wheel for pycairo with "pkg-config not found" then take the following extra steps to resolve**
+
+`brew install pkg-config` to install pkg-config using Homebrew
+`brew install cairo` to isntall the cairo libraries which are linked to by pycairo.
+
+---
 
 ## Usage
 

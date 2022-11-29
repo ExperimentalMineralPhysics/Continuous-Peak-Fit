@@ -230,8 +230,10 @@ class settings:
         # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
         if "datafile_Basename" in dir(self.settings_from_file):
             self.datafile_basename = self.settings_from_file.datafile_Basename
-
-        # add output directory if listed.
+        if "datafile_Ending" in dir(self.settings_from_file):
+            self.datafile_ending  = self.settings_from_file.datafile_Ending
+        
+        #add output directory if listed. 
         # change if listed among the inputs
         if "Output_directory" in dir(self.settings_from_file):
             self.output_directory = self.settings_from_file.Output_directory

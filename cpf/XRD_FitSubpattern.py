@@ -274,6 +274,28 @@ def fit_sub_pattern(
                 "Propagated fit has problems so discarding it and doing fit from scratch"
             )
             previous_params = None
+            
+        # check if the previous fit d-spacings fall within the bounds.
+        # if they are not then assume the previous fit must have been poor and discard it.
+        fit_centroid = []
+        azims = np.linspace(0,360,361)
+        for i in range(peeks):
+            param = previous_params["peak"][i]["d-space"]
+            param_type = previous_params["peak"][i]["d-space_type"]
+            fit_centroid.append(
+                data_as_class.conversion(
+                    sf.coefficient_expand(azims, param=param, coeff_type=param_type),
+                    azims,
+                    reverse=1,
+                )
+            )
+        if (
+            np.min(fit_centroid) < settings_as_class.subfit_orders["range"][0] or 
+            np.min(fit_centroid) > settings_as_class.subfit_orders["range"][1]
+        ):
+            print("fit d-spacing limits are out of bounds; discarding the fit and starting again.")
+            previous_params = None
+
 
         # initiate values for while loop.
         step = 5

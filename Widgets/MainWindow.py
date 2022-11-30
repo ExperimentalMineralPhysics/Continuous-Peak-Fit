@@ -100,16 +100,11 @@ class MainWindow(QMainWindow):
         self.set_cl.populate(settings_file=(f"{self.input_file_path}"))
         self.Directory.setText(self.set_cl.datafile_directory)
         self.Basename.setText(self.set_cl.datafile_basename)
-        # self.Extension.setText(40);
-        # self.Start_Num.setText(40);
-        # self.End_Num.setText(40);
-        # self.Num_Digit.setText(40);
-        # self.Step.setText(40);
         self.Calib_Type.setCurrentText(f"{self.set_cl.calibration_type}");
         self.Calib_Detect.setText(self.set_cl.calibration_detector);
-        self.Calib_Param.setText(self.set_cl.calibration_parameters); 
+        self.Calib_Param.setText(self.set_cl.calibration_parameters);
         self.Calib_Mask.setText(self.set_cl.calibration_mask);
-        self.Calib_Pixels.setText(str(self.set_cl.calibration_pixel_size));
+        self.Calib_Pixels.setText(str(self.set_cl.calibration_pixel_size));   
         self.Calib_Data.setText(self.set_cl.calibration_data);
         self.cascade_bin_type.setText(str(self.set_cl.cascade_bin_type))
         self.cascade_per_bin.setText(str(self.set_cl.cascade_per_bin))
@@ -120,12 +115,36 @@ class MainWindow(QMainWindow):
         self.ds_1.setText(self.set_cl.fit_bounds.get("d-space")[0])
         self.ds_2.setText(self.set_cl.fit_bounds.get("d-space")[1])
         self.h_1.setText(str(self.set_cl.fit_bounds.get("height")[0]))
-        self.h_2.setText(str(self.set_cl.fit_bounds.get("height")[1]))
+        self.h_2.setText(str(self.set_cl.fit_bounds.get("height")[1]))    
         self.pro_1.setText(str(self.set_cl.fit_bounds.get("profile")[0]))
         self.pro_2.setText(str(self.set_cl.fit_bounds.get("profile")[1]))
         self.wdt_1.setText(self.set_cl.fit_bounds.get("width")[0])
         self.wdt_2.setText(self.set_cl.fit_bounds.get("width")[1])
         self.Output_Dir_1.setText(self.set_cl.output_directory)
+
+        # Signals #
+        self.Directory.editingFinished.connect(self.Dir_Pressed)#
+        self.Basename.editingFinished.connect(self.Basename_Pressed)#
+        self.Calib_Detect.editingFinished.connect(self.Calib_Detect_Pressed)#
+        self.Calib_Param.editingFinished.connect(self.Calib_Param_Pressed)#
+        self.Calib_Mask.editingFinished.connect(self.Calib_Mask_Pressed)#
+        self.Calib_Pixels.editingFinished.connect(self.Calib_Pixels_Pressed)#
+        self.Calib_Data.editingFinished.connect(self.Calib_Data_Pressed)#
+        self.cascade_bin_type.editingFinished.connect(self.Cascade_bin_type_Pressed)#
+        self.cascade_per_bin.editingFinished.connect(self.Cascade_per_bin_Pressed)#
+        self.cascade_number_bins.editingFinished.connect(self.Cascade_number_bins_Pressed)#
+        self.cascade_track.editingFinished.connect(self.Cascade_track_Pressed)#
+        self.bg_1.editingFinished.connect(self.Bg_1_Pressed)#
+        self.bg_2.editingFinished.connect(self.Bg_2_Pressed)#
+        self.ds_1.editingFinished.connect(self.Ds_1_Pressed)#
+        self.ds_2.editingFinished.connect(self.Ds_2_Pressed)#
+        self.h_1.editingFinished.connect(self.H_1_Pressed)#
+        self.h_2.editingFinished.connect(self.H_2_Pressed)#
+        self.pro_1.editingFinished.connect(self.Pro_1_Pressed)
+        self.pro_2.editingFinished.connect(self.Pro_2_Pressed)
+        self.wdt_1.editingFinished.connect(self.Wdt_1_Pressed)
+        self.wdt_2.editingFinished.connect(self.Wdt_2_Pressed)
+        self.Output_Dir_1.editingFinished.connect(self.Output_Dir_1_Pressed)
         
         self.range_length = len(self.set_cl.fit_orders)
         
@@ -455,6 +474,119 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def Remove_Output(self):
         self.Output_Tab.removeTab(self.Output_Tab.currentIndex())
+        
+    @pyqtSlot()#######################
+    def Dir_Pressed(self):
+        datafile_directory = self.Directory.text()
+        self.set_cl.datafile_directory = datafile_directory
+        
+    @pyqtSlot()
+    def Basename_Pressed(self):
+        datafile_basename = self.Basename.text()
+        self.set_cl.datafile_basename = datafile_basename
+        
+    @pyqtSlot()
+    def Calib_Detect_Pressed(self):
+        calibration_detector = self.Calib_Detect.text()
+        self.set_cl.calibration_detector = calibration_detector
+        
+    @pyqtSlot()
+    def Calib_Param_Pressed(self):
+        calibration_parameters = self.Calib_Param.text()
+        self.set_cl.calibration_parameters = calibration_parameters
+        
+    @pyqtSlot()
+    def Calib_Mask_Pressed(self):
+        calibration_mask = self.Calib_Mask.text()
+        self.set_cl.calibration_mask = calibration_mask
+    
+    @pyqtSlot()
+    def Calib_Pixels_Pressed(self):
+        calibration_pixel_size = self.Calib_Pixels.text()
+        self.set_cl.calibration_pixel_size = calibration_pixel_size
+    
+    @pyqtSlot()
+    def Calib_Data_Pressed(self):
+        calibration_data = self.Calib_Data.text()
+        self.set_cl.calibration_pixel_size = calibration_data
+    
+    
+    @pyqtSlot()
+    def Cascade_bin_type_Pressed(self):
+        cascade_bin_type = self.cascade_bin_type.text()
+        self.set_cl.cascade_bin_type = cascade_bin_type
+    
+    @pyqtSlot()
+    def Cascade_per_bin_Pressed(self):
+        cascade_per_bin = self.cascade_per_bin.text()
+        self.set_cl.cascade_per_bin = cascade_per_bin
+    
+    @pyqtSlot()
+    def Cascade_number_bins_Pressed(self):
+        cascade_number_bins = self.cascade_number_bins.text()
+        self.set_cl.cascade_number_bins = cascade_number_bins
+    
+    @pyqtSlot()
+    def Cascade_track_Pressed(self):
+        cascade_track = self.cascade_track.text()
+        self.set_cl.cascade_track = cascade_track
+    
+    @pyqtSlot()
+    def Bg_1_Pressed(self):
+        bg_1 = self.bg_1.text()
+        self.set_cl.fit_bounds.get("background")[0] = bg_1
+    
+    @pyqtSlot()
+    def Bg_2_Pressed(self):
+        bg_2 = self.bg_2.text()
+        self.set_cl.fit_bounds.get("background")[1] = bg_2
+        
+    @pyqtSlot()
+    def Ds_1_Pressed(self):
+        ds_1 = self.ds_1.text()
+        self.set_cl.fit_bounds.get("d-space")[0] = ds_1
+    
+    @pyqtSlot()
+    def Ds_2_Pressed(self):
+        ds_2 = self.ds_2.text()
+        self.set_cl.fit_bounds.get("d-space")[1] = ds_2
+    
+    @pyqtSlot()
+    def H_1_Pressed(self):
+        h_1 = self.h_1.text()
+        self.set_cl.fit_bounds.get("height")[0] = h_1
+    
+    @pyqtSlot()
+    def H_2_Pressed(self):
+        h_2 = self.h_2.text()
+        self.set_cl.fit_bounds.get("height")[1] = h_2
+        
+    @pyqtSlot()
+    def Pro_1_Pressed(self):
+        pro_1 = self.pro_1.text()
+        self.set_cl.fit_bounds.get("profile")[0] = pro_1
+        
+    @pyqtSlot()
+    def Pro_2_Pressed(self):
+        pro_2 = self.pro_2.text()
+        self.set_cl.fit_bounds.get("profile")[1] = pro_2
+    
+    @pyqtSlot()
+    def Wdt_1_Pressed(self):
+        wdt_1 = self.wdt_1.text()
+        self.set_cl.fit_bounds.get("width")[0] = wdt_1
+        
+    @pyqtSlot()
+    def Wdt_2_Pressed(self):
+        wdt_2 = self.wdt_2.text()
+        self.set_cl.fit_bounds.get("width")[1] = wdt_2
+        
+    @pyqtSlot()
+    def Output_Dir_1_Pressed(self):
+        Output_Dir_1 = self.Output_Dir_1.text()
+        self.set_cl.output_directory = Output_Dir_1
+
+
 
 if __name__=='__main__':
     app = QApplication(sys.argv)

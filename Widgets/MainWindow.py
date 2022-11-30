@@ -92,6 +92,7 @@ class MainWindow(QMainWindow):
         self.Execute_Btn.clicked.connect(self.Execute_Fits)
         self.Make_Output_Btn.clicked.connect(self.Make_Outputs)
     
+    @pyqtSlot()
     def Load_Inputs(self):
         fname= QFileDialog.getOpenFileName(self, "Load Input File", "..\\", "Python Files (*.py)")
         if fname:
@@ -142,38 +143,73 @@ class MainWindow(QMainWindow):
             self.range_object.Peak_Pos_Selection.setPlainText(str(self.set_cl.fit_orders[range_tab].get("PeakPositionSelection")))
             self.peak_length = len(self.set_cl.fit_orders[range_tab]["peak"])
             
+            if self.set_cl.fit_orders[range_tab].get("background-type")== None:
+                self.range_object.bg_fixed_checkbox.setChecked(False)
+            else:
+                self.range_object.bg_fixed_checkbox.setChecked(True)
+                self.b_type = str(self.set_cl.fit_orders[range_tab].get("background-type"))
+                self.range_object.Background_Type.setCurrentText(f"{self.b_type}")
+            
             for peak_tab in range(0, self.peak_length):
                 self.peak_object = Peak()
-                self.range_object.Peak_Tab.addTab(self.peak_object , QIcon(""),"Peak ")#+str(self.clickcount))
+                self.range_object.Peak_Tab.addTab(self.peak_object , QIcon(""),"Peak")
                 self.peak_object.phase_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("phase")))
                 self.peak_object.hkl.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("hkl")))
                 self.peak_object.d_space_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("d-space")))
-                #self.peak_object.d_space_type.setText()   
-                #self.peak_object.dspace_fixed.setText(str(self.set_cl.fit_orders[range_tab].get("d-space")))
+                self.ds_type = str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("d-space-type"))
+                self.peak_object.d_space_type.setCurrentText(f"{self.ds_type}")
+                self.h_type = str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("height-type"))
+                self.peak_object.height_peak_type.setCurrentText(f"{self.h_type}")
+                self.p_type = str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("profile-type"))
+                self.peak_object.profile_peak_type.setCurrentText(f"{self.p_type}")
+                self.w_type = str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("width-type"))
+                self.peak_object.width_peak_type.setCurrentText(f"{self.w_type}")
                 self.peak_object.height_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("height")))
-                #self.peak_object.height_peak_type.setText()
-                #self.peak_object.height_fixed.setText(str(self.set_cl.fit_orders[range_tab].get("height")))
                 self.peak_object.profile_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("profile")))
-                #self.peak_object.profile_peak_type.setText()
                 self.peak_object.profile_fixed.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("profile_fixed")))
                 self.peak_object.width_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("width")))
-                #self.peak_object.width_peak_type.setText()
-                #self.peak_object.width_fixed.setText(str(self.set_cl.fit_orders[range_tab].get("height")))
                 self.peak_object.symmetry_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("symmetry")))
+
+                if self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("profile_fixed")== None:
+                    self.peak_object.profile_checkBox.setChecked(False)
+                else:
+                    self.peak_object.dspace_fixed.setText(str(self.set_cl.fit_orders[range_tab].get("profile_fixed")))
+                    self.peak_object.profile_checkBox.setChecked(True)
+                    
+                if self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("width_fixed")== None:
+                    self.peak_object.width_checkBox.setChecked(False)
+                else:
+                    self.peak_object.width_fixed.setText(str(self.set_cl.fit_orders[range_tab].get("width_fixed")))
+                    self.peak_object.width_checkBox.setChecked(True)
+                    
+                if self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("height_fixed")== None:
+                    self.peak_object.height_checkBox.setChecked(False)
+                else:
+                    self.peak_object.width_fixed.setText(str(self.set_cl.fit_orders[range_tab].get("height_fixed")))
+                    self.peak_object.height_checkBox.setChecked(True)
+                    
+                if self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("d-space_fixed")== None:
+                    self.peak_object.dspace_checkBox.setChecked(False)
+                else:
+                    self.peak_object.width_fixed.setText(str(self.set_cl.fit_orders[range_tab].get("d-space_fixed")))
+                    self.peak_object.dspace_checkBox.setChecked(True)
+                
                 
         with open("../logs/logs.log",'w') as file:
            file.close()
         cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
         text=open('../logs/logs.log').read()
         self.Console_output.setText(text)
-        
+    
+    @pyqtSlot()
     def Validate_Inputs(self):
             with open("../logs/logs.log",'a') as file:
                file.close()
             cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
             text=open('../logs/logs.log').read()
             self.Console_output.setText(text)
-                   
+            
+    @pyqtSlot()             
     def Run_Range(self):
         self.matplotlib_inline = matplotlib_inline()
         if self.input_file_path == None:
@@ -187,7 +223,8 @@ class MainWindow(QMainWindow):
             cpf.XRD_FitPattern.set_range(f"{self.input_file_path}", save_all=True)
             text=open('../logs/logs.log').read()
             self.Console_output.setText(text)
-   
+    
+    @pyqtSlot()
     def Run_Initial_Position(self):
         self.matplotlib_qt = matplotlib_qt()
         if self.input_file_path == None:
@@ -201,7 +238,8 @@ class MainWindow(QMainWindow):
             cpf.XRD_FitPattern.initial_peak_position(f"{self.input_file_path}", save_all=True)
             text=open('../logs/logs.log').read()
             self.Console_output.setText(text)
-   
+    
+    @pyqtSlot()
     def Execute_Fits(self):
         if self.input_file_path == None:
             mess = QMessageBox()
@@ -214,7 +252,8 @@ class MainWindow(QMainWindow):
             cpf.XRD_FitPattern.execute(f"{self.input_file_path}", save_all=True)
             text=open('../logs/logs.log').read()
             self.Console_output.setText(text)
- 
+    
+    @pyqtSlot()
     def Make_Outputs(self):
         if self.input_file_path == None:
             mess = QMessageBox()
@@ -227,7 +266,8 @@ class MainWindow(QMainWindow):
             cpf.XRD_FitPattern.write_output(f"{self.input_file_path}", save_all=True)
             text=open('../logs/logs.log').read()
             self.Console_output.setText(text)
-
+    
+    @pyqtSlot()
     def Insert_Button(self):  
         directory = self.Directory.text()
         basename = self.Basename.text()
@@ -315,7 +355,8 @@ class MainWindow(QMainWindow):
                       mess.setStandardButtons(QMessageBox.Ok)
                       mess.setWindowTitle("MessageBox")
                       returnValue = mess.exec_()
-
+    
+    @pyqtSlot()
     def select_Data_Dir(self):
             dialog = QtWidgets.QFileDialog()
             if self.Directory.text():
@@ -356,7 +397,8 @@ class MainWindow(QMainWindow):
             if dialog.exec_() and dialog.selectedFiles():
                     path = QtCore.QFileInfo(dialog.selectedFiles()[0]).absoluteFilePath()
                     self.Directory.setText(path)
-
+    
+    @pyqtSlot()
     def selectTarget(self):
             dialog = QtWidgets.QFileDialog()
 
@@ -397,18 +439,20 @@ class MainWindow(QMainWindow):
                     path = QtCore.QFileInfo(dialog.selectedFiles()[0]).absoluteFilePath()
                     self.Output_Dir_1.setText(path)
                     self.Output_Dir_2.setText(path)
-
+    
+    @pyqtSlot()
     def Insert_Range(self):
-        self.clickcount += 1 
         self.Range_Tab.addTab(Range() , QIcon(""),"Range")
-
+    
+    @pyqtSlot()
     def Remove_Range(self):
         self.Range_Tab.removeTab(self.Range_Tab.currentIndex())
     
+    @pyqtSlot()
     def Insert_Output(self):
-        self.clickcountout += 1 
         self.Output_Tab.addTab(Output() , QIcon(""),"Output")
-
+    
+    @pyqtSlot()
     def Remove_Output(self):
         self.Output_Tab.removeTab(self.Output_Tab.currentIndex())
 

@@ -1,34 +1,85 @@
 # Continuous-Peak-Fit
 
 ## Installation
+The following instructions are given for Python 3 on Ubuntu. The equivalent of the `apt` command on MacOS is to use Homebrew for package management via the `brew` command.
 
-### From Source
-Source code can be obtained from this respository using `git`. `pip` can be used to build / install the dependencies.
+Ensure python and pip are installed on the system:
 
-Obtain the code using:
+`sudo apt install python` and `sudo apt install python3-pip`
+
+You can check versions with:
+
+```console
+foo@bar:~$ python3 --version
+Python 3.8.10
+foo@bar:~$ pip3 --version
+pip 20.0.2 from usr/lib/python3/dist-packages/pip (python 3.8)
+```
+
+You will also need to install `pkg-config` and `cairo` packages globally:
+
+`sudo apt install libcairo2-dev pkg-config python3-dev`
+
+Clone the source code with
 
 `git clone https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit.git`
 
-To install the required dependencies, in the Continuous-Peak-Fit directory use:
+### Using Pipenv
 
-`pip install requirements.txt` or `pip3 install -r requirements.txt` if using Python 3.
+A Python virtual environment can be used to install all required dependencies and the project has a Pipfile to facilitate this. First install `pipenv`:
 
-### From Pip
+`sudo apt install pipenv`
 
-For pip installation use:
+Create a virtual environment containing the dependencies listed in `Pipfile` by running the following inside the Continuous-Peak-Fit directory:
 
-`pip install continuous-peak-fit` or `pip3 install continous-peak-fit` if using Python 3.
+`pipenv install`
 
-This should automatically install the required dependencies.
+Then you can load the virtual environment with
 
----
+`pipenv shell`
 
-⚠️ **If this process fails to build the wheel for pycairo with "pkg-config not found" then take the following extra steps to resolve**
+Typing `pipenv list` within the environment should confirm the dependencies have been installed correctly.
 
-`brew install pkg-config` to install pkg-config using Homebrew
-`brew install cairo` to isntall the cairo libraries which are linked to by pycairo.
-
----
+```console
+Package           Version
+----------------- ---------
+asteval           0.9.28
+contourpy         1.0.6
+cycler            0.11.0
+dill              0.3.6
+fabio             0.14.0
+fonttools         4.38.0
+future            0.18.2
+h5py              3.7.0
+hdf5plugin        4.0.0
+kiwisolver        1.4.4
+lmfit             1.1.0
+matplotlib        3.6.2
+multiprocess      0.70.14
+numexpr           2.8.4
+numpy             1.23.5
+packaging         21.3
+pathos            0.3.0
+Pillow            9.3.0
+pip               20.0.2
+pkg-resources     0.0.0
+platformdirs      2.5.4
+pox               0.3.2
+ppft              1.7.6.6
+pycairo           1.23.0
+pyFAI             0.21.3
+pyopencl          2022.3
+pyparsing         3.0.9
+python-dateutil   2.8.2
+pytools           2022.1.13
+scipy             1.9.3
+setuptools        44.0.0
+silx              1.1.0
+six               1.16.0
+typing-extensions 4.4.0
+uncertainties     3.1.7
+wheel             0.34.2
+```
 
 ## Usage
 

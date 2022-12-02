@@ -15,16 +15,15 @@ Python 3.8.10
 foo@bar:~$ pip3 --version
 pip 20.0.2 from usr/lib/python3/dist-packages/pip (python 3.8)
 ```
-
-You will also need to install `pkg-config` and `cairo` packages globally:
-
-`sudo apt install libcairo2-dev pkg-config python3-dev`
-
 Clone the source code with
 
 `git clone https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit.git`
 
 ### Using Pipenv
+
+You will need to first install `pkg-config` and `cairo` packages globally:
+
+`sudo apt install libcairo2-dev pkg-config python3-dev`
 
 A Python virtual environment can be used to install all required dependencies and the project has a Pipfile to facilitate this. First install `pipenv`:
 

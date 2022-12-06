@@ -1,5 +1,11 @@
 # Continuous-Peak-Fit
 
+## Note on the state of the code and documentation
+The documentation is undercooked and much of it has not been written. If you want to run the code it might be simplest to email me (Simon Hunt) at FirstName.LastName@manchester.ac.uk (replace as approprite). Or raise issues in the repository.
+
+The development of the code is ongoing. Each new data set we process finds new limits to the code and I am happy to fix such issues as they arise.
+
+
 ## Installation
 
 Installation is available through git or via pip

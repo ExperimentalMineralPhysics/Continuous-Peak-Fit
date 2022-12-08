@@ -39,7 +39,7 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         super(MainWindow, self).__init__()
-        loadUi("MainWindow.ui", self)
+        loadUi("Main_Widget.ui", self)
         self.gui_layout()
         self.set_cl = cpf.settings.settings()
         self.input_file_path = None   

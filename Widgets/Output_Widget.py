@@ -39,7 +39,6 @@ class Output(QWidget):
                         item = self.gridLayout_3.itemAt(i)
                         widget = item.widget()
                         widget.deleteLater()
-                    
                 for wid in range (0, self.req_item1):
                     self.lineEdit = QtWidgets.QLineEdit(self.groupBox)
                     self.lineEdit.setObjectName("lineEdit"+str(n))
@@ -54,7 +53,6 @@ class Output(QWidget):
                         item = self.gridLayout_2.itemAt(i)
                         widget = item.widget()
                         widget.deleteLater()
-                    
                 for wid in range (0, self.req_item11):
                     self.lineEdit = QtWidgets.QLineEdit(self.groupBox_2)
                     self.lineEdit.setObjectName("lineEdit"+str(n))

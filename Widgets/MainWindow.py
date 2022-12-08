@@ -77,7 +77,6 @@ class MainWindow(QMainWindow):
         self.Output_Dir_1.setMinimumHeight(40);
         self.Output_Dir_2.setMinimumHeight(40);
         self.Console_output.setReadOnly(True)
-        self.Console_output.textCursor
         self.AddRange_Btn.clicked.connect(self.Insert_Range)
         self.RemoveRange_Btn.clicked.connect(self.Remove_Range)
         self.Add_Output_Btn.clicked.connect(self.Insert_Output)
@@ -230,7 +229,7 @@ class MainWindow(QMainWindow):
             
     @pyqtSlot()             
     def Run_Range(self):
-        self.matplotlib_inline = matplotlib_inline()
+        #self.matplotlib_inline = matplotlib_inline()
         if self.input_file_path == None:
             mess = QMessageBox()
             mess.setIcon(QMessageBox.Warning)
@@ -268,8 +267,9 @@ class MainWindow(QMainWindow):
             mess.setWindowTitle("MessageBox")
             returnValue = mess.exec_()
         else:
-            cpf.XRD_FitPattern.execute(f"{self.input_file_path}", save_all=True)
+            cpf.XRD_FitPattern.execute(f"{self.input_file_path}", save_all=True, parallel = False)
             text=open('../logs/logs.log').read()
+            # FIX ME Simon: parallel = False doesn't work on Adina's Windows computer
             self.Console_output.setText(text)
     
     @pyqtSlot()
@@ -469,13 +469,190 @@ class MainWindow(QMainWindow):
     
     @pyqtSlot()
     def Insert_Output(self):
-        self.Output_Tab.addTab(Output() , QIcon(""),"Output")
+        self.output_object = Output()
+        self.Output_Tab.addTab(self.output_object , QIcon(""),"Output")
+        self.output_object.Output_Type_comboBox.currentTextChanged.connect(self.on_combobox_changed)
+    
+    @pyqtSlot()
+    def on_combobox_changed(self):
+        n = 0
+
+        if self.output_object.Output_Type_comboBox.currentText() =='WritePolydefix':
+            ## Required Params
+                self.req_item1 = len(cpf.output_formatters.WritePolydefix.Requirements()[1])
+                childcount = self.output_object.gridLayout_3.count()
+                if childcount >=1:
+                    for i in range (0,childcount):
+                        item = self.output_object.gridLayout_3.itemAt(i)
+                        widget = item.widget()
+                        widget.deleteLater()
+                    
+                for wid in range (0, self.req_item1):
+                    self.output_object.lineEdit = QtWidgets.QLineEdit(self.output_object.groupBox)
+                    self.output_object.lineEdit.setObjectName("lineEdit"+str(n))
+                    self.output_object.lineEdit.setMinimumHeight(40);
+                    self.output_object.gridLayout_3.addWidget(self.output_object.lineEdit, n, 0, 1, 1)
+                    n+=1
+                    
+            ## Optional Params
+                self.req_item11 = len(cpf.output_formatters.WritePolydefix.Requirements()[0])
+                childcount2 = self.output_object.gridLayout_2.count()
+                if childcount2 >=1:
+                    for i in range (0,childcount2):
+                        item = self.output_object.gridLayout_2.itemAt(i)
+                        widget = item.widget()
+                        widget.deleteLater()
+                    
+                for wid in range (0, self.req_item11):
+                    self.output_object.lineEdit = QtWidgets.QLineEdit(self.output_object.groupBox_2)
+                    self.output_object.lineEdit.setObjectName("lineEdit"+str(n))
+                    self.output_object.lineEdit.setMinimumHeight(40);
+                    self.output_object.gridLayout_2.addWidget(self.output_object.lineEdit, n, 0, 1, 1)
+                    n+=1
+                    
+        elif self.output_object.Output_Type_comboBox.currentText() =='WriteCoefficientTable':
+            ## Required Params    
+                self.req_item2 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[1])
+                childcount = self.output_object.gridLayout_3.count()
+                if childcount >=1:
+                    for i in range (0,childcount):
+                        item = self.output_object.gridLayout_3.itemAt(i)
+                        widget = item.widget()
+                        widget.deleteLater()
+                for wid in range (0, self.req_item2):
+                    self.output_object.lineEdit = QtWidgets.QLineEdit(self.output_object.groupBox)
+                    self.output_object.lineEdit.setObjectName("lineEdit"+str(n))
+                    self.output_object.lineEdit.setMinimumHeight(40);
+                    self.output_object.gridLayout_3.addWidget(self.output_object.lineEdit, n, 0, 1, 1)
+                    n+=1
+                    
+            ## Optional Params
+                self.req_item12 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[0])
+                childcount2 = self.output_object.gridLayout_2.count()
+                if childcount2 >=1:
+                    for i in range (0,childcount2):
+                        item = self.output_object.gridLayout_2.itemAt(i)
+                        widget = item.widget()
+                        widget.deleteLater() 
+                for wid in range (0, self.req_item12):
+                    self.output_object.lineEdit = QtWidgets.QLineEdit(self.output_object.groupBox_2)
+                    self.output_object.lineEdit.setObjectName("lineEdit"+str(n))
+                    self.output_object.lineEdit.setMinimumHeight(40);
+                    self.output_object.gridLayout_2.addWidget(self.output_object.lineEdit, n, 0, 1, 1)
+                    n+=1
+                    
+        elif self.output_object.Output_Type_comboBox.currentText() =='WriteDifferentialStrain':
+             ## Required Params  
+                self.req_item3 = len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1])
+                childcount = self.output_object.gridLayout_3.count()
+                if childcount >=1:
+                    for i in range (0,childcount):
+                        item = self.output_object.gridLayout_3.itemAt(i)
+                        widget = item.widget()
+                        widget.deleteLater()
+                for wid in range (0, self.req_item3):
+                    self.output_object.lineEdit = QtWidgets.QLineEdit(self.output_object.groupBox)
+                    self.output_object.lineEdit.setObjectName("lineEdit"+str(n))
+                    self.output_object.lineEdit.setMinimumHeight(40);
+                    self.output_object.gridLayout_3.addWidget(self.output_object.lineEdit, n, 0, 1, 1)
+                    n+=1
+                    
+            ## Optional Params
+                self.req_item13 = len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0])
+                childcount2 = self.output_object.gridLayout_2.count()
+                if childcount2 >=1:
+                    for i in range (0,childcount2):
+                        item = self.output_object.gridLayout_2.itemAt(i)
+                        widget = item.widget()
+                        widget.deleteLater() 
+                for wid in range (0, self.req_item13):
+                    self.output_object.lineEdit = QtWidgets.QLineEdit(self.output_object.groupBox_2)
+                    self.output_object.lineEdit.setObjectName("lineEdit"+str(n))
+                    self.output_object.lineEdit.setMinimumHeight(40);
+                    self.output_object.gridLayout_2.addWidget(self.output_object.lineEdit, n, 0, 1, 1)
+                    n+=1
+                    
+        elif self.output_object.Output_Type_comboBox.currentText() =='WriteMultiFit':
+             ## Required Params   
+                self.req_item4 = len(cpf.output_formatters.WriteMultiFit.Requirements()[1])
+                childcount = self.output_object.gridLayout_3.count()
+                if childcount >=1:
+                    for i in range (0,childcount):
+                        item = self.output_object.gridLayout_3.itemAt(i)
+                        widget = item.widget()
+                        widget.deleteLater()
+                for wid in range (0, self.req_item4):
+                    self.output_object.lineEdit = QtWidgets.QLineEdit(self.output_object.groupBox)
+                    self.output_object.lineEdit.setObjectName("lineEdit"+str(n))
+                    self.output_object.lineEdit.setMinimumHeight(40);
+                    self.output_object.gridLayout_3.addWidget(self.output_object.lineEdit, n, 0, 1, 1)
+                    n+=1
+                    
+             ## Optional Params
+                self.req_item14 = len(cpf.output_formatters.WriteMultiFit.Requirements()[0])
+                childcount2 = self.output_object.gridLayout_2.count()
+                if childcount2 >=1:
+                    for i in range (0,childcount2):
+                        item = self.output_object.gridLayout_2.itemAt(i)
+                        widget = item.widget()
+                        widget.deleteLater() 
+                for wid in range (0, self.req_item14):
+                    self.output_object.lineEdit = QtWidgets.QLineEdit(self.output_object.groupBox_2)
+                    self.output_object.lineEdit.setObjectName("lineEdit"+str(n))
+                    self.output_object.lineEdit.setMinimumHeight(40);
+                    self.output_object.gridLayout_2.addWidget(self.output_object.lineEdit, n, 0, 1, 1)
+                    n+=1
+                    
+        elif self.output_object.Output_Type_comboBox.currentText() =='WritePolydefixED':
+             ## Required Params   
+                self.req_item5 = len(cpf.output_formatters.WritePolydefixED.Requirements()[1])
+                childcount = self.output_object.gridLayout_3.count()
+                if childcount >=1:
+                    for i in range (0,childcount):
+                        item = self.output_object.gridLayout_3.itemAt(i)
+                        widget = item.widget()
+                        widget.deleteLater()
+                for wid in range (0, self.req_item5):
+                    self.output_object.lineEdit = QtWidgets.QLineEdit(self.output_object.groupBox)
+                    self.output_object.lineEdit.setObjectName("lineEdit"+str(n))
+                    self.output_object.lineEdit.setMinimumHeight(40);
+                    self.output_object.gridLayout_3.addWidget(self.output_object.lineEdit, n, 0, 1, 1)
+                    n+=1        
+                    
+            ## Optional Params
+                self.req_item15 = len(cpf.output_formatters.WritePolydefixED.Requirements()[0])
+                childcount2 = self.output_object.gridLayout_2.count()
+                if childcount2 >=1:
+                    for i in range (0,childcount2):
+                        item = self.output_object.gridLayout_2.itemAt(i)
+                        widget = item.widget()
+                        widget.deleteLater() 
+                for wid in range (0, self.req_item15):
+                    self.output_object.lineEdit = QtWidgets.QLineEdit(self.output_object.groupBox_2)
+                    self.output_object.lineEdit.setObjectName("lineEdit"+str(n))
+                    self.output_object.lineEdit.setMinimumHeight(40);
+                    self.output_object.gridLayout_2.addWidget(self.output_object.lineEdit, n, 0, 1, 1)
+                    n+=1
+            
+        else:
+            childcount = self.output_object.gridLayout_3.count()
+            if childcount >=1:
+                for i in range (0,childcount):
+                    item = self.output_object.gridLayout_3.itemAt(i)
+                    widget = item.widget()
+                    widget.deleteLater()
+            childcount2 = self.output_object.gridLayout_2.count()
+            if childcount2 >=1:
+                for i in range (0,childcount2):
+                    item = self.output_object.gridLayout_2.itemAt(i)
+                    widget = item.widget()
+                    widget.deleteLater()        
     
     @pyqtSlot()
     def Remove_Output(self):
         self.Output_Tab.removeTab(self.Output_Tab.currentIndex())
         
-    @pyqtSlot()#######################
+    @pyqtSlot()
     def Dir_Pressed(self):
         datafile_directory = self.Directory.text()
         self.set_cl.datafile_directory = datafile_directory

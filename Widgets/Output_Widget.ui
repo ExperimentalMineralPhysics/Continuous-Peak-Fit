@@ -6,21 +6,71 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>218</width>
-    <height>188</height>
+    <width>347</width>
+    <height>269</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="1" column="1">
-    <widget class="QLineEdit" name="Output_NumAziWrite"/>
-   </item>
-   <item row="0" column="1">
-    <widget class="QComboBox" name="Output_Type_comboBox">
+   <item row="1" column="0" colspan="2">
+    <widget class="QGroupBox" name="groupBox">
      <property name="styleSheet">
-      <string notr="true">QComboBox {
+      <string notr="true">
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center; /* position at the top center */
+    padding: 0 3px;
+    background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                      stop: 0 #FF0ECE, stop: 1 #FFFFFF);
+}</string>
+     </property>
+     <property name="title">
+      <string>Required Parameters</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_3"/>
+    </widget>
+   </item>
+   <item row="2" column="0" colspan="2">
+    <widget class="QGroupBox" name="groupBox_2">
+     <property name="styleSheet">
+      <string notr="true">
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center; /* position at the top center */
+    padding: 0 3px;
+    background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                      stop: 0 #FF0ECE, stop: 1 #FFFFFF);
+}</string>
+     </property>
+     <property name="title">
+      <string>Optional Parameters</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_2"/>
+    </widget>
+   </item>
+   <item row="0" column="0" colspan="2">
+    <widget class="QGroupBox" name="groupBox_3">
+     <property name="styleSheet">
+      <string notr="true">
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center; /* position at the top center */
+    padding: 0 3px;
+    background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                      stop: 0 #FF0ECE, stop: 1 #FFFFFF);
+}</string>
+     </property>
+     <property name="title">
+      <string>Output Type</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_4">
+      <item row="0" column="0">
+       <widget class="QComboBox" name="Output_Type_comboBox">
+        <property name="styleSheet">
+         <string notr="true">QComboBox {
     border: 1px solid gray;
     border-radius: 3px;
     padding: 1px 18px 1px 3px;
@@ -69,75 +119,41 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
     top: 1px;
     left: 1px;
 }</string>
-     </property>
-     <item>
-      <property name="text">
-       <string>Select Type</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>WriteCoefficientTable</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>WriteDifferentialStrain</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>WriteMultiFit</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>WritePolydefix</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>WritePolydefixED</string>
-      </property>
-     </item>
+        </property>
+        <item>
+         <property name="text">
+          <string>Select Type</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>WriteCoefficientTable</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>WriteDifferentialStrain</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>WriteMultiFit</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>WritePolydefix</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>WritePolydefixED</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+     </layout>
     </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="label_2">
-     <property name="text">
-      <string>Output NumAziWrite</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="0">
-    <widget class="QLabel" name="label_3">
-     <property name="text">
-      <string>Phase</string>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="0">
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>Output Type</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="1">
-    <widget class="QLineEdit" name="Output_Elastic_Properties"/>
-   </item>
-   <item row="2" column="1">
-    <widget class="QLineEdit" name="Phase_Output"/>
-   </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="label_4">
-     <property name="text">
-      <string>Output Elastic Properties</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="1">
-    <widget class="QLineEdit" name="datafile_directory"/>
    </item>
   </layout>
  </widget>

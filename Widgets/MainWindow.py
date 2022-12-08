@@ -120,6 +120,7 @@ class MainWindow(QMainWindow):
         self.wdt_1.setText(self.set_cl.fit_bounds.get("width")[0])
         self.wdt_2.setText(self.set_cl.fit_bounds.get("width")[1])
         self.Output_Dir_1.setText(self.set_cl.output_directory)
+        self.Output_Dir_2.setText(self.Output_Dir_1.text())
 
         # Signals #
         self.Directory.editingFinished.connect(self.Dir_Pressed)#

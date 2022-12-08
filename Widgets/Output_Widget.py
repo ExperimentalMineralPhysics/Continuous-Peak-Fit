@@ -17,14 +17,14 @@ from PyQt5.QtWidgets import (
     QVBoxLayout
 )
 
-from string import Template
+
+import cpf
+from cpf.settings import settings
+
 
 class Output(QWidget):
     def __init__(self):
         super(Output, self).__init__()
         loadUi("Output_Widget.ui", self)
         self.Output_Type_comboBox.setMinimumHeight(40);
-        self.Output_NumAziWrite.setMinimumHeight(40);
-        self.Phase_Output.setMinimumHeight(40);
-        self.Output_Elastic_Properties.setMinimumHeight(40);
-        self.datafile_directory.setMinimumHeight(40);
+        

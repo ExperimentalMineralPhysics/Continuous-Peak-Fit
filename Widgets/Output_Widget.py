@@ -32,7 +32,6 @@ class Output(QWidget):
     def on_combobox_changed(self):
         n = 0
         if self.Output_Type_comboBox.currentText() =='WritePolydefix':
-            ## Required Params
                 self.req_item1 = len(cpf.output_formatters.WritePolydefix.Requirements()[1])
                 childcount = self.gridLayout_3.count()
                 if childcount >=1:
@@ -47,8 +46,7 @@ class Output(QWidget):
                     self.lineEdit.setMinimumHeight(40);
                     self.gridLayout_3.addWidget(self.lineEdit, n, 0, 1, 1)
                     n+=1
-                    
-            ## Optional Params
+
                 self.req_item11 = len(cpf.output_formatters.WritePolydefix.Requirements()[0])
                 childcount2 = self.gridLayout_2.count()
                 if childcount2 >=1:
@@ -62,8 +60,7 @@ class Output(QWidget):
                     self.lineEdit.setObjectName("lineEdit"+str(n))
                     self.lineEdit.setMinimumHeight(40);
                     self.gridLayout_2.addWidget(self.lineEdit, n, 0, 1, 1)
-                    n+=1
-                    
+                    n+=1          
         elif self.Output_Type_comboBox.currentText() =='WriteCoefficientTable':
                 self.req_item2 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[1])
                 childcount = self.gridLayout_3.count()
@@ -79,7 +76,6 @@ class Output(QWidget):
                     self.gridLayout_3.addWidget(self.lineEdit, n, 0, 1, 1)
                     n+=1
                     
-            ## Optional Params
                 self.req_item12 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[0])
                 childcount2 = self.gridLayout_2.count()
                 if childcount2 >=1:
@@ -108,7 +104,6 @@ class Output(QWidget):
                     self.gridLayout_3.addWidget(self.lineEdit, n, 0, 1, 1)
                     n+=1
                     
-            ## Optional Params
                 self.req_item13 = len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0])
                 childcount2 = self.gridLayout_2.count()
                 if childcount2 >=1:
@@ -137,7 +132,6 @@ class Output(QWidget):
                     self.gridLayout_3.addWidget(self.lineEdit, n, 0, 1, 1)
                     n+=1
                     
-             ## Optional Params
                 self.req_item14 = len(cpf.output_formatters.WriteMultiFit.Requirements()[0])
                 childcount2 = self.gridLayout_2.count()
                 if childcount2 >=1:
@@ -166,7 +160,6 @@ class Output(QWidget):
                     self.gridLayout_3.addWidget(self.lineEdit, n, 0, 1, 1)
                     n+=1        
                     
-            ## Optional Params
                 self.req_item15 = len(cpf.output_formatters.WritePolydefixED.Requirements()[0])
                 childcount2 = self.gridLayout_2.count()
                 if childcount2 >=1:
@@ -179,8 +172,7 @@ class Output(QWidget):
                     self.lineEdit.setObjectName("lineEdit"+str(n))
                     self.lineEdit.setMinimumHeight(40);
                     self.gridLayout_2.addWidget(self.lineEdit, n, 0, 1, 1)
-                    n+=1
-                    
+                    n+=1      
         else:
             childcount = self.gridLayout_3.count()
             if childcount >=1:

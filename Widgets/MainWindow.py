@@ -230,6 +230,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot()             
     def Run_Range(self):
         #self.matplotlib_inline = matplotlib_inline()
+        self.matplotlib_qt = matplotlib_qt()
         if self.input_file_path == None:
             mess = QMessageBox()
             mess.setIcon(QMessageBox.Warning)
@@ -259,6 +260,7 @@ class MainWindow(QMainWindow):
     
     @pyqtSlot()
     def Execute_Fits(self):
+        self.matplotlib_qt = matplotlib_qt()
         if self.input_file_path == None:
             mess = QMessageBox()
             mess.setIcon(QMessageBox.Warning)
@@ -274,6 +276,7 @@ class MainWindow(QMainWindow):
     
     @pyqtSlot()
     def Make_Outputs(self):
+        self.matplotlib_qt = matplotlib_qt()
         if self.input_file_path == None:
             mess = QMessageBox()
             mess.setIcon(QMessageBox.Warning)

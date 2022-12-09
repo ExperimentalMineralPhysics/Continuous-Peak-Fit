@@ -447,7 +447,8 @@ def execute(
         ax = fig.add_subplot(1, 1, 1)            
         new_data.plot_collected(fig_plot=fig, axis_plot=ax)
         plt.title("Calibration data")
-        plt.show()
+        plt.show(block=False)
+        plt.pause(4)
         plt.close()
         
     # if parallel processing start the pool
@@ -485,7 +486,8 @@ def execute(
             ax_o1 = plt.subplot(111)
             new_data.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity")            
             plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
-            plt.show()
+            plt.show(block=False)
+            plt.pause(4)
             plt.close()
             
         # Get previous fit (if it exists and is required)
@@ -600,8 +602,8 @@ def execute(
                 fig_1.savefig(filename)
 
                 
-                plt.show()
-                plt.pause(5)
+                plt.show(block=False)
+                plt.pause(4)
                 plt.close()
                 
                 # if don't wanna close graphs remove close() close above three lines and uncomment line below

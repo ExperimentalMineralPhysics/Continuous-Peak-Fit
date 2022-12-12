@@ -75,7 +75,6 @@ class Range(QWidget):
         self.bg_fixed_checkbox.stateChanged.connect(self.onActivated)
         self.Save_Range_Btn.setDisabled(True)
         
-
     def onActivated(self):
         if self.bg_fixed_checkbox.isChecked()==True:
             self.bg_fixed_lineEdit.setVisible(True)
@@ -83,9 +82,6 @@ class Range(QWidget):
             
         else:
             self.bg_fixed_lineEdit.setVisible(False)    
-
-    def tabChanged(self):
-        print("Tab was changed to : ", self.Peak_Tab.currentIndex())
         
     def Insert_Peak(self):
         self.Peak_Tab.addTab(Peak() , QIcon("Location of the icon"),"Peak")

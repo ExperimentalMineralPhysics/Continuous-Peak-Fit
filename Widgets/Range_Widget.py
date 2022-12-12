@@ -28,7 +28,6 @@ class Range(QWidget):
         self.range_layout()
         
     def range_layout(self):
-        self.Peak_Tab.currentChanged.connect(self.tabChanged)
         self.Add_Peak_Btn.clicked.connect(self.Insert_Peak)
         self.Remove_Peak_Btn.clicked.connect(self.Remove_Peak)
         self.clickcount = 0 

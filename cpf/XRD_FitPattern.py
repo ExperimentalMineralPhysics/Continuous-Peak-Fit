@@ -384,9 +384,7 @@ def write_output(
         setting_class.set_output_types(out_type_list=out_type)
 
     if setting_class.output_types is None:
-        raise ValueError(
-            "No output type. Add 'Output_type' to input file or specify 'out_type' in command."
-        )
+        print("Thre are no output types. Add 'Output_type' to input file or specify 'out_type' in command.")
 
     for mod in setting_class.output_types:
         print("\nWrite output file(s) using", mod)

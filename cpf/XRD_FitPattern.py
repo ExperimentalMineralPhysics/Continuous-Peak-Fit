@@ -385,16 +385,16 @@ def write_output(
 
     if setting_class.output_types is None:
         print("Thre are no output types. Add 'Output_type' to input file or specify 'out_type' in command.")
-
-    for mod in setting_class.output_types:
-        print("\nWrite output file(s) using", mod)
-        wr = output_methods_modules[mod]
-        wr.WriteOutput(
-            setting_class=setting_class,
-            setting_file=setting_file,
-            differential_only=differential_only,
-            debug=debug,
-        )
+    else:
+        for mod in setting_class.output_types:
+            print("\nWrite output file(s) using", mod)
+            wr = output_methods_modules[mod]
+            wr.WriteOutput(
+                setting_class=setting_class,
+                setting_file=setting_file,
+                differential_only=differential_only,
+                debug=debug,
+            )
 
 
 def execute(

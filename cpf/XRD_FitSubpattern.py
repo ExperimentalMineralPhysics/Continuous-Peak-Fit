@@ -275,6 +275,7 @@ def fit_sub_pattern(
             )
             previous_params = None
             
+    if previous_params:
         # check if the previous fit d-spacings fall within the bounds.
         # if they are not then assume the previous fit must have been poor and discard it.
         fit_centroid = []
@@ -297,6 +298,7 @@ def fit_sub_pattern(
             previous_params = None
 
 
+    if previous_params:
         # initiate values for while loop.
         step = 5
     else:

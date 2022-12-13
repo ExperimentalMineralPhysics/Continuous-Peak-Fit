@@ -716,10 +716,14 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
                     gmod_plot,
                 )
                 # set x-labels by data type.
-                label_x = settings_as_class.data_class.dispersion_ticks(
-                    disp_ticks=ax[i].get_xticks
-                )
-                ax[i].set_xticks(label_x)
+                #if notthing in the data class then continue
+                try:
+                    label_x = settings_as_class.data_class.dispersion_ticks(
+                        disp_ticks=ax[i + k + 1].get_xticks
+                    )
+                    ax[i + k + 1].set_xticks(label_x)
+                except:
+                    pass
 
         # plot background
         for k in range(len(orders["background"])):
@@ -749,10 +753,14 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
             )
             ax[i + k + 1].set_xlim(x_lims)
             # set x-labels by data type.
-            label_x = settings_as_class.data_class.dispersion_ticks(
-                disp_ticks=ax[i + k + 1].get_xticks
-            )
-            ax[i + k + 1].set_xticks(label_x)
+            #if notthing in the data class then continue
+            try:
+                label_x = settings_as_class.data_class.dispersion_ticks(
+                    disp_ticks=ax[i + k + 1].get_xticks
+                )
+                ax[i + k + 1].set_xticks(label_x)
+            except:
+                pass
 
         fig.suptitle(io.peak_string(orders) + "; Fits to Chunks")
 

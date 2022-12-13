@@ -614,8 +614,10 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
             comp = comp_list[cp]
             if comp == "d":
                 symmetry = 1
-            else:
+            if "symmetry" in orders["peak"][j]:
                 symmetry = orders["peak"][j]["symmetry"]
+            else:
+                symmetry = 1
 
             if comp_names[cp] + "_fixed" in orders["peak"][j]:
                 fixed = 1

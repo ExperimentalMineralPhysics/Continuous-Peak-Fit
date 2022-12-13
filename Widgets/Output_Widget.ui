@@ -27,7 +27,7 @@ QGroupBox::title {
 }</string>
      </property>
      <property name="title">
-      <string>Required Parameters</string>
+      <string>Optional Parameters</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3"/>
     </widget>
@@ -45,7 +45,7 @@ QGroupBox::title {
 }</string>
      </property>
      <property name="title">
-      <string>Optional Parameters</string>
+      <string>Required Parameters</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2"/>
     </widget>
@@ -67,8 +67,14 @@ QGroupBox::title {
       <string>Output Type</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
-      <item row="0" column="0">
+      <item row="0" column="1">
        <widget class="QComboBox" name="Output_Type_comboBox">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="styleSheet">
          <string notr="true"/>
         </property>
@@ -102,6 +108,19 @@ QGroupBox::title {
           <string>WritePolydefixED</string>
          </property>
         </item>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>Output Type</string>
+        </property>
        </widget>
       </item>
      </layout>

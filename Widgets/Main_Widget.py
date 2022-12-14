@@ -220,8 +220,7 @@ class MainWindow(QMainWindow):
         for output in range (0, self.output_type):
             self.output_object = Output()
             self.Output_Tab.addTab(self.output_object , QIcon(""),"Output")
-            n=0
-            
+
             if 'Polydefix' in self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WritePolydefix')
                 # Optional Params

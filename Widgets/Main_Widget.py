@@ -229,21 +229,20 @@ class MainWindow(QMainWindow):
                     for wid in range (0, self.req_item1):
                         lineEdit = cpf.output_formatters.WritePolydefix.Requirements()[1][wid]
                         self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefix.Requirements()[1][wid])
-
                 # Required Params
                     self.req_item11 = len(cpf.output_formatters.WritePolydefix.Requirements()[0])
                     for wid in range (0, self.req_item11):
                         lineEdit = cpf.output_formatters.WritePolydefix.Requirements()[1][wid]
-                        self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefix.Requirements()[1][wid])
-                        
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefix.Requirements()[1][wid])        
                                  
             elif 'WriteCoefficientTable' in self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WriteCoefficientTable')
+                # Optional Params                    
                     self.req_item2 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[1])
                     for wid in range (0, self.req_item2):
                         lineEdit = cpf.output_formatters.WriteCoefficientTable.Requirements()[1][wid]
                         self.output_object.lineEdit.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[1][wid])
-                           
+                # Required Params                        
                     self.req_item12 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[0])
                     for wid in range (0, self.req_item12):
                         lineEdit = cpf.output_formatters.WriteCoefficientTable.Requirements()[0][wid]
@@ -251,11 +250,12 @@ class MainWindow(QMainWindow):
                         
             elif 'DifferentialStrain' in self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WriteDifferentialStrain')
+                # Optional Params                    
                     self.req_item3 = len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1])
                     for wid in range (0, self.req_item3):
                         lineEdit = cpf.output_formatters.WriteDifferentialStrain.Requirements()[1][wid]
                         self.output_object.lineEdit.setText(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1][wid])
-                           
+                # Required Params                          
                     self.req_item13 = len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0])
                     for wid in range (0, self.req_item13):
                         lineEdit = cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][wid]
@@ -263,11 +263,12 @@ class MainWindow(QMainWindow):
                         
             elif 'MultiFit' in self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WriteMultiFit')
+                # Optional Params                    
                     self.req_item4 = len(cpf.output_formatters.WriteMultiFit.Requirements()[1])
                     for wid in range (0, self.req_item4):
                         lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[1][wid]
                         self.output_object.lineEdit.setText(cpf.output_formatters.WriteMultiFit.Requirements()[1][wid])
-                        
+                # Required Params                        
                     self.req_item14 = len(cpf.output_formatters.WriteMultiFit.Requirements()[0])
                     for wid in range (0, self.req_item14):
                         lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[0][wid]
@@ -275,16 +276,17 @@ class MainWindow(QMainWindow):
                         
             elif 'PolydefixED' in self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WritePolydefixED')
+                # Optional Params                    
                     self.req_item5 = len(cpf.output_formatters.WritePolydefixED.Requirements()[1])
                     for wid in range (0, self.req_item5):
                         lineEdit = cpf.output_formatters.WritePolydefixED.Requirements()[1][wid]
                         self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefixED.Requirements()[1][wid])
-                        
+                # Required Params                        
                     self.req_item15 = len(cpf.output_formatters.WritePolydefixED.Requirements()[0])
                     for wid in range (0, self.req_item15):
                         lineEdit = cpf.output_formatters.WritePolydefixED.Requirements()[0][wid]
                         self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefixED.Requirements()[1][wid])
-                          
+                        
             else:
                 childcount = self.gridLayout_3.count()
                 if childcount >=1:
@@ -298,11 +300,7 @@ class MainWindow(QMainWindow):
                         item = self.gridLayout_2.itemAt(i)
                         widget = item.widget()
                         widget.deleteLater()
-            
-            
-            
-              
-                
+       
         with open("../logs/logs.log",'w') as file:
            file.close()
         cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
@@ -610,7 +608,6 @@ class MainWindow(QMainWindow):
     def Calib_Data_Pressed(self):
         calibration_data = self.Calib_Data.text()
         self.set_cl.calibration_pixel_size = calibration_data
-    
     
     @pyqtSlot()
     def Cascade_bin_type_Pressed(self):

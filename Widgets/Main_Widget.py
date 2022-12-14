@@ -123,34 +123,33 @@ class MainWindow(QMainWindow):
         self.Output_Dir_2.setText(self.Output_Dir_1.text())
 
         # Signals #
-        self.Directory.editingFinished.connect(self.Dir_Pressed)#
-        self.Basename.editingFinished.connect(self.Basename_Pressed)#
-        self.Calib_Detect.editingFinished.connect(self.Calib_Detect_Pressed)#
-        self.Calib_Param.editingFinished.connect(self.Calib_Param_Pressed)#
-        self.Calib_Mask.editingFinished.connect(self.Calib_Mask_Pressed)#
-        self.Calib_Pixels.editingFinished.connect(self.Calib_Pixels_Pressed)#
-        self.Calib_Data.editingFinished.connect(self.Calib_Data_Pressed)#
-        self.cascade_bin_type.editingFinished.connect(self.Cascade_bin_type_Pressed)#
-        self.cascade_per_bin.editingFinished.connect(self.Cascade_per_bin_Pressed)#
-        self.cascade_number_bins.editingFinished.connect(self.Cascade_number_bins_Pressed)#
-        self.cascade_track.editingFinished.connect(self.Cascade_track_Pressed)#
-        self.bg_1.editingFinished.connect(self.Bg_1_Pressed)#
-        self.bg_2.editingFinished.connect(self.Bg_2_Pressed)#
-        self.ds_1.editingFinished.connect(self.Ds_1_Pressed)#
-        self.ds_2.editingFinished.connect(self.Ds_2_Pressed)#
-        self.h_1.editingFinished.connect(self.H_1_Pressed)#
-        self.h_2.editingFinished.connect(self.H_2_Pressed)#
+        self.Directory.editingFinished.connect(self.Dir_Pressed)
+        self.Basename.editingFinished.connect(self.Basename_Pressed)
+        self.Calib_Detect.editingFinished.connect(self.Calib_Detect_Pressed)
+        self.Calib_Param.editingFinished.connect(self.Calib_Param_Pressed)
+        self.Calib_Mask.editingFinished.connect(self.Calib_Mask_Pressed)
+        self.Calib_Pixels.editingFinished.connect(self.Calib_Pixels_Pressed)
+        self.Calib_Data.editingFinished.connect(self.Calib_Data_Pressed)
+        self.cascade_bin_type.editingFinished.connect(self.Cascade_bin_type_Pressed)
+        self.cascade_per_bin.editingFinished.connect(self.Cascade_per_bin_Pressed)
+        self.cascade_number_bins.editingFinished.connect(self.Cascade_number_bins_Pressed)
+        self.cascade_track.editingFinished.connect(self.Cascade_track_Pressed)
+        self.bg_1.editingFinished.connect(self.Bg_1_Pressed)
+        self.bg_2.editingFinished.connect(self.Bg_2_Pressed)
+        self.ds_1.editingFinished.connect(self.Ds_1_Pressed)
+        self.ds_2.editingFinished.connect(self.Ds_2_Pressed)
+        self.h_1.editingFinished.connect(self.H_1_Pressed)
+        self.h_2.editingFinished.connect(self.H_2_Pressed)
         self.pro_1.editingFinished.connect(self.Pro_1_Pressed)
         self.pro_2.editingFinished.connect(self.Pro_2_Pressed)
         self.wdt_1.editingFinished.connect(self.Wdt_1_Pressed)
         self.wdt_2.editingFinished.connect(self.Wdt_2_Pressed)
         self.Output_Dir_1.editingFinished.connect(self.Output_Dir_1_Pressed)
-        
         self.range_length = len(self.set_cl.fit_orders)
-        
+        # Remove existing range_tabs whenever new file is loaded
         for remove_range in range(0, self.Range_Tab.count()):
             self.Remove_Range()
-        
+        # Manage range_tab data population
         for range_tab in range(0, self.range_length):
             self.range_object = Range()
             self.Range_Tab.addTab(self.range_object , QIcon(""),"Range")
@@ -168,7 +167,7 @@ class MainWindow(QMainWindow):
                 self.range_object.bg_fixed_checkbox.setChecked(True)
                 self.b_type = str(self.set_cl.fit_orders[range_tab].get("background-type"))
                 self.range_object.Background_Type.setCurrentText(f"{self.b_type}")
-            
+            # Manage peak_tab data population
             for peak_tab in range(0, self.peak_length):
                 self.peak_object = Peak()
                 self.range_object.Peak_Tab.addTab(self.peak_object , QIcon(""),"Peak")
@@ -212,7 +211,97 @@ class MainWindow(QMainWindow):
                 else:
                     self.peak_object.width_fixed.setText(str(self.set_cl.fit_orders[range_tab].get("d-space_fixed")))
                     self.peak_object.dspace_checkBox.setChecked(True)
-                
+        
+        # Remove existing output_tabs whenever new file is loaded
+        for remove_range in range(0, self.Output_Tab.count()):
+            self.Remove_Output()
+        # Manage output_tab data population    
+        self.output_type =  len(self.set_cl.output_types)
+        for output in range (0, self.output_type):
+            self.output_object = Output()
+            self.Output_Tab.addTab(self.output_object , QIcon(""),"Output")
+            n=0
+            
+            if 'Polydefix' in self.set_cl.output_types[output]:
+                    self.output_object.Output_Type_comboBox.setCurrentText('WritePolydefix')
+                # Optional Params
+                    self.req_item1 = len(cpf.output_formatters.WritePolydefix.Requirements()[1])
+                    for wid in range (0, self.req_item1):
+                        lineEdit = cpf.output_formatters.WritePolydefix.Requirements()[1][wid]
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefix.Requirements()[1][wid])
+
+                # Required Params
+                    self.req_item11 = len(cpf.output_formatters.WritePolydefix.Requirements()[0])
+                    for wid in range (0, self.req_item11):
+                        lineEdit = cpf.output_formatters.WritePolydefix.Requirements()[1][wid]
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefix.Requirements()[1][wid])
+                        
+                                 
+            elif 'WriteCoefficientTable' in self.set_cl.output_types[output]:
+                    self.output_object.Output_Type_comboBox.setCurrentText('WriteCoefficientTable')
+                    self.req_item2 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[1])
+                    for wid in range (0, self.req_item2):
+                        lineEdit = cpf.output_formatters.WriteCoefficientTable.Requirements()[1][wid]
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[1][wid])
+                           
+                    self.req_item12 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[0])
+                    for wid in range (0, self.req_item12):
+                        lineEdit = cpf.output_formatters.WriteCoefficientTable.Requirements()[0][wid]
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[1][wid])
+                        
+            elif 'DifferentialStrain' in self.set_cl.output_types[output]:
+                    self.output_object.Output_Type_comboBox.setCurrentText('WriteDifferentialStrain')
+                    self.req_item3 = len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1])
+                    for wid in range (0, self.req_item3):
+                        lineEdit = cpf.output_formatters.WriteDifferentialStrain.Requirements()[1][wid]
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1][wid])
+                           
+                    self.req_item13 = len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0])
+                    for wid in range (0, self.req_item13):
+                        lineEdit = cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][wid]
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1][wid])
+                        
+            elif 'MultiFit' in self.set_cl.output_types[output]:
+                    self.output_object.Output_Type_comboBox.setCurrentText('WriteMultiFit')
+                    self.req_item4 = len(cpf.output_formatters.WriteMultiFit.Requirements()[1])
+                    for wid in range (0, self.req_item4):
+                        lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[1][wid]
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteMultiFit.Requirements()[1][wid])
+                        
+                    self.req_item14 = len(cpf.output_formatters.WriteMultiFit.Requirements()[0])
+                    for wid in range (0, self.req_item14):
+                        lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[0][wid]
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteMultiFit.Requirements()[1][wid])
+                        
+            elif 'PolydefixED' in self.set_cl.output_types[output]:
+                    self.output_object.Output_Type_comboBox.setCurrentText('WritePolydefixED')
+                    self.req_item5 = len(cpf.output_formatters.WritePolydefixED.Requirements()[1])
+                    for wid in range (0, self.req_item5):
+                        lineEdit = cpf.output_formatters.WritePolydefixED.Requirements()[1][wid]
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefixED.Requirements()[1][wid])
+                        
+                    self.req_item15 = len(cpf.output_formatters.WritePolydefixED.Requirements()[0])
+                    for wid in range (0, self.req_item15):
+                        lineEdit = cpf.output_formatters.WritePolydefixED.Requirements()[0][wid]
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefixED.Requirements()[1][wid])
+                          
+            else:
+                childcount = self.gridLayout_3.count()
+                if childcount >=1:
+                    for i in range (0,childcount):
+                        item = self.gridLayout_3.itemAt(i)
+                        widget = item.widget()
+                        widget.deleteLater()
+                childcount2 = self.gridLayout_2.count()
+                if childcount2 >=1:
+                    for i in range (0,childcount2):
+                        item = self.gridLayout_2.itemAt(i)
+                        widget = item.widget()
+                        widget.deleteLater()
+            
+            
+            
+              
                 
         with open("../logs/logs.log",'w') as file:
            file.close()
@@ -222,6 +311,14 @@ class MainWindow(QMainWindow):
     
     @pyqtSlot()
     def Validate_Inputs(self):
+        if self.input_file_path == None:
+            mess = QMessageBox()
+            mess.setIcon(QMessageBox.Warning)
+            mess.setText("Please Load input file")
+            mess.setStandardButtons(QMessageBox.Ok)
+            mess.setWindowTitle("MessageBox")
+            returnValue = mess.exec_()
+        else:
             with open("../logs/logs.log",'a') as file:
                file.close()
             cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")

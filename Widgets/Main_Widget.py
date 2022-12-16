@@ -121,7 +121,7 @@ class MainWindow(QMainWindow):
         self.wdt_2.setText(self.set_cl.fit_bounds.get("width")[1])
         self.Output_Dir_1.setText(self.set_cl.output_directory)
         self.Output_Dir_2.setText(self.Output_Dir_1.text())
-
+        #self.AziBins.setText(self.set_cl.AziBins)  AttributeError: 'settings' object has no attribute 'AziBins'
         # Signals #
         self.Directory.editingFinished.connect(self.Dir_Pressed)
         self.Basename.editingFinished.connect(self.Basename_Pressed)
@@ -221,20 +221,20 @@ class MainWindow(QMainWindow):
             self.output_object = Output()
             self.Output_Tab.addTab(self.output_object , QIcon(""),"Output")
 
-            if 'Polydefix' in self.set_cl.output_types[output]:
+            if 'Polydefix' == self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WritePolydefix')
                 # Optional Params
                     self.req_item1 = len(cpf.output_formatters.WritePolydefix.Requirements()[1])
                     for wid in range (0, self.req_item1):
                         lineEdit = cpf.output_formatters.WritePolydefix.Requirements()[1][wid]
-                        self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefix.Requirements()[1][wid])
+                        self.output_object.lineEdit.setText(lineEdit)
                 # Required Params
                     self.req_item11 = len(cpf.output_formatters.WritePolydefix.Requirements()[0])
                     for wid in range (0, self.req_item11):
-                        lineEdit = cpf.output_formatters.WritePolydefix.Requirements()[1][wid]
-                        self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefix.Requirements()[1][wid])        
+                        lineEdit = cpf.output_formatters.WritePolydefix.Requirements()[0][wid]
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefix.Requirements()[0][wid])        
                                  
-            elif 'WriteCoefficientTable' in self.set_cl.output_types[output]:
+            elif 'CoefficientTable' == self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WriteCoefficientTable')
                 # Optional Params                    
                     self.req_item2 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[1])
@@ -245,9 +245,9 @@ class MainWindow(QMainWindow):
                     self.req_item12 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[0])
                     for wid in range (0, self.req_item12):
                         lineEdit = cpf.output_formatters.WriteCoefficientTable.Requirements()[0][wid]
-                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[1][wid])
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[0][wid])
                         
-            elif 'DifferentialStrain' in self.set_cl.output_types[output]:
+            elif 'DifferentialStrain' == self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WriteDifferentialStrain')
                 # Optional Params                    
                     self.req_item3 = len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1])
@@ -258,33 +258,36 @@ class MainWindow(QMainWindow):
                     self.req_item13 = len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0])
                     for wid in range (0, self.req_item13):
                         lineEdit = cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][wid]
-                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1][wid])
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][wid])
                         
-            elif 'MultiFit' in self.set_cl.output_types[output]:
+            elif 'MultiFit' == self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WriteMultiFit')
                 # Optional Params                    
                     self.req_item4 = len(cpf.output_formatters.WriteMultiFit.Requirements()[1])
                     for wid in range (0, self.req_item4):
                         lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[1][wid]
+                        print(lineEdit)
                         self.output_object.lineEdit.setText(cpf.output_formatters.WriteMultiFit.Requirements()[1][wid])
                 # Required Params                        
                     self.req_item14 = len(cpf.output_formatters.WriteMultiFit.Requirements()[0])
                     for wid in range (0, self.req_item14):
                         lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[0][wid]
-                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteMultiFit.Requirements()[1][wid])
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteMultiFit.Requirements()[0][wid])
                         
-            elif 'PolydefixED' in self.set_cl.output_types[output]:
+            elif 'PolydefixED' == self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WritePolydefixED')
                 # Optional Params                    
                     self.req_item5 = len(cpf.output_formatters.WritePolydefixED.Requirements()[1])
                     for wid in range (0, self.req_item5):
                         lineEdit = cpf.output_formatters.WritePolydefixED.Requirements()[1][wid]
+                        print(lineEdit)
                         self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefixED.Requirements()[1][wid])
                 # Required Params                        
                     self.req_item15 = len(cpf.output_formatters.WritePolydefixED.Requirements()[0])
                     for wid in range (0, self.req_item15):
                         lineEdit = cpf.output_formatters.WritePolydefixED.Requirements()[0][wid]
-                        self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefixED.Requirements()[1][wid])
+                        print(lineEdit)
+                        self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefixED.Requirements()[0][wid])
                         
             else:
                 childcount = self.gridLayout_3.count()

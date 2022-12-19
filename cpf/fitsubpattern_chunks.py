@@ -552,6 +552,7 @@ def fit_chunks(
                         )
                     )
                     plt.show()
+                    plt.pause(3)
             else:
                 # there are not enough data to fit for the chunks
                 pass

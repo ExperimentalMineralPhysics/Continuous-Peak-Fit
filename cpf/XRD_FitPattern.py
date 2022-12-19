@@ -2,6 +2,16 @@
 
 __all__ = ["execute", "write_output"]
 
+import sys
+from PyQt5.QtWidgets import QDialog, QApplication, QPushButton, QVBoxLayout
+
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+import matplotlib.pyplot as plt
+
+import random
+
+
 import json
 import os
 import sys
@@ -23,6 +33,40 @@ np.set_printoptions(threshold=sys.maxsize)
 # FIX ME: Need to add complexity here.
 # Need option to check required functions are present if adding new output format.
 # Also need to do something similar with data class
+
+
+class Window(QDialog):
+    def __init__(self, parent=None):
+        super(Window, self).__init__(parent)
+
+        # a figure instance to plot on
+        self.figure = plt.figure()
+
+        # this is the Canvas Widget that displays the `figure`
+        # it takes the `figure` instance as a parameter to __init__
+        self.canvas = FigureCanvas(self.figure)
+
+        # this is the Navigation widget
+        # it takes the Canvas widget and a parent
+        self.toolbar = NavigationToolbar(self.canvas, self)
+
+        # Just some button connected to `plot` method
+        self.button = QPushButton('Plot')
+        self.button.clicked.connect(self.plot)
+
+        # set the layout
+        layout = QVBoxLayout()
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.canvas)
+        layout.addWidget(self.button)
+        self.setLayout(layout)
+
+
+
+
+
+
+
 
 
 def register_default_formats() -> object:
@@ -384,17 +428,19 @@ def write_output(
         setting_class.set_output_types(out_type_list=out_type)
 
     if setting_class.output_types is None:
-        print("Thre are no output types. Add 'Output_type' to input file or specify 'out_type' in command.")
-    else:
-        for mod in setting_class.output_types:
-            print("\nWrite output file(s) using", mod)
-            wr = output_methods_modules[mod]
-            wr.WriteOutput(
-                setting_class=setting_class,
-                setting_file=setting_file,
-                differential_only=differential_only,
-                debug=debug,
-            )
+        raise ValueError(
+            "No output type. Add 'Output_type' to input file or specify 'out_type' in command."
+        )
+
+    for mod in setting_class.output_types:
+        print("\nWrite output file(s) using", mod)
+        wr = output_methods_modules[mod]
+        wr.WriteOutput(
+            setting_class=setting_class,
+            setting_file=setting_file,
+            differential_only=differential_only,
+            debug=debug,
+        )
 
 
 def execute(
@@ -468,7 +514,8 @@ def execute(
         ax = fig.add_subplot(1, 1, 1)
         new_data.plot_collected(fig_plot=fig, axis_plot=ax)
         plt.title("Calibration data")
-        plt.show()
+        plt.show(block=False)
+        plt.pause(7)
         plt.close()
 
     # if parallel processing start the pool
@@ -509,7 +556,8 @@ def execute(
             new_data.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity")
             # plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
             plt.title(title_file_names(settings_for_fit=settings_for_fit, num=j))
-            plt.show()
+            plt.show(block=False)
+            plt.pause(7)
             plt.close()
 
         # Get previous fit (if it exists and is required)
@@ -647,11 +695,17 @@ def execute(
                 )
 
                 fig_1.savefig(filename)
+                
+                #plt.show()
+                #plt.close()
+                
+                #plt.show()
 
-                # if debug:
-                plt.show()
+                plt.show(block=False)
                 plt.pause(3)
                 plt.close()
+                
+
 
             elif mode == "set-guess":
 
@@ -704,7 +758,7 @@ def execute(
                         debug=debug,
                         refine=refine,
                         iterations=iterations,
-                        intensity_threshold=intensity_threshold,
+                        #intensity_threshold=intensity_threshold,
                     )
                     fitted_param.append(tmp[0])
                     lmfit_models.append(tmp[1])

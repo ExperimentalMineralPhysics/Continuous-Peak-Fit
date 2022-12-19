@@ -42,7 +42,7 @@ class MainWindow(QMainWindow):
         loadUi("Main_Widget.ui", self)
         self.gui_layout()
         self.set_cl = cpf.settings.settings()
-        self.input_file_path = None   
+        self.input_file_path = None  
         
     def gui_layout(self):
         self.Main_Tab.setMinimumHeight(40);
@@ -90,6 +90,8 @@ class MainWindow(QMainWindow):
         self.Run_initial_Btn.clicked.connect(self.Run_Initial_Position)
         self.Execute_Btn.clicked.connect(self.Execute_Fits)
         self.Make_Output_Btn.clicked.connect(self.Make_Outputs)
+        
+    
     
     @pyqtSlot()
     def Load_Inputs(self):
@@ -687,7 +689,6 @@ class MainWindow(QMainWindow):
         self.set_cl.output_directory = Output_Dir_1
 
 
-
 if __name__=='__main__':
     app = QApplication(sys.argv)
     mainwindow = MainWindow()
@@ -696,5 +697,6 @@ if __name__=='__main__':
     widget.show() 
     try: 
         sys.exit(app.exec_())
+        
     except:
         os._exit(00)

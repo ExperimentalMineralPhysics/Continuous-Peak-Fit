@@ -677,10 +677,13 @@ def fit_sub_pattern(
             plt.savefig(filename)
 
         if view == 1 or debug:
-            plt.show()
+            plt.show(block=False)
+            plt.pause(3)
+            plt.close()
+            
 
-        plt.close()
-        print("Done with Figure")
+        #plt.close()
+        #print("Done with Figure")
 
     # Save lmfit structure
     if save_fit:

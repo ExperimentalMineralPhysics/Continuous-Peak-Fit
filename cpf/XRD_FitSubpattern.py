@@ -681,9 +681,7 @@ def fit_sub_pattern(
             plt.pause(3)
             plt.close()
             
-
-        #plt.close()
-        #print("Done with Figure")
+        print("Done with Figure")
 
     # Save lmfit structure
     if save_fit:

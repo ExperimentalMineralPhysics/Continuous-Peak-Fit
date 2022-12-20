@@ -953,6 +953,36 @@ class settings:
         self.subfit_orders = self.fit_orders[number_subpattern]
 
 
+    def save_settings(self, filename="settings.json", filepath="./"):
+        """
+        Saves the settings class to file.
+        
+        Parameters
+        ----------
+        filename : String
+            filename to save the file as.
+        filepath : string
+            Filepath to save the file in.
+
+        Returns
+        -------
+        None.
+
+        """
+        print("Caution: save_settings writes a temporary file with no content")
+        
+        fnam = os.path.join(filepath, filename)
+        with open(fnam, "w") as TempFile:
+            # Write a JSON string into the file.
+            json.dump(
+                "This is a temporary file with no content",
+                TempFile,
+                sort_keys=False,
+                indent=2,
+                default=json_numpy_serializer,
+            )
+        print("Done writing", filename)
+
 def get_output_options(output_type):
     """
     Check if input is string or list of strings

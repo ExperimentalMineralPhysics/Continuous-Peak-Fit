@@ -88,6 +88,7 @@ def WriteOutput(
         # Read JSON data from file
         with open(filename) as json_data:
             data_to_write = json.load(json_data)
+            data_to_write = IO.replace_null_terms(data_to_write, val_to_find=None, replace_with=0)
 
         # create output file name from passed name
         base = setting_class.subfit_filename

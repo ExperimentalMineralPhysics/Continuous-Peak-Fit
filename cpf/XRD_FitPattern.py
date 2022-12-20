@@ -79,6 +79,7 @@ def initiate(setting_file=None, inputs=None, out_type=None, report=False, **kwar
 
 def set_range(
     setting_file=None,
+    setting_class=None,
     inputs=None,
     debug=False,
     refine=True,
@@ -105,7 +106,10 @@ def set_range(
     :return:
     """
 
-    settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+    if setting_class is None:
+        settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+    else:
+        settings_for_fit = setting_class
 
     # search over the first file only
     # restrict file list to first file
@@ -128,6 +132,7 @@ def set_range(
 
 def initial_peak_position(
     setting_file=None,
+    setting_class=None,
     inputs=None,
     debug=False,
     refine=True,
@@ -140,6 +145,11 @@ def initial_peak_position(
     **kwargs
 ):
     """
+    Calls interactive graph to set the inital peak postion guesses. 
+    
+    The event handler code is copied from: 
+    https://matplotlib.org/stable/users/event_handling.html for how to make work
+    
     :param setting_file:
     :param inputs:
     :param debug:
@@ -154,9 +164,10 @@ def initial_peak_position(
     :return:
     """
 
-    # see https://matplotlib.org/stable/users/event_handling.html for how to make work
-
-    settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+    if setting_class is None:
+        settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+    else:
+        settings_for_fit = setting_class
 
     # search over the first file only
     settings_for_fit.set_data_files(keep=0)
@@ -273,6 +284,7 @@ class PointBuilder:
 
 def order_search(
     setting_file=None,
+    setting_class= None,
     inputs=None,
     debug=False,
     refine=True,
@@ -306,7 +318,10 @@ def order_search(
     :return:
     """
 
-    settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+    if setting_class is None:
+        settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+    else:
+        settings_for_fit = setting_class
 
     # force it to write the required output type.
     settings_for_fit.set_output_types = ["DifferentialStrain"]

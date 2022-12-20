@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1000</width>
-    <height>700</height>
+    <width>1100</width>
+    <height>750</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -18,8 +18,8 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>1000</width>
-    <height>700</height>
+    <width>1100</width>
+    <height>750</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -52,8 +52,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>986</width>
-         <height>668</height>
+         <width>1086</width>
+         <height>718</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_13">
@@ -532,7 +532,22 @@ QGroupBox::title {
                  </item>
                  <item>
                   <property name="text">
-                   <string>GSAS-II</string>
+                   <string>GSASII</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Mca</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Med</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>XY</string>
                   </property>
                  </item>
                 </widget>
@@ -862,8 +877,8 @@ QGroupBox::title {
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>263</width>
-             <height>654</height>
+             <width>338</width>
+             <height>704</height>
             </rect>
            </property>
            <layout class="QGridLayout" name="gridLayout_12">

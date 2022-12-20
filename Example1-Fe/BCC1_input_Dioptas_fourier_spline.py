@@ -209,4 +209,4 @@ Output_directory   = '../Example1-Fe/results/'
 Output_type        = ['DifferentialStrain', 'Polydefix']
 Output_NumAziWrite = 90
 phase              = 'Fe-BCC'
-Output_ElasticProperties = 'Properties_Fe-BCC.txt'
+Output_ElasticProperties = '../Example1-Fe/Properties_Fe-BCC.txt'

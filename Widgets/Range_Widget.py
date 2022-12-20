@@ -28,7 +28,6 @@ class Range(QWidget):
         self.range_layout()
         
     def range_layout(self):
-        self.Peak_Tab.currentChanged.connect(self.tabChanged)
         self.Add_Peak_Btn.clicked.connect(self.Insert_Peak)
         self.Remove_Peak_Btn.clicked.connect(self.Remove_Peak)
         self.clickcount = 0 
@@ -75,7 +74,6 @@ class Range(QWidget):
         self.bg_fixed_checkbox.stateChanged.connect(self.onActivated)
         self.Save_Range_Btn.setDisabled(True)
         
-
     def onActivated(self):
         if self.bg_fixed_checkbox.isChecked()==True:
             self.bg_fixed_lineEdit.setVisible(True)
@@ -83,9 +81,6 @@ class Range(QWidget):
             
         else:
             self.bg_fixed_lineEdit.setVisible(False)    
-
-    def tabChanged(self):
-        print("Tab was changed to : ", self.Peak_Tab.currentIndex())
         
     def Insert_Peak(self):
         self.Peak_Tab.addTab(Peak() , QIcon("Location of the icon"),"Peak")

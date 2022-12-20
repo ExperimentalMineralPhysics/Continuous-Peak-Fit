@@ -1,0 +1,14 @@
+matplotlib
+pycairo
+lmfit
+h5py
+pillow
+pyfai
+pyopencl
+numpy
+scipy
+fabio
+pathos
+hdf5plugin
+opencv-python
+setuptools

@@ -384,19 +384,17 @@ def write_output(
         setting_class.set_output_types(out_type_list=out_type)
 
     if setting_class.output_types is None:
-        raise ValueError(
-            "No output type. Add 'Output_type' to input file or specify 'out_type' in command."
-        )
-
-    for mod in setting_class.output_types:
-        print("\nWrite output file(s) using", mod)
-        wr = output_methods_modules[mod]
-        wr.WriteOutput(
-            setting_class=setting_class,
-            setting_file=setting_file,
-            differential_only=differential_only,
-            debug=debug,
-        )
+        print("Thre are no output types. Add 'Output_type' to input file or specify 'out_type' in command.")
+    else:
+        for mod in setting_class.output_types:
+            print("\nWrite output file(s) using", mod)
+            wr = output_methods_modules[mod]
+            wr.WriteOutput(
+                setting_class=setting_class,
+                setting_file=setting_file,
+                differential_only=differential_only,
+                debug=debug,
+            )
 
 
 def execute(
@@ -414,6 +412,7 @@ def execute(
     parallel=True,
     mode="fit",
     report=False,
+    intensity_threshold = 0,
     **kwargs
 ):
     """
@@ -523,6 +522,11 @@ def execute(
             print("Loading previous fit results from %s" % temporary_data_file)
             with open(temporary_data_file) as json_data:
                 previous_fit = json.load(json_data)
+                
+                # if the previous_fit is not the same size as fit_orders the inout file must have been changed. 
+                # so discard the previous fit and start again.
+                if len(previous_fit) != len(settings_for_fit.fit_orders):
+                    del previous_fit
 
         # Switch to save the first fit in each sequence.
         if j == 0 or save_all is True:
@@ -685,6 +689,7 @@ def execute(
                         "debug": debug,
                         "refine": refine,
                         "iterations": iterations,
+                        "intensity_threshold":intensity_threshold,
                     }
                     arg = (sub_data, settings_for_fit.duplicate())
                     parallel_pile.append((arg, kwargs))
@@ -698,6 +703,7 @@ def execute(
                         debug=debug,
                         refine=refine,
                         iterations=iterations,
+                        intensity_threshold=intensity_threshold,
                     )
                     fitted_param.append(tmp[0])
                     lmfit_models.append(tmp[1])

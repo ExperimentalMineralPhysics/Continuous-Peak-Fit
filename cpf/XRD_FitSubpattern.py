@@ -13,6 +13,7 @@ from lmfit import Model
 from lmfit.model import save_modelresult  # , load_modelresult
 import json
 import cpf.series_functions as sf
+import cpf.peak_functions as pf
 import cpf.lmfit_model as lmm
 import cpf.IO_functions as io
 from cpf.fitsubpattern_chunks import fit_chunks, fit_series
@@ -207,6 +208,7 @@ def fit_sub_pattern(
     fit_method=None,
     mode="fit",
     cascade=False,
+    intensity_threshold = 0,
 ):
     """
     Perform the various fitting stages to the data
@@ -272,7 +274,31 @@ def fit_sub_pattern(
                 "Propagated fit has problems so discarding it and doing fit from scratch"
             )
             previous_params = None
+            
+    if previous_params:
+        # check if the previous fit d-spacings fall within the bounds.
+        # if they are not then assume the previous fit must have been poor and discard it.
+        fit_centroid = []
+        azims = np.linspace(0,360,361)
+        for i in range(peeks):
+            param = previous_params["peak"][i]["d-space"]
+            param_type = previous_params["peak"][i]["d-space_type"]
+            fit_centroid.append(
+                data_as_class.conversion(
+                    sf.coefficient_expand(azims, param=param, coeff_type=param_type),
+                    azims,
+                    reverse=1,
+                )
+            )
+        if (
+            np.min(fit_centroid) < settings_as_class.subfit_orders["range"][0] or 
+            np.min(fit_centroid) > settings_as_class.subfit_orders["range"][1]
+        ):
+            print("fit d-spacing limits are out of bounds; discarding the fit and starting again.")
+            previous_params = None
 
+
+    if previous_params:
         # initiate values for while loop.
         step = 5
     else:
@@ -290,7 +316,7 @@ def fit_sub_pattern(
     check_num_azimuths(peeks, data_as_class.azm, settings_as_class.subfit_orders)
 
     # Start fitting loops
-    while step <= 100:
+    while step >= 0 and step <= 100:
         # 100 is arbitrarily large number and does not reflect the num. of actual steps/stages in the process.
         # While loops are used so that if the fit is rubbish we can go back and improve it by repeating earlier steps.
         # for chunks step <= 9 and for refine <= 19
@@ -340,6 +366,16 @@ def fit_sub_pattern(
                     debug=debug,
                     save_fit=save_fit,
                 )
+                
+                #get mean height of chunked peaks
+                ave_intensity = []
+                for k in range(peeks):
+                    ave_intensity.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
+                if np.max(ave_intensity) <= intensity_threshold:
+                    #then there is no determinable peak in the data
+                    #set step to -11 so that it is still negative at the end
+                    step = -11 #get to the end and void the fit
+                    fout=master_params
 
             else:
                 # FIX ME: This should load the saved lmfit Parameter class object.
@@ -553,32 +589,55 @@ def fit_sub_pattern(
             # FIX ME: we could make an option for output the chunks without any Fourier/global fitting.
             # Would this be useful?
 
-    print("\nFinal Coefficients\n")
-    print(fout.fit_report(show_correl=False))
-
-    # Print some stats
-    print("number data", fout.ndata)
-    print("degrees of freedom", fout.nfree)
-    print("ChiSquared", fout.chisqr)
-
+        if step < 0:
+            #the fit is void and we need to exit.
+            #make sure all the height values are nan so that we dont propagate rubbish
+            comp_list, comp_names = pf.peak_components()
+            for j in range(len(comp_list)):
+                for i in range(peeks):
+                    done = 0
+                    n = 0
+                    while done==0:
+                        try:
+                            master_params["peak_"+str(i)+"_"+comp_list[j]+str(n)].value = None
+                            n = n+1
+                        except:
+                            # now we have run out of coefficients. So get the mean and then leave the loop.
+                            done = 1
+    
+            
     # Write master_params to new_params dict object
     new_params = lmm.params_to_new_params(
         master_params, orders=settings_as_class.subfit_orders
     )
 
-    # get all correlation coefficients
-    # FIX ME: this lists all the coefficients rather than just the unique half -- ie.
-    # it contains corr(a,b) and corr(b,a)
-    # FIX ME: should probably be a function
-    # N.B. converted to a string so that it does not take up so many lines in output file.
-    # Also why new lines are removed.
-    correl = {}
-    for key in master_params.keys():
-        correl[key] = master_params[key].correl
-    correl_str = json.dumps(correl)
-    correl_str = correl_str.replace("\n", "")
-    new_params.update({"correlation_coeffs": correl_str})
+    # if step < 0:
+    #     new_params.update({"FitProperties": fit_stats})
+    # else:
+    if step > 0:        
+        print("\nFinal Coefficients\n")
+        print(fout.fit_report(show_correl=False))
+    
+        # Print some stats
+        print("number data", fout.ndata)
+        print("degrees of freedom", fout.nfree)
+        print("ChiSquared", fout.chisqr)
+    
 
+    
+        # get all correlation coefficients
+        # FIX ME: this lists all the coefficients rather than just the unique half -- ie.
+        # it contains corr(a,b) and corr(b,a)
+        # FIX ME: should probably be a function
+        # N.B. converted to a string so that it does not take up so many lines in output file.
+        # Also why new lines are removed.
+        correl = {}
+        for key in master_params.keys():
+            correl[key] = master_params[key].correl
+        correl_str = json.dumps(correl)
+        correl_str = correl_str.replace("\n", "")
+        new_params.update({"correlation_coeffs": correl_str})
+    
     # takes the maximum and minimum values to reflect data - rather then the inputs.
     new_params.update(
         {
@@ -596,28 +655,36 @@ def fit_sub_pattern(
     t_elapsed = t_end - t_start
     chunks_time = chunks_end - chunks_start
     # get the rest of the fit stats from the lmfit output.
-    fit_stats = {
-        "time-elapsed": t_elapsed,
-        "chunks-time": chunks_time,
-        "status": step,
-        "sum-residuals-squared": np.sum(fout.residual**2),
-        "function-evaluations": fout.nfev,
-        "n-variables": fout.nvarys,
-        "n-data": fout.ndata,
-        "degree-of-freedom": fout.nfree,
-        "ChiSq": fout.chisqr,
-        "RedChiSq": fout.redchi,
-        "aic": fout.aic,
-        "bic": fout.bic,
-    }
+    if step > 0:
+        fit_stats = {
+            "time-elapsed": t_elapsed,
+            "chunks-time": chunks_time,
+            "status": step,
+            "sum-residuals-squared": np.sum(fout.residual**2),
+            "function-evaluations": fout.nfev,
+            "n-variables": fout.nvarys,
+            "n-data": fout.ndata,
+            "degree-of-freedom": fout.nfree,
+            "ChiSq": fout.chisqr,
+            "RedChiSq": fout.redchi,
+            "aic": fout.aic,
+            "bic": fout.bic,
+        }
+    else:
+        fit_stats = {
+            "time-elapsed": t_elapsed,
+            "chunks-time": chunks_time,
+            "status": step,
+        }
+        
     new_params.update({"FitProperties": fit_stats})
-
+    
     # add peak names to new_params
     new_params.update({"PeakLabel": io.peak_string(settings_as_class.subfit_orders)})
-
+    
     # Plot results to check
     view = 1
-    if save_fit == 1 or view == 1 or debug:
+    if (save_fit == 1 or view == 1 or debug) and step>0:
         print("\nPlotting results for fit...\n")
 
         y_lims = np.array(
@@ -679,7 +746,7 @@ def fit_sub_pattern(
         if view == 1 or debug:
             plt.show()
 
-        plt.close()
+        plt.close(fig)
         print("Done with Figure")
 
     # Save lmfit structure

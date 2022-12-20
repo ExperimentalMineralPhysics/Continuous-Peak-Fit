@@ -614,8 +614,10 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
             comp = comp_list[cp]
             if comp == "d":
                 symmetry = 1
-            else:
+            if "symmetry" in orders["peak"][j]:
                 symmetry = orders["peak"][j]["symmetry"]
+            else:
+                symmetry = 1
 
             if comp_names[cp] + "_fixed" in orders["peak"][j]:
                 fixed = 1
@@ -674,7 +676,8 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
 
         # plot output of fourier fits....
         x_lims = np.array([np.min(data[1]), np.max(data[1])])
-        x_lims = np.around(x_lims / 90) * 90
+        x_lims[0] = np.floor(x_lims[0] / 90) * 90
+        x_lims[1] = np.ceil(x_lims[1] / 90) * 90
         x_ticks = list(range(int(x_lims[0]), int(x_lims[1] + 1), 45))
         azi_plot = range(np.int(x_lims[0]), np.int(x_lims[1]), 2)
         gmodel = Model(sf.coefficient_expand, independent_vars=["azimuth"])
@@ -715,10 +718,14 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
                     gmod_plot,
                 )
                 # set x-labels by data type.
-                label_x = settings_as_class.data_class.dispersion_ticks(
-                    disp_ticks=ax[i].get_xticks
-                )
-                ax[i].set_xticks(label_x)
+                #if notthing in the data class then continue
+                try:
+                    label_x = settings_as_class.data_class.dispersion_ticks(
+                        disp_ticks=ax[i + k + 1].get_xticks
+                    )
+                    ax[i + k + 1].set_xticks(label_x)
+                except:
+                    pass
 
         # plot background
         for k in range(len(orders["background"])):
@@ -748,10 +755,14 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
             )
             ax[i + k + 1].set_xlim(x_lims)
             # set x-labels by data type.
-            label_x = settings_as_class.data_class.dispersion_ticks(
-                disp_ticks=ax[i + k + 1].get_xticks
-            )
-            ax[i + k + 1].set_xticks(label_x)
+            #if notthing in the data class then continue
+            try:
+                label_x = settings_as_class.data_class.dispersion_ticks(
+                    disp_ticks=ax[i + k + 1].get_xticks
+                )
+                ax[i + k + 1].set_xticks(label_x)
+            except:
+                pass
 
         fig.suptitle(io.peak_string(orders) + "; Fits to Chunks")
 

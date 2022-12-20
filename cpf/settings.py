@@ -22,7 +22,7 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 stdout_handler = logging.StreamHandler(sys.stdout)
-file_handler = logging.FileHandler('../logs/logs.log')
+file_handler = logging.FileHandler('logs/logs.log')
 logger.addHandler(file_handler)
 logger.addHandler(stdout_handler)
 

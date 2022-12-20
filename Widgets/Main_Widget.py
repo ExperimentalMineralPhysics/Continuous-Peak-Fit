@@ -24,22 +24,22 @@ from PyQt5.QtCore import *
 from string import Template
 import os
 
-from Range_Widget import Range
-from Peak_Widget import Peak
-from Output_Widget import Output
+from Widgets.Range_Widget import Range
+from Widgets.Peak_Widget import Peak
+from Widgets.Output_Widget import Output
 
 import cpf
 from cpf.settings import settings
 
-from matplotlib_qt import matplotlib_qt
-from matplotlib_auto import matplotlib_inline
+from Widgets.matplotlib_qt import matplotlib_qt
+from Widgets.matplotlib_auto import matplotlib_inline
 
 
 class MainWindow(QMainWindow):
     
     def __init__(self):
         super(MainWindow, self).__init__()
-        loadUi("Main_Widget.ui", self)
+        loadUi("Widgets/Main_Widget.ui", self)
         self.gui_layout()
         self.set_cl = cpf.settings.settings()
         self.input_file_path = None  

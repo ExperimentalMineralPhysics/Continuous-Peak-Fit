@@ -1,3 +1,4 @@
+setuptools==45.2.0
 matplotlib
 pycairo
 lmfit
@@ -11,4 +12,5 @@ fabio
 pathos
 hdf5plugin
 opencv-python
-setuptools
+pandas
+PyQt5

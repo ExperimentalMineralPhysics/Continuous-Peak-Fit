@@ -16,7 +16,9 @@ scipy = "*"
 fabio = "*"
 pathos = "*"
 hdf5plugin = "*"
-openvc-python = "*"
+opencv-python = "*"
+pyqt5 = "*"
+pandas = "*"
 
 [dev-packages]
 

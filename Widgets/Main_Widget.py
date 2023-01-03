@@ -43,7 +43,9 @@ class MainWindow(QMainWindow):
         self.gui_layout()
         self.set_cl = cpf.settings.settings()
         self.input_file_path = None  
-        
+    
+            
+            
     def gui_layout(self):
         self.Main_Tab.setMinimumHeight(40);
         self.Directory.setMinimumHeight(40);
@@ -91,8 +93,6 @@ class MainWindow(QMainWindow):
         self.Execute_Btn.clicked.connect(self.Execute_Fits)
         self.Make_Output_Btn.clicked.connect(self.Make_Outputs)
         
-    
-    
     @pyqtSlot()
     def Load_Inputs(self):
         fname= QFileDialog.getOpenFileName(self, "Load Input File", "..\\", "Python Files (*.py)")
@@ -226,69 +226,122 @@ class MainWindow(QMainWindow):
             if 'Polydefix' == self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WritePolydefix')
                 # Optional Params
-                    self.req_item1 = len(cpf.output_formatters.WritePolydefix.Requirements()[1])
-                    for wid in range (0, self.req_item1):
+                    
+                    for wid in range (len(cpf.output_formatters.WritePolydefix.Requirements()[1])):
                         lineEdit = cpf.output_formatters.WritePolydefix.Requirements()[1][wid]
-                        self.output_object.lineEdit.setText(lineEdit)
+                        #print(lineEdit + str(wid))
+                        if lineEdit == 'Output_ElasticProperties':
+                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_ElasticProperties"]))
+                        if lineEdit == 'phase':
+                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["phase"]))
+                        if lineEdit == 'datafile_StartNum':
+                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_StartNum"]))
+                        if lineEdit == 'datafile_EndNum':
+                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_EndNum"]))
+                        if lineEdit == 'datafile_NumDigit':
+                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_NumDigit"]))
+                        # elif lineEdit == 'tc':
+                        #     self.output_object.lineEdit.setText(self.set_cl.output_settings["tc"])
+                        if lineEdit == 'Output_NumAziWrite':
+                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_NumAziWrite"]))
+                            
+                        
+                        #print(self.set_cl.output_settings["Output_ElasticProperties"])
                 # Required Params
-                    self.req_item11 = len(cpf.output_formatters.WritePolydefix.Requirements()[0])
-                    for wid in range (0, self.req_item11):
+                    
+                    for wid in range (len(cpf.output_formatters.WritePolydefix.Requirements()[0])):
                         lineEdit = cpf.output_formatters.WritePolydefix.Requirements()[0][wid]
                         self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefix.Requirements()[0][wid])        
                                  
             elif 'CoefficientTable' == self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WriteCoefficientTable')
                 # Optional Params                    
-                    self.req_item2 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[1])
-                    for wid in range (0, self.req_item2):
+                    
+                    for wid in range (len(cpf.output_formatters.WriteCoefficientTable.Requirements()[1])):
                         lineEdit = cpf.output_formatters.WriteCoefficientTable.Requirements()[1][wid]
-                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[1][wid])
+                        if lineEdit == 'coefs_vals_write':
+                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["coefs_vals_write"]))
+                        
                 # Required Params                        
-                    self.req_item12 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[0])
-                    for wid in range (0, self.req_item12):
+                  
+                    for wid in range (len(cpf.output_formatters.WriteCoefficientTable.Requirements()[0])):
                         lineEdit = cpf.output_formatters.WriteCoefficientTable.Requirements()[0][wid]
                         self.output_object.lineEdit.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[0][wid])
                         
             elif 'DifferentialStrain' == self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WriteDifferentialStrain')
                 # Optional Params                    
-                    self.req_item3 = len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1])
-                    for wid in range (0, self.req_item3):
-                        lineEdit = cpf.output_formatters.WriteDifferentialStrain.Requirements()[1][wid]
-                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1][wid])
+               
+                    for wid in range (len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1])):
+                            lineEdit = cpf.output_formatters.WriteDifferentialStrain.Requirements()[1][wid]
+                        #for wid in range (0, self.req_item3):
+                            #lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[1][wid]
+                            if lineEdit == 'Output_ElasticProperties':
+                                self.output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_ElasticProperties"]))
+                            elif lineEdit == 'phase':
+                                self.output_object.lineEdit.setText(str(self.set_cl.output_settings["phase"]))
+                            elif lineEdit == 'datafile_StartNum':
+                                self.output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_StartNum"]))
+                            elif lineEdit == 'datafile_EndNum':
+                                self.output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_EndNum"]))
+                            elif lineEdit == 'datafile_NumDigit':
+                                self.output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_NumDigit"]))
+                            # elif lineEdit == 'tc':
+                            #     self.output_object.lineEdit.setText(self.set_cl.output_settings["tc"])
+                            elif lineEdit == 'Output_NumAziWrite':
+                                self.output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_NumAziWrite"]))
                 # Required Params                          
-                    self.req_item13 = len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0])
-                    for wid in range (0, self.req_item13):
+               
+                    for wid in range (len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0])):
                         lineEdit = cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][wid]
                         self.output_object.lineEdit.setText(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][wid])
                         
             elif 'MultiFit' == self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WriteMultiFit')
                 # Optional Params                    
-                    self.req_item4 = len(cpf.output_formatters.WriteMultiFit.Requirements()[1])
-                    for wid in range (0, self.req_item4):
+        
+                    for wid in range (len(cpf.output_formatters.WriteMultiFit.Requirements()[1])):
                         lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[1][wid]
-                        print(lineEdit)
-                        self.output_object.lineEdit.setText(cpf.output_formatters.WriteMultiFit.Requirements()[1][wid])
+                        if lineEdit == 'Output_ElasticProperties':
+                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_ElasticProperties"]))
+                        elif lineEdit == 'phase':
+                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["phase"]))
+                        elif lineEdit == 'datafile_StartNum':
+                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_StartNum"]))
+                        elif lineEdit == 'datafile_EndNum':
+                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_EndNum"]))
+                        elif lineEdit == 'datafile_NumDigit':
+                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_NumDigit"]))
+                        elif lineEdit == 'Output_NumAziWrite':
+                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_NumAziWrite"]))
                 # Required Params                        
-                    self.req_item14 = len(cpf.output_formatters.WriteMultiFit.Requirements()[0])
-                    for wid in range (0, self.req_item14):
+                
+                    for wid in range (len(cpf.output_formatters.WriteMultiFit.Requirements()[0])):
                         lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[0][wid]
                         self.output_object.lineEdit.setText(cpf.output_formatters.WriteMultiFit.Requirements()[0][wid])
                         
             elif 'PolydefixED' == self.set_cl.output_types[output]:
                     self.output_object.Output_Type_comboBox.setCurrentText('WritePolydefixED')
                 # Optional Params                    
-                    self.req_item5 = len(cpf.output_formatters.WritePolydefixED.Requirements()[1])
-                    for wid in range (0, self.req_item5):
-                        lineEdit = cpf.output_formatters.WritePolydefixED.Requirements()[1][wid]
-                        print(lineEdit)
-                        self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefixED.Requirements()[1][wid])
+                 
+                    for wid in range (len(cpf.output_formatters.WritePolydefixED.Requirements()[1])):
+                      
+                            lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[1][wid]
+                            if lineEdit == 'ElasticProperties':
+                                self.output_object.lineEdit.setText(str(self.set_cl.output_settings["ElasticProperties"]))
+                            elif lineEdit == 'phase':
+                                self.output_object.lineEdit.setText(str(self.set_cl.output_settings["phase"]))
+                            elif lineEdit == 'tc':
+                                self.output_object.lineEdit.setText(str(self.set_cl.output_settings["tc"]))
+                            elif lineEdit == 'Output_tc':
+                                self.output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_tc"]))
+                            elif lineEdit == 'Output_TemperaturePower':
+                                self.output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_TemperaturePower"]))
+                            
                 # Required Params                        
-                    self.req_item15 = len(cpf.output_formatters.WritePolydefixED.Requirements()[0])
-                    for wid in range (0, self.req_item15):
+                    
+                    for wid in range (len(cpf.output_formatters.WritePolydefixED.Requirements()[0])):
                         lineEdit = cpf.output_formatters.WritePolydefixED.Requirements()[0][wid]
-                        print(lineEdit)
                         self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefixED.Requirements()[0][wid])
                         
             else:
@@ -371,7 +424,7 @@ class MainWindow(QMainWindow):
         else:
             cpf.XRD_FitPattern.execute(f"{self.input_file_path}", save_all=True, parallel = False)
             text=open('../logs/logs.log').read()
-            # FIX ME Simon: parallel = False doesn't work on Adina's Windows computer
+            # FIX ME Simon: parallel = True doesn't work on Adina's Windows computer
             self.Console_output.setText(text)
     
     @pyqtSlot()
@@ -391,6 +444,7 @@ class MainWindow(QMainWindow):
     
     @pyqtSlot()
     def Insert_Button(self):  
+        #self.set_cl.populate(settings_file=None)
         directory = self.Directory.text()
         basename = self.Basename.text()
         extension = self.Extension.text()
@@ -417,66 +471,182 @@ class MainWindow(QMainWindow):
         wdt_2 =self.wdt_2.text()
         AziBins = self.AziBins.text()
      
-        data = "\
- datafile_directory = '$dr/'         \n\
- datafile_Basename  = '$bn'     \n\
- datafile_Ending    = '$ext'                   \n\
- datafile_StartNum  = $sn                          \n\
- datafile_EndNum    = $en                           \n\
- datafile_NumDigit  = $nd                       \n\
- datafile_Step      = $increment                          \n\
-# Calibration and masking.                                 \n\
- Calib_type   = \"$ct\"                      \n\
- Calib_detector = '$cdetect'                  \n\
- Calib_data     = datafile_directory + '$cadat'       \n\
- Calib_param    = datafile_directory + '$cparam'                \n\
- Calib_mask     = datafile_directory + '$cmask'          \n\
- Calib_pixels = $cpixel                            \n\
-# Number of bins for initial fitting.                  \n\
- AziBins = $AziBins                             \n\
-# Output settings                                 \n\
- Output_directory   = '$Output_Dir/'                    \n\
- fit_bounds = {                                \n\
-   \"background\": ['$bg_1', '$bg_2'],                  \n\
-   \"d-space\":    ['$ds_1', '$ds_2'],                     \n\
-   \"height\":     [ $h_1,   '$h_2'],                     \n\
-   \"profile\":    [$pro_1, $pro_2 ],                           \n\
-   \"width\":      ['$wdt_1',  '$wdt_2'],        \n\
-   }  \n\
- fit_orders = ["
+        
+        self.set_cl.datafile_directory = self.Directory.text()
+        self.set_cl.datafile_basename = self.Basename.text()
+        self.set_cl.calibration_type = self.Calib_Type.currentText()
+        self.set_cl.calibration_detector = self.Calib_Detect.text()
+        self.set_cl.calibration_parameters = self.Calib_Param.text()
+        self.set_cl.calibration_mask = self.Calib_Mask.text();
+        self.set_cl.calibration_pixel_size = self.Calib_Pixels.text()   
+        self.set_cl.calibration_data = self.Calib_Data.text()
+        self.set_cl.cascade_bin_type = self.cascade_bin_type.text()
+        self.set_cl.cascade_per_bin = self.cascade_per_bin.text()
+        self.set_cl.cascade_number_bins = self.cascade_number_bins.text()
+        self.set_cl.cascade_track = self.cascade_track.text()
+        
+        self.set_cl.fit_bounds.get("background")[0] = self.bg_1.text()
+        self.set_cl.fit_bounds.get("background")[1] = self.bg_2.text()
+        self.set_cl.fit_bounds.get("d-space")[0] = self.ds_1.text()
+        self.set_cl.fit_bounds.get("d-space")[1] = self.ds_2.text()
+        self.set_cl.fit_bounds.get("height")[0] = self.h_1.text()
+        self.set_cl.fit_bounds.get("height")[1] = self.h_2.text()
+        self.set_cl.fit_bounds.get("profile")[0] = self.pro_1.text()
+        self.set_cl.fit_bounds.get("profile")[1] = self.pro_2.text()
+        
+        self.set_cl.fit_bounds.get("width")[0] = self.wdt_1.text()
+        self.set_cl.fit_bounds.get("width")[1] = self.wdt_2.text()
+        self.set_cl.output_directory = self.Output_Dir_1.text()
+        #self.Output_Dir_2.setText(self.Output_Dir_1.text())
+        #self.AziBins.setText(self.set_cl.AziBins) 
+        
+        
+        self.range_length = self.Range_Tab.count()
+        
+        
+        for range_tab in range(0, self.range_length):
+            self.range_object = Range()
+           
+            self.set_cl.fit_orders[range_tab]["range"][0] = self.range_object.Range_min.text()
+            self.set_cl.fit_orders[range_tab]["range"][1] = self.range_object.Range_max.text()
+            self.set_cl.fit_orders[range_tab]["background"] = self.range_object.Range_Background_Val.text()
             
-        temp_obj = Template(data)
-        after_replacing = temp_obj.substitute(dr=directory, bn=basename,ext=extension, 
-                                                  sn=start_num, en=end_num, nd=num_digit, 
-                                                  increment=step, ct=calib_type,cdetect=calib_detect,
-                                                  cadat=calib_data,cparam=calib_param,
-                                                  cmask=calib_mask, cpixel=calib_pixel,AziBins = AziBins,
-                                                  bg_1= bg_1, bg_2 = bg_2, ds_1= ds_1,
-                                                  ds_2= ds_2, h_1=h_1, h_2= h_2, pro_1= pro_1,
-                                                  pro_2= pro_2, wdt_1= wdt_1, wdt_2= wdt_2,
-                                                  Output_Dir= Output_Dir_1)
+            self.set_cl.fit_orders[range_tab]["Imax"] = self.range_object.Intensity_max.text() 
+            self.set_cl.fit_orders[range_tab]["Imin"] = self.range_object.Intensity_min.text()
+            self.set_cl.fit_orders[range_tab]["PeakPositionSelection"] = self.range_object.Peak_Pos_Selection.toPlainText()
             
- 
-        if directory =='' or basename =='' or extension =='' or start_num =='' or end_num =='' or  calib_type=='' or calib_param=='':
-                      mess = QMessageBox()
-                      mess.setIcon(QMessageBox.Warning)
-                      mess.setText("Insert All Mandaory Details")
-                      mess.setStandardButtons(QMessageBox.Ok)
-                      mess.setWindowTitle("MessageBox")
-                      returnValue = mess.exec_()
-                      if os.path.exists("input.py"):
-                         os.remove("template_3.py")
-                      
-        else:
-                      file1 = open('input.py', 'w')
-                      file1.writelines((after_replacing))
-                      file1.close()                         
-                      mess = QMessageBox()
-                      mess.setText("Success")
-                      mess.setIcon(QMessageBox.Information)
-                      mess.setStandardButtons(QMessageBox.Ok)
-                      mess.setWindowTitle("MessageBox")
-                      returnValue = mess.exec_()
+            self.peak_length = self.range_object.Peak_Tab.count()
+            
+            # Manage peak_tab data population
+            for peak_tab in range(0, self.peak_length):
+                self.peak_object = Peak()
+               
+                self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["phase"] = self.peak_object.phase_peak.text()
+                self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["hkl"] = self.peak_object.hkl.text()
+                self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["d-space"] = self.peak_object.d_space_peak.text()
+                self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["d-space-type"] = self.peak_object.d_space_type.currentText()
+                
+                
+                self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["height-type"] = self.peak_object.height_peak_type.currentText()
+                self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["profile-type"] = self.peak_object.profile_peak_type.currentText()
+                self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["width-type"] = self.peak_object.width_peak_type.currentText()
+                
+                self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["height"] = self.peak_object.height_peak.text()
+                self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["profile"] = self.peak_object.profile_peak.text()
+                self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["profile_fixed"] = self.peak_object.profile_fixed.text()
+                
+                self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["width"] = self.peak_object.width_peak.text()
+                self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["symmetry"] = self.peak_object.symmetry_peak.text()
+
+                if  self.peak_object.profile_checkBox.isChecked:
+                    self.peak_object.profile_fixed.setEnabled(True)
+                    self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["profile_fixed"]= self.peak_object.profile_fixed.text() 
+                else:
+                    self.peak_object.profile_fixed.setEnabled(False)
+                    self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["profile_fixed"] = None
+                    
+                    
+                if  self.peak_object.width_checkBox.isChecked: 
+                    self.peak_object.width_fixed.setEnabled(True)
+                    self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["width_fixed"] = self.peak_object.width_fixed.text()  
+                else:
+                    self.peak_object.width_fixed.setEnabled(False)
+                    self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["width_fixed"] = None
+                    
+                if  self.peak_object.height_checkBox.isChecked:
+                    self.peak_object.height_fixed.setEnabled(True)
+                    self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["height_fixed"] = self.peak_object.height_fixed.text()
+                else:
+                    self.peak_object.height_fixed.setEnabled(False)
+                    self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["height_fixed"] = None
+                    
+                    
+                if  self.peak_object.dspace_checkBox.isChecked:
+                    self.peak_object.dspace_fixed.setEnabled(True)
+                    self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["d-space_fixed"]= self.peak_object.dspace_fixed.text()
+                else:
+                    self.peak_object.dspace_fixed.setEnabled(False)
+                    self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["d-space_fixed"]= None
+        
+        # Manage output_tab data population    
+        # self.output_type =  len(self.set_cl.output_types)
+        # for output in range (0, self.output_type):
+        #     self.output_object = Output()
+        #     self.Output_Tab.addTab(self.output_object , QIcon(""),"Output")
+
+        #     if 'Polydefix' == self.set_cl.output_types[output]:
+        #             self.output_object.Output_Type_comboBox.setCurrentText('WritePolydefix')
+        #         # Optional Params
+        #             self.req_item1 = len(cpf.output_formatters.WritePolydefix.Requirements()[1])
+        #             for wid in range (0, self.req_item1):
+        #                 lineEdit = cpf.output_formatters.WritePolydefix.Requirements()[1][wid]
+        #                 self.output_object.lineEdit.setText(lineEdit)
+        #                 #print(self.set_cl.output_settings.Output_ElasticProperties.get("Output_ElasticProperties"))
+        #                 #print("\n\n\n\n\n\n\n")
+        #                 #print(self.set_cl.output_settings["Output_ElasticProperties"])
+        #         # Required Params
+        #             self.req_item11 = len(cpf.output_formatters.WritePolydefix.Requirements()[0])
+        #             for wid in range (0, self.req_item11):
+        #                 lineEdit = cpf.output_formatters.WritePolydefix.Requirements()[0][wid]
+        #                 self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefix.Requirements()[0][wid])        
+                                 
+        #     elif 'CoefficientTable' == self.set_cl.output_types[output]:
+        #             self.output_object.Output_Type_comboBox.setCurrentText('WriteCoefficientTable')
+        #         # Optional Params                    
+        #             self.req_item2 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[1])
+        #             for wid in range (0, self.req_item2):
+        #                 lineEdit = cpf.output_formatters.WriteCoefficientTable.Requirements()[1][wid]
+        #                 self.output_object.lineEdit.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[1][wid])
+        #         # Required Params                        
+        #             self.req_item12 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[0])
+        #             for wid in range (0, self.req_item12):
+        #                 lineEdit = cpf.output_formatters.WriteCoefficientTable.Requirements()[0][wid]
+        #                 self.output_object.lineEdit.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[0][wid])
+                        
+        #     elif 'DifferentialStrain' == self.set_cl.output_types[output]:
+        #             self.output_object.Output_Type_comboBox.setCurrentText('WriteDifferentialStrain')
+        #         # Optional Params                    
+        #             self.req_item3 = len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1])
+        #             for wid in range (0, self.req_item3):
+        #                 lineEdit = cpf.output_formatters.WriteDifferentialStrain.Requirements()[1][wid]
+        #                 self.output_object.lineEdit.setText(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1][wid])
+        #         # Required Params                          
+        #             self.req_item13 = len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0])
+        #             for wid in range (0, self.req_item13):
+        #                 lineEdit = cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][wid]
+        #                 self.output_object.lineEdit.setText(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][wid])
+                        
+        #     elif 'MultiFit' == self.set_cl.output_types[output]:
+        #             self.output_object.Output_Type_comboBox.setCurrentText('WriteMultiFit')
+        #         # Optional Params                    
+        #             self.req_item4 = len(cpf.output_formatters.WriteMultiFit.Requirements()[1])
+        #             for wid in range (0, self.req_item4):
+        #                 lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[1][wid]
+        #                 print(lineEdit)
+        #                 self.output_object.lineEdit.setText(cpf.output_formatters.WriteMultiFit.Requirements()[1][wid])
+        #         # Required Params                        
+        #             self.req_item14 = len(cpf.output_formatters.WriteMultiFit.Requirements()[0])
+        #             for wid in range (0, self.req_item14):
+        #                 lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[0][wid]
+        #                 self.output_object.lineEdit.setText(cpf.output_formatters.WriteMultiFit.Requirements()[0][wid])
+                        
+        #     elif 'PolydefixED' == self.set_cl.output_types[output]:
+        #             self.output_object.Output_Type_comboBox.setCurrentText('WritePolydefixED')
+        #         # Optional Params                    
+        #             self.req_item5 = len(cpf.output_formatters.WritePolydefixED.Requirements()[1])
+        #             for wid in range (0, self.req_item5):
+        #                 lineEdit = cpf.output_formatters.WritePolydefixED.Requirements()[1][wid]
+        #                 print(lineEdit)
+        #                 self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefixED.Requirements()[1][wid])
+        #         # Required Params                        
+        #             self.req_item15 = len(cpf.output_formatters.WritePolydefixED.Requirements()[0])
+        #             for wid in range (0, self.req_item15):
+        #                 lineEdit = cpf.output_formatters.WritePolydefixED.Requirements()[0][wid]
+        #                 print(lineEdit)
+        #                 self.output_object.lineEdit.setText(cpf.output_formatters.WritePolydefixED.Requirements()[0][wid])
+                        
+        self.set_cl.save_settings()
+        
     
     @pyqtSlot()
     def select_Data_Dir(self):
@@ -687,16 +857,22 @@ class MainWindow(QMainWindow):
     def Output_Dir_1_Pressed(self):
         Output_Dir_1 = self.Output_Dir_1.text()
         self.set_cl.output_directory = Output_Dir_1
+        
+    def closeEvent(self,event):
+        os._exit(00)
 
-
-if __name__=='__main__':
+def main():
     app = QApplication(sys.argv)
     mainwindow = MainWindow()
-    widget = QtWidgets.QStackedWidget()
-    widget.addWidget(mainwindow)
-    widget.show() 
-    try: 
-        sys.exit(app.exec_())
-        
+    mainwindow.show() 
+    try:        
+      sys.exit(app.exec_())
+  
     except:
-        os._exit(00)
+      os._exit(00)
+
+if __name__=='__main__':
+    main()
+    
+
+        

@@ -17,7 +17,7 @@ from cpf.series_functions import coefficient_type_as_number, get_number_coeff
 
 import sys
 import logging
-
+import json
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -959,7 +959,33 @@ class settings:
         self.subfit_filename = self.image_list[file_number]
         self.subfit_order_position = number_subpattern
         self.subfit_orders = self.fit_orders[number_subpattern]
-
+    def save_settings(self, settings_file=None, filename="settings.json", filepath="./"):
+        """
+        Saves the settings class to file.
+        
+        Parameters
+        ----------
+        filename : String
+            filename to save the file as.
+        filepath : string
+            Filepath to save the file in.
+        Returns
+        -------
+        None.
+        """
+        print("Caution: save_settings writes a temporary file with no content")
+        
+        fnam = os.path.join(filepath, filename)
+        with open(fnam, "w") as TempFile:
+            # Write a JSON string into the file.
+            json.dump(
+                settings(),
+                TempFile,
+                sort_keys=False,
+                indent=2,
+                #default=json_numpy_serializer
+            )
+        print("Done writing", filename)
 
 def get_output_options(output_type):
     """

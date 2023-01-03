@@ -44,8 +44,6 @@ class MainWindow(QMainWindow):
         self.set_cl = cpf.settings.settings()
         self.input_file_path = None  
     
-            
-            
     def gui_layout(self):
         self.Main_Tab.setMinimumHeight(40);
         self.Directory.setMinimumHeight(40);

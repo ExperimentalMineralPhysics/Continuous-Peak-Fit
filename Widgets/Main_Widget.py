@@ -242,8 +242,7 @@ class MainWindow(QMainWindow):
                         # elif lineEdit == 'tc':
                         #     self.output_object.lineEdit.setText(self.set_cl.output_settings["tc"])
                         if lineEdit == 'Output_NumAziWrite':
-                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_NumAziWrite"]))
-                            
+                            self.output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_NumAziWrite"]))      
                         
                         #print(self.set_cl.output_settings["Output_ElasticProperties"])
                 # Required Params
@@ -500,7 +499,6 @@ class MainWindow(QMainWindow):
         wdt_2 =self.wdt_2.text()
         AziBins = self.AziBins.text()
      
-        
         self.set_cl.datafile_directory = self.Directory.text()
         self.set_cl.datafile_basename = self.Basename.text()
         self.set_cl.calibration_type = self.Calib_Type.currentText()
@@ -529,9 +527,7 @@ class MainWindow(QMainWindow):
         #self.Output_Dir_2.setText(self.Output_Dir_1.text())
         #self.AziBins.setText(self.set_cl.AziBins) 
         
-        
         self.range_length = self.Range_Tab.count()
-        
         
         for range_tab in range(0, self.range_length):
             self.range_object = Range()
@@ -555,7 +551,6 @@ class MainWindow(QMainWindow):
                 self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["d-space"] = self.peak_object.d_space_peak.text()
                 self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["d-space-type"] = self.peak_object.d_space_type.currentText()
                 
-                
                 self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["height-type"] = self.peak_object.height_peak_type.currentText()
                 self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["profile-type"] = self.peak_object.profile_peak_type.currentText()
                 self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["width-type"] = self.peak_object.width_peak_type.currentText()
@@ -572,8 +567,7 @@ class MainWindow(QMainWindow):
                     self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["profile_fixed"]= self.peak_object.profile_fixed.text() 
                 else:
                     self.peak_object.profile_fixed.setEnabled(False)
-                    self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["profile_fixed"] = None
-                    
+                    self.set_cl.fit_orders[range_tab]["peak"][peak_tab]["profile_fixed"] = None           
                     
                 if  self.peak_object.width_checkBox.isChecked: 
                     self.peak_object.width_fixed.setEnabled(True)
@@ -896,12 +890,9 @@ def main():
     mainwindow.show() 
     try:        
       sys.exit(app.exec_())
-  
     except:
       os._exit(00)
 
 if __name__=='__main__':
     main()
     
-
-        

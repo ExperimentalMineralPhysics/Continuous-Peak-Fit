@@ -40,6 +40,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         loadUi("Main_Widget.ui", self)
+        self.setWindowIcon(QtGui.QIcon('logo.png'))
         self.gui_layout()
         self.set_cl = cpf.settings.settings()
         self.input_file_path = None  
@@ -361,6 +362,36 @@ class MainWindow(QMainWindow):
         cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
         text=open('../logs/logs.log').read()
         self.Console_output.setText(text)
+        
+        self.Directory.setCursorPosition(0);
+        self.Basename.setCursorPosition(0);
+        self.Extension.setCursorPosition(0);
+        self.Start_Num.setCursorPosition(0);
+        self.End_Num.setCursorPosition(0);
+        self.Num_Digit.setCursorPosition(0);
+        self.Step.setCursorPosition(0);
+        self.Calib_Detect.setCursorPosition(0);
+        self.Calib_Param.setCursorPosition(0);
+        self.Calib_Mask.setCursorPosition(0);
+        self.Calib_Pixels.setCursorPosition(0);
+        self.Calib_Data.setCursorPosition(0);
+        #self.cascade_bin_type.setCursorPosition(0);
+        self.cascade_per_bin.setCursorPosition(0);
+        self.cascade_number_bins.setCursorPosition(0);
+        self.cascade_track.setCursorPosition(0);
+        self.bg_1.setCursorPosition(0);
+        self.bg_2.setCursorPosition(0);
+        self.ds_1.setCursorPosition(0);
+        self.ds_2.setCursorPosition(0);
+        self.h_1.setCursorPosition(0);
+        self.h_2.setCursorPosition(0);
+        self.pro_1.setCursorPosition(0);
+        self.pro_2.setCursorPosition(0);
+        self.wdt_1.setCursorPosition(0);
+        self.wdt_2.setCursorPosition(0);
+        self.AziBins.setCursorPosition(0);
+        self.Output_Dir_1.setCursorPosition(0);
+        self.Output_Dir_2.setCursorPosition(0);
     
     @pyqtSlot()
     def Validate_Inputs(self):

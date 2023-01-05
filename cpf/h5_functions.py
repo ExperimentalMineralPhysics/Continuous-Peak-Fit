@@ -329,7 +329,7 @@ def get_image_keys(
                     key_route=key_lst[i],
                     bottom_level=bottom_level,
                     index=index,
-                    key_str=str(key_strings[i]),
+                    key_str=str(key_strings[index]),
                 )
             )
 

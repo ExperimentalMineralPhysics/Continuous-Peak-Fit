@@ -46,8 +46,7 @@ class Range(QWidget):
         self.Range_Background_Val.setMinimumHeight(40);  
         self.Background_Type.setMinimumHeight(40);
         self.bg_fixed_lineEdit.setMinimumHeight(40);
-
-        
+    
     def Insert_Peak(self):
         self.Peak_Tab.addTab(Peak() , QIcon("Location of the icon"),"Peak")
      

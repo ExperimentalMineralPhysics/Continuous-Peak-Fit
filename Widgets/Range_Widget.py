@@ -24,7 +24,7 @@ class Range(QWidget):
    
     def __init__(self):
         super(Range, self).__init__()
-        loadUi("Range_Widget.ui", self)
+        loadUi("Widgets/Range_Widget.ui", self)
         self.range_layout()
         self.bg_fixed_lineEdit.setEnabled(False)
         self.bg_fixed_checkbox.stateChanged.connect(lambda:bg_fixed_checkbox())

@@ -4,7 +4,7 @@
 # A 'proper' input file type can be formulated later.
 
 # properties of the data files.
-datafile_directory = '../Example1-Fe/'
+datafile_directory = 'Example1-Fe/'
 datafile_Basename  = 'BCC1_2GPa_10s_001_'
 datafile_Ending    = '.tif'
 datafile_StartNum  = 1
@@ -68,6 +68,6 @@ AziBins = 90
 
 
 # Output settings
-Output_directory   = '../Example1-Fe/results/'
+Output_directory   = 'Example1-Fe/results/'
 Output_type        = 'MultiFit'
 Output_NumAziWrite = 90

@@ -126,7 +126,7 @@ class MainWindow(QMainWindow):
         self.set_cl.fit_bounds["width"][1] = None
         self.set_cl.output_directory = None
 
-        fname= QFileDialog.getOpenFileName(self, "Load Input File", "..\\", "Python Files (*.py)")
+        fname= QFileDialog.getOpenFileName(self, "Load Input File", "./", "Python Files (*.py)")
         if fname:
             self.input_file_path = f"{fname[0]}"
         self.set_cl.populate(settings_file=(f"{self.input_file_path}"))

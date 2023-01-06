@@ -25,7 +25,7 @@ from cpf.settings import settings
 class Output(QWidget):
     def __init__(self):
         super(Output, self).__init__()
-        loadUi("Output_Widget.ui", self)
+        loadUi("Widgets/Output_Widget.ui", self)
         self.Output_Type_comboBox.setMinimumHeight(40);
         self.Output_Type_comboBox.currentTextChanged.connect(self.on_combobox_changed)
 

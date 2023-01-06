@@ -19,7 +19,7 @@ class Peak(QWidget):
     
     def __init__(self):
         super(Peak, self).__init__()
-        loadUi("Peak_Widget.ui", self)
+        loadUi("Widgets/Peak_Widget.ui", self)
         self.peak_layout()
         self.profile_fixed.setEnabled(False)
         self.width_fixed.setEnabled(False)

@@ -94,18 +94,53 @@ class MainWindow(QMainWindow):
         
     @pyqtSlot()
     def Load_Inputs(self):
+        '''
+        whenever new file is loaded 
+        clear settings' class existing data
+        otherwise it will show values already 
+        stored in variables by repacing None
+        with values
+
+        ''' 
+        self.set_cl.datafile_directory = None
+        self.set_cl.datafile_basename = None
+        self.set_cl.calibration_type = None
+        self.set_cl.calibration_detector = None
+        self.set_cl.calibration_parameters = None
+        self.set_cl.calibration_mask = None
+        self.set_cl.calibration_pixel_size = None 
+        self.set_cl.calibration_data = None
+        self.set_cl.cascade_bin_type = None
+        self.set_cl.cascade_per_bin = None
+        self.set_cl.cascade_number_bins = None
+        self.set_cl.cascade_track = False
+        
+        self.set_cl.fit_bounds["background"][0] = None
+        self.set_cl.fit_bounds["background"][1] = None
+        self.set_cl.fit_bounds["d-space"][0] = None
+        self.set_cl.fit_bounds["d-space"][1] = None
+        self.set_cl.fit_bounds["height"][0] = None
+        self.set_cl.fit_bounds["height"][1] = None
+        self.set_cl.fit_bounds["profile"][0] = None
+        self.set_cl.fit_bounds["profile"][1] = None
+        self.set_cl.fit_bounds["width"][0] = None
+        self.set_cl.fit_bounds["width"][1] = None
+        self.set_cl.output_directory = None
+
         fname= QFileDialog.getOpenFileName(self, "Load Input File", "..\\", "Python Files (*.py)")
         if fname:
             self.input_file_path = f"{fname[0]}"
         self.set_cl.populate(settings_file=(f"{self.input_file_path}"))
+        
+        # update new data
         self.Directory.setText(self.set_cl.datafile_directory)
         self.Basename.setText(self.set_cl.datafile_basename)
-        self.Calib_Type.setCurrentText(f"{self.set_cl.calibration_type}");
-        self.Calib_Detect.setText(self.set_cl.calibration_detector);
-        self.Calib_Param.setText(self.set_cl.calibration_parameters);
-        self.Calib_Mask.setText(self.set_cl.calibration_mask);
-        self.Calib_Pixels.setText(str(self.set_cl.calibration_pixel_size));   
-        self.Calib_Data.setText(self.set_cl.calibration_data);
+        self.Calib_Type.setCurrentText(f"{self.set_cl.calibration_type}")
+        self.Calib_Detect.setText(self.set_cl.calibration_detector)
+        self.Calib_Param.setText(self.set_cl.calibration_parameters)
+        self.Calib_Mask.setText(self.set_cl.calibration_mask)
+        self.Calib_Pixels.setText(str(self.set_cl.calibration_pixel_size))   
+        self.Calib_Data.setText(self.set_cl.calibration_data)
         self.cascade_bin_type.setText(str(self.set_cl.cascade_bin_type))
         self.cascade_per_bin.setText(str(self.set_cl.cascade_per_bin))
         self.cascade_number_bins.setText(str(self.set_cl.cascade_number_bins))

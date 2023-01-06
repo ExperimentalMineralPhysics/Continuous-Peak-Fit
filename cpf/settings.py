@@ -19,14 +19,6 @@ import sys
 import logging
 import json
 
-log_file = "logs/logs.log"
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-stdout_handler = logging.StreamHandler(sys.stdout)
-file_handler = logging.FileHandler(log_file)
-logger.addHandler(file_handler)
-logger.addHandler(stdout_handler)
-
 class settings:
     """Settings class definitions.
     The settings class is contains all the variables/informtion needed to execute
@@ -47,6 +39,9 @@ class settings:
         self.outputs -- list of output processes to run
         
     """
+
+    # Name and path relative to the root of the application of the logfile
+    log_file = "logs/logs.log"
 
     def __init__(
         self,
@@ -1028,3 +1023,10 @@ def detector_factory(fit_settings=None):
 
 if __name__ == "__main__":
     settings = settings()
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+stdout_handler = logging.StreamHandler(sys.stdout)
+file_handler = logging.FileHandler(settings.log_file)
+logger.addHandler(file_handler)
+logger.addHandler(stdout_handler)

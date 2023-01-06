@@ -39,7 +39,7 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         super(MainWindow, self).__init__()
-        loadUi("Main_Widget.ui", self)
+        loadUi("Widgets/Main_Widget.ui", self)
         self.setWindowIcon(QtGui.QIcon('logo.png'))
         self.gui_layout()
         self.set_cl = cpf.settings.settings()
@@ -854,17 +854,4 @@ class MainWindow(QMainWindow):
         self.set_cl.output_directory = Output_Dir_1
         
     def closeEvent(self,event):
-        os._exit(00)
-
-def main():
-    app = QApplication(sys.argv)
-    mainwindow = MainWindow()
-    mainwindow.show() 
-    try:        
-      sys.exit(app.exec_())
-    except:
-      os._exit(00)
-
-if __name__=='__main__':
-    main()
-    
+        os._exit(00)  

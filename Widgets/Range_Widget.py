@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (
 import sys
 from string import Template
 
-from Widgets.Peak_Widget import Peak
+from Peak_Widget import Peak
 
 class Range(QWidget):
    

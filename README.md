@@ -37,7 +37,7 @@ You may need to first install `pkg-config` and `cairo` packages globally:
 
 ### GUI version
 
-From the root Continuous-Peak-Fit directory run the GUI as `python3 -m Widgets.Main_Widget`.
+From the root Continuous-Peak-Fit directory run the GUI by running the entry point wrapper `python3 main.py`.
 
 ### Non-GUI version
 

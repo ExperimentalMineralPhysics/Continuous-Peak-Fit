@@ -29,6 +29,8 @@ class Range(QWidget):
         self.bg_fixed_lineEdit.setEnabled(False)
         self.bg_fixed_checkbox.stateChanged.connect(lambda:bg_fixed_checkbox())
         
+        self.peak_list = []
+        
         def bg_fixed_checkbox():
             if self.bg_fixed_checkbox.isChecked()==True:
                self.bg_fixed_lineEdit.setEnabled(True)
@@ -48,8 +50,10 @@ class Range(QWidget):
         self.bg_fixed_lineEdit.setMinimumHeight(40);
     
     def Insert_Peak(self):
-        self.Peak_Tab.addTab(Peak() , QIcon("Location of the icon"),"Peak")
+        peak_object = Peak()
+        self.Peak_Tab.addTab(peak_object , QIcon("Location of the icon"),"Peak")
+        self.peak_list.append(peak_object)
      
     def Remove_Peak(self):
+        self.peak_list.pop(self.Peak_Tab.currentIndex())
         self.Peak_Tab.removeTab(self.Peak_Tab.currentIndex())
-        

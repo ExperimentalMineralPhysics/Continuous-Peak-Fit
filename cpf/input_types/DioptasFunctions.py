@@ -781,7 +781,7 @@ class DioptasDetector:
         all_colours = cm.seismic(np.arange(n_entries))
 
         if np.abs(maximum_value) > np.abs(minimum_value):
-            n_cut = np.int(
+            n_cut = int(
                 (
                     (2 * maximum_value - (maximum_value - np.abs(minimum_value)))
                     / (2 * maximum_value)

@@ -7,7 +7,7 @@ The development of the code is ongoing. Each new data set we process finds new l
 
 
 ## Installation
-The following instructions are given for Python 3 on Ubuntu. The equivalent of the `apt` command on MacOS is to use Homebrew for package management via the `brew` command.
+The following instructions are given for Python 3 on Ubuntu. The equivalent of the `apt` package manager on MacOS is to use Homebrew for package management via the `brew` command.
 
 Ensure python and pip are installed on the system:
 
@@ -29,6 +29,8 @@ Clone the source code with
 
 Install dependencies using `python3 -m pip install -r requirements.txt`.
 
+**On MacOS with an M1 chip, since there is no Arm64 version of PyQt5, you need to run ensure you start the terminal in Rosetta mode so it thinks it is an x86_64 architecture and install those versions of the dependencies. If you have already started installing dependencies in normal mode then you will need to uninstall them, reconfigure your terminal and then reinstall eveyrthing!**
+
 You may need to first install `pkg-config` and `cairo` packages globally:
 
 `sudo apt install libcairo2-dev pkg-config python3-dev`
@@ -37,7 +39,7 @@ You may need to first install `pkg-config` and `cairo` packages globally:
 
 ### GUI version
 
-From the root Continuous-Peak-Fit directory run the GUI by running the entry point wrapper `python3 main.py`.
+From the root Continuous-Peak-Fit directory run the GUI by running the entry point wrapper as `python3 main.py` or by running the `run.bat` script on Windows or the `run.sh` script on Linux/MacOS.
 
 ### Non-GUI version
 
@@ -61,4 +63,3 @@ or from within python
 `import cpf`
 
 `cpf.XRD_FitPattern.execute(settings_file=<inputs_file>)`
-

@@ -19,10 +19,11 @@ import sys
 import logging
 import json
 
+log_file = "logs/logs.log"
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 stdout_handler = logging.StreamHandler(sys.stdout)
-file_handler = logging.FileHandler('logs/logs.log')
+file_handler = logging.FileHandler(log_file)
 logger.addHandler(file_handler)
 logger.addHandler(stdout_handler)
 
@@ -219,7 +220,7 @@ class settings:
         Fails with a list of missing parameters if not complete.
         """
 
-        # store all the settings from file in a mocule class.
+        # store all the settings from file in a module class.
         module_name, _ = os.path.splitext(os.path.basename(self.settings_file))
         spec = importlib.util.spec_from_file_location(module_name, self.settings_file)
         self.settings_from_file = importlib.util.module_from_spec(spec)

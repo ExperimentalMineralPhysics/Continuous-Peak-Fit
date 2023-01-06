@@ -34,7 +34,6 @@ from cpf.settings import settings
 from matplotlib_qt import matplotlib_qt
 from matplotlib_auto import matplotlib_inline
 
-
 class MainWindow(QMainWindow):
     
     def __init__(self):
@@ -380,10 +379,10 @@ class MainWindow(QMainWindow):
                         widget = item.widget()
                         widget.deleteLater()
        
-        with open("../logs/logs.log",'w') as file:
+        with open(settings.log_file,'w') as file:
            file.close()
         cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
-        text=open('../logs/logs.log').read()
+        text=open(settings.log_file).read()
         self.Console_output.setText(text)
         
         self.Directory.setCursorPosition(0);
@@ -425,10 +424,10 @@ class MainWindow(QMainWindow):
             mess.setWindowTitle("MessageBox")
             returnValue = mess.exec_()
         else:
-            with open("../logs/logs.log",'a') as file:
+            with open(settings.log_file,'a') as file:
                file.close()
             cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
-            text=open('../logs/logs.log').read()
+            text=open(settings.log_file).read()
             self.Console_output.setText(text)
             
     @pyqtSlot()             
@@ -444,7 +443,7 @@ class MainWindow(QMainWindow):
             returnValue = mess.exec_()
         else:
             cpf.XRD_FitPattern.set_range(f"{self.input_file_path}", save_all=True)
-            text=open('../logs/logs.log').read()
+            text=open(settings.log_file_name).read()
             self.Console_output.setText(text)
     
     @pyqtSlot()
@@ -459,7 +458,7 @@ class MainWindow(QMainWindow):
             returnValue = mess.exec_()
         else:
             cpf.XRD_FitPattern.initial_peak_position(f"{self.input_file_path}", save_all=True)
-            text=open('../logs/logs.log').read()
+            text=open(settings.log_file).read()
             self.Console_output.setText(text)
     
     @pyqtSlot()
@@ -474,7 +473,7 @@ class MainWindow(QMainWindow):
             returnValue = mess.exec_()
         else:
             cpf.XRD_FitPattern.execute(f"{self.input_file_path}", save_all=True, parallel = False)
-            text=open('../logs/logs.log').read()
+            text=open(settings.log_file).read()
             # FIX ME Simon: parallel = True doesn't work on Adina's Windows computer
             self.Console_output.setText(text)
     
@@ -490,7 +489,7 @@ class MainWindow(QMainWindow):
             returnValue = mess.exec_()
         else:
             cpf.XRD_FitPattern.write_output(f"{self.input_file_path}", save_all=True)
-            text=open('../logs/logs.log').read()
+            text=open(settings.log_file).read()
             self.Console_output.setText(text)
     
     @pyqtSlot()

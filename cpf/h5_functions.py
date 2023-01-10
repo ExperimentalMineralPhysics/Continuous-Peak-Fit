@@ -183,9 +183,9 @@ def get_image_keys(
                 # print('number_data', number_data)
 
                 if key_end[0] == -1:
-                    key_end[0] = number_data + 1
+                    key_end[0] = number_data
                 else:
-                    key_end[0] + 1
+                    key_end[0] += 1
 
                 # if the order is reverse switch the values
                 # FIXME: this only works for the input as set needs to be updatedto work for all logics.
@@ -215,8 +215,8 @@ def get_image_keys(
                     key_route=key_route, 
                     key_names=h5key_names[0], 
                     key_measure=h5key_list[0],
-                    key_start=key_start[0],
-                    key_end=key_end[0],
+                    key_start=0,
+                    key_end=-1,
                     key_step=1,
                     index=index,
                 )
@@ -232,7 +232,7 @@ def get_image_keys(
                 if key_end[0] == -1:
                     key_end[0] = number_data
                 else:
-                    key_end[0] + 1
+                    key_end[0] += 1
 
                 # if we are looking for more images than there are cut the list
                 # key_end[0] = np.min(number_data, key_end[0])
@@ -271,8 +271,8 @@ def get_image_keys(
             key_route=key_str, 
             key_names=h5key_names[0], 
             key_measure=h5key_list[0],
-            key_start=key_start[0],
-            key_end=key_end[0],
+            key_start=0,
+            key_end=-1,
             key_step=1,
             index=0,
         )
@@ -301,8 +301,8 @@ def get_image_keys(
             key_start[0], key_end[0] = key_end[0], key_start[0]
             key_end[0] -= 1
             #key_start[0] -= 1
-        # else:
-        #     key_end[0] += 1    
+        else:
+            key_end[0] += 1    
         # populate the list
         #print('start loop', [*range(key_start[0], key_end[0], key_step[0])])
         # for i in range(len(key_lst)):
@@ -329,7 +329,7 @@ def get_image_keys(
                     key_route=key_lst[i],
                     bottom_level=bottom_level,
                     index=index,
-                    key_str=str(key_strings[index]),
+                    key_str=str(key_strings[i]),
                 )
             )
 

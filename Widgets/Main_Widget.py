@@ -1,11 +1,11 @@
 import sys
-import PyQt6
-from PyQt6 import (
+import PyQt5
+from PyQt5 import (
     QtWidgets, 
     QtCore, 
     QtGui,
     )
-from PyQt6.QtWidgets import (
+from PyQt5.QtWidgets import (
     QMainWindow, 
     QApplication, 
     QPushButton, 
@@ -14,12 +14,12 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QFileDialog
     )
-from PyQt6.QtGui import QIcon
-from PyQt6.QtCore import pyqtSlot, QThread, QObject
-from PyQt6.uic import loadUi
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import pyqtSlot, QThread, QObject
+from PyQt5.uic import loadUi
 
-from PyQt6.QtWidgets import QMessageBox
-from PyQt6.QtCore import *
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtCore import *
 
 from string import Template
 import os
@@ -947,7 +947,7 @@ def main():
     mainwindow = Main_Widget()
     mainwindow.showMaximized()
     try:        
-      sys.exit(app.exec())
+      sys.exit(app.exec_())
     except:
       os._exit(00)
 

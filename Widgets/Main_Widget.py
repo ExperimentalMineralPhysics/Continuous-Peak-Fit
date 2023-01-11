@@ -1,32 +1,32 @@
 import sys
-from PyQt5 import (
+import PyQt6
+from PyQt6 import (
     QtWidgets, 
     QtCore, 
     QtGui,
     )
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QMainWindow, 
     QApplication, 
     QPushButton, 
     QWidget, 
-    QAction, 
     QTabWidget,
     QVBoxLayout,
     QFileDialog
     )
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.uic import loadUi
+from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import pyqtSlot, QThread, QObject
+from PyQt6.uic import loadUi
 
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtCore import *
+from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtCore import *
 
 from string import Template
 import os
 
-from Range_Widget import Range
-from Peak_Widget import Peak
-from Output_Widget import Output
+from Widgets.Range_Widget import Range
+from Widgets.Peak_Widget import Peak
+from Widgets.Output_Widget import Output
 
 import cpf
 from cpf.settings import settings
@@ -34,11 +34,13 @@ from cpf.settings import settings
 from matplotlib_qt import matplotlib_qt
 from matplotlib_auto import matplotlib_inline
 
+import os
 
-class MainWindow(QMainWindow):
+
+class Main_Widget(QMainWindow):
     
     def __init__(self):
-        super(MainWindow, self).__init__()
+        super(Main_Widget, self).__init__()
         loadUi("Main_Widget.ui", self)
         self.setWindowIcon(QtGui.QIcon('logo.png'))
         self.gui_layout()
@@ -51,39 +53,39 @@ class MainWindow(QMainWindow):
         self.range_list = []
         self.output_list = []
         
-    
+
     def gui_layout(self):
-        self.Main_Tab.setMinimumHeight(40);
-        self.Directory.setMinimumHeight(40);
-        self.Basename.setMinimumHeight(40);
-        self.Extension.setMinimumHeight(40);
-        self.Start_Num.setMinimumHeight(40);
-        self.End_Num.setMinimumHeight(40);
-        self.Num_Digit.setMinimumHeight(40);
-        self.Step.setMinimumHeight(40);
-        self.Calib_Type.setMinimumHeight(40);
-        self.Calib_Detect.setMinimumHeight(40);
-        self.Calib_Param.setMinimumHeight(40);
-        self.Calib_Mask.setMinimumHeight(40);
-        self.Calib_Pixels.setMinimumHeight(40);
-        self.Calib_Data.setMinimumHeight(40);
-        self.cascade_bin_type.setMinimumHeight(40);
-        self.cascade_per_bin.setMinimumHeight(40);
-        self.cascade_number_bins.setMinimumHeight(40);
-        self.cascade_track.setMinimumHeight(40);
-        self.bg_1.setMinimumHeight(40);
-        self.bg_2.setMinimumHeight(40);
-        self.ds_1.setMinimumHeight(40);
-        self.ds_2.setMinimumHeight(40);
-        self.h_1.setMinimumHeight(40);
-        self.h_2.setMinimumHeight(40);
-        self.pro_1.setMinimumHeight(40);
-        self.pro_2.setMinimumHeight(40);
-        self.wdt_1.setMinimumHeight(40);
-        self.wdt_2.setMinimumHeight(40);
-        self.AziBins.setMinimumHeight(40);
-        self.Output_Dir_1.setMinimumHeight(40);
-        self.Output_Dir_2.setMinimumHeight(40);
+        self.Main_Tab.setMinimumHeight(30);
+        self.Directory.setMinimumHeight(30);
+        self.Basename.setMinimumHeight(30);
+        self.Extension.setMinimumHeight(30);
+        self.Start_Num.setMinimumHeight(30);
+        self.End_Num.setMinimumHeight(30);
+        self.Num_Digit.setMinimumHeight(30);
+        self.Step.setMinimumHeight(30);
+        self.Calib_Type.setMinimumHeight(30);
+        self.Calib_Detect.setMinimumHeight(30);
+        self.Calib_Param.setMinimumHeight(30);
+        self.Calib_Mask.setMinimumHeight(30);
+        self.Calib_Pixels.setMinimumHeight(30);
+        self.Calib_Data.setMinimumHeight(30);
+        self.cascade_bin_type.setMinimumHeight(30);
+        self.cascade_per_bin.setMinimumHeight(30);
+        self.cascade_number_bins.setMinimumHeight(30);
+        self.cascade_track.setMinimumHeight(30);
+        self.bg_1.setMinimumHeight(30);
+        self.bg_2.setMinimumHeight(30);
+        self.ds_1.setMinimumHeight(30);
+        self.ds_2.setMinimumHeight(30);
+        self.h_1.setMinimumHeight(30);
+        self.h_2.setMinimumHeight(30);
+        self.pro_1.setMinimumHeight(30);
+        self.pro_2.setMinimumHeight(30);
+        self.wdt_1.setMinimumHeight(30);
+        self.wdt_2.setMinimumHeight(30);
+        self.AziBins.setMinimumHeight(30);
+        self.Output_Dir_1.setMinimumHeight(30);
+        self.Output_Dir_2.setMinimumHeight(30);
         self.Console_output.setReadOnly(True)
         self.AddRange_Btn.clicked.connect(self.Insert_Range)
         self.RemoveRange_Btn.clicked.connect(self.Remove_Range)
@@ -109,8 +111,14 @@ class MainWindow(QMainWindow):
         with values
 
         ''' 
-        self.set_cl.datafile_directory = None
+        self.set_cl.datafile_directory = "."
         self.set_cl.datafile_basename = None
+        
+        self.set_cl.datafile_number = 0
+        self.set_cl.image_list = None
+        self.set_cl.image_number = 0
+        
+        self.set_cl.datafile_preprocess = None
         self.set_cl.calibration_type = None
         self.set_cl.calibration_detector = None
         self.set_cl.calibration_parameters = None
@@ -122,17 +130,29 @@ class MainWindow(QMainWindow):
         self.set_cl.cascade_number_bins = None
         self.set_cl.cascade_track = False
         
-        self.set_cl.fit_bounds["background"][0] = None
-        self.set_cl.fit_bounds["background"][1] = None
-        self.set_cl.fit_bounds["d-space"][0] = None
-        self.set_cl.fit_bounds["d-space"][1] = None
-        self.set_cl.fit_bounds["height"][0] = None
-        self.set_cl.fit_bounds["height"][1] = None
-        self.set_cl.fit_bounds["profile"][0] = None
-        self.set_cl.fit_bounds["profile"][1] = None
-        self.set_cl.fit_bounds["width"][0] = None
-        self.set_cl.fit_bounds["width"][1] = None
-        self.set_cl.output_directory = None
+        self.set_cl.output_directory = "."
+        self.set_cl.fit_orders = None
+        
+        self.set_cl.fit_bin_type = None
+        self.set_cl.fit_per_bin = None
+        self.set_cl.fit_number_bins = None
+        self.set_cl.fit_orders = None
+        self.set_cl.fit_bounds = {
+            "background": ["0.95*min", "1.05*max"],
+            "d-space": ["min", "max"],
+            "height": [0, "1.05*max"],
+            "profile": [0, 1],
+            "width": ["range/(ndata)", "range/2"],
+        }
+
+        self.set_cl.fit_track = False
+        self.set_cl.fit_propagate = True
+        self.set_cl.output_types = None
+        self.set_cl.output_settings = dict()
+        self.set_cl.subfit_file_position = None
+        self.set_cl.subfit_filename = None
+        self.set_cl.subfit_order_position = None
+        self.set_cl.subfit_orders = None
 
         fname= QFileDialog.getOpenFileName(self, "Load Input File", "..\\", "Python Files (*.py)")
         if fname:
@@ -212,11 +232,7 @@ class MainWindow(QMainWindow):
                 range_object.bg_fixed_checkbox.setChecked(True)
                 self.b_type = str(self.set_cl.fit_orders[range_tab].get("background-type"))
                 range_object.Background_Type.setCurrentText(f"{self.b_type}")
-            
-            #########################
-            ######################### Testing
-            #########################
-            #########################
+
             self.range_list.append(range_object) 
 
             self.peak_length = len(self.set_cl.fit_orders[range_tab]["peak"])
@@ -407,6 +423,7 @@ class MainWindow(QMainWindow):
            file.close()
         cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
         text=open('../logs/logs.log').read()
+        
         self.Console_output.setText(text)
         
         self.Directory.setCursorPosition(0);
@@ -456,7 +473,6 @@ class MainWindow(QMainWindow):
             
     @pyqtSlot()             
     def Run_Range(self):
-        #self.matplotlib_inline = matplotlib_inline()
         self.matplotlib_qt = matplotlib_qt()
         if self.input_file_path == None:
             mess = QMessageBox()
@@ -704,7 +720,7 @@ class MainWindow(QMainWindow):
             elif output_object.Output_Type_comboBox.currentText() =='Select Type':
                 mess = QMessageBox()
                 mess.setIcon(QMessageBox.Warning)
-                mess.setText("Please Select Type")
+                mess.setText("Please Select Output Type")
                 mess.setStandardButtons(QMessageBox.Ok)
                 mess.setWindowTitle("MessageBox")
                 returnValue = mess.exec_()
@@ -805,7 +821,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def Insert_Output(self):
         output_object = Output()
-        self.Output_Tab.addTab(output_object , QIcon(""),"Output")
+        self.Output_Tab.addTab(output_object, QIcon(""),"Output")
         self.output_list.append(output_object)
         
     @pyqtSlot()
@@ -928,10 +944,10 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    mainwindow = MainWindow()
-    mainwindow.show() 
+    mainwindow = Main_Widget()
+    mainwindow.showMaximized()
     try:        
-      sys.exit(app.exec_())
+      sys.exit(app.exec())
     except:
       os._exit(00)
 

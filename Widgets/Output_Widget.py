@@ -1,18 +1,17 @@
 import sys
-from PyQt5.QtGui import QIcon
-from PyQt5.uic import loadUi
-from PyQt5 import QtWidgets
-from PyQt5 import (
+from PyQt6.QtGui import QIcon
+from PyQt6.uic import loadUi
+from PyQt6 import QtWidgets
+from PyQt6 import (
     QtCore, 
     QtGui, 
     QtWidgets
 )
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QMainWindow, 
     QApplication, 
     QPushButton, 
     QWidget, 
-    QAction, 
     QTabWidget,
     QVBoxLayout
 )
@@ -26,7 +25,7 @@ class Output(QWidget):
     def __init__(self):
         super(Output, self).__init__()
         loadUi("Output_Widget.ui", self)
-        self.Output_Type_comboBox.setMinimumHeight(40);
+        self.Output_Type_comboBox.setMinimumHeight(30);
         self.Output_Type_comboBox.currentTextChanged.connect(self.on_combobox_changed)
 
     def on_combobox_changed(self):
@@ -42,7 +41,7 @@ class Output(QWidget):
                 for wid in range (0, self.req_item1):
                     self.lineEdit = QtWidgets.QLineEdit(self.groupBox)
                     self.lineEdit.setObjectName(cpf.output_formatters.WritePolydefix.Requirements()[1][wid])
-                    self.lineEdit.setMinimumHeight(40);
+                    self.lineEdit.setMinimumHeight(30);
                     self.gridLayout_3.addWidget(self.lineEdit, n, 2, 1, 1)
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")
@@ -60,7 +59,7 @@ class Output(QWidget):
                 for wid in range (0, self.req_item11):
                     self.lineEdit = QtWidgets.QLineEdit(self.groupBox_2)
                     self.lineEdit.setObjectName(cpf.output_formatters.WritePolydefix.Requirements()[0][wid])
-                    self.lineEdit.setMinimumHeight(40);
+                    self.lineEdit.setMinimumHeight(30);
                     self.gridLayout_2.addWidget(self.lineEdit, n, 2, 1, 1)
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")
@@ -78,7 +77,7 @@ class Output(QWidget):
                 for wid in range (0, self.req_item2):
                     self.lineEdit = QtWidgets.QLineEdit(self.groupBox)
                     self.lineEdit.setObjectName(cpf.output_formatters.WriteCoefficientTable.Requirements()[1][wid])
-                    self.lineEdit.setMinimumHeight(40);
+                    self.lineEdit.setMinimumHeight(30);
                     self.gridLayout_3.addWidget(self.lineEdit, n, 2, 1, 1)
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")
@@ -96,7 +95,7 @@ class Output(QWidget):
                 for wid in range (0, self.req_item12):
                     self.lineEdit = QtWidgets.QLineEdit(self.groupBox_2)
                     self.lineEdit.setObjectName(cpf.output_formatters.WriteCoefficientTable.Requirements()[0][wid])
-                    self.lineEdit.setMinimumHeight(40);
+                    self.lineEdit.setMinimumHeight(30);
                     self.gridLayout_2.addWidget(self.lineEdit, n, 2, 1, 1)
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")
@@ -113,7 +112,7 @@ class Output(QWidget):
                 for wid in range (0, self.req_item3):
                     self.lineEdit = QtWidgets.QLineEdit(self.groupBox)
                     self.lineEdit.setObjectName(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1][wid])
-                    self.lineEdit.setMinimumHeight(40);
+                    self.lineEdit.setMinimumHeight(30);
                     self.gridLayout_3.addWidget(self.lineEdit, n, 2, 1, 1)
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")
@@ -131,7 +130,7 @@ class Output(QWidget):
                 for wid in range (0, self.req_item13):
                     self.lineEdit = QtWidgets.QLineEdit(self.groupBox_2)
                     self.lineEdit.setObjectName(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][wid])
-                    self.lineEdit.setMinimumHeight(40);
+                    self.lineEdit.setMinimumHeight(30);
                     self.gridLayout_2.addWidget(self.lineEdit, n, 2, 1, 1)
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")
@@ -149,7 +148,7 @@ class Output(QWidget):
                 for wid in range (0, self.req_item4):
                     self.lineEdit = QtWidgets.QLineEdit(self.groupBox)
                     self.lineEdit.setObjectName(cpf.output_formatters.WriteMultiFit.Requirements()[1][wid])
-                    self.lineEdit.setMinimumHeight(40);
+                    self.lineEdit.setMinimumHeight(30);
                     self.gridLayout_3.addWidget(self.lineEdit, n, 2, 1, 1)
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")
@@ -167,7 +166,7 @@ class Output(QWidget):
                 for wid in range (0, self.req_item14):
                     self.lineEdit = QtWidgets.QLineEdit(self.groupBox_2)
                     self.lineEdit.setObjectName(cpf.output_formatters.WriteMultiFit.Requirements()[0])
-                    self.lineEdit.setMinimumHeight(40);
+                    self.lineEdit.setMinimumHeight(30);
                     self.gridLayout_2.addWidget(self.lineEdit, n, 0, 1, 1)
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")
@@ -185,7 +184,7 @@ class Output(QWidget):
                 for wid in range (0, self.req_item5):
                     self.lineEdit = QtWidgets.QLineEdit(self.groupBox)
                     self.lineEdit.setObjectName(cpf.output_formatters.WritePolydefixED.Requirements()[1][wid])
-                    self.lineEdit.setMinimumHeight(40);
+                    self.lineEdit.setMinimumHeight(30);
                     self.gridLayout_3.addWidget(self.lineEdit, n, 2, 1, 1)
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")
@@ -203,7 +202,7 @@ class Output(QWidget):
                 for wid in range (0, self.req_item15):
                     self.lineEdit = QtWidgets.QLineEdit(self.groupBox_2)
                     self.lineEdit.setObjectName(cpf.output_formatters.WritePolydefixED.Requirements()[0][wid])
-                    self.lineEdit.setMinimumHeight(40);
+                    self.lineEdit.setMinimumHeight(30);
                     self.gridLayout_2.addWidget(self.lineEdit, n, 2, 1, 1)
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")

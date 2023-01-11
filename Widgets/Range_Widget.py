@@ -1,16 +1,16 @@
-from PyQt5.QtGui import QIcon
-from PyQt5.uic import loadUi
-from PyQt5 import QtWidgets
-from PyQt5 import (
+from PyQt6.QtGui import QIcon
+from PyQt6.uic import loadUi
+from PyQt6 import QtWidgets
+from PyQt6 import (
     QtCore, 
     QtGui, 
     QtWidgets,
     )
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QMainWindow, 
     QApplication, 
     QPushButton, 
-    QWidget, QAction, 
+    QWidget, 
     QTabWidget,
     QVBoxLayout,
     )
@@ -41,13 +41,13 @@ class Range(QWidget):
         self.Add_Peak_Btn.clicked.connect(self.Insert_Peak)
         self.Remove_Peak_Btn.clicked.connect(self.Remove_Peak)
         self.clickcount = 0 
-        self.Range_min.setMinimumHeight(40);
-        self.Range_max.setMinimumHeight(40);    
-        self.Intensity_min.setMinimumHeight(40);  
-        self.Intensity_max.setMinimumHeight(40);
-        self.Range_Background_Val.setMinimumHeight(40);  
-        self.Background_Type.setMinimumHeight(40);
-        self.bg_fixed_lineEdit.setMinimumHeight(40);
+        self.Range_min.setMinimumHeight(30);
+        self.Range_max.setMinimumHeight(30);    
+        self.Intensity_min.setMinimumHeight(30);  
+        self.Intensity_max.setMinimumHeight(30);
+        self.Range_Background_Val.setMinimumHeight(30);  
+        self.Background_Type.setMinimumHeight(30);
+        self.bg_fixed_lineEdit.setMinimumHeight(30);
     
     def Insert_Peak(self):
         peak_object = Peak()

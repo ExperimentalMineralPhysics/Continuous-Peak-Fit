@@ -1,16 +1,15 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.uic import loadUi
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import (
+from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.uic import loadUi
+from PyQt6 import QtWidgets
+from PyQt6.QtWidgets import (
     QMainWindow, 
     QApplication, 
     QPushButton, 
     QWidget, 
-    QAction, 
     QTabWidget,
     QVBoxLayout
 )
-from PyQt5.QtGui import QIcon
+from PyQt6.QtGui import (QIcon, QAction)
 
 import sys
 from string import Template

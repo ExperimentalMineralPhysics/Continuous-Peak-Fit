@@ -1,25 +1,24 @@
 import sys
-from PyQt5 import (
+from PyQt6 import (
     QtWidgets, 
     QtCore, 
     QtGui,
     )
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QMainWindow, 
     QApplication, 
     QPushButton, 
-    QWidget, 
-    QAction, 
+    QWidget,
     QTabWidget,
     QVBoxLayout,
     QFileDialog
     )
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.uic import loadUi
+from PyQt6.QtGui import (QIcon, QAction)
+from PyQt6.QtCore import pyqtSlot
+from PyQt6.uic import loadUi
 
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtCore import *
+from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtCore import *
 
 from string import Template
 import os

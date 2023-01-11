@@ -13,4 +13,4 @@ pathos
 hdf5plugin
 opencv-python
 pandas
-PyQt5
+PyQt6

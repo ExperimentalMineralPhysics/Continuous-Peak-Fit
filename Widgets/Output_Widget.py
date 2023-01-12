@@ -102,7 +102,7 @@ class Output(QWidget):
                     self.label_2.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[1][wid])
                     self.gridLayout_3.addWidget(self.label_2, n, 0, 1, 1)
                     n+=1
-                    self.WriteCoefficientTable_optional_list.append(self.lineEdit.objectName())
+                    self.WriteCoefficientTable_optional_list.append(self.lineEdit)
         # Required            
                 self.req_item12 = len(cpf.output_formatters.WriteCoefficientTable.Requirements()[0])
                 childcount2 = self.gridLayout_2.count()
@@ -141,7 +141,7 @@ class Output(QWidget):
                     self.label_2.setText(cpf.output_formatters.WriteDifferentialStrain.Requirements()[1][wid])
                     self.gridLayout_3.addWidget(self.label_2, n, 0, 1, 1)
                     n+=1
-                    self.WriteDifferentialStrain_optional_list.append(self.lineEdit.objectName())
+                    self.WriteDifferentialStrain_optional_list.append(self.lineEdit)
         #Required            
                 self.req_item13 = len(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0])
                 childcount2 = self.gridLayout_2.count()
@@ -181,7 +181,7 @@ class Output(QWidget):
                     self.label_2.setText(cpf.output_formatters.WriteMultiFit.Requirements()[1][wid])
                     self.gridLayout_3.addWidget(self.label_2, n, 0, 1, 1)
                     n+=1
-                    self.WriteMultiFit_optional_list.append(self.lineEdit.objectName())
+                    self.WriteMultiFit_optional_list.append(self.lineEdit)
          #Required           
                 self.req_item14 = len(cpf.output_formatters.WriteMultiFit.Requirements()[0])
                 childcount2 = self.gridLayout_2.count()
@@ -221,7 +221,7 @@ class Output(QWidget):
                     self.label_2.setText(cpf.output_formatters.WritePolydefixED.Requirements()[1][wid])
                     self.gridLayout_3.addWidget(self.label_2, n, 0, 1, 1)
                     n+=1       
-                    self.WritePolydefixED_optional_list.append(self.lineEdit.objectName())
+                    self.WritePolydefixED_optional_list.append(self.lineEdit)
          #Required           
                 self.req_item15 = len(cpf.output_formatters.WritePolydefixED.Requirements()[0])
                 childcount2 = self.gridLayout_2.count()

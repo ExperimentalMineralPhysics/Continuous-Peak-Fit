@@ -1,4 +1,5 @@
 import sys
+import os
 from PyQt6.QtWidgets import QApplication
 
 # Add our sub directories to the module search path
@@ -13,9 +14,10 @@ def main():
     mainwindow = MainWindow()
     mainwindow.show() 
     try:        
-      sys.exit(app.exec_())
-    except:
-      os._exit(00)
+        sys.exit(app.exec())
+    except Exception as e:
+        print("ERROR:", e)
+        os._exit(00)
 	  
 if __name__ == '__main__':
-	main()
+    main()

@@ -78,7 +78,7 @@ class Output(QWidget):
                     self.gridLayout_2.addWidget(self.lineEdit, n, 2, 1, 1)
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")
-                    self.gridLayout_3.addWidget(self.label_2, n, 0, 1, 1)
+                    self.gridLayout_2.addWidget(self.label_2, n, 0, 1, 1)
                     self.label_2.setText(cpf.output_formatters.WritePolydefix.Requirements()[0][wid])
                     n+=1     
                     self.WritePolydefix_required_list.append(self.lineEdit)
@@ -118,6 +118,7 @@ class Output(QWidget):
                     self.gridLayout_2.addWidget(self.lineEdit, n, 2, 1, 1)
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")
+                    self.gridLayout_2.addWidget(self.label_2, n, 0, 1, 1)
                     self.label_2.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[0][wid])
                     n+=1
                     self.WriteCoefficientTable_required_list.append(self.lineEdit)
@@ -158,7 +159,7 @@ class Output(QWidget):
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")
                     self.label_2.setText(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][wid])
-                    self.gridLayout_3.addWidget(self.label_2, n, 0, 1, 1)
+                    self.gridLayout_2.addWidget(self.label_2, n, 0, 1, 1)
                     n+=1
                     self.WriteDifferentialStrain_required_list.append(self.linEdit)
                     
@@ -198,7 +199,7 @@ class Output(QWidget):
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")
                     self.label_2.setText(cpf.output_formatters.WriteMultiFit.Requirements()[0][wid])
-                    self.gridLayout_3.addWidget(self.label_2, n, 0, 1, 1)
+                    self.gridLayout_2.addWidget(self.label_2, n, 0, 1, 1)
                     n+=1
                     self.WriteMultiFit_required_list.append(self.linEdit)
                     
@@ -238,7 +239,7 @@ class Output(QWidget):
                     self.label_2 = QtWidgets.QLabel(self.groupBox)
                     self.label_2.setObjectName("label_2")
                     self.label_2.setText(cpf.output_formatters.WritePolydefixED.Requirements()[0][wid])
-                    self.gridLayout_3.addWidget(self.label_2, n, 0, 1, 1)
+                    self.gridLayout_2.addWidget(self.label_2, n, 0, 1, 1)
                     n+=1      
                     self.WritePolydefixED_required_list.append(self.linEdit)
         else:

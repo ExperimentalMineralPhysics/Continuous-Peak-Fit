@@ -299,6 +299,7 @@ class Main_Widget(QMainWindow):
                 # Optional Params
                     for wid in output_object.WritePolydefix_optional_list:
                         lineEdit = wid
+                        
                         if 'Output_ElasticProperties' in self.set_cl.output_settings:
                             if lineEdit.objectName() == 'Output_ElasticProperties':
                                lineEdit.setText(str(self.set_cl.output_settings["Output_ElasticProperties"]))
@@ -320,93 +321,124 @@ class Main_Widget(QMainWindow):
                         
                 # Required Params
                     for wid in output_object.WritePolydefix_required_list:
-                        lineEdit = cpf.output_formatters.WritePolydefix.Requirements()[0][wid]
-                        output_object.lineEdit.setText(cpf.output_formatters.WritePolydefix.Requirements()[0][wid])        
+                        list_len = len(output_object.WritePolydefix_required_list)
+                        for i in range(list_len):
+                           if wid.objectName() == cpf.output_formatters.WritePolydefix.Requirements()[0][i]:
+                               wid.setText(cpf.output_formatters.WritePolydefix.Requirements()[0][i])       
                                  
             elif 'CoefficientTable' == self.set_cl.output_types[output]:
                     output_object.Output_Type_comboBox.setCurrentText('WriteCoefficientTable')
                 
                 # Optional Params                    
                     for wid in output_object.WriteCoefficientTable_optional_list:
-                        lineEdit = cpf.output_formatters.WriteCoefficientTable.Requirements()[1][wid]
-                        if lineEdit == 'coefs_vals_write':
-                            output_object.lineEdit.setText(str(self.set_cl.output_settings["coefs_vals_write"]))
+                        lineEdit = wid
+                        
+                        if 'coefs_vals_write' in self.set_cl.output_settings:
+                            if lineEdit.objectName() == 'coefs_vals_write':
+                                lineEdit.setText(str(self.set_cl.output_settings["coefs_vals_write"]))
                         
                 # Required Params                        
                     for wid in output_object.WriteCoefficientTable_required_list:
-                        lineEdit = cpf.output_formatters.WriteCoefficientTable.Requirements()[0][wid]
-                        output_object.lineEdit.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[0][wid])
+                        list_len = len(output_object.WriteCoefficientTable_required_list)
+                        for i in range(list_len):
+                           if wid.objectName() == cpf.output_formatters.WriteCoefficientTable.Requirements()[0][i]:
+                               wid.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[0][i])
                         
             elif 'DifferentialStrain' == self.set_cl.output_types[output]:
                     output_object.Output_Type_comboBox.setCurrentText('WriteDifferentialStrain')
                 
                 # Optional Params                    
                     for wid in output_object.WriteDifferentialStrain_optional_list:
-                            lineEdit = cpf.output_formatters.WriteDifferentialStrain.Requirements()[1][wid]
-                            if lineEdit == 'Output_ElasticProperties':
-                                output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_ElasticProperties"]))
-                            elif lineEdit == 'phase':
-                                output_object.lineEdit.setText(str(self.set_cl.output_settings["phase"]))
-                            elif lineEdit == 'datafile_StartNum':
-                                output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_StartNum"]))
-                            elif lineEdit == 'datafile_EndNum':
-                                output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_EndNum"]))
-                            elif lineEdit == 'datafile_NumDigit':
-                                output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_NumDigit"]))
-                            elif lineEdit == 'Output_NumAziWrite':
-                                output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_NumAziWrite"]))
+                            lineEdit = wid
+                            
+                            if 'Output_ElasticProperties' in self.set_cl.output_settings:
+                                if lineEdit.objectName() == 'Output_ElasticProperties':
+                                    lineEdit.setText(str(self.set_cl.output_settings["Output_ElasticProperties"]))
+                            if 'phase' in self.set_cl.output_settings:
+                                if lineEdit.objectName() == 'phase':
+                                    lineEdit.setText(str(self.set_cl.output_settings["phase"]))
+                            if 'datafile_StartNum' in self.set_cl.output_settings:
+                                if lineEdit.objectName() == 'datafile_StartNum':
+                                    lineEdit.setText(str(self.set_cl.output_settings["datafile_StartNum"]))
+                            if 'datafile_EndNum' in self.set_cl.output_settings:
+                                if lineEdit.objectName() == 'datafile_EndNum':
+                                    lineEdit.setText(str(self.set_cl.output_settings["datafile_EndNum"]))
+                            if 'datafile_NumDigit' in self.set_cl.output_settings:
+                                if lineEdit.objectName() == 'datafile_NumDigit':
+                                    lineEdit.setText(str(self.set_cl.output_settings["datafile_NumDigit"]))
+                            if 'Output_NumAziWrite' in self.set_cl.output_settings:
+                                if lineEdit.objectName() == 'Output_NumAziWrite':
+                                    lineEdit.setText(str(self.set_cl.output_settings["Output_NumAziWrite"]))
                 
                 # Required Params                          
                     for wid in output_object.WriteDifferentialStrain_required_list:
-                        lineEdit = cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][wid]
-                        output_object.lineEdit.setText(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][wid])
+                        list_len = len(output_object.WriteDifferentialStrain_required_list)
+                        for i in range(list_len):
+                           if wid.objectName() == cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][i]:
+                               wid.setText(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][i])  
                         
             elif 'MultiFit' == self.set_cl.output_types[output]:
                     output_object.Output_Type_comboBox.setCurrentText('WriteMultiFit')
     
                 # Optional Params                    
                     for wid in output_object.WriteMultiFit_optional_list:
-                        lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[1][wid]
-                        if lineEdit == 'Output_ElasticProperties':
-                            output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_ElasticProperties"]))
-                        elif lineEdit == 'phase':
-                            output_object.lineEdit.setText(str(self.set_cl.output_settings["phase"]))
-                        elif lineEdit == 'datafile_StartNum':
-                            output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_StartNum"]))
-                        elif lineEdit == 'datafile_EndNum':
-                            output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_EndNum"]))
-                        elif lineEdit == 'datafile_NumDigit':
-                            output_object.lineEdit.setText(str(self.set_cl.output_settings["datafile_NumDigit"]))
-                        elif lineEdit == 'Output_NumAziWrite':
-                            output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_NumAziWrite"]))
-                
+                        lineEdit = wid
+                        
+                        if 'Output_ElasticProperties' in self.set_cl.output_settings:
+                            if lineEdit.objectName() == 'Output_ElasticProperties':
+                                lineEdit.setText(str(self.set_cl.output_settings["Output_ElasticProperties"]))
+                        if 'phase' in self.set_cl.output_settings:    
+                            if lineEdit.objectName() == 'phase':
+                                lineEdit.setText(str(self.set_cl.output_settings["phase"]))
+                        if 'datafile_StartNum' in self.set_cl.output_settings:    
+                            if lineEdit.objectName() == 'datafile_StartNum':
+                                lineEdit.setText(str(self.set_cl.output_settings["datafile_StartNum"]))
+                        if 'datafile_EndNum' in self.set_cl.output_settings:        
+                            if lineEdit.objectName() == 'datafile_EndNum':
+                                lineEdit.setText(str(self.set_cl.output_settings["datafile_EndNum"]))
+                        if 'datafile_NumDigit' in self.set_cl.output_settings:     
+                            if lineEdit.objectName() == 'datafile_NumDigit':
+                                lineEdit.setText(str(self.set_cl.output_settings["datafile_NumDigit"]))
+                        if 'Output_NumAziWrite' in self.set_cl.output_settings:   
+                            if lineEdit.objectName() == 'Output_NumAziWrite':
+                                lineEdit.setText(str(self.set_cl.output_settings["Output_NumAziWrite"]))
+                    
                 # Required Params                        
                     for wid in output_object.WriteMultiFit_required_list:
-                        lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[0][wid]
-                        output_object.lineEdit.setText(cpf.output_formatters.WriteMultiFit.Requirements()[0][wid])
+                        list_len = len(output_object.WriteMultiFit_required_list)
+                        for i in range(list_len):
+                           if wid.objectName() == cpf.output_formatters.WriteMultiFit.Requirements()[0][i]:
+                               wid.setText(cpf.output_formatters.WriteMultiFit.Requirements()[0][i])
                         
             elif 'PolydefixED' == self.set_cl.output_types[output]:
                     output_object.Output_Type_comboBox.setCurrentText('WritePolydefixED')
                 
                 # Optional Params                    
                     for wid in output_object.WritePolydefixED_optional_list:
-                      
-                            lineEdit = cpf.output_formatters.WriteMultiFit.Requirements()[1][wid]
-                            if lineEdit == 'ElasticProperties':
-                                output_object.lineEdit.setText(str(self.set_cl.output_settings["ElasticProperties"]))
-                            elif lineEdit == 'phase':
-                                output_object.lineEdit.setText(str(self.set_cl.output_settings["phase"]))
-                            elif lineEdit == 'tc':
-                                output_object.lineEdit.setText(str(self.set_cl.output_settings["tc"]))
-                            elif lineEdit == 'Output_tc':
-                                output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_tc"]))
-                            elif lineEdit == 'Output_TemperaturePower':
-                                output_object.lineEdit.setText(str(self.set_cl.output_settings["Output_TemperaturePower"]))
+                            lineEdit = wid
                             
+                            if 'ElasticProperties' in self.set_cl.output_settings:
+                                if lineEdit.objectName() == 'ElasticProperties':
+                                    lineEdit.setText(str(self.set_cl.output_settings["ElasticProperties"]))
+                            if 'phase' in self.set_cl.output_settings:    
+                                if lineEdit.objectName() == 'phase':
+                                    lineEdit.setText(str(self.set_cl.output_settings["phase"]))
+                            if 'tc' in self.set_cl.output_settings:   
+                                if lineEdit.objectName() == 'tc':
+                                    lineEdit.setText(str(self.set_cl.output_settings["tc"]))
+                            if 'Output_tc' in self.set_cl.output_settings:     
+                                if lineEdit.objectName() == 'Output_tc':
+                                    lineEdit.setText(str(self.set_cl.output_settings["Output_tc"]))
+                            if 'Output_TemperaturePower' in self.set_cl.output_settings:       
+                                if lineEdit.objectName() == 'Output_TemperaturePower':
+                                    lineEdit.setText(str(self.set_cl.output_settings["Output_TemperaturePower"]))
+                                
                 # Required Params                        
                     for wid in output_object.WritePolydefixED_required_list:
-                        lineEdit = cpf.output_formatters.WritePolydefixED.Requirements()[0][wid]
-                        output_object.lineEdit.setText(cpf.output_formatters.WritePolydefixED.Requirements()[0][wid])
+                        list_len = len(output_object.WritePolydefixED_required_list)
+                        for i in range(list_len):
+                           if wid.objectName() == cpf.output_formatters.WritePolydefixED.Requirements()[0][i]:
+                               wid.setText(cpf.output_formatters.WritePolydefixED.Requirements()[0][i])
                         
             else:
                 childcount = self.gridLayout_3.count()
@@ -971,7 +1003,7 @@ def main():
     mainwindow = Main_Widget()
     mainwindow.showMaximized()
     try:        
-      sys.exit(app.exec())
+      sys.exit(app.exec_())
     except:
       os._exit(00)
 

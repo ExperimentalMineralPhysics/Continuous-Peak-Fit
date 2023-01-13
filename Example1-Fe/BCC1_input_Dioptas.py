@@ -37,7 +37,8 @@ fit_orders = [
             "d-space": 2, 
             "height": 6, 
             "profile": 0, 
-            "width": 1
+            "width": 1,
+"symmetry": 1
           }], 
         "range": [[11.70, 12.03]]
       },
@@ -47,7 +48,8 @@ fit_orders = [
             "d-space": 2, 
             "height": 8, 
             "profile": 0, 
-            "width": 0
+            "width": 0,
+"symmetry": 1
           }], 
         "range": [[16.6,17.1]]
       },
@@ -57,7 +59,8 @@ fit_orders = [
             "d-space": 2, 
             "height": 6, 
             "profile": 0, 
-            "width": 0
+            "width": 0,
+"symmetry": 1
           }], 
         "range": [[20.4, 20.9]]
       }, 

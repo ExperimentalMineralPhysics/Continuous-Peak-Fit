@@ -455,11 +455,6 @@ class Main_Widget(QMainWindow):
                         widget.deleteLater()
                
             self.output_list.append(output_object) 
-              
-        with open("../logs/logs.log",'w') as file:
-           file.close()
-        cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
-        text=open('../logs/logs.log').read()
         
         self.Console_output.setText(text)
         
@@ -502,7 +497,7 @@ class Main_Widget(QMainWindow):
             mess.setWindowTitle("MessageBox")
             returnValue = mess.exec_()
         else:
-            with open("../logs/logs.log",'a') as file:
+            with open("../logs/logs.log",'w') as file:
                file.close()
             cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
             text=open('../logs/logs.log').read()

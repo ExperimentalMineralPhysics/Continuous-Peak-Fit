@@ -53,7 +53,9 @@ class Main_Widget(QMainWindow):
         self.range_list = []
         self.output_list = []
         
-
+        file_to_delete = open("../logs/logs.log",'w')
+        file_to_delete.close()
+        
     def gui_layout(self):
         self.Main_Tab.setMinimumHeight(30);
         self.Directory.setMinimumHeight(30);
@@ -120,14 +122,19 @@ class Main_Widget(QMainWindow):
         
         self.set_cl.datafile_preprocess = None
         self.set_cl.calibration_type = None
+        
         self.set_cl.calibration_detector = None
         self.set_cl.calibration_parameters = None
+        
         self.set_cl.calibration_mask = None
         self.set_cl.calibration_pixel_size = None 
+        
         self.set_cl.calibration_data = None
         self.set_cl.cascade_bin_type = None
+        
         self.set_cl.cascade_per_bin = None
         self.set_cl.cascade_number_bins = None
+    
         self.set_cl.cascade_track = False
         
         self.set_cl.output_directory = "."
@@ -135,8 +142,10 @@ class Main_Widget(QMainWindow):
         
         self.set_cl.fit_bin_type = None
         self.set_cl.fit_per_bin = None
+        
         self.set_cl.fit_number_bins = None
         self.set_cl.fit_orders = None
+        
         self.set_cl.fit_bounds = {
             "background": ["0.95*min", "1.05*max"],
             "d-space": ["min", "max"],
@@ -147,14 +156,18 @@ class Main_Widget(QMainWindow):
 
         self.set_cl.fit_track = False
         self.set_cl.fit_propagate = True
+        
         self.set_cl.output_types = None
         self.set_cl.output_settings = dict()
+        
         self.set_cl.subfit_file_position = None
         self.set_cl.subfit_filename = None
+        
         self.set_cl.subfit_order_position = None
         self.set_cl.subfit_orders = None
 
         fname= QFileDialog.getOpenFileName(self, "Load Input File", "..\\", "Python Files (*.py)")
+        
         if fname:
             self.input_file_path = f"{fname[0]}"
         self.set_cl.populate(settings_file=(f"{self.input_file_path}"))
@@ -162,26 +175,37 @@ class Main_Widget(QMainWindow):
         # update new data
         self.Directory.setText(self.set_cl.datafile_directory)
         self.Basename.setText(self.set_cl.datafile_basename)
+        
         self.Calib_Type.setCurrentText(f"{self.set_cl.calibration_type}")
         self.Calib_Detect.setText(self.set_cl.calibration_detector)
+        
         self.Calib_Param.setText(self.set_cl.calibration_parameters)
         self.Calib_Mask.setText(self.set_cl.calibration_mask)
+        
         self.Calib_Pixels.setText(str(self.set_cl.calibration_pixel_size))   
         self.Calib_Data.setText(self.set_cl.calibration_data)
+        
         self.cascade_bin_type.setText(str(self.set_cl.cascade_bin_type))
         self.cascade_per_bin.setText(str(self.set_cl.cascade_per_bin))
+        
         self.cascade_number_bins.setText(str(self.set_cl.cascade_number_bins))
         self.cascade_track.setText(str(self.set_cl.cascade_track))
+        
         self.bg_1.setText(self.set_cl.fit_bounds.get("background")[0])
         self.bg_2.setText(self.set_cl.fit_bounds.get("background")[1])
+        
         self.ds_1.setText(self.set_cl.fit_bounds.get("d-space")[0])
         self.ds_2.setText(self.set_cl.fit_bounds.get("d-space")[1])
+        
         self.h_1.setText(str(self.set_cl.fit_bounds.get("height")[0]))
         self.h_2.setText(str(self.set_cl.fit_bounds.get("height")[1]))    
+        
         self.pro_1.setText(str(self.set_cl.fit_bounds.get("profile")[0]))
         self.pro_2.setText(str(self.set_cl.fit_bounds.get("profile")[1]))
+        
         self.wdt_1.setText(self.set_cl.fit_bounds.get("width")[0])
         self.wdt_2.setText(self.set_cl.fit_bounds.get("width")[1])
+        
         self.Output_Dir_1.setText(self.set_cl.output_directory)
         self.Output_Dir_2.setText(self.Output_Dir_1.text())
         #self.AziBins.setText(self.set_cl.AziBins)  AttributeError: 'settings' object has no attribute 'AziBins'
@@ -189,25 +213,36 @@ class Main_Widget(QMainWindow):
         # Signals #
         self.Directory.editingFinished.connect(self.Dir_Pressed)
         self.Basename.editingFinished.connect(self.Basename_Pressed)
+        
         self.Calib_Detect.editingFinished.connect(self.Calib_Detect_Pressed)
         self.Calib_Param.editingFinished.connect(self.Calib_Param_Pressed)
+        
         self.Calib_Mask.editingFinished.connect(self.Calib_Mask_Pressed)
         self.Calib_Pixels.editingFinished.connect(self.Calib_Pixels_Pressed)
+        
         self.Calib_Data.editingFinished.connect(self.Calib_Data_Pressed)
         self.cascade_bin_type.editingFinished.connect(self.Cascade_bin_type_Pressed)
+        
         self.cascade_per_bin.editingFinished.connect(self.Cascade_per_bin_Pressed)
         self.cascade_number_bins.editingFinished.connect(self.Cascade_number_bins_Pressed)
+        
         self.cascade_track.editingFinished.connect(self.Cascade_track_Pressed)
         self.bg_1.editingFinished.connect(self.Bg_1_Pressed)
+        
         self.bg_2.editingFinished.connect(self.Bg_2_Pressed)
+        
         self.ds_1.editingFinished.connect(self.Ds_1_Pressed)
         self.ds_2.editingFinished.connect(self.Ds_2_Pressed)
+        
         self.h_1.editingFinished.connect(self.H_1_Pressed)
         self.h_2.editingFinished.connect(self.H_2_Pressed)
+        
         self.pro_1.editingFinished.connect(self.Pro_1_Pressed)
         self.pro_2.editingFinished.connect(self.Pro_2_Pressed)
+        
         self.wdt_1.editingFinished.connect(self.Wdt_1_Pressed)
         self.wdt_2.editingFinished.connect(self.Wdt_2_Pressed)
+        
         self.Output_Dir_1.editingFinished.connect(self.Output_Dir_1_Pressed)
         self.range_length = len(self.set_cl.fit_orders)
         
@@ -217,10 +252,12 @@ class Main_Widget(QMainWindow):
         
         # Manage range_tab data population
         for range_tab in range(0, self.range_length):
+            
             range_object = Range()
             self.Range_Tab.addTab(range_object , QIcon(""),"Range")
             range_object.Range_min.setText(str(self.set_cl.fit_orders[range_tab].get("range")[0]))
             range_object.Range_max.setText(str(self.set_cl.fit_orders[range_tab].get("range")[1]))
+            
             range_object.Range_Background_Val.setText(str(self.set_cl.fit_orders[range_tab].get("background")))
             range_object.Intensity_max.setText(str(self.set_cl.fit_orders[range_tab].get("Imax")))   
             range_object.Intensity_min.setText(str(self.set_cl.fit_orders[range_tab].get("Imin")))   
@@ -239,22 +276,29 @@ class Main_Widget(QMainWindow):
             
             # Manage peak_tab data population
             for peak_tab in range(0, self.peak_length):
+                
                 peak_object = Peak()
                 range_object.Peak_Tab.addTab(peak_object , QIcon(""),"Peak")
                 peak_object.phase_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("phase")))
+                
                 peak_object.hkl.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("hkl")))
                 peak_object.d_space_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("d-space")))
                 self.ds_type = str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("d-space-type"))
+                
                 peak_object.d_space_type.setCurrentText(f"{self.ds_type}")
                 self.h_type = str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("height-type"))
                 peak_object.height_peak_type.setCurrentText(f"{self.h_type}")
+               
                 self.p_type = str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("profile-type"))
                 peak_object.profile_peak_type.setCurrentText(f"{self.p_type}")
                 self.w_type = str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("width-type"))
+               
                 peak_object.width_peak_type.setCurrentText(f"{self.w_type}")
                 peak_object.height_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("height")))
+               
                 peak_object.profile_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("profile")))
                 peak_object.profile_fixed.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("profile_fixed")))
+                
                 peak_object.width_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("width")))
                 peak_object.symmetry_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("symmetry")))
 
@@ -290,40 +334,58 @@ class Main_Widget(QMainWindow):
         
         # Manage output_tab data population    
         self.output_type =  len(self.set_cl.output_types)
+        
         for output in range (0, self.output_type):
+            
             output_object = Output()
             self.Output_Tab.addTab(output_object , QIcon(""),"Output")
 
             if 'Polydefix' == self.set_cl.output_types[output]:
+                    
                     output_object.Output_Type_comboBox.setCurrentText('WritePolydefix')
+               
                 # Optional Params
                     for wid in output_object.WritePolydefix_optional_list:
                         lineEdit = wid
                         
                         if 'Output_ElasticProperties' in self.set_cl.output_settings:
+                            
                             if lineEdit.objectName() == 'Output_ElasticProperties':
                                lineEdit.setText(str(self.set_cl.output_settings["Output_ElasticProperties"]))
+                        
                         if 'datafile_StartNum' in self.set_cl.output_settings:
+                            
                             if lineEdit.objectName() == 'datafile_StartNum':
                                lineEdit.setText(str(self.set_cl.output_settings["datafile_StartNum"]))
+                        
                         if 'datafile_EndNum' in self.set_cl.output_settings:
+                            
                             if lineEdit.objectName() == 'datafile_EndNum':
                                lineEdit.setText(str(self.set_cl.output_settings["datafile_EndNum"]))
+                        
                         if 'datafile_NumDigit' in self.set_cl.output_settings:
+                            
                             if lineEdit.objectName() == 'datafile_NumDigit':
                                lineEdit.setText(str(self.set_cl.output_settings["datafile_NumDigit"]))
+                        
                         if 'Output_NumAziWrite' in self.set_cl.output_settings:
+                            
                             if lineEdit.objectName() =='Output_NumAziWrite':
                                lineEdit.setText(str(self.set_cl.output_settings["Output_NumAziWrite"]))
+                       
                         if 'phase' in self.set_cl.output_settings:
+                            
                             if lineEdit.objectName() == 'phase':
                                lineEdit.setText(str(self.set_cl.output_settings["phase"]))
                         
                 # Required Params
                     for wid in output_object.WritePolydefix_required_list:
+                        
                         list_len = len(output_object.WritePolydefix_required_list)
+                        
                         for i in range(list_len):
-                           if wid.objectName() == cpf.output_formatters.WritePolydefix.Requirements()[0][i]:
+                           
+                            if wid.objectName() == cpf.output_formatters.WritePolydefix.Requirements()[0][i]:
                                wid.setText(cpf.output_formatters.WritePolydefix.Requirements()[0][i])       
                                  
             elif 'CoefficientTable' == self.set_cl.output_types[output]:
@@ -331,6 +393,7 @@ class Main_Widget(QMainWindow):
                 
                 # Optional Params                    
                     for wid in output_object.WriteCoefficientTable_optional_list:
+                        
                         lineEdit = wid
                         
                         if 'coefs_vals_write' in self.set_cl.output_settings:
@@ -339,9 +402,12 @@ class Main_Widget(QMainWindow):
                         
                 # Required Params                        
                     for wid in output_object.WriteCoefficientTable_required_list:
+                        
                         list_len = len(output_object.WriteCoefficientTable_required_list)
+                        
                         for i in range(list_len):
-                           if wid.objectName() == cpf.output_formatters.WriteCoefficientTable.Requirements()[0][i]:
+                           
+                            if wid.objectName() == cpf.output_formatters.WriteCoefficientTable.Requirements()[0][i]:
                                wid.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[0][i])
                         
             elif 'DifferentialStrain' == self.set_cl.output_types[output]:
@@ -352,111 +418,161 @@ class Main_Widget(QMainWindow):
                             lineEdit = wid
                             
                             if 'Output_ElasticProperties' in self.set_cl.output_settings:
+                                
                                 if lineEdit.objectName() == 'Output_ElasticProperties':
                                     lineEdit.setText(str(self.set_cl.output_settings["Output_ElasticProperties"]))
+                           
                             if 'phase' in self.set_cl.output_settings:
+                                
                                 if lineEdit.objectName() == 'phase':
                                     lineEdit.setText(str(self.set_cl.output_settings["phase"]))
+                           
                             if 'datafile_StartNum' in self.set_cl.output_settings:
+                                
                                 if lineEdit.objectName() == 'datafile_StartNum':
                                     lineEdit.setText(str(self.set_cl.output_settings["datafile_StartNum"]))
+                            
                             if 'datafile_EndNum' in self.set_cl.output_settings:
+                               
                                 if lineEdit.objectName() == 'datafile_EndNum':
                                     lineEdit.setText(str(self.set_cl.output_settings["datafile_EndNum"]))
+                            
                             if 'datafile_NumDigit' in self.set_cl.output_settings:
+                               
                                 if lineEdit.objectName() == 'datafile_NumDigit':
                                     lineEdit.setText(str(self.set_cl.output_settings["datafile_NumDigit"]))
+                            
                             if 'Output_NumAziWrite' in self.set_cl.output_settings:
+                                
                                 if lineEdit.objectName() == 'Output_NumAziWrite':
                                     lineEdit.setText(str(self.set_cl.output_settings["Output_NumAziWrite"]))
                 
                 # Required Params                          
                     for wid in output_object.WriteDifferentialStrain_required_list:
+                        
                         list_len = len(output_object.WriteDifferentialStrain_required_list)
+                        
                         for i in range(list_len):
-                           if wid.objectName() == cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][i]:
+                           
+                            if wid.objectName() == cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][i]:
                                wid.setText(cpf.output_formatters.WriteDifferentialStrain.Requirements()[0][i])  
                         
             elif 'MultiFit' == self.set_cl.output_types[output]:
+                    
                     output_object.Output_Type_comboBox.setCurrentText('WriteMultiFit')
     
                 # Optional Params                    
                     for wid in output_object.WriteMultiFit_optional_list:
+                        
                         lineEdit = wid
                         
                         if 'Output_ElasticProperties' in self.set_cl.output_settings:
+                            
                             if lineEdit.objectName() == 'Output_ElasticProperties':
                                 lineEdit.setText(str(self.set_cl.output_settings["Output_ElasticProperties"]))
+                        
                         if 'phase' in self.set_cl.output_settings:    
+                            
                             if lineEdit.objectName() == 'phase':
                                 lineEdit.setText(str(self.set_cl.output_settings["phase"]))
+                       
                         if 'datafile_StartNum' in self.set_cl.output_settings:    
+                          
                             if lineEdit.objectName() == 'datafile_StartNum':
                                 lineEdit.setText(str(self.set_cl.output_settings["datafile_StartNum"]))
+                        
                         if 'datafile_EndNum' in self.set_cl.output_settings:        
+                          
                             if lineEdit.objectName() == 'datafile_EndNum':
                                 lineEdit.setText(str(self.set_cl.output_settings["datafile_EndNum"]))
+                        
                         if 'datafile_NumDigit' in self.set_cl.output_settings:     
+                           
                             if lineEdit.objectName() == 'datafile_NumDigit':
                                 lineEdit.setText(str(self.set_cl.output_settings["datafile_NumDigit"]))
+                        
                         if 'Output_NumAziWrite' in self.set_cl.output_settings:   
+                           
                             if lineEdit.objectName() == 'Output_NumAziWrite':
                                 lineEdit.setText(str(self.set_cl.output_settings["Output_NumAziWrite"]))
                     
                 # Required Params                        
                     for wid in output_object.WriteMultiFit_required_list:
+                        
                         list_len = len(output_object.WriteMultiFit_required_list)
+                        
                         for i in range(list_len):
-                           if wid.objectName() == cpf.output_formatters.WriteMultiFit.Requirements()[0][i]:
+                           
+                            if wid.objectName() == cpf.output_formatters.WriteMultiFit.Requirements()[0][i]:
                                wid.setText(cpf.output_formatters.WriteMultiFit.Requirements()[0][i])
                         
             elif 'PolydefixED' == self.set_cl.output_types[output]:
+                    
                     output_object.Output_Type_comboBox.setCurrentText('WritePolydefixED')
                 
                 # Optional Params                    
                     for wid in output_object.WritePolydefixED_optional_list:
+                            
                             lineEdit = wid
                             
                             if 'ElasticProperties' in self.set_cl.output_settings:
+                              
                                 if lineEdit.objectName() == 'ElasticProperties':
                                     lineEdit.setText(str(self.set_cl.output_settings["ElasticProperties"]))
+                            
                             if 'phase' in self.set_cl.output_settings:    
+                               
                                 if lineEdit.objectName() == 'phase':
                                     lineEdit.setText(str(self.set_cl.output_settings["phase"]))
+                           
                             if 'tc' in self.set_cl.output_settings:   
+                              
                                 if lineEdit.objectName() == 'tc':
                                     lineEdit.setText(str(self.set_cl.output_settings["tc"]))
+                           
                             if 'Output_tc' in self.set_cl.output_settings:     
+                                
                                 if lineEdit.objectName() == 'Output_tc':
                                     lineEdit.setText(str(self.set_cl.output_settings["Output_tc"]))
+                            
                             if 'Output_TemperaturePower' in self.set_cl.output_settings:       
+                               
                                 if lineEdit.objectName() == 'Output_TemperaturePower':
                                     lineEdit.setText(str(self.set_cl.output_settings["Output_TemperaturePower"]))
                                 
                 # Required Params                        
                     for wid in output_object.WritePolydefixED_required_list:
+                       
                         list_len = len(output_object.WritePolydefixED_required_list)
+                        
                         for i in range(list_len):
-                           if wid.objectName() == cpf.output_formatters.WritePolydefixED.Requirements()[0][i]:
+                           
+                            if wid.objectName() == cpf.output_formatters.WritePolydefixED.Requirements()[0][i]:
                                wid.setText(cpf.output_formatters.WritePolydefixED.Requirements()[0][i])
                         
             else:
                 childcount = self.gridLayout_3.count()
+                
                 if childcount >=1:
+                    
                     for i in range (0,childcount):
                         item = self.gridLayout_3.itemAt(i)
                         widget = item.widget()
                         widget.deleteLater()
+                
                 childcount2 = self.gridLayout_2.count()
+                
                 if childcount2 >=1:
+                    
                     for i in range (0,childcount2):
                         item = self.gridLayout_2.itemAt(i)
                         widget = item.widget()
                         widget.deleteLater()
                
             self.output_list.append(output_object) 
-        
-        self.Console_output.setText(text)
+            
+            file_to_delete = open("../logs/logs.log",'w')
+            file_to_delete.close()
         
         self.Directory.setCursorPosition(0);
         self.Basename.setCursorPosition(0);
@@ -464,24 +580,28 @@ class Main_Widget(QMainWindow):
         self.Start_Num.setCursorPosition(0);
         self.End_Num.setCursorPosition(0);
         self.Num_Digit.setCursorPosition(0);
+        
         self.Step.setCursorPosition(0);
         self.Calib_Detect.setCursorPosition(0);
         self.Calib_Param.setCursorPosition(0);
         self.Calib_Mask.setCursorPosition(0);
         self.Calib_Pixels.setCursorPosition(0);
         self.Calib_Data.setCursorPosition(0);
+        
         self.cascade_per_bin.setCursorPosition(0);
         self.cascade_number_bins.setCursorPosition(0);
         self.cascade_track.setCursorPosition(0);
         self.bg_1.setCursorPosition(0);
         self.bg_2.setCursorPosition(0);
         self.ds_1.setCursorPosition(0);
+        
         self.ds_2.setCursorPosition(0);
         self.h_1.setCursorPosition(0);
         self.h_2.setCursorPosition(0);
         self.pro_1.setCursorPosition(0);
         self.pro_2.setCursorPosition(0);
         self.wdt_1.setCursorPosition(0);
+        
         self.wdt_2.setCursorPosition(0);
         self.AziBins.setCursorPosition(0);
         self.Output_Dir_1.setCursorPosition(0);
@@ -497,7 +617,7 @@ class Main_Widget(QMainWindow):
             mess.setWindowTitle("MessageBox")
             returnValue = mess.exec_()
         else:
-            with open("../logs/logs.log",'w') as file:
+            with open("../logs/logs.log",'a') as file:
                file.close()
             cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
             text=open('../logs/logs.log').read()
@@ -576,10 +696,12 @@ class Main_Widget(QMainWindow):
         self.set_cl.datafile_basename = self.Basename.text()
         self.set_cl.calibration_type = self.Calib_Type.currentText()
         self.set_cl.calibration_detector = self.Calib_Detect.text()
+        
         self.set_cl.calibration_parameters = self.Calib_Param.text()
         self.set_cl.calibration_mask = self.Calib_Mask.text();
         self.set_cl.calibration_pixel_size = self.Calib_Pixels.text()   
         self.set_cl.calibration_data = self.Calib_Data.text()
+        
         self.set_cl.cascade_bin_type = self.cascade_bin_type.text()
         self.set_cl.cascade_per_bin = self.cascade_per_bin.text()
         self.set_cl.cascade_number_bins = self.cascade_number_bins.text()
@@ -589,10 +711,12 @@ class Main_Widget(QMainWindow):
         self.set_cl.fit_bounds["background"][1] = self.bg_2.text()
         self.set_cl.fit_bounds["d-space"][0] = self.ds_1.text()
         self.set_cl.fit_bounds["d-space"][1] = self.ds_2.text()
+       
         self.set_cl.fit_bounds["height"][0] = self.h_1.text()
         self.set_cl.fit_bounds["height"][1] = self.h_2.text()
         self.set_cl.fit_bounds["profile"][0] = self.pro_1.text()
         self.set_cl.fit_bounds["profile"][1] = self.pro_2.text()
+        
         self.set_cl.fit_bounds["width"][0] = self.wdt_1.text()
         self.set_cl.fit_bounds["width"][1] = self.wdt_2.text()
         self.set_cl.output_directory = self.Output_Dir_1.text()
@@ -665,10 +789,13 @@ class Main_Widget(QMainWindow):
             indices = self.output_list.index(output_object)
             
             if output_object.Output_Type_comboBox.currentText() =='WriteCoefficientTable':
+                
                 self.set_cl.output_types[indices] = 'CoefficientTable'
                 
                 for i in output_object.WriteCoefficientTable_optional_list:
+                    
                     if i.objectName() == 'coefs_vals_write':
+                        
                         if i.text()=='':
                             self.set_cl.output_settings["coefs_vals_write"] = None
                         else:
@@ -681,7 +808,9 @@ class Main_Widget(QMainWindow):
                 self.set_cl.output_types[indices] = 'MultiFit'
                 
                 for i in output_object.WriteMultiFit_optional_list:
+                   
                     if i.objectName() == 'Output_NumAziWrite':
+                        
                         if i.text() == '':
                             self.set_cl.output_settings["Output_NumAziWrite"] = None
                         else:
@@ -691,43 +820,51 @@ class Main_Widget(QMainWindow):
                 self.set_cl.output_types[indices] = 'Polydefix'
                 
                 for i in output_object.WritePolydefix_optional_list:
+                    
                     if i.objectName() == 'Output_NumAziWrite':
+                        
                         if i.text() == '':
                             self.set_cl.output_settings["Output_NumAziWrite"] = None
                         else:
                             self.set_cl.output_settings["Output_NumAziWrite"] = i.text()
                             
                     if i.objectName() == 'Output_ElasticProperties':
+                       
                         if i.text() == '': 
                             self.set_cl.output_settings["Output_ElasticProperties"] = None
                         else:
                             self.set_cl.output_settings["Output_ElasticProperties"] = i.text() 
                     
                     if i.objectName() == 'tc':   
+                        
                         if i.text() == '':
                             self.set_cl.output_settings["tc"] = None
                         else:
                             self.set_cl.output_settings["tc"] = i.text() 
                     
                     if i.objectName() == 'phase':     
+                        
                         if i.text() == '':
                             self.set_cl.output_settings["phase"] = None
                         else:
                             self.set_cl.output_settings["phase"] = i.text() 
                             
                     if i.objectName() == 'datafile_StartNum':  
+                        
                         if i.text() == '':
                              self.set_cl.output_settings["datafile_StartNum"] = None
                         else:
                              self.set_cl.output_settings["datafile_StartNum"] = i.text() 
                     
                     if i.objectName() == 'datafile_EndNum':     
+                        
                         if i.text() == '':
                              self.set_cl.output_settings["datafile_EndNum"] = None
                         else:
                              self.set_cl.output_settings["datafile_EndNum"] = i.text() 
                     
                     if i.objectName() == 'datafile_NumDigit':          
+                        
                         if i.text() == '':
                              self.set_cl.output_settings["datafile_NumDigit"] = None
                         else:
@@ -739,30 +876,35 @@ class Main_Widget(QMainWindow):
                 for i in output_object.WritePolydefixED_optional_list:
                     
                     if i.objectName() == 'tc':
+                       
                         if i.text() == '':
                             self.set_cl.output_settings["tc"] = None
                         else:
                             self.set_cl.output_settings["tc"] = i.text() 
                     
                     if i.objectName() == 'phase':    
+                        
                         if i.text() == '':
                             self.set_cl.output_settings["phase"] = None
                         else:
                             self.set_cl.output_settings["phase"] = i.text()
                     
                     if i.objectName() == 'Output_TemperaturePower':     
+                        
                         if i.text() == '':
                              self.set_cl.output_settings["Output_TemperaturePower"] = None
                         else:
                              self.set_cl.output_settings["Output_TemperaturePower"] = i.text() 
                     
                     if i.objectName() == 'Output_tc':           
+                        
                         if i.text() == '':
                              self.set_cl.output_settings["Output_tc"] = None
                         else:
                              self.set_cl.output_settings["Output_tc"] = i.text() 
                     
                     if i.objectName() == 'ElasticProperties':    
+                        
                         if i.text() == '':
                              self.set_cl.output_settings["ElasticProperties"] = None
                         else:
@@ -793,9 +935,11 @@ class Main_Widget(QMainWindow):
             def checkLineEdit(path):
                     if not path:
                         return
+                    
                     if path.endswith(QtCore.QDir.separator()):
                         return checkLineEdit(path.rstrip(QtCore.QDir.separator()))
                     path = QtCore.QFileInfo(path)
+                    
                     if path.exists() or QtCore.QFileInfo(path.absolutePath()).exists():
                         button.setEnabled(True)
                         return True
@@ -832,9 +976,11 @@ class Main_Widget(QMainWindow):
             def checkLineEdit(path):
                     if not path:
                         return
+                    
                     if path.endswith(QtCore.QDir.separator()):
                         return checkLineEdit(path.rstrip(QtCore.QDir.separator()))
                     path = QtCore.QFileInfo(path)
+                    
                     if path.exists() or QtCore.QFileInfo(path.absolutePath()).exists():
                         button.setEnabled(True)
                         return True

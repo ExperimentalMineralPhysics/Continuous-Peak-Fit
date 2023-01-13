@@ -1,35 +1,24 @@
 import sys
-import PyQt5
 from PyQt5 import (
     QtWidgets, 
     QtCore, 
-    QtGui,
+    QtGui
     )
 from PyQt5.QtWidgets import (
     QMainWindow, 
-    QApplication, 
-    QPushButton, 
-    QWidget, 
-    QTabWidget,
-    QVBoxLayout,
+    QApplication,  
     QFileDialog
     )
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import pyqtSlot, QThread, QObject
+from PyQt5.QtCore import pyqtSlot
 from PyQt5.uic import loadUi
-
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtCore import *
-
-from string import Template
-import os
 
 from Widgets.Range_Widget import Range
 from Widgets.Peak_Widget import Peak
 from Widgets.Output_Widget import Output
 
 import cpf
-from cpf.settings import settings
 
 from matplotlib_qt import matplotlib_qt
 from matplotlib_auto import matplotlib_inline
@@ -45,16 +34,12 @@ class Main_Widget(QMainWindow):
         self.setWindowIcon(QtGui.QIcon('logo.png'))
         self.gui_layout()
         
-        # Define variables
+        # Define global variables
         self.set_cl = cpf.settings.settings()
-        
         self.input_file_path = None  
         
         self.range_list = []
         self.output_list = []
-        
-        file_to_delete = open("../logs/logs.log",'w')
-        file_to_delete.close()
         
     def gui_layout(self):
         self.Main_Tab.setMinimumHeight(30);
@@ -376,6 +361,7 @@ class Main_Widget(QMainWindow):
                
                 # Optional Params
                     for wid in output_object.WritePolydefix_optional_list:
+                        
                         lineEdit = wid
                         
                         if 'Output_ElasticProperties' in self.set_cl.output_settings:
@@ -605,9 +591,11 @@ class Main_Widget(QMainWindow):
                
             self.output_list.append(output_object) 
             
+            # clear log file data whenever new file is loaded
             file_to_delete = open("../logs/logs.log",'w')
             file_to_delete.close()
         
+        # set cursor position at the start of text box after filling it
         self.Directory.setCursorPosition(0);
         self.Basename.setCursorPosition(0);
         
@@ -684,6 +672,7 @@ class Main_Widget(QMainWindow):
     @pyqtSlot()
     def Run_Initial_Position(self):
         self.matplotlib_qt = matplotlib_qt()
+        QApplication.processEvents()
         if self.input_file_path == None:
             mess = QMessageBox()
             mess.setIcon(QMessageBox.Warning)
@@ -729,12 +718,14 @@ class Main_Widget(QMainWindow):
     
     @pyqtSlot()
     def Insert_Button(self):  
-    # Variables not defined in settings class
-        # start_num = self.Start_Num.text()
-        # end_num = self.End_Num.text()
-        # num_digit = self.Num_Digit.text()
-        # step = self.Step.text()
+        ''' 
+        Variables not defined in settings class
+        start_num = self.Start_Num.text()
+        end_num = self.End_Num.text()
+        num_digit = self.Num_Digit.text()
+        step = self.Step.text() '''
      
+        # store widgets' data into setting class variables
         self.set_cl.datafile_directory = self.Directory.text()
         self.set_cl.datafile_basename = self.Basename.text()
         
@@ -1196,7 +1187,8 @@ class Main_Widget(QMainWindow):
         
     def closeEvent(self,event):
         os._exit(00)
-
+        
+    
 def main():
     app = QApplication(sys.argv)
     mainwindow = Main_Widget()
@@ -1208,4 +1200,4 @@ def main():
 
 if __name__=='__main__':
     main()
-    
+

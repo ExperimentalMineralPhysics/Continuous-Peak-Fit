@@ -1,18 +1,6 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.uic import loadUi
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import (
-    QMainWindow, 
-    QApplication, 
-    QPushButton, 
-    QWidget, 
-    QTabWidget,
-    QVBoxLayout
-)
-from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QWidget
 
-import sys
-from string import Template
 
 class Peak(QWidget):
     

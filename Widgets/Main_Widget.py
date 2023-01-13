@@ -59,48 +59,70 @@ class Main_Widget(QMainWindow):
     def gui_layout(self):
         self.Main_Tab.setMinimumHeight(30);
         self.Directory.setMinimumHeight(30);
+        
         self.Basename.setMinimumHeight(30);
         self.Extension.setMinimumHeight(30);
+        
         self.Start_Num.setMinimumHeight(30);
         self.End_Num.setMinimumHeight(30);
+        
         self.Num_Digit.setMinimumHeight(30);
         self.Step.setMinimumHeight(30);
+        
         self.Calib_Type.setMinimumHeight(30);
         self.Calib_Detect.setMinimumHeight(30);
+        
         self.Calib_Param.setMinimumHeight(30);
         self.Calib_Mask.setMinimumHeight(30);
+        
         self.Calib_Pixels.setMinimumHeight(30);
         self.Calib_Data.setMinimumHeight(30);
+        
         self.cascade_bin_type.setMinimumHeight(30);
         self.cascade_per_bin.setMinimumHeight(30);
+        
         self.cascade_number_bins.setMinimumHeight(30);
         self.cascade_track.setMinimumHeight(30);
+        
         self.bg_1.setMinimumHeight(30);
         self.bg_2.setMinimumHeight(30);
+        
         self.ds_1.setMinimumHeight(30);
         self.ds_2.setMinimumHeight(30);
+        
         self.h_1.setMinimumHeight(30);
         self.h_2.setMinimumHeight(30);
+        
         self.pro_1.setMinimumHeight(30);
         self.pro_2.setMinimumHeight(30);
+        
         self.wdt_1.setMinimumHeight(30);
         self.wdt_2.setMinimumHeight(30);
+        
         self.AziBins.setMinimumHeight(30);
         self.Output_Dir_1.setMinimumHeight(30);
+        
         self.Output_Dir_2.setMinimumHeight(30);
         self.Console_output.setReadOnly(True)
+        
         self.AddRange_Btn.clicked.connect(self.Insert_Range)
         self.RemoveRange_Btn.clicked.connect(self.Remove_Range)
+        
         self.Add_Output_Btn.clicked.connect(self.Insert_Output)
         self.Remove_Output_Btn.clicked.connect(self.Remove_Output)
+        
         self.Select_Directory_1.clicked.connect(self.select_Data_Dir)
         self.Select_Directory_2.clicked.connect(self.selectTarget)
+        
         self.Save_input_Btn.clicked.connect(self.Insert_Button)
         self.Load_input_Btn.clicked.connect(self.Load_Inputs)
+        
         self.validate_Btn.clicked.connect(self.Validate_Inputs)
         self.Run_Range_Btn.clicked.connect(self.Run_Range)
+        
         self.Run_initial_Btn.clicked.connect(self.Run_Initial_Position)
         self.Execute_Btn.clicked.connect(self.Execute_Fits)
+        
         self.Make_Output_Btn.clicked.connect(self.Make_Outputs)
         
     @pyqtSlot()
@@ -254,12 +276,15 @@ class Main_Widget(QMainWindow):
         for range_tab in range(0, self.range_length):
             
             range_object = Range()
+            
             self.Range_Tab.addTab(range_object , QIcon(""),"Range")
             range_object.Range_min.setText(str(self.set_cl.fit_orders[range_tab].get("range")[0]))
+            
             range_object.Range_max.setText(str(self.set_cl.fit_orders[range_tab].get("range")[1]))
             
             range_object.Range_Background_Val.setText(str(self.set_cl.fit_orders[range_tab].get("background")))
             range_object.Intensity_max.setText(str(self.set_cl.fit_orders[range_tab].get("Imax")))   
+            
             range_object.Intensity_min.setText(str(self.set_cl.fit_orders[range_tab].get("Imin")))   
             range_object.Peak_Pos_Selection.setPlainText(str(self.set_cl.fit_orders[range_tab].get("PeakPositionSelection")))
             
@@ -278,19 +303,23 @@ class Main_Widget(QMainWindow):
             for peak_tab in range(0, self.peak_length):
                 
                 peak_object = Peak()
+                
                 range_object.Peak_Tab.addTab(peak_object , QIcon(""),"Peak")
                 peak_object.phase_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("phase")))
                 
                 peak_object.hkl.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("hkl")))
                 peak_object.d_space_peak.setText(str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("d-space")))
+                
                 self.ds_type = str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("d-space-type"))
                 
                 peak_object.d_space_type.setCurrentText(f"{self.ds_type}")
                 self.h_type = str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("height-type"))
+                
                 peak_object.height_peak_type.setCurrentText(f"{self.h_type}")
                
                 self.p_type = str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("profile-type"))
                 peak_object.profile_peak_type.setCurrentText(f"{self.p_type}")
+                
                 self.w_type = str(self.set_cl.fit_orders[range_tab].get("peak")[peak_tab].get("width-type"))
                
                 peak_object.width_peak_type.setCurrentText(f"{self.w_type}")
@@ -338,6 +367,7 @@ class Main_Widget(QMainWindow):
         for output in range (0, self.output_type):
             
             output_object = Output()
+            
             self.Output_Tab.addTab(output_object , QIcon(""),"Output")
 
             if 'Polydefix' == self.set_cl.output_types[output]:
@@ -389,6 +419,7 @@ class Main_Widget(QMainWindow):
                                wid.setText(cpf.output_formatters.WritePolydefix.Requirements()[0][i])       
                                  
             elif 'CoefficientTable' == self.set_cl.output_types[output]:
+                    
                     output_object.Output_Type_comboBox.setCurrentText('WriteCoefficientTable')
                 
                 # Optional Params                    
@@ -397,6 +428,7 @@ class Main_Widget(QMainWindow):
                         lineEdit = wid
                         
                         if 'coefs_vals_write' in self.set_cl.output_settings:
+                            
                             if lineEdit.objectName() == 'coefs_vals_write':
                                 lineEdit.setText(str(self.set_cl.output_settings["coefs_vals_write"]))
                         
@@ -411,10 +443,12 @@ class Main_Widget(QMainWindow):
                                wid.setText(cpf.output_formatters.WriteCoefficientTable.Requirements()[0][i])
                         
             elif 'DifferentialStrain' == self.set_cl.output_types[output]:
+                    
                     output_object.Output_Type_comboBox.setCurrentText('WriteDifferentialStrain')
                 
                 # Optional Params                    
                     for wid in output_object.WriteDifferentialStrain_optional_list:
+                            
                             lineEdit = wid
                             
                             if 'Output_ElasticProperties' in self.set_cl.output_settings:
@@ -576,34 +610,43 @@ class Main_Widget(QMainWindow):
         
         self.Directory.setCursorPosition(0);
         self.Basename.setCursorPosition(0);
+        
         self.Extension.setCursorPosition(0);
         self.Start_Num.setCursorPosition(0);
+        
         self.End_Num.setCursorPosition(0);
         self.Num_Digit.setCursorPosition(0);
         
         self.Step.setCursorPosition(0);
         self.Calib_Detect.setCursorPosition(0);
+        
         self.Calib_Param.setCursorPosition(0);
         self.Calib_Mask.setCursorPosition(0);
+        
         self.Calib_Pixels.setCursorPosition(0);
         self.Calib_Data.setCursorPosition(0);
         
         self.cascade_per_bin.setCursorPosition(0);
         self.cascade_number_bins.setCursorPosition(0);
+        
         self.cascade_track.setCursorPosition(0);
         self.bg_1.setCursorPosition(0);
+        
         self.bg_2.setCursorPosition(0);
         self.ds_1.setCursorPosition(0);
         
         self.ds_2.setCursorPosition(0);
         self.h_1.setCursorPosition(0);
+        
         self.h_2.setCursorPosition(0);
         self.pro_1.setCursorPosition(0);
+        
         self.pro_2.setCursorPosition(0);
         self.wdt_1.setCursorPosition(0);
         
         self.wdt_2.setCursorPosition(0);
         self.AziBins.setCursorPosition(0);
+        
         self.Output_Dir_1.setCursorPosition(0);
         self.Output_Dir_2.setCursorPosition(0);
     
@@ -694,31 +737,37 @@ class Main_Widget(QMainWindow):
      
         self.set_cl.datafile_directory = self.Directory.text()
         self.set_cl.datafile_basename = self.Basename.text()
+        
         self.set_cl.calibration_type = self.Calib_Type.currentText()
         self.set_cl.calibration_detector = self.Calib_Detect.text()
         
         self.set_cl.calibration_parameters = self.Calib_Param.text()
         self.set_cl.calibration_mask = self.Calib_Mask.text();
+        
         self.set_cl.calibration_pixel_size = self.Calib_Pixels.text()   
         self.set_cl.calibration_data = self.Calib_Data.text()
         
         self.set_cl.cascade_bin_type = self.cascade_bin_type.text()
         self.set_cl.cascade_per_bin = self.cascade_per_bin.text()
+        
         self.set_cl.cascade_number_bins = self.cascade_number_bins.text()
         self.set_cl.cascade_track = self.cascade_track.text()
         
         self.set_cl.fit_bounds["background"][0] = self.bg_1.text()
         self.set_cl.fit_bounds["background"][1] = self.bg_2.text()
+        
         self.set_cl.fit_bounds["d-space"][0] = self.ds_1.text()
         self.set_cl.fit_bounds["d-space"][1] = self.ds_2.text()
        
         self.set_cl.fit_bounds["height"][0] = self.h_1.text()
         self.set_cl.fit_bounds["height"][1] = self.h_2.text()
+        
         self.set_cl.fit_bounds["profile"][0] = self.pro_1.text()
         self.set_cl.fit_bounds["profile"][1] = self.pro_2.text()
         
         self.set_cl.fit_bounds["width"][0] = self.wdt_1.text()
         self.set_cl.fit_bounds["width"][1] = self.wdt_2.text()
+        
         self.set_cl.output_directory = self.Output_Dir_1.text()
         
         # Save range_tab data 
@@ -728,10 +777,12 @@ class Main_Widget(QMainWindow):
             
             self.set_cl.fit_orders[self.range_indices]["range"][0] = range_object.Range_min.text()
             self.set_cl.fit_orders[self.range_indices]["range"][1] = range_object.Range_max.text()
+            
             self.set_cl.fit_orders[self.range_indices]["background"] = range_object.Range_Background_Val.text()
             
             self.set_cl.fit_orders[self.range_indices]["Imax"] = range_object.Intensity_max.text() 
             self.set_cl.fit_orders[self.range_indices]["Imin"] = range_object.Intensity_min.text()
+            
             self.set_cl.fit_orders[self.range_indices]["PeakPositionSelection"] = range_object.Peak_Pos_Selection.toPlainText()
             
             # Save peak_tab data 
@@ -741,15 +792,18 @@ class Main_Widget(QMainWindow):
                
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["phase"] = peak_object.phase_peak.text()
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["hkl"] = peak_object.hkl.text()
+                
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["d-space"] = peak_object.d_space_peak.text()
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["d-space-type"] = peak_object.d_space_type.currentText()
                 
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["height-type"] = peak_object.height_peak_type.currentText()
+                
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["profile-type"] = peak_object.profile_peak_type.currentText()
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["width-type"] = peak_object.width_peak_type.currentText()
                 
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["height"] = peak_object.height_peak.text()
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["profile"] = peak_object.profile_peak.text()
+                
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["profile_fixed"] = peak_object.profile_fixed.text()
                 
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["width"] = peak_object.width_peak.text()
@@ -802,9 +856,11 @@ class Main_Widget(QMainWindow):
                             self.set_cl.output_settings["coefs_vals_write"] = i.text()
             
             elif output_object.Output_Type_comboBox.currentText() =='WriteDifferentialStrain':
+                
                 self.set_cl.output_types[indices] = 'DifferentialStrain'
              
             elif output_object.Output_Type_comboBox.currentText() =='WriteMultiFit':
+                
                 self.set_cl.output_types[indices] = 'MultiFit'
                 
                 for i in output_object.WriteMultiFit_optional_list:
@@ -817,6 +873,7 @@ class Main_Widget(QMainWindow):
                             self.set_cl.output_settings["Output_NumAziWrite"] = i.text() 
            
             elif output_object.Output_Type_comboBox.currentText() =='WritePolydefix':
+                
                 self.set_cl.output_types[indices] = 'Polydefix'
                 
                 for i in output_object.WritePolydefix_optional_list:
@@ -871,6 +928,7 @@ class Main_Widget(QMainWindow):
                              self.set_cl.output_settings["datafile_NumDigit"] = i.text() 
                 
             elif output_object.Output_Type_comboBox.currentText() =='WritePolydefixED':
+                
                 self.set_cl.output_types[indices] = 'PolydefixED'
                 
                 for i in output_object.WritePolydefixED_optional_list:

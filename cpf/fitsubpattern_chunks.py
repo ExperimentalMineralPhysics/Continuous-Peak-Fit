@@ -680,7 +680,7 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
         x_lims[0] = np.floor(x_lims[0] / 90) * 90
         x_lims[1] = np.ceil(x_lims[1] / 90) * 90
         x_ticks = list(range(int(x_lims[0]), int(x_lims[1] + 1), 45))
-        azi_plot = range(np.int(x_lims[0]), np.int(x_lims[1]), 2)
+        azi_plot = range(int(x_lims[0]), int(x_lims[1]), 2)
         gmodel = Model(sf.coefficient_expand, independent_vars=["azimuth"])
 
         comp_list = ["h", "d", "w", "p"]

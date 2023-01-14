@@ -904,17 +904,6 @@ QGroupBox::title {
           </widget>
          </widget>
         </item>
-        <item row="1" column="0">
-         <widget class="QPushButton" name="Load_input_Btn">
-          <property name="styleSheet">
-           <string notr="true">background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                                      stop: 0 #E0E0E0, stop: 1 #FFFFFF);</string>
-          </property>
-          <property name="text">
-           <string>Load Input</string>
-          </property>
-         </widget>
-        </item>
         <item row="2" column="0">
          <widget class="QPushButton" name="Save_input_Btn">
           <property name="styleSheet">
@@ -960,6 +949,34 @@ QGroupBox::title {
           </property>
          </widget>
         </item>
+        <item row="1" column="0">
+         <widget class="QPushButton" name="Load_input_Btn">
+          <property name="styleSheet">
+           <string notr="true">background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                      stop: 0 #E0E0E0, stop: 1 #FFFFFF);</string>
+          </property>
+          <property name="text">
+           <string>Load Input</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="5" rowspan="2">
+         <widget class="QPushButton" name="Make_Output_Btn">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                      stop: 0 #E0E0E0, stop: 1 #FFFFFF);</string>
+          </property>
+          <property name="text">
+           <string>Make Output</string>
+          </property>
+         </widget>
+        </item>
         <item row="1" column="3" rowspan="2">
          <widget class="QPushButton" name="Run_initial_Btn">
           <property name="sizePolicy">
@@ -991,23 +1008,6 @@ QGroupBox::title {
           </property>
           <property name="text">
            <string>Execute Fits</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="5" rowspan="2">
-         <widget class="QPushButton" name="Make_Output_Btn">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                                      stop: 0 #E0E0E0, stop: 1 #FFFFFF);</string>
-          </property>
-          <property name="text">
-           <string>Make Output</string>
           </property>
          </widget>
         </item>

@@ -9,31 +9,23 @@ The development of the code is ongoing. Each new data set we process finds new l
 ## Installation
 The following instructions are given for Python 3 on Ubuntu. The equivalent of the `apt` package manager on MacOS is to use Homebrew for package management via the `brew` command.
 
+### Install Python and Pip
 Ensure python and pip are installed on the system:
 
-`sudo apt install python` and `sudo apt install python3-pip`
+`sudo apt install python python3-pip python3-dev`
 
-You can check versions with:
-
-```console
-foo@bar:~$ python3 --version
-Python 3.8.10
-foo@bar:~$ pip3 --version
-pip 20.0.2 from usr/lib/python3/dist-packages/pip (python 3.8)
-```
 Clone the source code with
 
 `git clone https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit.git`
 
-## Install using Pip
+### Install pre-requisites
+Install packages that don't install properly with pip 'sudo apt install pkg-config libcairo2-dev ffmpeg libsm6 libxext6 python3-pyqt6 pyqt6-dev-tools`
 
+### Configure environment using Pip
 Install dependencies using `python3 -m pip install -r requirements.txt`.
 
-**On MacOS with an M1 chip, since there is no Arm64 version of PyQt5, you need to run ensure you start the terminal in Rosetta mode so it thinks it is an x86_64 architecture and install those versions of the dependencies. If you have already started installing dependencies in normal mode then you will need to uninstall them, reconfigure your terminal and then reinstall eveyrthing!**
-
-You may need to first install `pkg-config` and `cairo` packages globally:
-
-`sudo apt install libcairo2-dev pkg-config python3-dev`
+## Docker
+There is a docker image that can be built from the root `Continuous-Peak-Fit` directory using `docker build -t <name>:<tag> . -f docker/dockerfile`. You can then run the container using `docker run -it <name>:<tag> sh`.
 
 ## Usage
 

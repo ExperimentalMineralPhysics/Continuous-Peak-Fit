@@ -1,7 +1,7 @@
 # Input parameters for Example 1 -- BCC1_2GPa_100s_001. 
 
 # properties of the data files.
-datafile_directory = '../Example1-Fe/'
+datafile_directory = 'Example1-Fe/'
 datafile_Basename  = 'BCC1_2GPa_10s_001_'
 datafile_Ending    = '.tif'
 datafile_StartNum  = 1
@@ -205,8 +205,8 @@ fit_orders = [
 AziBins = 90
 
 #Output settings
-Output_directory   = '../Example1-Fe/results/'
+Output_directory   = 'Example1-Fe/results/'
 Output_type        = ['DifferentialStrain', 'Polydefix']
 Output_NumAziWrite = 90
 phase              = 'Fe-BCC'
-Output_ElasticProperties = '../Example1-Fe/Properties_Fe-BCC.txt'
+Output_ElasticProperties = 'Example1-Fe/Properties_Fe-BCC.txt'

@@ -681,14 +681,14 @@ class MainWindow(QMainWindow):
         
     @pyqtSlot()
     def select_Data_Dir(self):
-        dialog = QFileDialog.getExistingDirectory(self, 'Select Directory')
+        dialog = QFileDialog.getExistingDirectory(self, 'Select Dataset Directory')
         if dialog:
                 self.Directory.setText(dialog)
         self.Directory.setCursorPosition(0);
     
     @pyqtSlot()
     def select_Output_Dir(self):
-        dialog = QFileDialog.getExistingDirectory(self, 'Select Directory')
+        dialog = QFileDialog.getExistingDirectory(self, 'Select Output Directory')
         if dialog:
                 self.Output_Dir_1.setText(dialog)
                 self.Output_Dir_2.setText(dialog)

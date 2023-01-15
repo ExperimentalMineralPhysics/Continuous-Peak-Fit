@@ -10,7 +10,7 @@ datafile_NumDigit  = 5
 
 # Calibration and masking.
 Calib_type     = "Dioptas"
-#Calib_detector = 'Pilatus1M'
+Calib_detector = 'Pilatus1M'
 Calib_data     = datafile_directory + 'CeO2_Pil207_E30_2Nov2016_001.tif'
 Calib_param    = datafile_directory + 'CeO2_cal_Dioptas.poni'
 Calib_mask     = datafile_directory + 'DiffractionMask_Dioptas.mask'

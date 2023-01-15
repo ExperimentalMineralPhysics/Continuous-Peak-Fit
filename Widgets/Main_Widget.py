@@ -442,7 +442,7 @@ class MainWindow(QMainWindow):
             returnValue = mess.exec_()
         else:
             cpf.XRD_FitPattern.set_range(f"{self.input_file_path}", save_all=True)
-            text=open(settings.log_file_name).read()
+            text=open(settings.log_file).read()
             self.Console_output.setText(text)
     
     @pyqtSlot()

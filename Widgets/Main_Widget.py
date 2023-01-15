@@ -81,7 +81,7 @@ class MainWindow(QMainWindow):
         self.Add_Output_Btn.clicked.connect(self.Insert_Output)
         self.Remove_Output_Btn.clicked.connect(self.Remove_Output)
         self.Select_Directory_1.clicked.connect(self.select_Data_Dir)
-        self.Select_Directory_2.clicked.connect(self.selectTarget)
+        self.Select_Directory_2.clicked.connect(self.select_Output_Dir)
         self.Save_input_Btn.clicked.connect(self.Insert_Button)
         self.Load_input_Btn.clicked.connect(self.Load_Inputs)
         self.validate_Btn.clicked.connect(self.Validate_Inputs)
@@ -417,11 +417,11 @@ class MainWindow(QMainWindow):
     def Validate_Inputs(self):
         if self.input_file_path == None:
             mess = QMessageBox()
-            mess.setIcon(QMessageBox.Warning)
+            mess.setIcon(QMessageBox.Icon.Warning)
             mess.setText("Please Load input file")
-            mess.setStandardButtons(QMessageBox.Ok)
+            mess.setStandardButtons(QMessageBox.StandardButton.Ok)
             mess.setWindowTitle("MessageBox")
-            returnValue = mess.exec_()
+            returnValue = mess.exec()
         else:
             with open(settings.log_file,'a') as file:
                file.close()
@@ -435,11 +435,11 @@ class MainWindow(QMainWindow):
         self.matplotlib_qt = matplotlib_qt()
         if self.input_file_path == None:
             mess = QMessageBox()
-            mess.setIcon(QMessageBox.Warning)
+            mess.setIcon(QMessageBox.Icon.Warning)
             mess.setText("Please Load input file")
-            mess.setStandardButtons(QMessageBox.Ok)
+            mess.setStandardButtons(QMessageBox.StandardButton.Ok)
             mess.setWindowTitle("MessageBox")
-            returnValue = mess.exec_()
+            returnValue = mess.exec()
         else:
             cpf.XRD_FitPattern.set_range(f"{self.input_file_path}", save_all=True)
             text=open(settings.log_file).read()
@@ -450,11 +450,11 @@ class MainWindow(QMainWindow):
         self.matplotlib_qt = matplotlib_qt()
         if self.input_file_path == None:
             mess = QMessageBox()
-            mess.setIcon(QMessageBox.Warning)
+            mess.setIcon(QMessageBox.Icon.Warning)
             mess.setText("Please Load input file")
-            mess.setStandardButtons(QMessageBox.Ok)
+            mess.setStandardButtons(QMessageBox.StandardButton.Ok)
             mess.setWindowTitle("MessageBox")
-            returnValue = mess.exec_()
+            returnValue = mess.exec()
         else:
             cpf.XRD_FitPattern.initial_peak_position(f"{self.input_file_path}", save_all=True)
             text=open(settings.log_file).read()
@@ -465,11 +465,11 @@ class MainWindow(QMainWindow):
         self.matplotlib_qt = matplotlib_qt()
         if self.input_file_path == None:
             mess = QMessageBox()
-            mess.setIcon(QMessageBox.Warning)
+            mess.setIcon(QMessageBox.Icon.Warning)
             mess.setText("Please Load input file")
-            mess.setStandardButtons(QMessageBox.Ok)
+            mess.setStandardButtons(QMessageBox.StandardButton.Ok)
             mess.setWindowTitle("MessageBox")
-            returnValue = mess.exec_()
+            returnValue = mess.exec()
         else:
             cpf.XRD_FitPattern.execute(f"{self.input_file_path}", save_all=True, parallel = False)
             text=open(settings.log_file).read()
@@ -481,11 +481,11 @@ class MainWindow(QMainWindow):
         self.matplotlib_qt = matplotlib_qt()
         if self.input_file_path == None:
             mess = QMessageBox()
-            mess.setIcon(QMessageBox.Warning)
+            mess.setIcon(QMessageBox.Icon.Warning)
             mess.setText("Please Load input file")
-            mess.setStandardButtons(QMessageBox.Ok)
+            mess.setStandardButtons(QMessageBox.StandardButton.Ok)
             mess.setWindowTitle("MessageBox")
-            returnValue = mess.exec_()
+            returnValue = mess.exec()
         else:
             cpf.XRD_FitPattern.write_output(f"{self.input_file_path}", save_all=True)
             text=open(settings.log_file).read()
@@ -681,85 +681,21 @@ class MainWindow(QMainWindow):
         
     @pyqtSlot()
     def select_Data_Dir(self):
-            dialog = QtWidgets.QFileDialog()
-            if self.Directory.text():
-                dialog.setDirectory(self.Directory.text())
-
-            dialog.setFileMode(dialog.Directory)
-
-            # we cannot use the native dialog, because we need control over the UI
-            options = dialog.Options(dialog.DontUseNativeDialog | dialog.ShowDirsOnly)
-            dialog.setOptions(options)
-
-            def checkLineEdit(path):
-                    if not path:
-                        return
-                    if path.endswith(QtCore.QDir.separator()):
-                        return checkLineEdit(path.rstrip(QtCore.QDir.separator()))
-                    path = QtCore.QFileInfo(path)
-                    if path.exists() or QtCore.QFileInfo(path.absolutePath()).exists():
-                        button.setEnabled(True)
-                        return True
-
-                # get the "Open" button in the dialog
-            button = dialog.findChild(QtWidgets.QDialogButtonBox).button(
-                    QtWidgets.QDialogButtonBox.Open)
-
-                # get the line edit used for the path
-            lineEdit = dialog.findChild(QtWidgets.QLineEdit)
-            lineEdit.textChanged.connect(checkLineEdit)
-
-                # complain about selecting a non existing path
-            def accept():
-                    if checkLineEdit(lineEdit.text()):
-                        # if the path is acceptable, call the base accept() implementation
-                        QtWidgets.QDialog.accept(dialog)
-            dialog.accept = accept
-
-            if dialog.exec_() and dialog.selectedFiles():
-                    path = QtCore.QFileInfo(dialog.selectedFiles()[0]).absoluteFilePath()
-                    self.Directory.setText(path)
-            self.Directory.setCursorPosition(0);
+        dialog = QFileDialog.getExistingDirectory(self, 'Select Directory')
+        if dialog:
+                self.Directory.setText(dialog)
+        self.Directory.setCursorPosition(0);
     
     @pyqtSlot()
-    def selectTarget(self):
-            dialog = QtWidgets.QFileDialog()
+    def select_Output_Dir(self):
+        dialog = QFileDialog.getExistingDirectory(self, 'Select Directory')
+        if dialog:
+                self.Output_Dir_1.setText(dialog)
+                self.Output_Dir_2.setText(dialog)
+                
+        self.Output_Dir_1.setCursorPosition(0);
+        self.Output_Dir_2.setCursorPosition(0);
 
-            if self.Output_Dir_1.text():
-                    dialog.setDirectory(self.Output_Dir_1.text())
-
-            dialog.setFileMode(dialog.Directory)
-            options = dialog.Options(dialog.DontUseNativeDialog | dialog.ShowDirsOnly)
-            dialog.setOptions(options)
-               
-            def checkLineEdit(path):
-                    if not path:
-                        return
-                    if path.endswith(QtCore.QDir.separator()):
-                        return checkLineEdit(path.rstrip(QtCore.QDir.separator()))
-                    path = QtCore.QFileInfo(path)
-                    if path.exists() or QtCore.QFileInfo(path.absolutePath()).exists():
-                        button.setEnabled(True)
-                        return True
-
-            button = dialog.findChild(QtWidgets.QDialogButtonBox).button(
-                    QtWidgets.QDialogButtonBox.Open)
-
-            lineEdit = dialog.findChild(QtWidgets.QLineEdit)
-            lineEdit.textChanged.connect(checkLineEdit)
-  
-            def accept():
-                    if checkLineEdit(lineEdit.text()):
-                        QtWidgets.QDialog.accept(dialog)
-            dialog.accept = accept
-
-            if dialog.exec_() and dialog.selectedFiles():
-                    path = QtCore.QFileInfo(dialog.selectedFiles()[0]).absoluteFilePath()
-                    self.Output_Dir_1.setText(path)
-                    self.Output_Dir_2.setText(path)
-            self.Output_Dir_1.setCursorPosition(0);
-            self.Output_Dir_2.setCursorPosition(0);
-    
     @pyqtSlot()
     def Insert_Range(self):
         self.Range_Tab.addTab(Range() , QIcon(""),"Range")

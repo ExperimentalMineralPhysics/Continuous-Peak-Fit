@@ -656,6 +656,7 @@ class Main_Widget(QMainWindow):
             
     @pyqtSlot()             
     def Run_Range(self):
+        #self.matplotlib_inline = matplotlib_inline()
         self.matplotlib_qt = matplotlib_qt()
         if self.input_file_path == None:
             mess = QMessageBox()
@@ -684,6 +685,7 @@ class Main_Widget(QMainWindow):
             cpf.XRD_FitPattern.initial_peak_position(f"{self.input_file_path}", save_all=True)
             text=open('../logs/logs.log').read()
             self.Console_output.setText(text)
+            self.matplotlib_inline = matplotlib_inline()
     
     @pyqtSlot()
     def Execute_Fits(self):
@@ -771,6 +773,11 @@ class Main_Widget(QMainWindow):
             
             self.set_cl.fit_orders[self.range_indices]["background"] = range_object.Range_Background_Val.text()
             
+            if range_object.Background_Type.currentText() == 'Select Type':
+                self.set_cl.fit_orders[self.range_indices]["background-type"] = ''
+            else:
+                self.set_cl.fit_orders[self.range_indices]["background-type"] = range_object.Background_Type.currentText()
+            
             self.set_cl.fit_orders[self.range_indices]["Imax"] = range_object.Intensity_max.text() 
             self.set_cl.fit_orders[self.range_indices]["Imin"] = range_object.Intensity_min.text()
             
@@ -785,12 +792,26 @@ class Main_Widget(QMainWindow):
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["hkl"] = peak_object.hkl.text()
                 
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["d-space"] = peak_object.d_space_peak.text()
-                self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["d-space-type"] = peak_object.d_space_type.currentText()
                 
-                self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["height-type"] = peak_object.height_peak_type.currentText()
+                if peak_object.d_space_type.currentText() == 'Select Type':
+                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["d-space-type"] = ''
+                else:
+                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["d-space-type"] = peak_object.d_space_type.currentText()
                 
-                self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["profile-type"] = peak_object.profile_peak_type.currentText()
-                self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["width-type"] = peak_object.width_peak_type.currentText()
+                if peak_object.height_peak_type.currentText() == 'Select Type':
+                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["height-type"] = ''  
+                else: 
+                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["height-type"] = peak_object.height_peak_type.currentText()
+                
+                if peak_object.profile_peak_type.currentText() == 'Select Type':
+                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["profile-type"] = ''
+                else:
+                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["profile-type"] = peak_object.profile_peak_type.currentText()
+                
+                if peak_object.width_peak_type.currentText() == 'Select Type':
+                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["width-type"] = ''
+                else:    
+                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["width-type"] = peak_object.width_peak_type.currentText()
                 
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["height"] = peak_object.height_peak.text()
                 self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["profile"] = peak_object.profile_peak.text()

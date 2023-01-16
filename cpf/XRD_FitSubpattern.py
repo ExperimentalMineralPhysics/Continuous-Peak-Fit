@@ -678,7 +678,7 @@ def fit_sub_pattern(
             plt.savefig(filename)
 
         if view == 1 or debug:
-            plt.show(block=False)
+            plt.show(block=True)
             plt.pause(3)
             plt.close()
             

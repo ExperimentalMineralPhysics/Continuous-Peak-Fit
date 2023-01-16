@@ -1,7 +1,7 @@
 # Input parameters for Example 1 -- BCC1_2GPa_100s_001. 
 
 # properties of the data files.
-datafile_directory = '../Example1-Fe/'
+datafile_directory = 'Example1-Fe/'
 datafile_Basename  = 'BCC1_2GPa_10s_001_'
 datafile_Ending    = '.tif'
 datafile_StartNum  = 1
@@ -10,7 +10,7 @@ datafile_NumDigit  = 5
 
 # Calibration and masking.
 Calib_type     = "Dioptas"
-#Calib_detector = 'Pilatus1M'
+Calib_detector = 'Pilatus1M'
 Calib_data     = datafile_directory + 'CeO2_Pil207_E30_2Nov2016_001.tif'
 Calib_param    = datafile_directory + 'CeO2_cal_Dioptas.poni'
 Calib_mask     = datafile_directory + 'DiffractionMask_Dioptas.mask'
@@ -205,8 +205,8 @@ fit_orders = [
 AziBins = 90
 
 #Output settings
-Output_directory   = '../Example1-Fe/results/'
+Output_directory   = 'Example1-Fe/results/'
 Output_type        = ['DifferentialStrain', 'Polydefix']
 Output_NumAziWrite = 90
 phase              = 'Fe-BCC'
-Output_ElasticProperties = '../Example1-Fe/Properties_Fe-BCC.txt'
+Output_ElasticProperties = 'Example1-Fe/Properties_Fe-BCC.txt'

@@ -21,13 +21,6 @@ import sys
 import logging
 import json
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-stdout_handler = logging.StreamHandler(sys.stdout)
-file_handler = logging.FileHandler('../logs/logs.log')
-logger.addHandler(file_handler)
-logger.addHandler(stdout_handler)
-
 class settings:
     """Settings class definitions.
     The settings class is contains all the variables/informtion needed to execute
@@ -48,6 +41,9 @@ class settings:
         self.outputs -- list of output processes to run
         
     """
+
+    # Name and path relative to the root of the application of the logfile
+    log_file = "logs/logs.log"
 
     def __init__(
         self,
@@ -221,7 +217,7 @@ class settings:
         Fails with a list of missing parameters if not complete.
         """
 
-        # store all the settings from file in a mocule class.
+        # store all the settings from file in a module class.
         module_name, _ = os.path.splitext(os.path.basename(self.settings_file))
         spec = importlib.util.spec_from_file_location(module_name, self.settings_file)
         self.settings_from_file = importlib.util.module_from_spec(spec)
@@ -242,8 +238,10 @@ class settings:
         # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
         if "datafile_Basename" in dir(self.settings_from_file):
             self.datafile_basename = self.settings_from_file.datafile_Basename
-
-        # add output directory if listed.
+        if "datafile_Ending" in dir(self.settings_from_file):
+            self.datafile_ending  = self.settings_from_file.datafile_Ending
+        
+        #add output directory if listed. 
         # change if listed among the inputs
         if "Output_directory" in dir(self.settings_from_file):
             self.output_directory = self.settings_from_file.Output_directory
@@ -1027,3 +1025,10 @@ def detector_factory(fit_settings=None):
 
 if __name__ == "__main__":
     settings = settings()
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+stdout_handler = logging.StreamHandler(sys.stdout)
+file_handler = logging.FileHandler(settings.log_file)
+logger.addHandler(file_handler)
+logger.addHandler(stdout_handler)

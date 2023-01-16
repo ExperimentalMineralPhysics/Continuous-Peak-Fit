@@ -198,18 +198,31 @@ def file_list(fit_parameters, fit_settings):
         step = fit_settings.datafile_Step
     elif "datafile_Files" in fit_parameters:
         step = 1
-    else:  # if just datafile_StartNum and datafile_EndNum
+    elif "datafile_StartNum" in fit_parameters and "datafile_EndNum" in fit_parameters:
         if fit_settings.datafile_EndNum >= fit_settings.datafile_StartNum:
             step = 1
         else:
             step = -1
+    else: # it must be a single file with no numberical compoent.
+        step = None
 
     if "datafile_NumDigit" not in fit_parameters:
         fit_settings.datafile_NumDigit = 1
 
     # Diffraction patterns -- make list of files
     diff_files = []
-    if "datafile_Files" not in fit_parameters:
+    if step == None:
+        # There is only a single file because nothing else is defined
+        n_diff_files = 1
+        diff_files.append(
+            os.path.abspath(
+                fit_settings.datafile_directory
+                + os.sep
+                + fit_settings.datafile_Basename
+                + fit_settings.datafile_Ending
+            )
+        )
+    elif "datafile_Files" not in fit_parameters:
         n_diff_files = int(
             np.floor(
                 (fit_settings.datafile_EndNum - fit_settings.datafile_StartNum) / step
@@ -288,7 +301,7 @@ def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", clean=None):
     return clean
 
 
-def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", clean=None):
+def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", clean=None, replace_with=0):
     """
     This function accepts a nested dictionary and list as argument
     and iterates over all values of nested dictionaries and lists.
@@ -315,7 +328,7 @@ def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", clean=No
             )
 
     if obj_to_inspect == val_to_find:
-        obj_to_inspect = np.nan
+        obj_to_inspect = replace_with
         print(f"Value {val_to_find} found at {index_path}")
 
     return obj_to_inspect

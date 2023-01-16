@@ -122,7 +122,7 @@ class Main_Widget(QMainWindow):
         ''' 
         self.set_cl.datafile_directory = "."
         self.set_cl.datafile_basename = None
-        
+  
         self.set_cl.datafile_number = 0
         self.set_cl.image_list = None
         self.set_cl.image_number = 0
@@ -731,7 +731,11 @@ class Main_Widget(QMainWindow):
         self.set_cl.datafile_directory = self.Directory.text()
         self.set_cl.datafile_basename = self.Basename.text()
         
-        self.set_cl.calibration_type = self.Calib_Type.currentText()
+        if self.Calib_Type.currentText() == 'Select Type':
+            self.set_cl.calibration_type = None
+        else:
+            self.set_cl.calibration_type = self.Calib_Type.currentText()
+        
         self.set_cl.calibration_detector = self.Calib_Detect.text()
         
         self.set_cl.calibration_parameters = self.Calib_Param.text()

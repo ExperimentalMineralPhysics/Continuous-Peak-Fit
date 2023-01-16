@@ -10,9 +10,11 @@ import importlib.util
 import cpf.input_types as input_types
 import cpf.output_formatters as output_formatters
 from cpf.IO_functions import (
+    json_numpy_serializer,
     file_list,
     image_list,
 )  
+
 from cpf.series_functions import coefficient_type_as_number, get_number_coeff
 
 import sys
@@ -979,11 +981,11 @@ class settings:
         with open(fnam, "w") as TempFile:
             # Write a JSON string into the file.
             json.dump(
-                settings(),
+                "This is a temporary file with no content",
                 TempFile,
                 sort_keys=False,
                 indent=2,
-                #default=json_numpy_serializer
+                default=json_numpy_serializer
             )
         print("Done writing", filename)
 

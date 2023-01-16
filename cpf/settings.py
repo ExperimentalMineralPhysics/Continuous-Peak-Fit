@@ -961,7 +961,7 @@ class settings:
         self.subfit_filename = self.image_list[file_number]
         self.subfit_order_position = number_subpattern
         self.subfit_orders = self.fit_orders[number_subpattern]
-    def save_settings(self, settings_file=None, filename="settings.json", filepath="./"):
+    def save_settings(self, settings_file=None, filename="Input_File.py", filepath="../"):
         """
         Saves the settings class to file.
         

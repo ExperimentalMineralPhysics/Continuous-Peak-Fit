@@ -58,6 +58,9 @@ QGroupBox::title {
           <string>Output Type</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_4">
+          <property name="topMargin">
+           <number>18</number>
+          </property>
           <item row="0" column="0">
            <widget class="QLabel" name="label">
             <property name="sizePolicy">
@@ -132,7 +135,11 @@ QGroupBox::title {
          <property name="title">
           <string>Required Parameters</string>
          </property>
-         <layout class="QGridLayout" name="gridLayout_2"/>
+         <layout class="QGridLayout" name="gridLayout_2">
+          <property name="topMargin">
+           <number>18</number>
+          </property>
+         </layout>
         </widget>
        </item>
        <item row="2" column="0">
@@ -150,7 +157,11 @@ QGroupBox::title {
          <property name="title">
           <string>Optional Parameters</string>
          </property>
-         <layout class="QGridLayout" name="gridLayout_3"/>
+         <layout class="QGridLayout" name="gridLayout_3">
+          <property name="topMargin">
+           <number>18</number>
+          </property>
+         </layout>
         </widget>
        </item>
       </layout>

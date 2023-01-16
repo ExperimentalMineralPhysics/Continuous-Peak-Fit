@@ -88,10 +88,10 @@ QTabBar::tab {
                                 stop: 0.5 #D8D8D8, stop: 1.0 #D3D3D3);
     border: 2px solid #C4C4C3;
     border-bottom-color: #C2C7CB; /* same as the pane color */
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-    min-width: 12ex;
-    padding: 12px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    min-width: 9ex;
+    padding: 9px;
 }
 
 QTabBar::tab:selected, QTabBar::tab:hover {
@@ -146,6 +146,9 @@ QGroupBox::title {
                <string>Fit Bounds</string>
               </property>
               <layout class="QGridLayout" name="gridLayout_5">
+               <property name="topMargin">
+                <number>15</number>
+               </property>
                <item row="0" column="0">
                 <widget class="QLabel" name="label_5">
                  <property name="text">
@@ -332,13 +335,6 @@ QGroupBox::title {
                <string>Data Files</string>
               </property>
               <layout class="QGridLayout" name="gridLayout_3">
-               <item row="4" column="4">
-                <widget class="QLabel" name="label_23">
-                 <property name="text">
-                  <string>*</string>
-                 </property>
-                </widget>
-               </item>
                <item row="0" column="2">
                 <widget class="QLineEdit" name="Directory"/>
                </item>
@@ -408,13 +404,6 @@ QGroupBox::title {
                  </property>
                 </widget>
                </item>
-               <item row="0" column="4">
-                <widget class="QLabel" name="label_19">
-                 <property name="text">
-                  <string>*</string>
-                 </property>
-                </widget>
-               </item>
                <item row="6" column="0">
                 <widget class="QLabel" name="label_18">
                  <property name="text">
@@ -422,32 +411,17 @@ QGroupBox::title {
                  </property>
                 </widget>
                </item>
-               <item row="1" column="4">
-                <widget class="QLabel" name="label_20">
-                 <property name="text">
-                  <string>*</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="4">
-                <widget class="QLabel" name="label_22">
-                 <property name="text">
-                  <string>*</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="4">
-                <widget class="QLabel" name="label_21">
-                 <property name="text">
-                  <string>*</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="3">
+               <item row="0" column="3" colspan="2">
                 <widget class="QPushButton" name="Select_Directory_1">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
                  <property name="minimumSize">
                   <size>
-                   <width>45</width>
+                   <width>0</width>
                    <height>0</height>
                   </size>
                  </property>
@@ -499,6 +473,49 @@ QGroupBox::title {
                <string>Calibration and Masking</string>
               </property>
               <layout class="QGridLayout" name="gridLayout_4">
+               <item row="2" column="1">
+                <widget class="QLineEdit" name="Calib_Data"/>
+               </item>
+               <item row="1" column="1">
+                <widget class="QLineEdit" name="Calib_Detect"/>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_26">
+                 <property name="text">
+                  <string>Calibration Data</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="Label">
+                 <property name="text">
+                  <string>Calibation Parameter</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0">
+                <widget class="QLabel" name="label_12">
+                 <property name="text">
+                  <string>Calibration Mask</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QLineEdit" name="Calib_Param"/>
+               </item>
+               <item row="4" column="1">
+                <widget class="QLineEdit" name="Calib_Mask"/>
+               </item>
+               <item row="5" column="0">
+                <widget class="QLabel" name="label_13">
+                 <property name="text">
+                  <string>Calibration Pixels</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1">
+                <widget class="QLineEdit" name="Calib_Pixels"/>
+               </item>
                <item row="0" column="0">
                 <widget class="QLabel" name="label_4">
                  <property name="styleSheet">
@@ -559,56 +576,6 @@ QGroupBox::title {
                  </property>
                 </widget>
                </item>
-               <item row="1" column="1">
-                <widget class="QLineEdit" name="Calib_Detect"/>
-               </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="label_26">
-                 <property name="text">
-                  <string>Calibration Data</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="1">
-                <widget class="QLineEdit" name="Calib_Data"/>
-               </item>
-               <item row="3" column="0">
-                <widget class="QLabel" name="Label">
-                 <property name="text">
-                  <string>Calibation Parameter</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="1">
-                <widget class="QLineEdit" name="Calib_Param"/>
-               </item>
-               <item row="3" column="2">
-                <widget class="QLabel" name="label_25">
-                 <property name="text">
-                  <string>*</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="0">
-                <widget class="QLabel" name="label_12">
-                 <property name="text">
-                  <string>Calibration Mask</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="1">
-                <widget class="QLineEdit" name="Calib_Mask"/>
-               </item>
-               <item row="5" column="0">
-                <widget class="QLabel" name="label_13">
-                 <property name="text">
-                  <string>Calibration Pixels</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="5" column="1">
-                <widget class="QLineEdit" name="Calib_Pixels"/>
-               </item>
               </layout>
              </widget>
             </item>
@@ -635,6 +602,9 @@ QGroupBox::title {
                <string>Cascade Settings</string>
               </property>
               <layout class="QGridLayout" name="gridLayout_2">
+               <property name="topMargin">
+                <number>15</number>
+               </property>
                <item row="0" column="0">
                 <widget class="QLabel" name="label_14">
                  <property name="text">
@@ -734,10 +704,10 @@ QTabBar::tab {
                                 stop: 0.5 #D8D8D8, stop: 1.0 #D3D3D3);
     border: 2px solid #C4C4C3;
     border-bottom-color: #C2C7CB; /* same as the pane color */
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    min-width: 10ex;
-    padding: 8px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    min-width: 7ex;
+    padding: 7px;
 }
 
 QTabBar::tab:selected, QTabBar::tab:hover {
@@ -774,6 +744,44 @@ QTabBar::tab:!selected {
                 <width>5</width>
                 <height>0</height>
                </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QTabWidget::pane { /* The tab widget frame */
+    border-top: 2px solid #C2C7CB;
+}
+
+QTabWidget::tab-bar {
+    left: 5px; /* move to the right by 5px */
+}
+
+/* Style the tab using the tab sub-control. Note that
+    it reads QTabBar _not_ QTabWidget */
+QTabBar::tab {
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                stop: 0 #E1E1E1, stop: 0.4 #DDDDDD,
+                                stop: 0.5 #D8D8D8, stop: 1.0 #D3D3D3);
+    border: 2px solid #C4C4C3;
+    border-bottom-color: #C2C7CB; /* same as the pane color */
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    min-width: 7ex;
+    padding: 7px;
+}
+
+QTabBar::tab:selected, QTabBar::tab:hover {
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                stop: 0 #fafafa, stop: 0.4 #f4f4f4,
+                                stop: 0.5 #e7e7e7, stop: 1.0 #fafafa);
+}
+
+QTabBar::tab:selected {
+    border-color: #9B9B9B;
+    border-bottom-color: #C2C7CB; /* same as pane color */
+}
+
+QTabBar::tab:!selected {
+    margin-top: 3px; /* make non-selected tabs look smaller */
+}</string>
               </property>
               <property name="currentIndex">
                <number>-1</number>
@@ -877,7 +885,7 @@ QGroupBox::title {
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>338</width>
+             <width>349</width>
              <height>704</height>
             </rect>
            </property>
@@ -891,6 +899,12 @@ QGroupBox::title {
             </item>
             <item row="1" column="0">
              <widget class="QTextEdit" name="Console_output">
+              <property name="minimumSize">
+               <size>
+                <width>300</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="styleSheet">
                <string notr="true">QTextEdit, QListView {
 	color: rgb(255,255,255);

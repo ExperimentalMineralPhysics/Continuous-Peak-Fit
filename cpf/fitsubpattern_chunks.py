@@ -777,8 +777,8 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
                 overwrite=False,
             )
             fig.savefig(filename)
-        plt.show(block=False)
-        plt.pause(4)
+        plt.show(block=True)
+        plt.pause(3)
         plt.close()
 
     return master_params

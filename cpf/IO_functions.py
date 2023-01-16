@@ -53,7 +53,7 @@ def json_numpy_serializer(o):
         return o.tolist()
     elif isinstance(o, numpy_types):
         return o.item()
-    elif isinstance(o, np.float128):
+    elif isinstance(o, np.float64):
         return o.astype(np.float64).item()
     # elif isinstance(o, np.complex256): -- no python native for np.complex256
     #     return o.astype(np.complex128).item() -- python `complex` class is not json serializable

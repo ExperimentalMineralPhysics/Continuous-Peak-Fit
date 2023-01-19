@@ -1,36 +1,43 @@
 import sys
-from PyQt5 import (
+from PyQt6 import (
     QtWidgets, 
     QtCore, 
-    QtGui
+    QtGui,
     )
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QMainWindow, 
-    QApplication,  
+    QApplication, 
+    QPushButton, 
+    QWidget,
+    QTabWidget,
+    QVBoxLayout,
     QFileDialog
     )
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.uic import loadUi
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtGui import (QIcon, QAction)
+from PyQt6.QtCore import pyqtSlot
+from PyQt6.uic import loadUi
 
-from Widgets.Range_Widget import Range
-from Widgets.Peak_Widget import Peak
-from Widgets.Output_Widget import Output
+from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtCore import *
+
+from string import Template
+import os
+
+from Range_Widget import Range
+from Peak_Widget import Peak
+from Output_Widget import Output
 
 import cpf
+from cpf.settings import settings
 
 from matplotlib_qt import matplotlib_qt
 from matplotlib_auto import matplotlib_inline
 
-import os
-
-
-class Main_Widget(QMainWindow):
+class MainWindow(QMainWindow):
     
     def __init__(self):
-        super(Main_Widget, self).__init__()
-        loadUi("Main_Widget.ui", self)
+        super(MainWindow, self).__init__()
+        loadUi("Widgets/Main_Widget.ui", self)
         self.setWindowIcon(QtGui.QIcon('logo.png'))
         self.gui_layout()
         

@@ -209,18 +209,6 @@ def get_image_keys(
             elif bottom_level == "iterate":
                 # iterate over the size of the array in the h5 group.
 
-                #make list of key labels
-                key_strings_new = get_image_key_strings(
-                    datafile, 
-                    key_route=key_route, 
-                    key_names=h5key_names[0], 
-                    key_measure=h5key_list[0],
-                    key_start=key_start[0],
-                    key_end=key_end[0],
-                    key_step=1,
-                    index=index,
-                )
-                #print('new key_strings', key_strings_new)
                 out = []
 
                 # print("data set with the key:", datafile[key])
@@ -245,68 +233,122 @@ def get_image_keys(
                     key_end[0] -= 1
                     key_start[0] -= 1
 
-                #get the labels:
-                lbl_temp=[]
-                for i in [*range(key_start[0], key_end[0], key_step[0])]:
-                    lbl_temp.append([key, i, key_str + sep1+key_strings_new[i]])
-                #print("lbl_temp", lbl_temp)
+                # get the labels
+                # FIXME: this doesnt work if the last enty in the h5key_names list is blank.
+                # FIXME: Should use a function to cover all options and combine with iterate call.
+                labels = []
+                if isinstance(h5key_names[0], list):
+                    for i in range(len(h5key_names[0])):
+                        # print("key location", str(i), key_route+'/'+h5key_names[0][i])
+                        labels_temp = datafile[key_route + "/" + h5key_names[0][i]][()]
+                        # print(labels_temp)
+                        labels_temp = unique_labels(
+                            labels_temp, number_data=number_data
+                        )
+                        labels.append(labels_temp)
+                elif (isinstance(h5key_names[0], str) and h5key_names[0] != ""):  
+                    # it must be a string.
+                    # print('string')
+                    # print(key_route+'/'+h5key_names[0])
+                    # print(datafile[key_route+'/'+h5key_names[0]])
+                    labels = [datafile[key_route + "/" + h5key_names[0]][()]]
 
-                return lbl_temp
-                
+                    labels = unique_labels(labels, number_data=number_data)
+
+                    h5key_names = [h5key_names]
+
+                else:  # the key is empty and so use numbers
+                    labels = list(range(number_data))
+                    labels = [unique_labels(labels, number_data=number_data)]
+                    # sprint('labels', labels)
+
+                    h5key_names = [h5key_names]
+
+                # print(h5key_names)
+                # print(labels)
+                # print(type(labels))
+
+                # make the list of labels
+                for i in [*range(key_start[0], key_end[0], key_step[0])]:
+                    lbl_str = ""
+                    for j in range(len(h5key_names[0])):
+                        # print(i, j, "'",h5key_names[0],"'")
+                        if (
+                            isinstance(h5key_names[0][j], str)
+                            and len(h5key_names[0][j]) == 0
+                        ):
+                            pass
+                        else:
+                            lbl_str = lbl_str + os.path.basename(
+                                os.path.normpath(key_route + "/" + h5key_names[0][j])
+                            )
+
+                        if (
+                            len(h5key_names[0][j]) == 0
+                        ):  # then there is no name to paste into the file name string
+                            if np.size(labels[j]) == 1:
+                                lbl_str = lbl_str + str(labels[j])
+                            else:
+                                lbl_str = lbl_str + str(labels[j][i])
+                        else:
+                            if np.size(labels[j]) == 1:
+                                lbl_str = lbl_str + sep2 + str(labels[j])
+                            else:
+                                lbl_str = lbl_str + sep2 + str(labels[j][i])
+                        if j != len(h5key_names[0]) - 1:  # np.size(labels[j]):
+                            lbl_str = lbl_str + sep1
+
+                    # Make label string and replace all illegal filename characters in label_string.
+                    # also replace . with pt in the string
+                    if len(key_str) != 0:
+                        lbl_str = key_str + sep1 + lbl_str
+
+                    IO.licit_filename(lbl_str)
+
+                    out.append([key, i, lbl_str])
+                return out[:]
+
             else:
                 print("oops")
                 stop
         else:
-            print("There is no key ", key, ". Skipping over.")
+            print("oops, key is wrong")
+            stop
     else:
         # step inside the key_list
 
         # make current key
         key_str = key_str + "/" + h5key_list[0]
         # print(key_str)
-        
-        #make list of key labels
-        key_strings = get_image_key_strings(
-            datafile, 
-            key_route=key_str, 
-            key_names=h5key_names[0], 
-            key_measure=h5key_list[0],
-            key_start=key_start[0],
-            key_end=key_end[0],
-            key_step=1,
-            index=0,
-        )
-        
+
         # make list of values
         if isinstance(h5key_names[0], str) and len(h5key_names[0]) == 0:
             key_lst = list(datafile[h5key_list[0]].keys())
-            #key_strings = list(range(len(key_lst)))
+            key_strings = list(range(len(key_lst)))
             # print('1)', len(key_str))
         else:
             key_lst = list(datafile[h5key_list[0]].keys())
-            #key_strings = key_lst
+            key_strings = key_lst
         #     print('2)')
-        
+        # print(key_lst)
         # print(key_strings)
         # cut to what we want ot iterate over
         # if we are using all the data make sure we run to the end.
         if key_end[0] == -1:
-            key_end[0] = len(key_lst)-1
-            
+            key_end[0] = len(key_lst)
+
         # if we are looking for more images than there are cut the list
         # key_end[0] = np.min(number_data, key_end[0])
 
         # if the order is reverse switch the values
         if key_step[0] <= -1:
             key_start[0], key_end[0] = key_end[0], key_start[0]
-            key_end[0] -= 1
-            #key_start[0] -= 1
-        # else:
-        #     key_end[0] += 1    
+
         # populate the list
-        #print('start loop', [*range(key_start[0], key_end[0], key_step[0])])
+        # print('start loop', [*range(key_start[0], key_end[0], key_step[0])])
         # for i in range(len(key_lst)):
-        for i in [*range(key_start[0], key_end[0], key_step[0])]:
+        for i in [*range(key_start[0], key_end[0] + 1, key_step[0])]:
+
             # print(key_lst[i])
             # print(h5key_list[1:])
 
@@ -336,182 +378,6 @@ def get_image_keys(
             # print(keys)
 
     return keys
-
-
-
-
-def get_image_key_strings(
-    datafile, 
-    key_route="",
-    key_names=[""],
-    key_measure=[""],
-    key_start=0,
-    key_end=-1,
-    key_step=1,
-    key_str="",
-    index=0,
-    sep1 = "_",
-    sep2 = "=",
-):
-    """
-    Makes the key labels for use in the filenames and so forth.
-    Trasposes the key_names into strings, numberical values or reads from other groups depending on the content. 
-    The key names is a list of lists or strings.
-    There are three different actions depending on the string:
-    '' - empty string -- adds the numberical position of the key as a label
-    '/' - slash -- adds the name of the key as a label
-    '...' - key name -- adds keyname=keyvalue as a label.
-    Multiple keynames can be concatiated within a list and all will be added to the label.
-
-    Parameters
-    ----------
-    data_file : file handle
-        Filehandle for h5 data file.
-    key_route : TYPE, optional
-        DESCRIPTION. The default is "".
-    key_names : TYPE, optional
-        DESCRIPTION. The default is [""].
-    key_start : TYPE, optional
-        DESCRIPTION. The default is 0.
-    key_end : TYPE, optional
-        DESCRIPTION. The default is -1.
-    key_step : TYPE, optional
-        DESCRIPTION. The default is 1.
-
-    Returns
-    -------
-    key_str : list
-        List of labels for the images in the data group.
-
-    """
-        
-    if not isinstance(key_names, list):
-        key_names = [key_names]
-    number_data_tmp1 = []
-    number_data_tmp = []
-    for i in range(len(key_names)):
-        # print(key_names[i])
-        if isinstance(datafile[key_route + "/" + key_names[i]], h5py.Group) and key_names[i]=="/":
-            print(i, "/")
-            number_data_tmp.append(len(list(datafile[key_route + "/" + key_names[i]].keys())))
-            
-        elif isinstance(datafile[key_route + "/" + key_names[i]], h5py.Group) and key_names[i]=="":
-            
-            try:
-                # print(key_measure)
-                if key_measure == "/":
-                    number_data_tmp.append(len(list(datafile[key_route + "/" + key_names[i]].keys())))
-                else:
-                    
-                    attr=(datafile[key_route + "/" + key_measure])
-                    # print(attr)
-                    tmp = datafile.get(key_route + "/" + key_measure)
-                    #print(tmp.shape)
-                    number_data_tmp.append(tmp.shape[index])
-                
-            except:
-                print(i, "value")
-                number_data_tmp.append(0)
-
-        else:
-            # print("wrong place")
-            number_data_tmp.append(datafile[key_route + "/" + key_names[i]].size)
-            
-    number_data = np.max(number_data_tmp)
-    # print('number_data', number_data)    
-    
-    if isinstance(key_names, str):
-         key_names = [key_names]
-    
-    #get the labels
-    labels = []
-    for i in range(len(key_names)):
-        
-        if key_names[i] == "":
-            #if empty then list numbers.
-            labels_temp = np.array(range(number_data))
-            #FIXME: We are zero counting the images and the indecies. It might be better to 1 count them.
-            # if so to 1 count the indicies we add 1 to the prewvious line. 
-            #the counting over the arrays needs to be done in get_image_keys
-            labels_temp = unique_labels(labels_temp, number_data=number_data)
-            # print(labels_temp)
-        elif key_names[i] == "/":
-            # if "/" then list names of subgroups
-            labels_temp = list(datafile[key_route + "/" + key_names[i]].keys())
-        else:
-            # it is a key and so list the key contents.
-            try:
-                #number_data = datafile[key_route + "/" + key_names[i]].shape[index]
-                labels_temp = datafile[key_route + "/" + key_names[i]][()]
-            except:
-                #catch incase 1 iterable index is the length of the data and the other is only 1.
-                #number_data = datafile[key_route + "/" + key_names[i]].shape
-                labels_temp = datafile[key_route + "/" + key_names[i]][()]
-            #if not isinstance(labels_temp, list):
-            #    labels_temp = [labels_temp]
-            # print("lbls_tmp",labels_temp, type(labels_temp), labels_temp.size)
-            labels_temp = unique_labels(
-                labels_temp, number_data=labels_temp.size
-            )
-        labels.append(labels_temp)
-        
-    # if we are using all the data make sure we run to the end.
-    # print('keyend',key_end)
-    if key_end == -1:
-        key_end = number_data-1
-    # else:
-    #     key_end += 1
-    # if we are looking for more images than there are cut the list
-    # key_end[0] = np.min(number_data, key_end[0])
-
-    # if the order is reverse switch the values
-    # FIXME: this only works for the input as set needs to be updatedto work for all logics.
-    # FIXME: Should use cpf.IO_functions/file_list work for this.
-    if key_step <= -1:
-        key_start, key_end = key_end, key_start
-        key_end -= 1
-        key_start -= 1
-
-    # make the list of labels
-    out=[]
-    for i in [*range(key_start, key_end+1, key_step)]:
-        lbl_str = ""
-        for j in range(len(labels)):
-            # print(i, j, "'",h5key_names[0],"'")
-            if (
-                isinstance(key_names[j], str)
-                and len(key_names[j]) == 0
-            ):
-                pass
-            else:
-                lbl_str = lbl_str + os.path.basename(
-                    os.path.normpath(key_route + "/" + key_names[j])
-                )
-
-            if (
-                len(key_names[j]) == 0 or key_names[j]=="/"
-            ):  # then there is no name to paste into the file name string
-                if np.size(labels[j]) == 1:
-                    lbl_str = lbl_str + str(labels[j])
-                else:
-                    lbl_str = lbl_str + str(labels[j][i])
-            else:
-                if np.size(labels[j]) == 1:
-                    lbl_str = lbl_str + sep2 + str(labels[j])
-                else:
-                    lbl_str = lbl_str + sep2 + str(labels[j][i])
-            if j != len(key_names) - 1:  # np.size(labels[j]):
-                lbl_str = lbl_str + sep1
-
-        # IO.licit_filename(lbl_str)
-        if len(key_str) != 0:
-            lbl_str = key_str + sep1 + lbl_str
-
-        lbl_str=IO.licit_filename(lbl_str)
-
-        out.append(lbl_str)
-        
-    return out
 
 
 def get_images(

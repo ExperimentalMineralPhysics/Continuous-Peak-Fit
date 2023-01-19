@@ -14,12 +14,14 @@ from cpf.IO_functions import (
     file_list,
     image_list,
 )  
-
+from PyQt6.QtWidgets import QMessageBox
 from cpf.series_functions import coefficient_type_as_number, get_number_coeff
 
 import sys
 import logging
 import json
+
+
 
 class settings:
     """Settings class definitions.
@@ -41,10 +43,8 @@ class settings:
         self.outputs -- list of output processes to run
         
     """
-
-    # Name and path relative to the root of the application of the logfile
     log_file = "logs/logs.log"
-
+    
     def __init__(
         self,
         settings_file=None,
@@ -217,7 +217,7 @@ class settings:
         Fails with a list of missing parameters if not complete.
         """
 
-        # store all the settings from file in a module class.
+        # store all the settings from file in a mocule class.
         module_name, _ = os.path.splitext(os.path.basename(self.settings_file))
         spec = importlib.util.spec_from_file_location(module_name, self.settings_file)
         self.settings_from_file = importlib.util.module_from_spec(spec)
@@ -238,10 +238,8 @@ class settings:
         # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
         if "datafile_Basename" in dir(self.settings_from_file):
             self.datafile_basename = self.settings_from_file.datafile_Basename
-        if "datafile_Ending" in dir(self.settings_from_file):
-            self.datafile_ending  = self.settings_from_file.datafile_Ending
-        
-        #add output directory if listed. 
+
+        # add output directory if listed.
         # change if listed among the inputs
         if "Output_directory" in dir(self.settings_from_file):
             self.output_directory = self.settings_from_file.Output_directory
@@ -370,9 +368,12 @@ class settings:
         for j in range(len(files_to_check)):
             # print(files_to_check[j])
             if os.path.isfile(files_to_check[j]) is False:
-                raise ImportError(
-                    "The file " + files_to_check[j] + " is not found but is required."
-                )
+                mess = QMessageBox()
+                mess.setIcon(QMessageBox.Icon.Warning)
+                mess.setText("The file " + files_to_check[j] + " is not found but is required.")
+                mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+                mess.setWindowTitle("ALERT")
+                returnValue = mess.exec()
             else:
                 if write == True:
                     logger.info(files_to_check[j] + " exists.")
@@ -780,11 +781,11 @@ class settings:
             incorrect = True
         if incorrect:
             if not report:
-                logger.info(
+                logger.warning(
                     "The problems listed above will prevent the data fitting."
                 )
             else:
-                logger.info(
+                logger.warning(
                     "The problems listed above will prevent the data fitting and need to be rectified before execution"
                 )
         else:

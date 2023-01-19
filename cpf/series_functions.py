@@ -158,20 +158,18 @@ def get_series_mean(param, param_str, comp=None):
     :return: weighted mean of parameters
     """
     
-    # if comp is not None:
-    #     new_str = param_str + "_" + comp
-    # else:
-    #     new_str = param_str
+    if comp is not None:
+        new_str = param_str + "_" + comp
+    else:
+        new_str = param_str
     
-    # FIX ME: here we need to be able to discard the outliers. 
-    # We should use the medaian and the mean deviation from the median...
+    mean_tmp = []
     
     if get_series_type(param, param_str, comp=comp)==0:
-        #if it is a Fourier series just get the first value. 
+        #if it is a Fourier series justget the first value. 
         mean = (param[param_str+"_"+comp+"0"].value)
     else:
         # get a mean of all the coefficients
-        mean_tmp = []
         done = 0
         n = 0
         while done==0:
@@ -180,8 +178,9 @@ def get_series_mean(param, param_str, comp=None):
                 n = n+1
             except:
                 # now we have run out of coefficients. So get the mean and then leave the loop.
-                mean = np.mean(mean_tmp)
+                mean = (np.mean(mean_tmp))
                 done = 1
+                
     
     return mean
     
@@ -505,15 +504,11 @@ def fourier_expand(azimuth, inp_param=None, comp_str=None, **params):
     if not isinstance(inp_param, np.float64) and np.size(inp_param) > 1:
         for i in range(1, int((len(inp_param) - 1) / 2) + 1):
             # len(param)-1 should never be odd because of initial a_0 parameter
-            try:
-                # try/except is a ctch for expanding a fourier series that has failed and has nones as coefficient values.
-                fout = (
-                    fout
-                    + inp_param[(2 * i) - 1] * np.sin(np.deg2rad(azimuth) * i)
-                    + inp_param[2 * i] * np.cos(np.deg2rad(azimuth) * i)
-                )  # single col array
-            except:
-                pass
+            fout = (
+                fout
+                + inp_param[(2 * i) - 1] * np.sin(np.deg2rad(azimuth) * i)
+                + inp_param[2 * i] * np.cos(np.deg2rad(azimuth) * i)
+            )  # single col array
     return fout
 
 

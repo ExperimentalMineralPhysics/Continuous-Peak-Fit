@@ -2,26 +2,17 @@ import sys
 from PyQt6 import (
     QtWidgets, 
     QtCore, 
-    QtGui,
+    QtGui
     )
 from PyQt6.QtWidgets import (
     QMainWindow, 
-    QApplication, 
-    QPushButton, 
-    QWidget,
-    QTabWidget,
-    QVBoxLayout,
+    QApplication,  
     QFileDialog
     )
-from PyQt6.QtGui import (QIcon, QAction)
+from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import pyqtSlot
 from PyQt6.uic import loadUi
-
 from PyQt6.QtWidgets import QMessageBox
-from PyQt6.QtCore import *
-
-from string import Template
-import os
 
 from Range_Widget import Range
 from Peak_Widget import Peak
@@ -33,10 +24,13 @@ from cpf.settings import settings
 from matplotlib_qt import matplotlib_qt
 from matplotlib_auto import matplotlib_inline
 
-class MainWindow(QMainWindow):
+import os
+
+
+class Main_Widget(QMainWindow):
     
     def __init__(self):
-        super(MainWindow, self).__init__()
+        super(Main_Widget, self).__init__()
         loadUi("Widgets/Main_Widget.ui", self)
         self.setWindowIcon(QtGui.QIcon('logo.png'))
         self.gui_layout()
@@ -104,7 +98,7 @@ class MainWindow(QMainWindow):
         self.Remove_Output_Btn.clicked.connect(self.Remove_Output)
         
         self.Select_Directory_1.clicked.connect(self.select_Data_Dir)
-        self.Select_Directory_2.clicked.connect(self.selectTarget)
+        self.Select_Directory_2.clicked.connect(self.select_Output_Dir)
         
         self.Save_input_Btn.clicked.connect(self.Insert_Button)
         self.Load_input_Btn.clicked.connect(self.Load_Inputs)
@@ -180,7 +174,7 @@ class MainWindow(QMainWindow):
         self.set_cl.subfit_order_position = None
         self.set_cl.subfit_orders = None
 
-        fname= QFileDialog.getOpenFileName(self, "Load Input File", "..\\", "Python Files (*.py)")
+        fname= QFileDialog.getOpenFileName(self, "Load Input File", "./", "Python Files (*.py)")
         
         if fname:
             self.input_file_path = f"{fname[0]}"
@@ -599,7 +593,7 @@ class MainWindow(QMainWindow):
             self.output_list.append(output_object) 
             
             # clear log file data whenever new file is loaded
-            file_to_delete = open("../logs/logs.log",'w')
+            file_to_delete = open(settings.log_file,'w')
             file_to_delete.close()
         
         # set cursor position at the start of text box after filling it
@@ -649,16 +643,17 @@ class MainWindow(QMainWindow):
     def Validate_Inputs(self):
         if self.input_file_path == None:
             mess = QMessageBox()
-            mess.setIcon(QMessageBox.Warning)
+            mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
+            mess.setIcon(QMessageBox.Icon.Warning)
             mess.setText("Please Load input file")
-            mess.setStandardButtons(QMessageBox.Ok)
-            mess.setWindowTitle("MessageBox")
-            returnValue = mess.exec_()
+            mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+            mess.setWindowTitle("ALERT")
+            returnValue = mess.exec()
         else:
-            with open("../logs/logs.log",'a') as file:
+            with open(settings.log_file,'a') as file:
                file.close()
             cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
-            text=open('../logs/logs.log').read()
+            text=open(settings.log_file).read()
             self.Console_output.setText(text)
             
     @pyqtSlot()             
@@ -667,14 +662,15 @@ class MainWindow(QMainWindow):
         self.matplotlib_qt = matplotlib_qt()
         if self.input_file_path == None:
             mess = QMessageBox()
-            mess.setIcon(QMessageBox.Warning)
+            mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
+            mess.setIcon(QMessageBox.Icon.Warning)
             mess.setText("Please Load input file")
-            mess.setStandardButtons(QMessageBox.Ok)
-            mess.setWindowTitle("MessageBox")
-            returnValue = mess.exec_()
+            mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+            mess.setWindowTitle("ALERT")
+            returnValue = mess.exec()
         else:
             cpf.XRD_FitPattern.set_range(f"{self.input_file_path}", save_all=True)
-            text=open('../logs/logs.log').read()
+            text=open(settings.log_file).read()
             self.Console_output.setText(text)
     
     @pyqtSlot()
@@ -683,14 +679,15 @@ class MainWindow(QMainWindow):
         QApplication.processEvents()
         if self.input_file_path == None:
             mess = QMessageBox()
-            mess.setIcon(QMessageBox.Warning)
+            mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
+            mess.setIcon(QMessageBox.Icon.Warning)
             mess.setText("Please Load input file")
-            mess.setStandardButtons(QMessageBox.Ok)
-            mess.setWindowTitle("MessageBox")
-            returnValue = mess.exec_()
+            mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+            mess.setWindowTitle("ALERT")
+            returnValue = mess.exec()
         else:
             cpf.XRD_FitPattern.initial_peak_position(f"{self.input_file_path}", save_all=True)
-            text=open('../logs/logs.log').read()
+            text=open(settings.log_file).read()
             self.Console_output.setText(text)
             self.matplotlib_inline = matplotlib_inline()
     
@@ -699,14 +696,15 @@ class MainWindow(QMainWindow):
         self.matplotlib_qt = matplotlib_qt()
         if self.input_file_path == None:
             mess = QMessageBox()
-            mess.setIcon(QMessageBox.Warning)
+            mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
+            mess.setIcon(QMessageBox.Icon.Warning)
             mess.setText("Please Load input file")
-            mess.setStandardButtons(QMessageBox.Ok)
-            mess.setWindowTitle("MessageBox")
-            returnValue = mess.exec_()
+            mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+            mess.setWindowTitle("ALERT")
+            returnValue = mess.exec()
         else:
             cpf.XRD_FitPattern.execute(f"{self.input_file_path}", save_all=True, parallel = False)
-            text=open('../logs/logs.log').read()
+            text=open(settings.log_file).read()
             # FIX ME Simon: parallel = True doesn't work on Adina's Windows computer
             self.Console_output.setText(text)
     
@@ -715,14 +713,15 @@ class MainWindow(QMainWindow):
         self.matplotlib_qt = matplotlib_qt()
         if self.input_file_path == None:
             mess = QMessageBox()
-            mess.setIcon(QMessageBox.Warning)
+            mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
+            mess.setIcon(QMessageBox.Icon.Warning)
             mess.setText("Please Load input file")
-            mess.setStandardButtons(QMessageBox.Ok)
-            mess.setWindowTitle("MessageBox")
-            returnValue = mess.exec_()
+            mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+            mess.setWindowTitle("ALERT")
+            returnValue = mess.exec()
         else:
             cpf.XRD_FitPattern.write_output(f"{self.input_file_path}", save_all=True)
-            text=open('../logs/logs.log').read()
+            text=open(settings.log_file).read()
             self.Console_output.setText(text)
     
     @pyqtSlot()
@@ -733,7 +732,7 @@ class MainWindow(QMainWindow):
         end_num = self.End_Num.text()
         num_digit = self.Num_Digit.text()
         step = self.Step.text() '''
-     
+        
         # store widgets' data into setting class variables
         self.set_cl.datafile_directory = self.Directory.text()
         self.set_cl.datafile_basename = self.Basename.text()
@@ -775,90 +774,88 @@ class MainWindow(QMainWindow):
         self.set_cl.output_directory = self.Output_Dir_1.text()
         
         # Save range_tab data 
-        for range_object in self.range_list:
-             
-            self.range_indices = self.range_list.index(range_object)
+        for range_object in range (len(self.range_list)):
             
-            self.set_cl.fit_orders[self.range_indices]["range"][0] = range_object.Range_min.text()
-            self.set_cl.fit_orders[self.range_indices]["range"][1] = range_object.Range_max.text()
+            self.set_cl.fit_orders[range_object]["range"][0] = self.range_list[range_object].Range_min.text()
+            self.set_cl.fit_orders[range_object]["range"][1] = self.range_list[range_object].Range_max.text()
             
-            self.set_cl.fit_orders[self.range_indices]["background"] = range_object.Range_Background_Val.text()
+            self.set_cl.fit_orders[range_object]["background"] = self.range_list[range_object].Range_Background_Val.text()
             
-            if range_object.Background_Type.currentText() == 'Select Type':
-                self.set_cl.fit_orders[self.range_indices]["background-type"] = ''
+            if self.range_list[range_object].Background_Type.currentText() == 'Select Type':
+                self.set_cl.fit_orders[range_object]["background-type"] = ''
             else:
-                self.set_cl.fit_orders[self.range_indices]["background-type"] = range_object.Background_Type.currentText()
+                self.set_cl.fit_orders[range_object]["background-type"] = self.range_list[range_object].Background_Type.currentText()
             
-            self.set_cl.fit_orders[self.range_indices]["Imax"] = range_object.Intensity_max.text() 
-            self.set_cl.fit_orders[self.range_indices]["Imin"] = range_object.Intensity_min.text()
+            self.set_cl.fit_orders[range_object]["Imax"] = self.range_list[range_object].Intensity_max.text() 
+            self.set_cl.fit_orders[range_object]["Imin"] = self.range_list[range_object].Intensity_min.text()
             
-            self.set_cl.fit_orders[self.range_indices]["PeakPositionSelection"] = range_object.Peak_Pos_Selection.toPlainText()
+            self.set_cl.fit_orders[range_object]["PeakPositionSelection"] = self.range_list[range_object].Peak_Pos_Selection.toPlainText()
             
             # Save peak_tab data 
-            for peak_object in range_object.peak_list:
+            for peak_object in self.range_list[range_object].peak_list:
                 
-                self.peak_indices = range_object.peak_list.index(peak_object)
+                self.peak_indices = self.range_list[range_object].peak_list.index(peak_object)
                
-                self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["phase"] = peak_object.phase_peak.text()
-                self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["hkl"] = peak_object.hkl.text()
+                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["phase"] = peak_object.phase_peak.text()
+                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["hkl"] = peak_object.hkl.text()
                 
-                self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["d-space"] = peak_object.d_space_peak.text()
+                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space"] = peak_object.d_space_peak.text()
                 
                 if peak_object.d_space_type.currentText() == 'Select Type':
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["d-space-type"] = ''
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space-type"] = ''
                 else:
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["d-space-type"] = peak_object.d_space_type.currentText()
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space-type"] = peak_object.d_space_type.currentText()
                 
                 if peak_object.height_peak_type.currentText() == 'Select Type':
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["height-type"] = ''  
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height-type"] = ''  
                 else: 
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["height-type"] = peak_object.height_peak_type.currentText()
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height-type"] = peak_object.height_peak_type.currentText()
                 
                 if peak_object.profile_peak_type.currentText() == 'Select Type':
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["profile-type"] = ''
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile-type"] = ''
                 else:
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["profile-type"] = peak_object.profile_peak_type.currentText()
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile-type"] = peak_object.profile_peak_type.currentText()
                 
                 if peak_object.width_peak_type.currentText() == 'Select Type':
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["width-type"] = ''
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width-type"] = ''
                 else:    
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["width-type"] = peak_object.width_peak_type.currentText()
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width-type"] = peak_object.width_peak_type.currentText()
                 
-                self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["height"] = peak_object.height_peak.text()
-                self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["profile"] = peak_object.profile_peak.text()
+                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height"] = peak_object.height_peak.text()
+                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile"] = peak_object.profile_peak.text()
                 
-                self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["profile_fixed"] = peak_object.profile_fixed.text()
+                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile_fixed"] = peak_object.profile_fixed.text()
                 
-                self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["width"] = peak_object.width_peak.text()
-                self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["symmetry"] = peak_object.symmetry_peak.text()
+                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width"] = peak_object.width_peak.text()
+                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["symmetry"] = peak_object.symmetry_peak.text()
 
                 if  peak_object.profile_checkBox.isChecked:
                     peak_object.profile_fixed.setEnabled(True)
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["profile_fixed"]= peak_object.profile_fixed.text() 
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile_fixed"]= peak_object.profile_fixed.text() 
                 else:
                     peak_object.profile_fixed.setEnabled(False)
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["profile_fixed"] = None           
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile_fixed"] = None           
                     
                 if  peak_object.width_checkBox.isChecked: 
                     peak_object.width_fixed.setEnabled(True)
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["width_fixed"] = peak_object.width_fixed.text()  
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width_fixed"] = peak_object.width_fixed.text()  
                 else:
                     peak_object.width_fixed.setEnabled(False)
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["width_fixed"] = None
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width_fixed"] = None
                     
                 if  peak_object.height_checkBox.isChecked:
                     peak_object.height_fixed.setEnabled(True)
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["height_fixed"] = peak_object.height_fixed.text()
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height_fixed"] = peak_object.height_fixed.text()
                 else:
                     peak_object.height_fixed.setEnabled(False)
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["height_fixed"] = None  
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height_fixed"] = None  
                     
                 if  peak_object.dspace_checkBox.isChecked:
                     peak_object.dspace_fixed.setEnabled(True)
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["d-space_fixed"]= peak_object.dspace_fixed.text()
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space_fixed"]= peak_object.dspace_fixed.text()
                 else:
                     peak_object.dspace_fixed.setEnabled(False)
-                    self.set_cl.fit_orders[self.range_indices]["peak"][self.peak_indices]["d-space_fixed"]= None
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space_fixed"]= None
         
         # Save output_tab data 
         for output_object in self.output_list:
@@ -993,119 +990,73 @@ class MainWindow(QMainWindow):
             
             elif output_object.Output_Type_comboBox.currentText() =='Select Type':
                 mess = QMessageBox()
-                mess.setIcon(QMessageBox.Warning)
+                mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
+                mess.setIcon(QMessageBox.Icon.Warning)
                 mess.setText("Please Select Output Type")
-                mess.setStandardButtons(QMessageBox.Ok)
-                mess.setWindowTitle("MessageBox")
-                returnValue = mess.exec_()
+                mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+                mess.setWindowTitle("ALERT")
+                returnValue = mess.exec()
                 
         self.set_cl.save_settings()
         
     @pyqtSlot()
     def select_Data_Dir(self):
-            dialog = QtWidgets.QFileDialog()
-            if self.Directory.text():
-                dialog.setDirectory(self.Directory.text())
-
-            dialog.setFileMode(dialog.Directory)
-
-            # we cannot use the native dialog, because we need control over the UI
-            options = dialog.Options(dialog.DontUseNativeDialog | dialog.ShowDirsOnly)
-            dialog.setOptions(options)
-
-            def checkLineEdit(path):
-                    if not path:
-                        return
-                    
-                    if path.endswith(QtCore.QDir.separator()):
-                        return checkLineEdit(path.rstrip(QtCore.QDir.separator()))
-                    path = QtCore.QFileInfo(path)
-                    
-                    if path.exists() or QtCore.QFileInfo(path.absolutePath()).exists():
-                        button.setEnabled(True)
-                        return True
-
-                # get the "Open" button in the dialog
-            button = dialog.findChild(QtWidgets.QDialogButtonBox).button(
-                    QtWidgets.QDialogButtonBox.Open)
-
-            lineEdit = dialog.findChild(QtWidgets.QLineEdit)
-            lineEdit.textChanged.connect(checkLineEdit)
-
-            def accept():
-                    if checkLineEdit(lineEdit.text()):
-                        # if the path is acceptable, call the base accept() implementation
-                        QtWidgets.QDialog.accept(dialog)
-            dialog.accept = accept
-
-            if dialog.exec_() and dialog.selectedFiles():
-                    path = QtCore.QFileInfo(dialog.selectedFiles()[0]).absoluteFilePath()
-                    self.Directory.setText(path)
-            self.Directory.setCursorPosition(0);
+        dialog = QFileDialog.getExistingDirectory(self, 'Select Directory')
+        if dialog:
+                self.Directory.setText(dialog)
+        self.Directory.setCursorPosition(0);
     
     @pyqtSlot()
-    def selectTarget(self):
-            dialog = QtWidgets.QFileDialog()
+    def select_Output_Dir(self):
+        dialog = QFileDialog.getExistingDirectory(self, 'Select Directory')
+        if dialog:
+                self.Output_Dir_1.setText(dialog)
+                self.Output_Dir_2.setText(dialog)
 
-            if self.Output_Dir_1.text():
-                    dialog.setDirectory(self.Output_Dir_1.text())
-
-            dialog.setFileMode(dialog.Directory)
-            options = dialog.Options(dialog.DontUseNativeDialog | dialog.ShowDirsOnly)
-            dialog.setOptions(options)
-               
-            def checkLineEdit(path):
-                    if not path:
-                        return
-                    
-                    if path.endswith(QtCore.QDir.separator()):
-                        return checkLineEdit(path.rstrip(QtCore.QDir.separator()))
-                    path = QtCore.QFileInfo(path)
-                    
-                    if path.exists() or QtCore.QFileInfo(path.absolutePath()).exists():
-                        button.setEnabled(True)
-                        return True
-
-            button = dialog.findChild(QtWidgets.QDialogButtonBox).button(
-                    QtWidgets.QDialogButtonBox.Open)
-
-            lineEdit = dialog.findChild(QtWidgets.QLineEdit)
-            lineEdit.textChanged.connect(checkLineEdit)
-  
-            def accept():
-                    if checkLineEdit(lineEdit.text()):
-                        QtWidgets.QDialog.accept(dialog)
-            dialog.accept = accept
-
-            if dialog.exec_() and dialog.selectedFiles():
-                    path = QtCore.QFileInfo(dialog.selectedFiles()[0]).absoluteFilePath()
-                    self.Output_Dir_1.setText(path)
-                    self.Output_Dir_2.setText(path)
-            self.Output_Dir_1.setCursorPosition(0);
-            self.Output_Dir_2.setCursorPosition(0);
+        self.Output_Dir_1.setCursorPosition(0);
+        self.Output_Dir_2.setCursorPosition(0);
     
     @pyqtSlot()
     def Insert_Range(self):
         range_object = Range()
-        self.Range_Tab.addTab(range_object , QIcon(""),"Range")
         self.range_list.append(range_object)
+        #print(len(self.range_list))
+        self.Range_Tab.addTab(range_object , QIcon(""),"Range")
+       
     
     @pyqtSlot()
     def Remove_Range(self):
-        self.range_list.pop(self.Range_Tab.currentIndex())
-        #self.set_cl.fit_orders.pop(self.Range_Tab.currentIndex())
-        self.Range_Tab.removeTab(self.Range_Tab.currentIndex())
-    
+        if len(self.range_list)>=1:
+            self.range_list.pop(self.Range_Tab.currentIndex())
+            self.Range_Tab.removeTab(self.Range_Tab.currentIndex())
+        else:
+            mess = QMessageBox()
+            mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
+            mess.setIcon(QMessageBox.Icon.Warning)
+            mess.setText("No Ranges to remove")
+            mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+            mess.setWindowTitle("ERROR")
+            returnValue = mess.exec()
+
     @pyqtSlot()
     def Insert_Output(self):
         output_object = Output()
-        self.Output_Tab.addTab(output_object, QIcon(""),"Output")
         self.output_list.append(output_object)
+        self.Output_Tab.addTab(output_object, QIcon(""),"Output")
         
     @pyqtSlot()
     def Remove_Output(self):
-        self.output_list.pop(self.Output_Tab.currentIndex())
-        self.Output_Tab.removeTab(self.Output_Tab.currentIndex())
+        if len(self.output_list)>=1:
+            self.output_list.pop(self.Output_Tab.currentIndex())
+            self.Output_Tab.removeTab(self.Output_Tab.currentIndex())
+        else:
+            mess = QMessageBox()
+            mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
+            mess.setIcon(QMessageBox.Icon.Warning)
+            mess.setText("No Outputs to remove")
+            mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+            mess.setWindowTitle("ERROR")
+            returnValue = mess.exec()
         
     @pyqtSlot()
     def Dir_Pressed(self):
@@ -1220,16 +1171,4 @@ class MainWindow(QMainWindow):
     def closeEvent(self,event):
         os._exit(00)
         
-    
-def main():
-    app = QApplication(sys.argv)
-    mainwindow = Main_Widget()
-    mainwindow.showMaximized()
-    try:        
-      sys.exit(app.exec_())
-    except:
-      os._exit(00)
-
-if __name__=='__main__':
-    main()
 

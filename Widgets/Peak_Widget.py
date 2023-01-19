@@ -1,18 +1,6 @@
-from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.uic import loadUi
-from PyQt6 import QtWidgets
-from PyQt6.QtWidgets import (
-    QMainWindow, 
-    QApplication, 
-    QPushButton, 
-    QWidget, 
-    QTabWidget,
-    QVBoxLayout
-)
-from PyQt6.QtGui import (QIcon, QAction)
+from PyQt6.QtWidgets import QWidget
 
-import sys
-from string import Template
 
 class Peak(QWidget):
     
@@ -55,19 +43,19 @@ class Peak(QWidget):
                self.dspace_fixed.setEnabled(False)
           
     def peak_layout(self):
-        self.phase_peak.setMinimumHeight(40);
-        self.hkl.setMinimumHeight(40);
-        self.d_space_peak.setMinimumHeight(40);
-        self.height_peak.setMinimumHeight(40);
-        self.profile_peak.setMinimumHeight(40);
-        self.width_peak.setMinimumHeight(40);
-        self.symmetry_peak.setMinimumHeight(40);
-        self.dspace_fixed.setMinimumHeight(40);
-        self.height_fixed.setMinimumHeight(40);
-        self.profile_fixed.setMinimumHeight(40);
-        self.width_fixed.setMinimumHeight(40);
-        self.d_space_type.setMinimumHeight(40);
-        self.height_peak_type.setMinimumHeight(40);
-        self.profile_peak_type.setMinimumHeight(40);
-        self.width_peak_type.setMinimumHeight(40);
+        self.phase_peak.setMinimumHeight(30);
+        self.hkl.setMinimumHeight(30);
+        self.d_space_peak.setMinimumHeight(30);
+        self.height_peak.setMinimumHeight(30);
+        self.profile_peak.setMinimumHeight(30);
+        self.width_peak.setMinimumHeight(30);
+        self.symmetry_peak.setMinimumHeight(30);
+        self.dspace_fixed.setMinimumHeight(30);
+        self.height_fixed.setMinimumHeight(30);
+        self.profile_fixed.setMinimumHeight(30);
+        self.width_fixed.setMinimumHeight(30);
+        self.d_space_type.setMinimumHeight(30);
+        self.height_peak_type.setMinimumHeight(30);
+        self.profile_peak_type.setMinimumHeight(30);
+        self.width_peak_type.setMinimumHeight(30);
        

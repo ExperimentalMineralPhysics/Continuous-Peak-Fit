@@ -14,9 +14,9 @@ from PyQt6.QtCore import pyqtSlot
 from PyQt6.uic import loadUi
 from PyQt6.QtWidgets import QMessageBox
 
-from Widgets.Range_Widget import Range
-from Widgets.Peak_Widget import Peak
-from Widgets.Output_Widget import Output
+from Range_Widget import Range
+from Peak_Widget import Peak
+from Output_Widget import Output
 
 import cpf
 from cpf.settings import settings
@@ -41,6 +41,10 @@ class Main_Widget(QMainWindow):
         
         self.range_list = []
         self.output_list = []
+        
+        self.Directory.setReadOnly(True)
+        self.Output_Dir_1.setReadOnly(True)
+        self.Output_Dir_2.setReadOnly(True)
         
     def gui_layout(self):
         self.Main_Tab.setMinimumHeight(30);
@@ -165,7 +169,7 @@ class Main_Widget(QMainWindow):
         self.set_cl.fit_track = False
         self.set_cl.fit_propagate = True
         
-        self.set_cl.output_types = None
+        self.set_cl.output_types = []
         self.set_cl.output_settings = dict()
         
         self.set_cl.subfit_file_position = None
@@ -174,13 +178,27 @@ class Main_Widget(QMainWindow):
         self.set_cl.subfit_order_position = None
         self.set_cl.subfit_orders = None
 
-        fname= QFileDialog.getOpenFileName(self, "Load Input File", "./", "Python Files (*.py)")
+        fname = QFileDialog.getOpenFileName(self, "Load Input File", "./", "Python Files (*.py)")
         
         if fname:
             self.input_file_path = f"{fname[0]}"
-        self.set_cl.populate(settings_file=(f"{self.input_file_path}"))
+    
+        # If the length of the file name is zero then they didn't pick a file
+        if len(fname[0]) == 0:
+            return
+
+        # If we get here then we have a file to use
+        # If the files fali to validate then we want to tell the user and abort the load
+        try:
+            success = self.set_cl.populate(settings_file=(f"{self.input_file_path}"))
+            if not success:
+                settings.logger.error("Settings validation failed!")
+                return
+        except Exception as e:
+            settings.logger.error(e)
+            return
         
-        # update new data
+        # update new data from the validated files
         self.Directory.setText(self.set_cl.datafile_directory)
         self.Basename.setText(self.set_cl.datafile_basename)
         
@@ -773,231 +791,236 @@ class Main_Widget(QMainWindow):
         
         self.set_cl.output_directory = self.Output_Dir_1.text()
         
+        try:
         # Save range_tab data 
-        for range_object in range (len(self.range_list)):
-            
-            self.set_cl.fit_orders[range_object]["range"][0] = self.range_list[range_object].Range_min.text()
-            self.set_cl.fit_orders[range_object]["range"][1] = self.range_list[range_object].Range_max.text()
-            
-            self.set_cl.fit_orders[range_object]["background"] = self.range_list[range_object].Range_Background_Val.text()
-            
-            if self.range_list[range_object].Background_Type.currentText() == 'Select Type':
-                self.set_cl.fit_orders[range_object]["background-type"] = ''
-            else:
-                self.set_cl.fit_orders[range_object]["background-type"] = self.range_list[range_object].Background_Type.currentText()
-            
-            self.set_cl.fit_orders[range_object]["Imax"] = self.range_list[range_object].Intensity_max.text() 
-            self.set_cl.fit_orders[range_object]["Imin"] = self.range_list[range_object].Intensity_min.text()
-            
-            self.set_cl.fit_orders[range_object]["PeakPositionSelection"] = self.range_list[range_object].Peak_Pos_Selection.toPlainText()
-            
-            # Save peak_tab data 
-            for peak_object in self.range_list[range_object].peak_list:
+            for range_object in range (len(self.range_list)):
                 
-                self.peak_indices = self.range_list[range_object].peak_list.index(peak_object)
-               
-                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["phase"] = peak_object.phase_peak.text()
-                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["hkl"] = peak_object.hkl.text()
+                self.set_cl.fit_orders[range_object]["range"][0] = self.range_list[range_object].Range_min.text()
+                self.set_cl.fit_orders[range_object]["range"][1] = self.range_list[range_object].Range_max.text()
                 
-                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space"] = peak_object.d_space_peak.text()
+                self.set_cl.fit_orders[range_object]["background"] = self.range_list[range_object].Range_Background_Val.text()
                 
-                if peak_object.d_space_type.currentText() == 'Select Type':
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space-type"] = ''
+                if self.range_list[range_object].Background_Type.currentText() == 'Select Type':
+                    self.set_cl.fit_orders[range_object]["background-type"] = ''
                 else:
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space-type"] = peak_object.d_space_type.currentText()
+                    self.set_cl.fit_orders[range_object]["background-type"] = self.range_list[range_object].Background_Type.currentText()
                 
-                if peak_object.height_peak_type.currentText() == 'Select Type':
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height-type"] = ''  
-                else: 
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height-type"] = peak_object.height_peak_type.currentText()
+                self.set_cl.fit_orders[range_object]["Imax"] = self.range_list[range_object].Intensity_max.text() 
+                self.set_cl.fit_orders[range_object]["Imin"] = self.range_list[range_object].Intensity_min.text()
                 
-                if peak_object.profile_peak_type.currentText() == 'Select Type':
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile-type"] = ''
-                else:
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile-type"] = peak_object.profile_peak_type.currentText()
+                self.set_cl.fit_orders[range_object]["PeakPositionSelection"] = self.range_list[range_object].Peak_Pos_Selection.toPlainText()
                 
-                if peak_object.width_peak_type.currentText() == 'Select Type':
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width-type"] = ''
-                else:    
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width-type"] = peak_object.width_peak_type.currentText()
-                
-                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height"] = peak_object.height_peak.text()
-                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile"] = peak_object.profile_peak.text()
-                
-                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile_fixed"] = peak_object.profile_fixed.text()
-                
-                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width"] = peak_object.width_peak.text()
-                self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["symmetry"] = peak_object.symmetry_peak.text()
-
-                if  peak_object.profile_checkBox.isChecked:
-                    peak_object.profile_fixed.setEnabled(True)
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile_fixed"]= peak_object.profile_fixed.text() 
-                else:
-                    peak_object.profile_fixed.setEnabled(False)
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile_fixed"] = None           
+                # Save peak_tab data 
+                for peak_object in self.range_list[range_object].peak_list:
                     
-                if  peak_object.width_checkBox.isChecked: 
-                    peak_object.width_fixed.setEnabled(True)
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width_fixed"] = peak_object.width_fixed.text()  
-                else:
-                    peak_object.width_fixed.setEnabled(False)
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width_fixed"] = None
-                    
-                if  peak_object.height_checkBox.isChecked:
-                    peak_object.height_fixed.setEnabled(True)
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height_fixed"] = peak_object.height_fixed.text()
-                else:
-                    peak_object.height_fixed.setEnabled(False)
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height_fixed"] = None  
-                    
-                if  peak_object.dspace_checkBox.isChecked:
-                    peak_object.dspace_fixed.setEnabled(True)
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space_fixed"]= peak_object.dspace_fixed.text()
-                else:
-                    peak_object.dspace_fixed.setEnabled(False)
-                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space_fixed"]= None
-        
-        # Save output_tab data 
-        for output_object in self.output_list:
-            
-            indices = self.output_list.index(output_object)
-            
-            if output_object.Output_Type_comboBox.currentText() =='WriteCoefficientTable':
-                
-                self.set_cl.output_types.append('CoefficientTable')
-                
-                for i in output_object.WriteCoefficientTable_optional_list:
-                    
-                    if i.objectName() == 'coefs_vals_write':
-                        
-                        if i.text()=='':
-                            self.set_cl.output_settings["coefs_vals_write"] = None
-                        else:
-                            self.set_cl.output_settings["coefs_vals_write"] = i.text()
-            
-            elif output_object.Output_Type_comboBox.currentText() =='WriteDifferentialStrain':
-                
-                self.set_cl.output_types.append('DifferentialStrain')
-             
-            elif output_object.Output_Type_comboBox.currentText() =='WriteMultiFit':
-                
-                self.set_cl.output_types.append('MultiFit')
-                
-                for i in output_object.WriteMultiFit_optional_list:
+                    self.peak_indices = self.range_list[range_object].peak_list.index(peak_object)
                    
-                    if i.objectName() == 'Output_NumAziWrite':
-                        
-                        if i.text() == '':
-                            self.set_cl.output_settings["Output_NumAziWrite"] = None
-                        else:
-                            self.set_cl.output_settings["Output_NumAziWrite"] = i.text() 
-           
-            elif output_object.Output_Type_comboBox.currentText() =='WritePolydefix':
-                
-                self.set_cl.output_types.append('Polydefix')
-                
-                for i in output_object.WritePolydefix_optional_list:
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["phase"] = peak_object.phase_peak.text()
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["hkl"] = peak_object.hkl.text()
                     
-                    if i.objectName() == 'Output_NumAziWrite':
-                        
-                        if i.text() == '':
-                            self.set_cl.output_settings["Output_NumAziWrite"] = None
-                        else:
-                            self.set_cl.output_settings["Output_NumAziWrite"] = i.text()
-                            
-                    if i.objectName() == 'Output_ElasticProperties':
-                       
-                        if i.text() == '': 
-                            self.set_cl.output_settings["Output_ElasticProperties"] = None
-                        else:
-                            self.set_cl.output_settings["Output_ElasticProperties"] = i.text() 
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space"] = peak_object.d_space_peak.text()
                     
-                    if i.objectName() == 'tc':   
-                        
-                        if i.text() == '':
-                            self.set_cl.output_settings["tc"] = None
-                        else:
-                            self.set_cl.output_settings["tc"] = i.text() 
+                    if peak_object.d_space_type.currentText() == 'Select Type':
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space-type"] = ''
+                    else:
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space-type"] = peak_object.d_space_type.currentText()
                     
-                    if i.objectName() == 'phase':     
-                        
-                        if i.text() == '':
-                            self.set_cl.output_settings["phase"] = None
-                        else:
-                            self.set_cl.output_settings["phase"] = i.text() 
-                            
-                    if i.objectName() == 'datafile_StartNum':  
-                        
-                        if i.text() == '':
-                             self.set_cl.output_settings["datafile_StartNum"] = None
-                        else:
-                             self.set_cl.output_settings["datafile_StartNum"] = i.text() 
+                    if peak_object.height_peak_type.currentText() == 'Select Type':
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height-type"] = ''  
+                    else: 
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height-type"] = peak_object.height_peak_type.currentText()
                     
-                    if i.objectName() == 'datafile_EndNum':     
-                        
-                        if i.text() == '':
-                             self.set_cl.output_settings["datafile_EndNum"] = None
-                        else:
-                             self.set_cl.output_settings["datafile_EndNum"] = i.text() 
+                    if peak_object.profile_peak_type.currentText() == 'Select Type':
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile-type"] = ''
+                    else:
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile-type"] = peak_object.profile_peak_type.currentText()
                     
-                    if i.objectName() == 'datafile_NumDigit':          
-                        
-                        if i.text() == '':
-                             self.set_cl.output_settings["datafile_NumDigit"] = None
-                        else:
-                             self.set_cl.output_settings["datafile_NumDigit"] = i.text() 
-                
-            elif output_object.Output_Type_comboBox.currentText() =='WritePolydefixED':
-                
-                self.set_cl.output_types.append('PolydefixED')
-                
-                for i in output_object.WritePolydefixED_optional_list:
+                    if peak_object.width_peak_type.currentText() == 'Select Type':
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width-type"] = ''
+                    else:    
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width-type"] = peak_object.width_peak_type.currentText()
                     
-                    if i.objectName() == 'tc':
-                       
-                        if i.text() == '':
-                            self.set_cl.output_settings["tc"] = None
-                        else:
-                            self.set_cl.output_settings["tc"] = i.text() 
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height"] = peak_object.height_peak.text()
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile"] = peak_object.profile_peak.text()
                     
-                    if i.objectName() == 'phase':    
-                        
-                        if i.text() == '':
-                            self.set_cl.output_settings["phase"] = None
-                        else:
-                            self.set_cl.output_settings["phase"] = i.text()
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile_fixed"] = peak_object.profile_fixed.text()
                     
-                    if i.objectName() == 'Output_TemperaturePower':     
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width"] = peak_object.width_peak.text()
+                    self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["symmetry"] = peak_object.symmetry_peak.text()
+    
+                    if  peak_object.profile_checkBox.isChecked:
+                        peak_object.profile_fixed.setEnabled(True)
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile_fixed"]= peak_object.profile_fixed.text() 
+                    else:
+                        peak_object.profile_fixed.setEnabled(False)
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["profile_fixed"] = None           
                         
-                        if i.text() == '':
-                             self.set_cl.output_settings["Output_TemperaturePower"] = None
-                        else:
-                             self.set_cl.output_settings["Output_TemperaturePower"] = i.text() 
-                    
-                    if i.objectName() == 'Output_tc':           
+                    if  peak_object.width_checkBox.isChecked: 
+                        peak_object.width_fixed.setEnabled(True)
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width_fixed"] = peak_object.width_fixed.text()  
+                    else:
+                        peak_object.width_fixed.setEnabled(False)
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["width_fixed"] = None
                         
-                        if i.text() == '':
-                             self.set_cl.output_settings["Output_tc"] = None
-                        else:
-                             self.set_cl.output_settings["Output_tc"] = i.text() 
-                    
-                    if i.objectName() == 'ElasticProperties':    
+                    if  peak_object.height_checkBox.isChecked:
+                        peak_object.height_fixed.setEnabled(True)
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height_fixed"] = peak_object.height_fixed.text()
+                    else:
+                        peak_object.height_fixed.setEnabled(False)
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["height_fixed"] = None  
                         
-                        if i.text() == '':
-                             self.set_cl.output_settings["ElasticProperties"] = None
-                        else:
-                             self.set_cl.output_settings["ElasticProperties"] = i.text() 
+                    if  peak_object.dspace_checkBox.isChecked:
+                        peak_object.dspace_fixed.setEnabled(True)
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space_fixed"]= peak_object.dspace_fixed.text()
+                    else:
+                        peak_object.dspace_fixed.setEnabled(False)
+                        self.set_cl.fit_orders[range_object]["peak"][self.peak_indices]["d-space_fixed"]= None
             
-            elif output_object.Output_Type_comboBox.currentText() =='Select Type':
-                mess = QMessageBox()
-                mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
-                mess.setIcon(QMessageBox.Icon.Warning)
-                mess.setText("Please Select Output Type")
-                mess.setStandardButtons(QMessageBox.StandardButton.Ok)
-                mess.setWindowTitle("ALERT")
-                returnValue = mess.exec()
+            # Save output_tab data 
+            for output_object in self.output_list:
                 
-        self.set_cl.save_settings()
+                indices = self.output_list.index(output_object)
+                
+                if output_object.Output_Type_comboBox.currentText() =='WriteCoefficientTable':
+                    
+                    self.set_cl.output_types.append('CoefficientTable')
+                    
+                    for i in output_object.WriteCoefficientTable_optional_list:
+                        
+                        if i.objectName() == 'coefs_vals_write':
+                            
+                            if i.text()=='':
+                                self.set_cl.output_settings["coefs_vals_write"] = None
+                            else:
+                                self.set_cl.output_settings["coefs_vals_write"] = i.text()
+                
+                elif output_object.Output_Type_comboBox.currentText() =='WriteDifferentialStrain':
+                    
+                    self.set_cl.output_types.append('DifferentialStrain')
+                 
+                elif output_object.Output_Type_comboBox.currentText() =='WriteMultiFit':
+                    
+                    self.set_cl.output_types.append('MultiFit')
+                    
+                    for i in output_object.WriteMultiFit_optional_list:
+                       
+                        if i.objectName() == 'Output_NumAziWrite':
+                            
+                            if i.text() == '':
+                                self.set_cl.output_settings["Output_NumAziWrite"] = None
+                            else:
+                                self.set_cl.output_settings["Output_NumAziWrite"] = i.text() 
+               
+                elif output_object.Output_Type_comboBox.currentText() =='WritePolydefix':
+                    
+                    self.set_cl.output_types.append('Polydefix')
+                    
+                    for i in output_object.WritePolydefix_optional_list:
+                        
+                        if i.objectName() == 'Output_NumAziWrite':
+                            
+                            if i.text() == '':
+                                self.set_cl.output_settings["Output_NumAziWrite"] = None
+                            else:
+                                self.set_cl.output_settings["Output_NumAziWrite"] = i.text()
+                                
+                        if i.objectName() == 'Output_ElasticProperties':
+                           
+                            if i.text() == '': 
+                                self.set_cl.output_settings["Output_ElasticProperties"] = None
+                            else:
+                                self.set_cl.output_settings["Output_ElasticProperties"] = i.text() 
+                        
+                        if i.objectName() == 'tc':   
+                            
+                            if i.text() == '':
+                                self.set_cl.output_settings["tc"] = None
+                            else:
+                                self.set_cl.output_settings["tc"] = i.text() 
+                        
+                        if i.objectName() == 'phase':     
+                            
+                            if i.text() == '':
+                                self.set_cl.output_settings["phase"] = None
+                            else:
+                                self.set_cl.output_settings["phase"] = i.text() 
+                                
+                        if i.objectName() == 'datafile_StartNum':  
+                            
+                            if i.text() == '':
+                                 self.set_cl.output_settings["datafile_StartNum"] = None
+                            else:
+                                 self.set_cl.output_settings["datafile_StartNum"] = i.text() 
+                        
+                        if i.objectName() == 'datafile_EndNum':     
+                            
+                            if i.text() == '':
+                                 self.set_cl.output_settings["datafile_EndNum"] = None
+                            else:
+                                 self.set_cl.output_settings["datafile_EndNum"] = i.text() 
+                        
+                        if i.objectName() == 'datafile_NumDigit':          
+                            
+                            if i.text() == '':
+                                 self.set_cl.output_settings["datafile_NumDigit"] = None
+                            else:
+                                 self.set_cl.output_settings["datafile_NumDigit"] = i.text() 
+                    
+                elif output_object.Output_Type_comboBox.currentText() =='WritePolydefixED':
+                    
+                    self.set_cl.output_types.append('PolydefixED')
+                    
+                    for i in output_object.WritePolydefixED_optional_list:
+                        
+                        if i.objectName() == 'tc':
+                           
+                            if i.text() == '':
+                                self.set_cl.output_settings["tc"] = None
+                            else:
+                                self.set_cl.output_settings["tc"] = i.text() 
+                        
+                        if i.objectName() == 'phase':    
+                            
+                            if i.text() == '':
+                                self.set_cl.output_settings["phase"] = None
+                            else:
+                                self.set_cl.output_settings["phase"] = i.text()
+                        
+                        if i.objectName() == 'Output_TemperaturePower':     
+                            
+                            if i.text() == '':
+                                 self.set_cl.output_settings["Output_TemperaturePower"] = None
+                            else:
+                                 self.set_cl.output_settings["Output_TemperaturePower"] = i.text() 
+                        
+                        if i.objectName() == 'Output_tc':           
+                            
+                            if i.text() == '':
+                                 self.set_cl.output_settings["Output_tc"] = None
+                            else:
+                                 self.set_cl.output_settings["Output_tc"] = i.text() 
+                        
+                        if i.objectName() == 'ElasticProperties':    
+                            
+                            if i.text() == '':
+                                 self.set_cl.output_settings["ElasticProperties"] = None
+                            else:
+                                 self.set_cl.output_settings["ElasticProperties"] = i.text() 
+                
+                elif output_object.Output_Type_comboBox.currentText() =='Select Type':
+                    mess = QMessageBox()
+                    mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
+                    mess.setIcon(QMessageBox.Icon.Warning)
+                    mess.setText("Please Select Output Type")
+                    mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+                    mess.setWindowTitle("ALERT")
+                    returnValue = mess.exec()
+                    
+            self.set_cl.save_settings()
+            
+        except Exception as e: 
+            print(e)
+            return 
         
     @pyqtSlot()
     def select_Data_Dir(self):

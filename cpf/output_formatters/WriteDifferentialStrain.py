@@ -97,7 +97,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
         print("No base filename, using input filename instead.")
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
     out_file = IO.make_outfile_name(
-        base, directory=setting_class.output_directory, extension=".dat", overwrite=True
+        base, directory=setting_class.output_directory, extension=".dat", overwrite=True, additional_text=setting_class.file_label
     )
 
     text_file = open(out_file, "w")
@@ -612,4 +612,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                         )
 
                     text_file.write("\n")
+        else:
+            print(filename, " does not exist on the path")
+            
     text_file.close()

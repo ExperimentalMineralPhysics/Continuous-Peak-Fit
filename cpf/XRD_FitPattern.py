@@ -324,7 +324,7 @@ def order_search(
         settings_for_fit = setting_class
 
     # force it to write the required output type.
-    settings_for_fit.set_output_types = ["DifferentialStrain"]
+    settings_for_fit.set_output_types(out_type_list="DifferentialStrain")
 
     # search over the first file only
     settings_for_fit.set_data_files(keep=0)
@@ -340,6 +340,8 @@ def order_search(
         search_peak=search_peak,
         search_series=search_series,
     )
+    
+    settings_for_fit.file_label = "search="+search_parameter+"_subpattern="+str(subpattern)+"_peak="+str(search_peak)
 
     execute(
         setting_class=settings_for_fit,
@@ -388,14 +390,11 @@ def write_output(
     :return:
     """
 
-    if (
-        setting_class is None
-    ):  # parms_dict is None and fit_settings is None and fit_parameters is None:
+    if setting_class is None:
         setting_class = initiate(setting_file, report=True, out_type=out_type)
 
     if out_type is not None:
         print("Changing output_type to " + out_type)
-        # output_mod = get_output_options(out_type)
         setting_class.set_output_types(out_type_list=out_type)
 
     if setting_class.output_types is None:

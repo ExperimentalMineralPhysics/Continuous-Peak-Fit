@@ -14,9 +14,9 @@ from PyQt6.QtCore import pyqtSlot
 from PyQt6.uic import loadUi
 from PyQt6.QtWidgets import QMessageBox
 
-from Range_Widget import Range
-from Peak_Widget import Peak
-from Output_Widget import Output
+from Widgets.Range_Widget import Range
+from Widgets.Peak_Widget import Peak
+from Widgets.Output_Widget import Output
 
 import cpf
 from cpf.settings import settings
@@ -864,7 +864,7 @@ class Main_Widget(QMainWindow):
             
             if output_object.Output_Type_comboBox.currentText() =='WriteCoefficientTable':
                 
-                self.set_cl.output_types[indices] = 'CoefficientTable'
+                self.set_cl.output_types.append('CoefficientTable')
                 
                 for i in output_object.WriteCoefficientTable_optional_list:
                     
@@ -877,11 +877,11 @@ class Main_Widget(QMainWindow):
             
             elif output_object.Output_Type_comboBox.currentText() =='WriteDifferentialStrain':
                 
-                self.set_cl.output_types[indices] = 'DifferentialStrain'
+                self.set_cl.output_types.append('DifferentialStrain')
              
             elif output_object.Output_Type_comboBox.currentText() =='WriteMultiFit':
                 
-                self.set_cl.output_types[indices] = 'MultiFit'
+                self.set_cl.output_types.append('MultiFit')
                 
                 for i in output_object.WriteMultiFit_optional_list:
                    
@@ -894,7 +894,7 @@ class Main_Widget(QMainWindow):
            
             elif output_object.Output_Type_comboBox.currentText() =='WritePolydefix':
                 
-                self.set_cl.output_types[indices] = 'Polydefix'
+                self.set_cl.output_types.append('Polydefix')
                 
                 for i in output_object.WritePolydefix_optional_list:
                     
@@ -949,7 +949,7 @@ class Main_Widget(QMainWindow):
                 
             elif output_object.Output_Type_comboBox.currentText() =='WritePolydefixED':
                 
-                self.set_cl.output_types[indices] = 'PolydefixED'
+                self.set_cl.output_types.append('PolydefixED')
                 
                 for i in output_object.WritePolydefixED_optional_list:
                     

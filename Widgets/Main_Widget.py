@@ -174,13 +174,27 @@ class Main_Widget(QMainWindow):
         self.set_cl.subfit_order_position = None
         self.set_cl.subfit_orders = None
 
-        fname= QFileDialog.getOpenFileName(self, "Load Input File", "./", "Python Files (*.py)")
+        fname = QFileDialog.getOpenFileName(self, "Load Input File", "./", "Python Files (*.py)")
         
         if fname:
             self.input_file_path = f"{fname[0]}"
-        self.set_cl.populate(settings_file=(f"{self.input_file_path}"))
+    
+        # If the length of the file name is zero then they didn't pick a file
+        if len(fname[0]) == 0:
+            return
+
+        # If we get here then we have a file to use
+        # If the files fali to validate then we want to tell the user and abort the load
+        try:
+            success = self.set_cl.populate(settings_file=(f"{self.input_file_path}"))
+            if not success:
+                settings.logger.error("Settings validation failed!")
+                return
+        except Exception as e:
+            settings.logger.error(e)
+            return
         
-        # update new data
+        # update new data from the validated files
         self.Directory.setText(self.set_cl.datafile_directory)
         self.Basename.setText(self.set_cl.datafile_basename)
         

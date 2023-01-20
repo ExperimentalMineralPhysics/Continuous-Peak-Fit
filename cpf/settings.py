@@ -44,6 +44,12 @@ class settings:
         
     """
     log_file = "logs/logs.log"
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    file_handler = logging.FileHandler(log_file)
+    logger.addHandler(file_handler)
+    logger.addHandler(stdout_handler)
     
     def __init__(
         self,
@@ -162,6 +168,7 @@ class settings:
         new.subfit_orders = deepcopy(self.subfit_orders)
         return new
 
+    # Method to populate the settings object. Returns true if successful.
     def populate(
         self,
         settings_file=None,
@@ -205,6 +212,8 @@ class settings:
         if not out_type is None:
             self.set_output_types(out_type_list=out_type)
 
+        return True
+
     def reset(self):
         """
         set the values in the settings class back to those in the settings file.
@@ -217,11 +226,16 @@ class settings:
         Fails with a list of missing parameters if not complete.
         """
 
-        # store all the settings from file in a mocule class.
+        # store all the settings from file in a module class.
         module_name, _ = os.path.splitext(os.path.basename(self.settings_file))
         spec = importlib.util.spec_from_file_location(module_name, self.settings_file)
         self.settings_from_file = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(self.settings_from_file)
+
+        # If no file was picked or the file is invalid then just return
+        try:
+            spec.loader.exec_module(self.settings_from_file)
+        except:
+            return
         # then sort them in a useful way...
 
         ##all_settings_from_file = dir(self.settings_from_file)#
@@ -333,7 +347,19 @@ class settings:
 
         # check output directoy
         if self.output_directory != None:
-            self.check_directory_exists(self.output_directory)
+            directoryExists = self.check_directory_exists(self.output_directory)
+            if not directoryExists:
+                settings.logger.warn(self.output_directory + " does not exist. Attempting to create it...")
+                os.makedirs(self.output_directory, exist_ok=True)
+                directoryExists = self.check_directory_exists(self.output_directory)
+                if not directoryExists:
+                    mess = QMessageBox()
+                    mess.setIcon(QMessageBox.Icon.Warning)
+                    mess.setText("The output directory could not be created automatically! Aborting validation.")
+                    mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+                    mess.setWindowTitle("ALERT")
+                    mess.exec()
+                    return False
 
         # check calibration
         if self.calibration_type == None:
@@ -357,6 +383,8 @@ class settings:
         if self.output_types != None:
             self.validate_output_types()
 
+        return True
+
     def check_files_exist(self, files_to_check, write=False):
         """
         Check if a file exists. If not issue an error
@@ -373,22 +401,25 @@ class settings:
                 mess.setText("The file " + files_to_check[j] + " is not found but is required.")
                 mess.setStandardButtons(QMessageBox.StandardButton.Ok)
                 mess.setWindowTitle("ALERT")
-                returnValue = mess.exec()
+                mess.exec()
+                return False
             else:
                 if write == True:
-                    logger.info(files_to_check[j] + " exists.")
+                    settings.logger.info(files_to_check[j] + " exists.")
 
     def check_directory_exists(self, directory, write=False):
         """
         Check if a directory exists. If not issue an error
         """
         if os.path.exists(directory) is False:
-            raise ImportError(
+            settings.logger.info(
                 "The directory " + directory + " is not found but is required."
             )
+            return False
         else:
             if write == True:
-               logger.info(directory + " exists.")
+               settings.logger.info(directory + " exists.")
+        return True
 
     def validate_datafiles(self):
         """
@@ -396,7 +427,7 @@ class settings:
         """
         self.check_directory_exists(self.datafile_directory, write=True)
         self.check_files_exist(self.datafile_list, write=False)
-        logger.info("All the data files exist.")
+        settings.logger.info("All the data files exist.")
 
     def validate_fit_orders(self, report=False, peak=None, orders=None):
         """
@@ -441,7 +472,7 @@ class settings:
                     and len(orders[i]["range"]) == 1
                     and len(orders[i]["range"][0]) == 2
                 ):
-                    logger.info("subpattern " + str(i) + ": range is a now a simple list.")
+                    settings.logger.info("subpattern " + str(i) + ": range is a now a simple list.")
                     self.fit_orders[i]["range"] = self.fit_orders[i]["range"][0]
                 # check if range is valid
                 if (
@@ -481,7 +512,7 @@ class settings:
                 # bascially -- check if it is old nomlencature (*-*) and replace (with *_*)
                 for l in range(len(comp_modifications)):
                     if "background" + "-" + comp_modifications[l] in self.fit_orders[i]:
-                        logger.warning(
+                        settings.logger.warning(
                             "subpattern "
                             + str(i)
                             + ": "
@@ -536,7 +567,7 @@ class settings:
                                 comp_list[k] + "-" + comp_modifications[l]
                                 in self.fit_orders[i]["peak"][j]
                             ):
-                                logger.info(
+                                settings.logger.info(
                                     "subpattern "
                                     + str(i)
                                     + ", peak "
@@ -588,18 +619,18 @@ class settings:
         # report missing bits and bobs
         if len(missing) > 0:
             for i in range(len(missing)):
-                logger.info(missing[i])
+                settings.logger.info(missing[i])
 
             if not report:
                 raise ValueError(
                     "The problems listed above will prevent the data fitting."
                 )
             else:
-                logger.info(
+                settings.logger.info(
                     "The problems listed above will prevent the data fitting and need to be rectified before execution"
                 )
         else:
-            logger.info("fit_orders appears to be correct")
+            settings.logger.info("fit_orders appears to be correct")
 
     def validate_order_type(self, comp_type):
         """
@@ -656,7 +687,7 @@ class settings:
                 self.fit_orders[peak_set]["peak"][peak][component + "_fixed"] = [
                     self.fit_orders[peak_set]["peak"][peak][component + "_fixed"]
                 ]
-                logger.info(
+                settings.logger.info(
                     "subpattern "
                     + str(peak_set)
                     + ", peak "
@@ -770,26 +801,26 @@ class settings:
         # report findings
         incorrect = False
         if missing:
-            logger.info("\nMissing Values:")
+            settings.logger.info("\nMissing Values:")
             for i in range(len(missing)):
-                logger.info(missing[i])
+                settings.logger.info(missing[i])
             incorrect = True
         if extras:
-            logger.info("\nExtra Values:")
+            settings.logger.info("\nExtra Values:")
             for i in range(len(extras)):
                 logging.warning(extras[i])
             incorrect = True
         if incorrect:
             if not report:
-                logger.warning(
+                settings.logger.warning(
                     "The problems listed above will prevent the data fitting."
                 )
             else:
-                logger.warning(
+                settings.logger.warning(
                     "The problems listed above will prevent the data fitting and need to be rectified before execution"
                 )
         else:
-            logger.info("fit_bounds appears to be correct")
+            settings.logger.info("fit_bounds appears to be correct")
 
     def set_output_types(self, out_type_list=None, report=False):
         """
@@ -1026,10 +1057,3 @@ def detector_factory(fit_settings=None):
 
 if __name__ == "__main__":
     settings = settings()
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-stdout_handler = logging.StreamHandler(sys.stdout)
-file_handler = logging.FileHandler(settings.log_file)
-logger.addHandler(file_handler)
-logger.addHandler(stdout_handler)

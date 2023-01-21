@@ -680,6 +680,7 @@ def execute(
                 )
                 point_builder = PointBuilder(points, fig_1.get_axes()[0])
                 plt.show(block=True)
+                plt.pause(12)
 
                 selection_arr = point_builder.array()
                 # print(selection_arr)

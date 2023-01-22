@@ -110,7 +110,7 @@ class settings:
         self.fit_bin_type = None
         self.fit_per_bin = None
         self.fit_number_bins = None
-        self.fit_orders = None
+        self.fit_orders = []
         self.fit_bounds = {
             "background": ["0.95*min", "1.05*max"],
             "d-space": ["min", "max"],
@@ -1006,18 +1006,32 @@ class settings:
         None.
         """
         print("Caution: save_settings writes a temporary file with no content")
-        
-        fnam = os.path.join(filepath, filename)
-        with open(fnam, "w") as TempFile:
-            # Write a JSON string into the file.
-            json.dump(
-                "This is a temporary file with no content",
-                TempFile,
-                sort_keys=False,
-                indent=2,
-                default=json_numpy_serializer
-            )
-        print("Done writing", filename)
+        try:
+            fnam = os.path.join(filepath, filename)
+            with open(fnam, "w") as TempFile:
+                # Write a JSON string into the file.
+                json.dump(
+                   # "This is a temporary file with no content",
+                    self.fit_orders,
+                    TempFile,
+                    sort_keys=False,
+                    indent=2,
+                    default=json_numpy_serializer
+                )
+            mess = QMessageBox()
+            mess.setIcon(QMessageBox.Icon.Information)
+            mess.setText("Done writing "+ filename)
+            mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+            mess.setWindowTitle("INFO")
+            returnValue = mess.exec()
+        except Exception as e:
+            mess = QMessageBox()
+            mess.setIcon(QMessageBox.Icon.NoIcon)
+            mess.setText(str(e))
+            mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+            mess.setWindowTitle("ERROR")
+            returnValue = mess.exec()
+            
 
 def get_output_options(output_type):
     """

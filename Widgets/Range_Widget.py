@@ -6,9 +6,10 @@ from PyQt6 import (
 from PyQt6.QtGui import QIcon
 from PyQt6.uic import loadUi
 from PyQt6.QtWidgets import QWidget, QMessageBox
+from PyQt6.QtGui import QIntValidator,QDoubleValidator
  
 from Widgets.Peak_Widget import Peak
-
+import cpf
 
 class Range(QWidget):
    
@@ -18,7 +19,7 @@ class Range(QWidget):
         self.range_layout()
         self.bg_fixed_lineEdit.setEnabled(False)
         self.bg_fixed_checkbox.stateChanged.connect(lambda:bg_fixed_checkbox())
-        
+        self.set_cl = cpf.settings.settings()
         self.peak_list = []
         
         def bg_fixed_checkbox():
@@ -38,10 +39,13 @@ class Range(QWidget):
         self.Range_Background_Val.setMinimumHeight(30);  
         self.Background_Type.setMinimumHeight(30);
         self.bg_fixed_lineEdit.setMinimumHeight(30);
+        
+        self.Range_min.setValidator(QDoubleValidator());
+        self.Range_max.setValidator(QDoubleValidator());    
     
     def Insert_Peak(self):
         peak_object = Peak()
-        self.Peak_Tab.addTab(peak_object , QIcon("Location of the icon"),"Peak")
+        self.Peak_Tab.addTab(peak_object , QIcon(""),"Peak")
         self.peak_list.append(peak_object)
      
     def Remove_Peak(self):
@@ -50,9 +54,8 @@ class Range(QWidget):
             self.Peak_Tab.removeTab(self.Peak_Tab.currentIndex())
         else:
             mess = QMessageBox()
-            mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
             mess.setIcon(QMessageBox.Icon.Warning)
             mess.setText("No Peaks to remove")
             mess.setStandardButtons(QMessageBox.StandardButton.Ok)
-            mess.setWindowTitle("ERROR")
+            mess.setWindowTitle("WARNING")
             returnValue = mess.exec()

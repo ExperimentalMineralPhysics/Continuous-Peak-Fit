@@ -125,6 +125,11 @@ class Main_Widget(QMainWindow):
         with values
 
         ''' 
+        # self.range_o = Range()
+        # self.range_list.clear()
+        # self.output_list.clear()
+        # self.range_o.peak_list.clear()
+
         self.set_cl.datafile_directory = "."
         self.set_cl.datafile_basename = None
   
@@ -274,7 +279,7 @@ class Main_Widget(QMainWindow):
         
         # Remove existing range_tabs whenever new file is loaded
         for remove_range in range(0, self.Range_Tab.count()):
-            self.Remove_Range()
+            self.Remove_Range_Load()
         
         # Manage range_tab data population
         for range_tab in range(0, self.range_length):
@@ -287,9 +292,9 @@ class Main_Widget(QMainWindow):
             range_object.Range_max.setText(str(self.set_cl.fit_orders[range_tab].get("range")[1]))
             
             range_object.Range_Background_Val.setText(str(self.set_cl.fit_orders[range_tab].get("background")))
-            range_object.Intensity_max.setText(str(self.set_cl.fit_orders[range_tab].get("Imax")))   
+            range_object.Intensity_max.setText(str(self.set_cl.fit_orders[range_tab].get("imax")))   
             
-            range_object.Intensity_min.setText(str(self.set_cl.fit_orders[range_tab].get("Imin")))   
+            range_object.Intensity_min.setText(str(self.set_cl.fit_orders[range_tab].get("imin")))   
             range_object.Peak_Pos_Selection.setPlainText(str(self.set_cl.fit_orders[range_tab].get("PeakPositionSelection")))
             
             if self.set_cl.fit_orders[range_tab].get("background-type")== None:
@@ -659,88 +664,163 @@ class Main_Widget(QMainWindow):
     
     @pyqtSlot()
     def Validate_Inputs(self):
+        
         if self.input_file_path == None:
+           
             mess = QMessageBox()
-            mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
-            mess.setIcon(QMessageBox.Icon.Warning)
-            mess.setText("Please Load input file")
+            mess.setIcon(QMessageBox.Icon.NoIcon)
+            mess.setText("Please Load Inputs to Validate")
             mess.setStandardButtons(QMessageBox.StandardButton.Ok)
             mess.setWindowTitle("ALERT")
             returnValue = mess.exec()
+        
         else:
+            
             with open(settings.log_file,'a') as file:
                file.close()
-            cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
-            text=open(settings.log_file).read()
-            self.Console_output.setText(text)
+            
+            try:
+                cpf.XRD_FitPattern.initiate(f"{self.input_file_path}")
+                text=open(settings.log_file).read()
+                self.Console_output.setText(text)
+            
+            except Exception as e:
+                mess = QMessageBox()
+                mess.setIcon(QMessageBox.Icon.Warning)
+                mess.setText(str(e))
+                mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+                mess.setWindowTitle("ERROR")
+                returnValue = mess.exec()
+                
             
     @pyqtSlot()             
     def Run_Range(self):
-        #self.matplotlib_inline = matplotlib_inline()
+        
+        # Initiate QT mode to display graphs on separate windows
+        # Invoking it at the start of each function as user can press
+        # any button in any order
+        
         self.matplotlib_qt = matplotlib_qt()
+        
+        
         if self.input_file_path == None:
+            
             mess = QMessageBox()
             mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
-            mess.setIcon(QMessageBox.Icon.Warning)
-            mess.setText("Please Load input file")
+            mess.setIcon(QMessageBox.Icon.NoIcon)
+            mess.setText("Please Load Inputs to Run Range")
             mess.setStandardButtons(QMessageBox.StandardButton.Ok)
             mess.setWindowTitle("ALERT")
             returnValue = mess.exec()
         else:
-            cpf.XRD_FitPattern.set_range(f"{self.input_file_path}", save_all=True)
-            text=open(settings.log_file).read()
-            self.Console_output.setText(text)
+            
+            try:
+                cpf.XRD_FitPattern.set_range(f"{self.input_file_path}", save_all=True)
+                text=open(settings.log_file).read()
+                self.Console_output.setText(text)
+                
+            except Exception as e:
+                mess = QMessageBox()
+                mess.setIcon(QMessageBox.Icon.Warning)
+                mess.setText(str(e))
+                mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+                mess.setWindowTitle("ERROR")
+                returnValue = mess.exec()
+                
     
     @pyqtSlot()
     def Run_Initial_Position(self):
+        
         self.matplotlib_qt = matplotlib_qt()
-        QApplication.processEvents()
+        
         if self.input_file_path == None:
+           
             mess = QMessageBox()
             mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
-            mess.setIcon(QMessageBox.Icon.Warning)
-            mess.setText("Please Load input file")
+            mess.setIcon(QMessageBox.Icon.NoIcon)
+            mess.setText("Please Load Inputs to Run Initial Peak Position")
             mess.setStandardButtons(QMessageBox.StandardButton.Ok)
             mess.setWindowTitle("ALERT")
             returnValue = mess.exec()
+        
         else:
-            cpf.XRD_FitPattern.initial_peak_position(f"{self.input_file_path}", save_all=True)
-            text=open(settings.log_file).read()
-            self.Console_output.setText(text)
-            self.matplotlib_inline = matplotlib_inline()
+            
+            try:
+                cpf.XRD_FitPattern.initial_peak_position(f"{self.input_file_path}", save_all=True)
+                text=open(settings.log_file).read()
+                self.Console_output.setText(text)
+            
+            except Exception as e:
+                mess = QMessageBox()
+                mess.setIcon(QMessageBox.Icon.Warning)
+                mess.setText(str(e))
+                mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+                mess.setWindowTitle("ERROR")
+                returnValue = mess.exec()
+                
     
     @pyqtSlot()
     def Execute_Fits(self):
+        
         self.matplotlib_qt = matplotlib_qt()
+        
         if self.input_file_path == None:
+            
             mess = QMessageBox()
             mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
-            mess.setIcon(QMessageBox.Icon.Warning)
-            mess.setText("Please Load input file")
+            mess.setIcon(QMessageBox.Icon.NoIcon)
+            mess.setText("Please Load Inputs to Execute Fits")
             mess.setStandardButtons(QMessageBox.StandardButton.Ok)
             mess.setWindowTitle("ALERT")
             returnValue = mess.exec()
+        
         else:
-            cpf.XRD_FitPattern.execute(f"{self.input_file_path}", save_all=True, parallel = False)
-            text=open(settings.log_file).read()
-            # FIX ME Simon: parallel = True doesn't work on Adina's Windows computer
-            self.Console_output.setText(text)
+            
+            try:
+                cpf.XRD_FitPattern.execute(f"{self.input_file_path}", save_all=True, parallel = False)
+                text=open(settings.log_file).read()
+                # FIX ME Simon: parallel = True doesn't work on Adina's Windows computer
+                self.Console_output.setText(text)
+            
+            except Exception as e:
+                mess = QMessageBox()
+                mess.setIcon(QMessageBox.Icon.Warning)
+                mess.setText(str(e))
+                mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+                mess.setWindowTitle("ERROR: Unable to Execute Fits")
+                returnValue = mess.exec()
+                
     
     @pyqtSlot()
     def Make_Outputs(self):
+        
         self.matplotlib_qt = matplotlib_qt()
+        
         if self.input_file_path == None:
+            
             mess = QMessageBox()
             mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
-            mess.setIcon(QMessageBox.Icon.Warning)
-            mess.setText("Please Load input file")
+            mess.setIcon(QMessageBox.Icon.NoIcon)
+            mess.setText("Please Load Inputs to Make Output")
             mess.setStandardButtons(QMessageBox.StandardButton.Ok)
             mess.setWindowTitle("ALERT")
             returnValue = mess.exec()
+        
         else:
-            cpf.XRD_FitPattern.write_output(f"{self.input_file_path}", save_all=True)
-            text=open(settings.log_file).read()
-            self.Console_output.setText(text)
+            
+            try:
+                cpf.XRD_FitPattern.write_output(f"{self.input_file_path}", save_all=True)
+                text=open(settings.log_file).read()
+                self.Console_output.setText(text)
+            
+            except Exception as e:
+                mess = QMessageBox()
+                mess.setIcon(QMessageBox.Icon.Warning)
+                mess.setText(str(e))
+                mess.setStandardButtons(QMessageBox.StandardButton.Ok)
+                mess.setWindowTitle("ERROR: Unable to Make Outputs")
+                returnValue = mess.exec()
+                
     
     @pyqtSlot()
     def Insert_Button(self):  
@@ -751,9 +831,47 @@ class Main_Widget(QMainWindow):
         num_digit = self.Num_Digit.text()
         step = self.Step.text() '''
         
-        # store widgets' data into setting class variables
+        # As we are now adding items into settings' class fit_order lists
+        # of dictionaries we also have to remove item from settings class list as well 
+        # when any tab is removed from the GUI to save things in right order
+        ## Clear existing peak list items in settings class whenever we press save button
+        
+        for range_object in range (len(self.range_list)):
+            self.set_cl.fit_orders[range_object].pop("peak")
+        
+        ## Append items into peak list in settings class equivalent to no. of 
+        # peak tabs created in each range tab
+        
+        for range_object in range (len(self.range_list)):
+            
+            for peak_object in range(self.range_list[range_object].Peak_Tab.count()):
+                
+                peak = {
+                              "phase": "",
+                              "hkl": "000",
+                              "d-space": 0,
+                              "d-space-type":"",
+                              "height": 0,
+                              "height-type":"",
+                              "height_fixed":"",
+                              "profile": 0,
+                              "profile-type": "",
+                              "profile_fixed": "",
+                              "width": 0,
+                              "width-type":"",
+                              "width_fixed":"",
+                              "symmetry": 2
+                            }
+                self.set_cl.fit_orders[range_object]["peak"] = []
+                self.set_cl.fit_orders[range_object]["peak"].append(peak)
+        
+        ## store widgets' data into setting class variables
+        
         self.set_cl.datafile_directory = self.Directory.text()
         self.set_cl.datafile_basename = self.Basename.text()
+        
+        # Assign None to calibration_type in settings class when user has selected 
+        # no type and current displayed item in combobox is 'Select Type'
         
         if self.Calib_Type.currentText() == 'Select Type':
             self.set_cl.calibration_type = None
@@ -805,8 +923,8 @@ class Main_Widget(QMainWindow):
                 else:
                     self.set_cl.fit_orders[range_object]["background-type"] = self.range_list[range_object].Background_Type.currentText()
                 
-                self.set_cl.fit_orders[range_object]["Imax"] = self.range_list[range_object].Intensity_max.text() 
-                self.set_cl.fit_orders[range_object]["Imin"] = self.range_list[range_object].Intensity_min.text()
+                self.set_cl.fit_orders[range_object]["imax"] = self.range_list[range_object].Intensity_max.text() 
+                self.set_cl.fit_orders[range_object]["imin"] = self.range_list[range_object].Intensity_min.text()
                 
                 self.set_cl.fit_orders[range_object]["PeakPositionSelection"] = self.range_list[range_object].Peak_Pos_Selection.toPlainText()
                 
@@ -1009,8 +1127,7 @@ class Main_Widget(QMainWindow):
                 
                 elif output_object.Output_Type_comboBox.currentText() =='Select Type':
                     mess = QMessageBox()
-                    mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
-                    mess.setIcon(QMessageBox.Icon.Warning)
+                    mess.setIcon(QMessageBox.Icon.NoIcon)
                     mess.setText("Please Select Output Type")
                     mess.setStandardButtons(QMessageBox.StandardButton.Ok)
                     mess.setWindowTitle("ALERT")
@@ -1027,6 +1144,7 @@ class Main_Widget(QMainWindow):
         dialog = QFileDialog.getExistingDirectory(self, 'Select Directory')
         if dialog:
                 self.Directory.setText(dialog)
+                
         self.Directory.setCursorPosition(0);
     
     @pyqtSlot()
@@ -1043,22 +1161,53 @@ class Main_Widget(QMainWindow):
     def Insert_Range(self):
         range_object = Range()
         self.range_list.append(range_object)
-        #print(len(self.range_list))
         self.Range_Tab.addTab(range_object , QIcon(""),"Range")
+        
+        ## Append range into fit_orders list variable whenever new tab
+        # is inserted in GUI, because if we don't do this and try to initialize
+        # GUI widgets data to settings class fit_orders list directly, It will
+        # throw ERROR: LIST INDEX OUT OF RANGE 
+        
+        self.set_cl.fit_orders.append({
+          "range": [1,2],
+          "background": [0, 0],
+          "peak": [],
+          "imin": 1,
+          "imax":1
+        },)
        
+    
+    def Remove_Range_Load(self):
+        
+        # Defining this separate function to remove all existing tabs 
+        # whenever new input file is loaded as if I use the previous method which 
+        # I have extended to also remove particular item from settings class
+        # fit_order variable, it will throw list out of index error 
+        
+        if len(self.range_list)>=1:
+            self.range_list.pop(self.Range_Tab.currentIndex())
+            self.Range_Tab.removeTab(self.Range_Tab.currentIndex())
+
     
     @pyqtSlot()
     def Remove_Range(self):
         if len(self.range_list)>=1:
+            # remove range from range_list 
             self.range_list.pop(self.Range_Tab.currentIndex())
+            
+            # remove range_tab from GUI 
             self.Range_Tab.removeTab(self.Range_Tab.currentIndex())
+            
+            # remove range from fit_orders list in settings class
+            self.set_cl.fit_orders.pop(self.Range_Tab.currentIndex())
+                
         else:
             mess = QMessageBox()
             mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
             mess.setIcon(QMessageBox.Icon.Warning)
             mess.setText("No Ranges to remove")
             mess.setStandardButtons(QMessageBox.StandardButton.Ok)
-            mess.setWindowTitle("ERROR")
+            mess.setWindowTitle("WARNING")
             returnValue = mess.exec()
 
     @pyqtSlot()
@@ -1074,11 +1223,10 @@ class Main_Widget(QMainWindow):
             self.Output_Tab.removeTab(self.Output_Tab.currentIndex())
         else:
             mess = QMessageBox()
-            mess.setWindowIcon(QtGui.QIcon('error.JFIF'))
             mess.setIcon(QMessageBox.Icon.Warning)
             mess.setText("No Outputs to remove")
             mess.setStandardButtons(QMessageBox.StandardButton.Ok)
-            mess.setWindowTitle("ERROR")
+            mess.setWindowTitle("WARNING")
             returnValue = mess.exec()
         
     @pyqtSlot()
@@ -1193,5 +1341,7 @@ class Main_Widget(QMainWindow):
         
     def closeEvent(self,event):
         os._exit(00)
+        # Never use StackWidget it will stop you to access/enable 
+        # window closeEvent and to take benefit of it, It also has few
+        # other drawbacks which I need to list down for future reference
         
-

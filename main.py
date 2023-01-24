@@ -10,14 +10,10 @@ from Main_Widget import Main_Widget
 
 def main():
     # Instantiate the QT application
-    try: 
-        app = QApplication(sys.argv)
-        main_widget = Main_Widget()
-        main_widget.showMaximized()
-        sys.exit(app.exec())
-    except Exception as e:
-        print("ERROR:", e)
-        os._exit(00)
+    app = QApplication(sys.argv)
+    main_widget = Main_Widget()
+    main_widget.show()
+    sys.exit(app.exec())
   
 	  
 if __name__ == '__main__':

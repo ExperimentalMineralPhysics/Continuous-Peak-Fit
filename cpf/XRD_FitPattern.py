@@ -24,12 +24,18 @@ from cpf.IO_functions import (
     any_terms_null,
     title_file_names,
 )
-
 np.set_printoptions(threshold=sys.maxsize)
 # FIX ME: Need to add complexity here.
 # Need option to check required functions are present if adding new output format.
 # Also need to do something similar with data class
 
+
+# function to keep eye on interactive graph close event
+
+def close_event(event):
+    # use varaible defined in settings class for this purpose
+    settings.interactive_graph_open = 0
+    
 
 def register_default_formats() -> object:
     """
@@ -679,11 +685,24 @@ def execute(
                     [],
                 )
                 point_builder = PointBuilder(points, fig_1.get_axes()[0])
+                
+                # Keep eye on interactive graph window close event
+                
+                fig_1.canvas.mpl_connect('close_event', close_event)
+                
                 plt.show(block=True)
-                plt.pause(12)
+                
+                # Keep each plot's window open by keeping plot in continuous pause 
+                # until user closes the plot window 
+                
+                while True:
+                    plt.pause(1)
+                    if settings.interactive_graph_open==0:
+                        settings.interactive_graph_open=1
+                        break
 
                 selection_arr = point_builder.array()
-                # print(selection_arr)
+          
                 print("")
                 print(
                     "Selected points, %s:" % peak_string(settings_for_fit.subfit_orders)
@@ -776,6 +795,7 @@ def parallel_processing(p):
 
 if __name__ == "__main__":
     # Load settings fit settings file.
+    
     sys.path.append(os.getcwd())
     settings_file = sys.argv[1]
     print(settings_file)

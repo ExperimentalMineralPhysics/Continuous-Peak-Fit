@@ -837,7 +837,8 @@ class Main_Widget(QMainWindow):
         ## Clear existing peak list items in settings class whenever we press save button
         
         for range_object in range (len(self.range_list)):
-            self.set_cl.fit_orders[range_object].pop("peak")
+            if len(self.set_cl.fit_orders[range_object]['peak'])>=1:
+                self.set_cl.fit_orders[range_object]["peak"]=[]
         
         ## Append items into peak list in settings class equivalent to no. of 
         # peak tabs created in each range tab
@@ -862,7 +863,7 @@ class Main_Widget(QMainWindow):
                               "width_fixed":"",
                               "symmetry": 2
                             }
-                self.set_cl.fit_orders[range_object]["peak"] = []
+                
                 self.set_cl.fit_orders[range_object]["peak"].append(peak)
         
         ## store widgets' data into setting class variables

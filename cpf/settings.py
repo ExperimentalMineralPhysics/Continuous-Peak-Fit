@@ -24,6 +24,7 @@ import json
 
 
 class settings:
+    
     """Settings class definitions.
     The settings class is contains all the variables/informtion needed to execute
     continuous peak fit.
@@ -43,6 +44,10 @@ class settings:
         self.outputs -- list of output processes to run
         
     """
+    # Define variable to manage interactive graph in XRD_FitPattern
+    interactive_graph_open = 1
+    
+    # Main tain logging 
     log_file = "logs/logs.log"
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)

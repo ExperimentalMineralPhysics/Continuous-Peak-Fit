@@ -11,6 +11,7 @@ from PyQt6.QtGui import QIntValidator,QDoubleValidator
 from Widgets.Peak_Widget import Peak
 import cpf
 
+
 class Range(QWidget):
    
     def __init__(self):
@@ -21,6 +22,7 @@ class Range(QWidget):
         self.bg_fixed_checkbox.stateChanged.connect(lambda:bg_fixed_checkbox())
         self.set_cl = cpf.settings.settings()
         self.peak_list = []
+
         
         def bg_fixed_checkbox():
             if self.bg_fixed_checkbox.isChecked()==True:
@@ -49,9 +51,10 @@ class Range(QWidget):
         self.peak_list.append(peak_object)
      
     def Remove_Peak(self):
-        if len(self.peak_list):
+        if len(self.peak_list)>=1:
             self.peak_list.pop(self.Peak_Tab.currentIndex())
             self.Peak_Tab.removeTab(self.Peak_Tab.currentIndex())
+                    
         else:
             mess = QMessageBox()
             mess.setIcon(QMessageBox.Icon.Warning)

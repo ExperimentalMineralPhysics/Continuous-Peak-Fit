@@ -85,11 +85,12 @@ class DioptasDetector:
         :param settings:
         :return:
         """
-        if self.calibration.detector:
-            #have read the poni calibration and the detector is present.
-            #this seems to be the updated Dioptas/pyFAI way of storing the pixel size [i.e. poni version 2]???
-            self.detector = self.calibration.detector
-        elif settings.calibration_detector is not None:
+        # if self.calibration.detector:
+        #     #have read the poni calibration and the detector is present.
+        #     #this seems to be the updated Dioptas/pyFAI way of storing the pixel size [i.e. poni version 2]???
+        #     self.detector = self.calibration.detector
+        # el
+        if settings.calibration_detector is not None:
             #if we tell it the type of detector.
             self.detector = pyFAI.detector_factory(settings.calibration_detector)
         else:
@@ -101,7 +102,14 @@ class DioptasDetector:
             else:
                 im_all = fabio.open(settings.calibration_data)
 
-            if "pixelsize1" in self.calibration:
+            if self.calibration.detector:
+                 #have read the poni calibration and the detector is present.
+                 #this seems to be the updated Dioptas/pyFAI way of storing the pixel size [i.e. poni version 2]???
+                 #self.detector = self.calibration.detector
+                 sz1 = self.calibration.detector.pixel1
+                 sz2 = self.calibration.detector.pixel2
+                 
+            elif "pixelsize1" in self.calibration:
                 #old Dioptas/pyFAI way of storing the pixel size???
                 sz1 = self.calibration["pixelsize1"]
                 sz2 = self.calibration["pixelsize2"]

@@ -85,23 +85,32 @@ class DioptasDetector:
         :param settings:
         :return:
         """
-
-        # if self.calibration:
-        #     self.detector = self.calibration.detector
-
-        # if hasattr(settings, "Calib_detector"):
-        if settings.calibration_detector is not None:
+        if self.calibration.detector:
+            #have read the poni calibration and the detector is present.
+            #this seems to be the updated Dioptas/pyFAI way of storing the pixel size [i.e. poni version 2]???
+            self.detector = self.calibration.detector
+        elif settings.calibration_detector is not None:
+            #if we tell it the type of detector.
             self.detector = pyFAI.detector_factory(settings.calibration_detector)
         else:
-            # if settings is None or detector == 'unknown' or detector == 'other' or detector == 'blank':
-            im_all = fabio.open(diff_file)
+            #we dont know anything. so recreate a detector. 
+                
+            #open the file to get the shape of the data.     
+            if diff_file is not None: 
+                im_all = fabio.open(diff_file)
+            else:
+                im_all = fabio.open(settings.calibration_data)
+
             if "pixelsize1" in self.calibration:
+                #old Dioptas/pyFAI way of storing the pixel size???
                 sz1 = self.calibration["pixelsize1"]
                 sz2 = self.calibration["pixelsize2"]
             elif settings.calibration_pixel_size is not None:
+                #get the pixel size from the input file
                 sz1 = settings.calibration_pixel_size * 1e-6
                 sz2 = settings.calibration_pixel_size * 1e-6
             else:
+                #this won't work
                 err_str = (
                     "The pixel size or the detector are is not defined. Add to inputs."
                 )

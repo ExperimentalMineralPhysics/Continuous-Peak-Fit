@@ -465,7 +465,7 @@ def execute(
     else:
         # data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
         data_to_fill = settings_for_fit.image_list[0]
-
+    print(data_to_fill)
     new_data.fill_data(
         data_to_fill,
         settings=settings_for_fit,
@@ -630,11 +630,17 @@ def execute(
                 or "imin" in settings_for_fit.subfit_orders
             ):
                 imax = np.inf
-                imin = 0
+                imin = -np.inf
                 if "imax" in settings_for_fit.subfit_orders:
-                    imax = int(settings_for_fit.subfit_orders["imax"])
+                    if isinstance(settings_for_fit.subfit_orders["imax"], str):
+                        imax = np.percentile(sub_data.intensity.flatten(), float(settings_for_fit.subfit_orders["imax"].strip('%')))
+                    else:
+                        imax = int(settings_for_fit.subfit_orders["imax"])
                 if "imin" in settings_for_fit.subfit_orders:
-                    imin = int(settings_for_fit.subfit_orders["imin"])
+                    if isinstance(settings_for_fit.subfit_orders["imax"], str):
+                        imin = np.percentile(sub_data.intensity.flatten(), float(settings_for_fit.subfit_orders["imin"].strip('%')))
+                    else:
+                        imin = int(settings_for_fit.subfit_orders["imin"])
                 sub_data.set_mask(i_min=imin, i_max=imax)
 
             if mode == "set-range":

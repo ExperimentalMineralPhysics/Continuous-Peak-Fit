@@ -4,9 +4,10 @@ __all__ = ["Requirements", "WriteOutput"]
 import os
 import numpy as np
 import json
-
+from itertools import product
 # import cpf.XRD_FitPattern as XRD_FP
 import cpf.IO_functions as IO
+import cpf.peak_functions as pf
 
 
 def Requirements():
@@ -38,34 +39,16 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
 
         setting_class = initiate(setting_file)
 
-    coefs_vals_write = "d-space"
-    if "coefs_vals_write" in setting_class.output_settings:
+    #get what to write
+    if 'coefs_write' in kwargs:
+        coefs_vals_write = kwargs.get('coefs_write')
+    elif "coefs_vals_write" in setting_class.output_settings:
         coefs_vals_write = setting_class.output_settings["coefs_vals_write"]
+    else:
+        coefs_vals_write = "all"    
 
-    # FitParameters = dir(FitSettings)
 
-    # Parse the required inputs.
-    # base_file_name = FitSettings.datafile_Basename
-
-    # diffraction patterns
-    # diff_files, n_diff_files = IO.file_list(FitParameters, FitSettings)
-    # if 'Output_directory' in FitParameters:
-    #     out_dir = FitSettings.Output_directory
-    # else:
-    #     out_dir = './'
-
-    # # create output file name from passed name
-    # path, filename = os.path.split(base_file_name)
-    # base, ext = os.path.splitext(filename)
-    # if not base:
-    #     print("No base filename, using input filename instead.")
-    #     base =  os.path.splitext(FitSettings.inputfile)[0]
-
-    # if base[-1:] == '_': #if the base file name ends in an '_' remove it.
-    #     base = base[0:-1]
-
-    # out_file = out_dir + base + '.dat'
-
+    #make filename for output
     base = setting_class.datafile_basename
     if base is None:
         print("No base filename, using input filename instead.")
@@ -75,17 +58,48 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     #     print("No base filename, using input filename instead.")
     #     base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
     out_file = IO.make_outfile_name(
-        base, directory=setting_class.output_directory, extension=".dat", overwrite=True
+        base, directory=setting_class.output_directory, extension=".dat", overwrite=True, additional_text="all_coefficients",
     )
 
     # get number of coefficients.
     num_subpatterns = len(setting_class.fit_orders)
+    peak_properties = pf.peak_components(full=True)
+    if coefs_vals_write == "all":
+        coefs_vals_write = peak_properties
+    max_coef = {}
+    for w in range(len(coefs_vals_write[1])):
+        ind = coefs_vals_write[1][w]
+        if ind != "background":
+            max_coef[coefs_vals_write[1][w]] = 0
+        else:
+            max_coef[coefs_vals_write[1][w]] = [0]
     max_coefs = 0
     for y in range(num_subpatterns):
         for x in range(len(setting_class.fit_orders[y]["peak"])):
-            max_coefs = np.max(
-                [max_coefs, setting_class.fit_orders[y]["peak"][x]["d-space"]]
-            )
+
+            for w in range(len(coefs_vals_write[1])):
+                ind = coefs_vals_write[1][w]
+                if ind != "background":
+                    max_coef[ind] = np.max(
+                        [max_coef[ind], 2*setting_class.fit_orders[y]["peak"][x][ind]+1]
+                    )
+                else:
+                    for v in range(len(setting_class.fit_orders[y][ind])):
+                        if v > len(max_coef[ind])-1:
+                            max_coef[ind].append(0)
+                        max_coef[ind][v] = np.max(
+                            [max_coef[ind][v], 2*setting_class.fit_orders[y][ind][v]+1]
+                        )
+                
+            #     max_coef[coefs_vals_write[1][w]] = 0
+            # print(coefs_vals_write[1][y])
+            # max_coef[coefs_vals_write[1][y]] = 0
+            
+            
+            # max_coefs = np.max(
+            #     [max_coefs, setting_class.fit_orders[y]["peak"][x]["d-space"]]
+            # )
+            
 
     text_file = open(out_file, "w")
     print("Writing", out_file)
@@ -95,37 +109,291 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
         % setting_class.settings_file
     )
     text_file.write("# For more information: http://www.github.com/me/something\n")
-    text_file.write("# File version: %i \n" % 1)
+    text_file.write("# File version: %i \n" % 2)
     text_file.write("# \n")
 
     # write header
-    col_width = 15
+    col_width = 17
+    dp = col_width - 7
     text_file.write(("# {0:<" + str(col_width + 5) + "}").format("Data File" + ","))
     text_file.write(("{0:<" + str(col_width) + "}").format("Peak" + ","))
-    # coefficient header list
-    text_file.write(("{0:>" + str(col_width) + "}").format("d0" + ","))
-    for w in range(max_coefs):
-        text_file.write(
-            ("{0:>" + str(col_width) + "}").format("d" + str(w + 1) + "cos,")
-        )
-        text_file.write(
-            ("{0:>" + str(col_width) + "}").format("d" + str(w + 1) + "sin,")
-        )
-    # coefficient errors header list
-    text_file.write(("{0:>" + str(col_width) + "}").format("d0" + " error,"))
-    for w in range(max_coefs):
-        text_file.write(
-            ("{0:>" + str(col_width) + "}").format("d" + str(w + 1) + "cos error,")
-        )
-        text_file.write(
-            ("{0:>" + str(col_width) + "}").format("d" + str(w + 1) + "sin error,")
-        )
+    
+    #parmeter header list
+    
+    for w in range(len(max_coef)):
+        ind = coefs_vals_write[1][w]
+        if ind != "background" and ind != "symmetry":
+            for v in range(max_coef[ind]):
+                text_file.write(
+                    ("{0:>" + str(col_width) + "}").format(ind + "_" + str(v)+ ",")
+                )
+                text_file.write(
+                    ("{0:>" + str(col_width) + "}").format(ind + "_" + str(v)+ " err,")
+                )
+        elif ind == "symmetry":
+            text_file.write(
+                ("{0:>" + str(col_width) + "}").format(ind + ",")
+            )
+        else:
+            for u in range(len(setting_class.fit_orders[y][ind])):
+                
+                for v in range(max_coef[ind][u]):
+                        text_file.write(
+                            ("{0:>" + str(col_width) + "}").format(ind + str(u) + "_" + str(v) + ",")
+                        )
+                        text_file.write(
+                            ("{0:>" + str(col_width) + "}").format(ind + str(u) + "_" + str(v) + " err,")
+                        )
 
     text_file.write("\n")
 
+
+
+
+    # read all the data. 
+    fits=[]
     for z in range(setting_class.image_number):
+        setting_class.set_subpattern(z, 0)
+
+        filename = IO.make_outfile_name(
+            # diff_files[z],
+            # directory=FitSettings.Output_directory,
+            setting_class.subfit_filename,  # diff_files[z],
+            directory=setting_class.output_directory,  # directory=FitSettings.Output_directory,
+            extension=".json",
+            overwrite=True,
+        )  # overwrite =false to get the file name without incrlemeting it.
+
+        # filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
+        # filename = filename + ".json"
+
+        # Read JSON data from file
+
+        with open(filename) as json_data:
+            fits.append(json.load(json_data))
+
+    #print(fits[0][1])    
+    #stop
+    ordering_of_output = "peak"
+    
+    #make lists of the parameters to iterate over
+    images = list(range(setting_class.image_number))
+    subpatterns = list(range(num_subpatterns))
+    max_peaks = 1
+    for i in range(len(setting_class.fit_orders)):
+        max_peaks = np.max([max_peaks, len(setting_class.fit_orders[i]["peak"])])
+
+    
+    lists = images, subpatterns, list(range(max_peaks))
+    lists = np.array(list(product(*lists)))
+    
+    #sort lists
+    if ordering_of_output == "peak":
+        lists=lists[np.lexsort((lists[:, 2], ))]
+        lists=lists[np.lexsort((lists[:, 1], ))]
+    else:
+        lists=lists[np.lexsort((lists[:, 0], ))]
+    
+    #print the data.
+    for z in range(len(lists)):
+    
+        setting_class.set_subpattern(lists[z,0],lists[z,1])
+        data_to_write = fits[lists[z,0]][lists[z,1]]
+        
+        #print(data_to_write)
+        #print(len(data_to_write))
+        
+        
+        if len(data_to_write["peak"]) > lists[z,2]:
+            
+            
+             
+            out_name = IO.make_outfile_name(
+                setting_class.subfit_filename,  # diff_files[z],
+                directory="",
+                extension=".json",
+                overwrite=True,
+            )
+            # print(data_to_write["peak"])
+            # print(len(data_to_write["peak"]))
+            # print(len(data_to_write["peak"]) , lists[z,2])
+            out_peak = []
+    
+            # peak
+            print(setting_class.fit_orders[lists[z,1]])
+            print(setting_class.fit_orders[lists[z,1]]["peak"][lists[z,2]])
+            if "phase" in setting_class.fit_orders[lists[z,1]]["peak"][lists[z,2]]:
+                out_peak = setting_class.fit_orders[lists[z,1]]["peak"][lists[z,2]]["phase"]
+            else:
+                out_peak = out_peak + "Peak"
+            if "hkl" in setting_class.fit_orders[lists[z,1]]["peak"][lists[z,2]]:
+                out_peak = out_peak + " (" + str(setting_class.fit_orders[lists[z,1]]["peak"][lists[z,2]]["hkl"]) + ")"
+            else:
+                out_peak = out_peak + " " + str([lists[z,2]])
+            # write numbers to file
+            dp = col_width - 7
+            text_file.write(
+                ("{0:<" + str(col_width + 7) + "}").format(out_name + ",")
+            )
+            text_file.write(("{0:<" + str(col_width) + "}").format(out_peak + ","))
+            
+            
+            print(z)
+            print(len(data_to_write["peak"]) , lists[z,2])
+             #     print(lists[z,:])
+        
+        
+            for w in range(len(coefs_vals_write[1])):
+                ind = coefs_vals_write[1][w]
+                ind_err = ind+"_err"
+                
+                if ind != "background" and ind != "symmetry":   
+                    print(data_to_write["peak"], [lists[z,2]], ind)
+                    for v in range(len(data_to_write["peak"][lists[z,2]][ind])):
+                                   
+                        text_file.write(
+                            ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
+                                data_to_write["peak"][lists[z,2]][ind][v]
+                            )
+                        )
+                        try:
+                            text_file.write(
+                                ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
+                                    data_to_write["peak"][lists[z,2]][ind_err][v]
+                                )
+                            )
+                        except:
+                            text_file.write(("{0:<" + str(col_width) + "}").format("None" + ","))
+                            
+                                
+                elif ind == "symmetry":
+                    text_file.write(
+                        ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
+                            data_to_write["peak"][lists[z,2]][ind]
+                        )
+                    )
+                else:
+                    for u in range(len(data_to_write[ind])):
+                        print(data_to_write[ind])
+                        for v in range(len(data_to_write[ind][u])):
+                            
+                                text_file.write(
+                                    ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
+                                        data_to_write[ind][u][v]
+                                    )
+                                )
+                                text_file.write(
+                                    ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
+                                        data_to_write[ind][u][v]
+                                    )
+                                )
+        
+        
+            text_file.write("\n")
+    text_file.close()
+        
+        # print(lists[z,:])
+        # print(len(fits[lists[z,0]][lists[z,1]]["peak"]), lists[z,2])
+        
+        # if len(fits[lists[z,0]][lists[z,1]]["peak"])
+        # for w in range(len(max_coef)):
+        #     ind = coefs_vals_write[1][w]
+        #     if ind != "background" and ind != "symmetry":
+        #         for v in range(max_coef[ind]):
+                    
+        #             text_file.write(
+        #                 ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
+        #                     fits[lists[z,0]][y]["peak"][x][coefs_vals_write][2 * w + 1]
+        #                 )
+        #             )
+                    
+                    
+        #             text_file.write(
+        #                 ("{0:>" + str(col_width) + "}").format(ind + "_" + str(v)+ ",")
+        #             )
+        #             text_file.write(
+        #                 ("{0:>" + str(col_width) + "}").format(ind + "_" + str(v)+ " err,")
+        #             )
+        #     elif ind == "symmetry":
+        #         text_file.write(
+        #             ("{0:>" + str(col_width) + "}").format(ind + ",")
+        #         )
+        #     else:
+        #         for u in range(len(setting_class.fit_orders[y][ind])):
+                    
+        #             for v in range(max_coef[ind][u]):
+        #                     text_file.write(
+        #                         ("{0:>" + str(col_width) + "}").format(ind + str(u) + "_" + str(v) + ",")
+        #                     )
+        #                     text_file.write(
+        #                         ("{0:>" + str(col_width) + "}").format(ind + str(u) + "_" + str(v) + " err,")
+        #                     )
+        
+        
+        
+        
+
+    stop
+
+           # get parameters to write to output file.
+           # strip directory and ending from filename
+           # out_name = os.path.splitext(os.path.basename(diff_files[z]))[0]
+           # out_name = os.path.splitext(os.path.basename(setting_class.datafile_list[z]))[0]
+
+           # setting_class.set_subpattern(z,0)
+
+           # out_name = IO.make_outfile_name(
+           #     setting_class.subfit_filename,  # diff_files[z],
+           #     directory=setting_class.output_directory,
+           #     extension=".json",
+           #     overwrite=True,
+           # )
+
+
+
+
+    
+    stop    
+    
+    
+    
+    
+    lists = images, subpatterns
+    a = product(*lists)        
+    print(a,b)
+    stop
+    print(images)
+    print(subpatterns)
+    
+    #sort order to write over
+    if ordering_of_output == "peak":
+        lists = subpatterns, images
+    else:
+        lists = images, subpatterns
+
+    print(product(*lists))
+    for x,y in product(*lists):
+        
+        print(x,y)
 
         setting_class.set_subpattern(z, 0)
+        
+        
+        
+    
+
+    print(arr)
+    stop
+
+
+
+
+
+
+
+
+
+    for z in range(setting_class.image_number):
 
         filename = IO.make_outfile_name(
             # diff_files[z],
@@ -267,6 +535,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                 text_file.write(("{0:<" + str(col_width) + "}").format(out_peak + ","))
 
                 # coefficients
+                print(y,x,coefs_vals_write)
+                print(fit[y]["peak"][x][coefs_vals_write][0])
                 text_file.write(
                     ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
                         fit[y]["peak"][x][coefs_vals_write][0]

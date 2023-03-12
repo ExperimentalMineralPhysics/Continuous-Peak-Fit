@@ -15,13 +15,17 @@ __all__ = [
     "BrightSpots",
     "Cascade",
     "h5_functions",
+    "IO_functions",
+    "fitsubpattern_chunks"
 ]
 
 from . import XRD_FitPattern
 from . import XRD_FitSubpattern
+from . import fitsubpattern_chunks
 from . import settings
 from . import peak_functions
 from . import series_functions
+from . import IO_functions
 from . import h5_functions
 from . import lmfit_model
 from . import Cosmics

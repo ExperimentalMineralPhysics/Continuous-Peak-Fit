@@ -430,7 +430,7 @@ def fit_sub_pattern(
                         master_params = fout.params
 
 
-                    # iterate over the peaks in order of size (height)
+                    # iterate over the peak components in order of size (height)
                     # get mean height of peak from parameters
                     peak_mean = []
                     for k in range(peeks):
@@ -438,60 +438,59 @@ def fit_sub_pattern(
                     #get order to process peaks in -- reverse order starting with the most intense.
                     peak_order = np.array(peak_mean).argsort()[::-1]
                     
-                    for l in range(peeks):
-                        k = peak_order[l]
-                        param_str = "peak_" + str(k)
-                        # always need to iterate over d, height and width
-                        comp_list = ["h", "d", "w"]
-                        comp_names = ["height", "d-space", "width", "profile"]
-                        if (
-                            "profile_fixed"
-                            in settings_as_class.subfit_orders["peak"][k]
-                        ):
-                            p_fixed = 1
-                        else:
-                            p_fixed = 0
-                            # if the profile is not fixed iterate over this as well.
-                            comp_list.append("p")
-                        for cp in range(len(comp_list)):
-                            comp = comp_list[cp]
-                            # set other parameters to not vary
-                            master_params = lmm.un_vary_params(
-                                master_params, param_str, comp
-                            )
-                            # set these parameters to vary
-                            master_params = lmm.vary_params(
-                                master_params, param_str, comp
-                            )
-                            # set part of these parameters to not vary
-                            if isinstance(
-                                settings_as_class.subfit_orders["peak"][k][
-                                    comp_names[cp]
-                                ],
-                                list,
+                    
+                    comp_list, comp_names = pf.peak_components(include_profile=True)
+                    
+                    # iterate over peak parameters in order and then by peak.
+                    # testing on triples (NaMgF3) shows this is better than iterating 
+                    # over peaks as the higher level loop.
+                    for cp in range(len(comp_list)):
+                        comp = comp_list[cp]
+                        for l in range(peeks):
+                            k = peak_order[l]
+                            param_str = "peak_" + str(k)
+                             
+                            if not (
+                                comp_names[cp]+"_fixed" in settings_as_class.subfit_orders["peak"][k]
                             ):
-                                master_params = lmm.un_vary_part_params(
-                                    master_params,
-                                    param_str,
-                                    comp,
+                            
+                                # set other parameters to not vary
+                                master_params = lmm.un_vary_params(
+                                    master_params, param_str, comp
+                                )
+                                # set these parameters to vary
+                                master_params = lmm.vary_params(
+                                    master_params, param_str, comp
+                                )
+                                # set part of these parameters to not vary
+                                if isinstance(
                                     settings_as_class.subfit_orders["peak"][k][
                                         comp_names[cp]
                                     ],
+                                    list,
+                                ):
+                                    master_params = lmm.un_vary_part_params(
+                                        master_params,
+                                        param_str,
+                                        comp,
+                                        settings_as_class.subfit_orders["peak"][k][
+                                            comp_names[cp]
+                                        ],
+                                    )
+                                if comp == "h":
+                                    refine_max_f_eval = 5 * peeks * default_max_f_eval
+                                else:
+                                    refine_max_f_eval = default_max_f_eval
+                                fout = lmm.fit_model(
+                                    data_as_class,
+                                    settings_as_class.subfit_orders,
+                                    master_params,
+                                    fit_method=None,
+                                    weights=None,
+                                    max_n_fev=refine_max_f_eval,
                                 )
-                            if comp == "h":
-                                refine_max_f_eval = 5 * peeks * default_max_f_eval
-                            else:
-                                refine_max_f_eval = default_max_f_eval
-                            fout = lmm.fit_model(
-                                data_as_class,
-                                settings_as_class.subfit_orders,
-                                master_params,
-                                fit_method=None,
-                                weights=None,
-                                max_n_fev=default_max_f_eval,
-                            )
-                            master_params = fout.params
-
+                                master_params = fout.params
+                                
                     if debug:
                         print(" ")
                         print(
@@ -532,29 +531,30 @@ def fit_sub_pattern(
                 # set part of these parameters to not vary
             for k in range(peeks):
                 param_str = "peak_" + str(k)
-                # always need to iterate over d, height and width
-                comp_list = ["h", "d", "w"]
-                comp_names = ["height", "d-space", "width", "profile"]
-                if "profile_fixed" in settings_as_class.subfit_orders["peak"][k]:
-                    p_fixed = 1
-                else:
-                    p_fixed = 0
-                    # if the profile is not fixed iterate over this as well.
-                    comp_list.append("p")
+                
                 for cp in range(len(comp_list)):
-                    master_params = lmm.vary_params(
-                        master_params, param_str, comp_list[cp]
-                    )
-                    # set part of these parameters to not vary
-                    if isinstance(
-                        settings_as_class.subfit_orders["peak"][k][comp_names[cp]], list
+                    comp = comp_list[cp]
+                    if (
+                        comp_names[cp]+"_fixed" in settings_as_class.subfit_orders["peak"][k]
                     ):
-                        master_params = lmm.un_vary_part_params(
-                            master_params,
-                            param_str,
-                            comp_list[cp],
-                            settings_as_class.subfit_orders["peak"][k][comp_names[cp]],
+                        #set compenent not to vary
+                        master_params = lmm.un_vary_this_params(
+                            master_params, param_str, comp
                         )
+                    else:
+                        master_params = lmm.vary_params(
+                            master_params, param_str, comp
+                        )
+                        # set part of these parameters to not vary
+                        if isinstance(
+                            settings_as_class.subfit_orders["peak"][k][comp_names[cp]], list
+                        ):
+                            master_params = lmm.un_vary_part_params(
+                                master_params,
+                                param_str,
+                                comp,
+                                settings_as_class.subfit_orders["peak"][k][comp_names[cp]],
+                            )
 
             fout = lmm.fit_model(
                 data_as_class,
@@ -730,8 +730,10 @@ def fit_sub_pattern(
         if "note" in settings_as_class.subfit_orders:
             title_str = title_str + " " + settings_as_class.subfit_orders["note"]
         plt.suptitle(title_str)
-        plt.tight_layout()
+        #plt.tight_layout()
 
+        if view == 1 or debug:
+            plt.show()
         # save figures without overwriting old names
         if save_fit:
             filename = io.make_outfile_name(

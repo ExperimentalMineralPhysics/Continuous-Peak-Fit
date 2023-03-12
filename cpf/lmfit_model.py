@@ -598,6 +598,26 @@ def un_vary_params(inp_param, param_str, comp):
     return inp_param
 
 
+def un_vary_this_params(inp_param, param_str, comp):
+    """
+    Set all but selected parameters to vary=False
+    :param inp_param: lmfit Parameter class
+    :param param_str: base string to select with
+    :param comp: string to add to base string to select with
+    :return: updated lmfit Parameter class
+    """
+    if comp:
+        new_str = param_str + "_" + comp
+    else:
+        new_str = param_str
+    str_keys = [
+        key for key, val in inp_param.items() if new_str in key and "tp" not in key
+    ]
+    for p in str_keys:
+        inp_param[p].set(vary=False)
+    return inp_param
+
+
 def un_vary_part_params(inp_param, param_str, comp, order=None):
     """
     Set single component of the selected parameters to vary=False

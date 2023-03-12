@@ -19,7 +19,7 @@ __all__ = [
 import numpy as np
 
 
-def peak_components(full=False):
+def peak_components(full=False, include_profile=True):
     """
     Lists the parameters needed for each peak.
     If full is True returns all the parameters needed for the fit (including background and symetry)
@@ -29,8 +29,11 @@ def peak_components(full=False):
     :return comp_list:
     :return comp_names:
     """
-    comp_list = ["h", "d", "w", "p"]
-    comp_names = ["height", "d-space", "width", "profile"]
+    comp_list = ["h", "d", "w"]
+    comp_names = ["height", "d-space", "width"]
+    if include_profile:
+        comp_list.extend("p")
+        comp_names.extend(["profile"])
     if full:
         comp_list.append("bg")
         comp_names.append("background")

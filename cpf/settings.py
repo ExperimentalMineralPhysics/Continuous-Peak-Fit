@@ -481,7 +481,7 @@ class settings:
                             + comp_modifications[l]
                             + " replaced with "
                             + "background"
-                            + "-"
+                            + "_"
                             + comp_modifications[l]
                         )
                         self.fit_orders[i][

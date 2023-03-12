@@ -12,6 +12,7 @@ __all__ = [
     "ImageMetaData",
     "generate_inputs",
     "Cosmics",
+    "BrightSpots",
     "Cascade",
     "h5_functions",
 ]
@@ -24,6 +25,7 @@ from . import series_functions
 from . import h5_functions
 from . import lmfit_model
 from . import Cosmics
+from . import BrightSpots
 from . import Cascade
 
 from . import input_types

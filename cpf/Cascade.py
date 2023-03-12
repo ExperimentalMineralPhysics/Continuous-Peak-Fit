@@ -44,6 +44,7 @@ import json
 from cpf.settings import settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 from cpf.Cosmics import image_preprocess as cosmicsimage_preprocess
+from cpf.BrightSpots import SpotProcess
 from cpf.IO_functions import (
     json_numpy_serializer,
     make_outfile_name,
@@ -330,13 +331,7 @@ def execute(
                 "imax" in settings_for_fit.subfit_orders
                 or "imin" in settings_for_fit.subfit_orders
             ):
-                imax = np.inf
-                imin = 0
-                if "imax" in settings_for_fit.subfit_orders:
-                    imax = int(settings_for_fit.subfit_orders["imax"])
-                if "imin" in settings_for_fit.subfit_orders:
-                    imin = int(settings_for_fit.subfit_orders["imin"])
-                sub_data.set_mask(i_min=imin, i_max=imax)
+                sub_data = SpotProcess(sub_data, settings_for_fit)
 
             if mode == "set-range":
 

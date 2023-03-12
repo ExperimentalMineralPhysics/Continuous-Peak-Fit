@@ -1,0 +1,52 @@
+# -*- coding: utf-8 -*-
+"""
+About
+=====
+Provides (or will provide) a number of options for throesholding or limiting the 
+pixel intensity in images. 
+
+Individual pixels in a diffraction ring are frequently much brighter than the 
+rest of the peak. This bright intensity skews the least squares fitting and 
+so the brightest spots are ether masked (or to be developed) eroded (keeping 
+total intentsity in the data the same)
+
+Current useage of intensity limits:
+    Each range has "imax" and "imin" as optional arguments
+    These optional arguments can take the format:
+    
+    "imin": %i
+    "imin": "[0<%f<100]%"
+    
+    e.g.     
+    "imin": 234
+    "imin": "99.9%"
+    
+    Where a numberical value masks the data above/below that value and the percentage
+    as a string masks above or below that percentile.
+    
+
+Simon Hunt, March 2023
+"""
+
+__version__ = "0.1"
+
+import numpy as np
+
+def SpotProcess(sub_data, settings_for_fit):
+    
+    imax = np.inf
+    imin = -np.inf
+    if "imax" in settings_for_fit.subfit_orders:
+        if isinstance(settings_for_fit.subfit_orders["imax"], str):
+            imax = np.percentile(sub_data.intensity.flatten(), float(settings_for_fit.subfit_orders["imax"].strip('%')))
+        else:
+            imax = int(settings_for_fit.subfit_orders["imax"])
+    if "imin" in settings_for_fit.subfit_orders:
+        if isinstance(settings_for_fit.subfit_orders["imin"], str):
+            imin = np.percentile(sub_data.intensity.flatten(), float(settings_for_fit.subfit_orders["imin"].strip('%')))
+        else:
+            imin = int(settings_for_fit.subfit_orders["imin"])
+    sub_data.set_mask(i_min=imin, i_max=imax)
+
+    return sub_data
+

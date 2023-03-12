@@ -629,20 +629,7 @@ def execute(
                 "imax" in settings_for_fit.subfit_orders
                 or "imin" in settings_for_fit.subfit_orders
             ):
-                imax = np.inf
-                imin = -np.inf
-                if "imax" in settings_for_fit.subfit_orders:
-                    if isinstance(settings_for_fit.subfit_orders["imax"], str):
-                        imax = np.percentile(sub_data.intensity.flatten(), float(settings_for_fit.subfit_orders["imax"].strip('%')))
-                    else:
-                        imax = int(settings_for_fit.subfit_orders["imax"])
-                if "imin" in settings_for_fit.subfit_orders:
-                    if isinstance(settings_for_fit.subfit_orders["imax"], str):
-                        imin = np.percentile(sub_data.intensity.flatten(), float(settings_for_fit.subfit_orders["imin"].strip('%')))
-                    else:
-                        imin = int(settings_for_fit.subfit_orders["imin"])
-                sub_data.set_mask(i_min=imin, i_max=imax)
-
+                sub_data = SpotProcess(sub_data, settings_for_fit)
             if mode == "set-range":
 
                 fig_1 = plt.figure()

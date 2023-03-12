@@ -109,10 +109,9 @@ def image_list(fit_parameters, fit_settings):
             h5_key_end = fit_settings.h5_key_end
         else:
             h5_key_end = -1
-        #            h5_key_end   = fit_settings.h5_key_end
+        #  h5_key_end   = fit_settings.h5_key_end
         if isinstance(h5_key_end, int):
             h5_key_end = [h5_key_end]
-        # print("end", h5_key_end, type(h5_key_end))
 
         if "h5_key_step" in fit_parameters:
             h5_key_step = fit_settings.h5_key_step
@@ -127,40 +126,6 @@ def image_list(fit_parameters, fit_settings):
         # h5_data      = fit_settings.h5_data
 
         for i in range(n_diff_files):
-
-            # h5_key_list  = fit_settings.h5_key_list
-            # if "h5_key_names" in fit_parameters:
-            #     h5_key_names = fit_settings.h5_key_names
-            # else:
-            #     h5_key_names = []
-
-            # if "h5_key_start" in fit_parameters:
-            #     h5_key_start = fit_settings.h5_key_start
-            # else:
-            #     h5_key_start = 0
-            # #h5_key_start = fit_settings.h5_key_start
-
-            # if "h5_key_end" in fit_parameters:
-            #     h5_key_end = fit_settings.h5_key_end
-            # else:
-            #     h5_key_end = -1
-            # #            h5_key_end   = fit_settings.h5_key_end
-            # if isinstance(h5_key_end, int):
-            #     h5_key_end = [h5_key_end]
-            # print("end", h5_key_end, type(h5_key_end))
-
-            # if "h5_key_step" in fit_parameters:
-            #     h5_key_step = fit_settings.h5_key_step
-            # else:
-            #     h5_key_step = 1
-            # # h5_key_step  = fit_settings.h5_key_step
-
-            # if "h5_data" in fit_parameters:
-            #     h5_data = fit_settings.h5_data
-            # else:
-            #     h5_data = "iterate"
-            # #h5_data      = fit_settings.h5_data
-
             h5_list = h5_functions.get_image_keys(
                 diff_files[i],
                 h5_key_list,
@@ -180,8 +145,6 @@ def image_list(fit_parameters, fit_settings):
 
     n_images = len(image_list)
 
-    # print(image_list)
-    # print(n_images)
     return diff_files, n_diff_files, image_list, n_images
 
 
@@ -549,14 +512,6 @@ def make_outfile_name(
     if directory or directory == "":
         # base_filename = os.path.basename(base_filename)
         filename = os.path.basename(filename)
-
-    # if base_filename:  # catch in case the string does not exist.
-    #     filename, ending = os.path.splitext(base_filename)
-    #     ending = ending[1:]
-    # else:
-    #     # FIX ME: we can never arrive at this option.
-    #     filename = "Fit2Peak"
-    #     ending = ""
 
     if filename[-1:] == "_":  # if the base file name ends in an '_' remove it.
         filename = filename[0:-1]

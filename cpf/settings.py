@@ -299,13 +299,13 @@ class settings:
             self.fit_propagate = self.settings_from_file.fit_propagate
 
         if "AziDataPerBin" in dir(self.settings_from_file):
-            self.fit_per_bin = self.AziDataPerBin
+            self.fit_per_bin = self.settings_from_file.AziDataPerBin
             self.fit_bin_type = 0
         elif "AziBins" in dir(self.settings_from_file):
             self.fit_number_bins = self.settings_from_file.AziBins
             self.fit_bin_type = 1
         if "AziBinType" in dir(self.settings_from_file):
-            self.fit_bin_type = self.AziBinType
+            self.fit_bin_type = self.settings_from_file.AziBinType
 
         if "Output_type" in dir(self.settings_from_file):
             # self.output_types = get_output_options(fit_settings.Output_type)

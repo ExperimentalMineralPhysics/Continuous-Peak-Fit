@@ -83,6 +83,8 @@ class settings:
 
         self.datafile_preprocess = None
 
+        self.file_label = None
+
         # calibration type: dioptas etc.
         self.calibration_type = None
         # file on which the calibration was done

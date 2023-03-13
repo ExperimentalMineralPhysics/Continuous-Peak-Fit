@@ -39,6 +39,12 @@ class MedDetector:
         self.calibration = None
         self.detector = None
 
+        self.x = None
+        self.y = None
+        self.azm_start = None
+        self.azm_end   = None
+        self.tth_start = None
+        self.tth_end   = None
         self.intensity = None
         self.tth = None
         self.azm = None
@@ -61,7 +67,13 @@ class MedDetector:
         new = MedDetector()
         # new.parameters = copy(self.parameters)
         new.calibration = copy(self.calibration)
-
+        new.x = copy(self.x)
+        new.y = copy(self.y)
+        new.azm_start = copy(self.azm_start)
+        new.azm_end   = copy(self.azm_end)
+        new.tth_start = copy(self.tth_start)
+        new.tth_end   = copy(self.tth_end)
+        
         new.intensity = deepcopy(self.intensity)
         new.tth = deepcopy(self.tth)
         new.azm = deepcopy(self.azm)
@@ -87,6 +99,12 @@ class MedDetector:
         self.tth = self.get_two_theta(mask=self.intensity.mask)
         self.azm = self.get_azimuth(mask=self.intensity.mask)
         self.dspace = self.get_d_space(mask=self.intensity.mask)
+        
+        # reset the limits incase data has been masked.
+        blocks = 90  
+        self.azm_start = np.floor((np.min(self.azm.flatten()) / blocks)) * blocks
+        self.azm_end   =  np.ceil((np.max(self.azm.flatten()) / blocks)) * blocks
+        
 
     def get_detector(self, diff_file=None, settings=None):
         """
@@ -436,6 +454,13 @@ class MedDetector:
         parms_dict["DispersionType"] = "EnergyDispersive"
         parms_dict["mcas"] = dat
 
+        blocks = 90  
+        l = parms_dict["mcas"].mcas[0].data.shape
+        self.azm_start = np.floor((np.min(np.array(parms_dict["azimuths"])) / blocks)) * blocks
+        self.azm_end   =  np.ceil((np.max(np.array(parms_dict["azimuths"])) / blocks)) * blocks
+
+        print("get_calibtation", self.azm_start, self.azm_end)
+        
         return parms_dict
 
     def bins(self, orders_class, **kwargs):
@@ -459,6 +484,25 @@ class MedDetector:
         return chunks, bin_mean_azi
 
     # FIX ME: DMF missing function from dioptas get_azimuthal_integration -- is it needed here?
+
+    def test_azims(self, steps = None):
+        """
+        Returns unique azimuths in the dsata set.
+    
+        Parameters
+        ----------
+        steps : None, optional
+            DESCRIPTION. Does nothing in this case. Maintained for compatibility
+    
+        Returns
+        -------
+        array
+            list of possible azimuths.
+    
+        """
+        return np.unique(self.azm)
+
+
 
     def get_two_theta(self, mask=None, pix=None, det=None):
         """
@@ -608,7 +652,7 @@ class MedDetector:
 
         # match max and min of colour scales
         # FIXME: this is not used but should be used to set to colour ranges of the data -- by azimuth.
-        limits = {"max": np.max([np.max(self.azm)]), "min": np.min([np.min(self.azm)])}
+        limits = {"max": self.azm_start, "min": self.azm_end}
 
         # make axes
         gs = gridspec.GridSpec(1, 3, wspace=0.0)
@@ -814,11 +858,8 @@ class MedDetector:
             )
             fig_plot.colorbar(mappable=the_plot).set_label(label="Counts")
         else:
-            # Set colour map range - to be in 90 degree blocks
-            blocks = 90
-            colour_start = np.floor((np.min(self.azm)) / blocks) * blocks
-            colour_end = np.ceil((np.max(self.azm)) / blocks) * blocks
-            normalize = colors.Normalize(vmin=colour_start, vmax=colour_end)
+            # Set colour map range - to be in 90 degree blocks using azm_start and azm_end
+            normalize = colors.Normalize(vmin=self.azm_start, vmax=self.azm_end)
             c_map = cm.get_cmap(name=colourmap)
             for i in range(len(np.unique(self.azm)) - 1, -1, -1):
                 if 0:  # for debugging

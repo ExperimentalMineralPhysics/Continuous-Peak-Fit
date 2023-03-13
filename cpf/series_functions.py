@@ -305,7 +305,7 @@ def fourier_order(params):
 
 
 def coefficient_expand(
-    azimuth, param=None, coeff_type="fourier", comp_str=None, **params
+    azimuth, param=None, coeff_type="fourier", comp_str=None, start_end=[0, 360], **params
 ):
     """
     Expand the coefficients to give one value for each azimuth.
@@ -318,7 +318,6 @@ def coefficient_expand(
     """
 
     coeff_type = coefficient_type_as_number(coeff_type)
-    se = [0, 360]
 
     if coeff_type == 0:
         out = fourier_expand(azimuth, inp_param=param, comp_str=comp_str, **params)
@@ -327,7 +326,7 @@ def coefficient_expand(
             azimuth,
             inp_param=param,
             comp_str=comp_str,
-            start_end=se,
+            start_end=start_end,
             bc_type="natural",
             kind="linear",
             **params
@@ -337,7 +336,7 @@ def coefficient_expand(
             azimuth,
             inp_param=param,
             comp_str=comp_str,
-            start_end=se,
+            start_end=start_end,
             bc_type="natural",
             kind="quadratic",
             **params
@@ -347,7 +346,7 @@ def coefficient_expand(
             azimuth,
             inp_param=param,
             comp_str=comp_str,
-            start_end=se,
+            start_end=start_end,
             bc_type="periodic",
             kind="cubic",
             **params
@@ -357,7 +356,7 @@ def coefficient_expand(
             azimuth,
             inp_param=param,
             comp_str=comp_str,
-            start_end=se,
+            start_end=start_end,
             bc_type="natural",
             kind="cubic",
             **params
@@ -367,7 +366,7 @@ def coefficient_expand(
             azimuth,
             inp_param=param,
             comp_str=comp_str,
-            start_end=se,
+            start_end=start_end,
             bc_type="natural",
             kind="independent",
             **params
@@ -429,6 +428,7 @@ def spline_expand(
     elif isinstance(bc_type, (list, tuple, np.ndarray)):
         points = bc_type
     else:
+        print(start_end, start_end[0], start_end[1], np.size(inp_param))
         points = np.linspace(start_end[0], start_end[1], np.size(inp_param))
 
     if kind == "cubic":  # and bc_type=='periodic':
@@ -466,7 +466,7 @@ def spline_expand(
 
 
 # fourier expansion function
-def fourier_expand(azimuth, inp_param=None, comp_str=None, **params):
+def fourier_expand(azimuth, inp_param=None, comp_str=None, start_end=[0, 360], **params):
     """Calculate Fourier expansion given input coefficients
     :param azimuth: arr data array float
     :param inp_param: list of Fourier coefficients float
@@ -507,10 +507,13 @@ def fourier_expand(azimuth, inp_param=None, comp_str=None, **params):
             # len(param)-1 should never be odd because of initial a_0 parameter
             try:
                 # try/except is a ctch for expanding a fourier series that has failed and has nones as coefficient values.
+                # azm_tmp stretches the azimuths between the max and min of start_end. In XRD cases this should have no effect
+                #but is added for consistency with the spline functions 
+                azm_tmp = (azimuth-start_end[0])/(start_end[-1]-start_end[0])*360
                 fout = (
                     fout
-                    + inp_param[(2 * i) - 1] * np.sin(np.deg2rad(azimuth) * i)
-                    + inp_param[2 * i] * np.cos(np.deg2rad(azimuth) * i)
+                    + inp_param[(2 * i) - 1] * np.sin(np.deg2rad(azm_tmp) * i)
+                    + inp_param[2 * i] * np.cos(np.deg2rad(azm_tmp) * i)
                 )  # single col array
             except:
                 pass

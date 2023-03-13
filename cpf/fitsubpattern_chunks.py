@@ -562,7 +562,7 @@ def fit_chunks(
     return out_vals, new_azi_chunks
 
 
-def fit_series(master_params, data, settings_as_class, debug=False, save_fit=False):
+def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=False, save_fit=False):
 
     orders = settings_as_class.subfit_orders
 
@@ -675,10 +675,7 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
         master_params.pretty_print()
 
         # plot output of fourier fits....
-        x_lims = np.array([np.min(data[1]), np.max(data[1])])
-        x_lims[0] = np.floor(x_lims[0] / 90) * 90
-        x_lims[1] = np.ceil(x_lims[1] / 90) * 90
-        x_ticks = list(range(int(x_lims[0]), int(x_lims[1] + 1), 45))
+        x_lims = start_end
         azi_plot = range(np.int(x_lims[0]), np.int(x_lims[1]), 2)
         gmodel = Model(sf.coefficient_expand, independent_vars=["azimuth"])
 
@@ -721,9 +718,9 @@ def fit_series(master_params, data, settings_as_class, debug=False, save_fit=Fal
                 #if notthing in the data class then continue
                 try:
                     label_x = settings_as_class.data_class.dispersion_ticks(
-                        disp_ticks=ax[i + k + 1].get_xticks
+                        disp_ticks=ax[i + 1].get_xticks
                     )
-                    ax[i + k + 1].set_xticks(label_x)
+                    ax[i + 1].set_xticks(label_x)
                 except:
                     pass
 

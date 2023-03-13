@@ -38,6 +38,7 @@ from matplotlib import gridspec
 from matplotlib import cm, colors
 from cpf import IO_functions
 import pickle
+import cpf.lmfit_model as llm
 
 class XYDetector:
 
@@ -51,11 +52,21 @@ class XYDetector:
         self.calibration = None
         self.detector = None
 
+        self.x = None
+        self.y = None
+        self.azm_start = None
+        self.azm_end   = None
+        self.tth_start = None
+        self.tth_end   = None
         self.intensity = None
         self.tth = None
         self.azm = None
         self.dspace = None
         self.continuous_azm = True
+        
+        #set the start and end limits for the data
+        self.start = 0
+        self.end   = np.inf
 
         if settings_class:
             self.get_calibration(settings=settings_class)
@@ -85,7 +96,7 @@ class XYDetector:
 
         # self.detector = self.detector_check(calibration_data, detector)
         #        print(settings.Calib_param)
-        self.get_calibration(settings.calibration_parameters)
+        self.get_calibration(settings=settings)
         self.get_detector(diff_file, settings)
         
         self.intensity = self.get_masked_calibration(
@@ -94,9 +105,12 @@ class XYDetector:
         self.tth = self.get_two_theta(mask=self.intensity.mask)
         self.azm = self.get_azimuth(mask=self.intensity.mask)
         self.dspace = self.get_d_space(mask=self.intensity.mask)
+        if self.azm_start is None:
+            self.azm_start = np.min(self.azm)
+        if self.azm_end is None:
+            self.azm_end   = np.max(self.azm)
 
-
-
+        
     def get_detector(self, diff_file=None, settings=None):
         """
         :param diff_file:
@@ -206,15 +220,16 @@ class XYDetector:
                         # issue an error
                         err_str = "There seems to be more than 20 header rows in the data file. Is this correct?"
                         raise ValueError(err_str)
-            
         else:
-            im_all = image.imread(image_name)
-            self.intensity = im_all.data
+            im = image.imread(image_name)
+            im = im.data
 
-        self.intensity = ma.array(self.intensity, dtype="f")
+        #self.intensity = ma.array(im, dtype="f")
         
         if 0:#debug:
+            print(self.intensity)
             print("min+max:", np.min(self.intensity), np.max(self.intensity))
+            print("min+max:", np.nanmin(self.intensity), np.nanmax(self.intensity))
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
             self.plot_collected(fig_plot=fig, axis_plot=ax)
@@ -298,11 +313,43 @@ class XYDetector:
         :param file_nam:
         :return:
         """
+        #make empty calibration
+        self.calibration = {
+                    "x_dim":   0, 
+                    "x":       [0,1], 
+                    "x_start": None, # begining of the 'tth' axis
+                    "x_end":   None, # end of the 'tth' axis
+                    "y":       [0,1], 
+                    "y_start": None, # begining of the 'azimith' axis
+                    "y_end":   None, # end of the 'azimith' axis
+                    "conversion_constant": 1
+                    }
 
+        # parms_file is file
         if settings != None:
-            parms_file = settings.calibration_parameters
+            calib_temp = settings.calibration_parameters
         else:
             parms_file = file_name
+            with open(parms_file, 'wb') as f:
+                calib_temp = pickle.dump("calibration", f)
+
+        #pass calib_temp into the calibration
+        for key, val in calib_temp.items():
+            self.calibration[key] = val
+            
+        # if parms_file != None and isinstance(parms_file, dict):
+        #     # here parms_file is not a file name but a dictionary of parameters.
+        #     calib_temp = parms_file
+        # else:
+        #     # parms_file is file
+        #     if settings != None:
+        #         parms_file = settings.calibration_parameters
+        #     else:
+        #         parms_file = file_name
+                
+        #     with open(parms_file, 'wb') as out_file:
+        #         calib_temp = pickle.dump(parameters, out_file)
+
 
         # Currently no conversion from X,Y to aximuth and two theta (or whatever the units are)
         #pf = ponifile.PoniFile()
@@ -311,21 +358,26 @@ class XYDetector:
         #self.calibration = pf
         #self.conversion_constant = pf.wavelength * 1e10
 
-        if parms_file != None and isinstance(parms_file, dict):
-            # here parms_file is not a file name but a dictionary of parameters.
-            self.calibration = parms_file
+        # if parms_file != None and isinstance(parms_file, dict):
+        #     # here parms_file is not a file name but a dictionary of parameters.
+        #     calib_temp = parms_file
+        #     if "x_dim" in calib_temp:
+        #         self
             
-        elif parms_file != None and parms_file != "":
             
-            with open(parms_file, 'wb') as out_file:
-                self.calibration = pickle.dump(parameters, out_file)
-        else:
-            # default empty calibration
-            self.calibration = {"x_dim": 0, "x": [0,1], "y":[0,1]}
+            
+        # elif parms_file != None and parms_file != "":
+            
+        #     with open(parms_file, 'wb') as out_file:
+        #         self.calibration = pickle.dump(parameters, out_file)
+        # else:
+        #     # default empty calibration
+        #     self.calibration = {"x_dim": 0, "x": [0,1], "y":[0,1], "y_start":0, "y_end":1}
         
-        self.conversion_constant = 1
-
-
+        self.conversion_constant = self.calibration["conversion_constant"]
+        self.azm_start = self.calibration["y_start"]
+        self.azm_end = self.calibration["y_end"]
+        
 
     def bins(self, orders_class, cascade=False):
         """
@@ -351,6 +403,7 @@ class XYDetector:
             else:
                 b_num = orders_class.fit_per_bin
 
+        
         # make the bins
         if bt == 0:
             # split the data into bins with an approximately constant number of data.
@@ -368,7 +421,12 @@ class XYDetector:
                     np.max(self.azm[self.azm.mask == False] + 0.01),
                 ]
             )
-            lims = np.around(lims / 45) * 45
+            if orders_class.azi_limits == "tight":
+                pass
+            elif orders_class.azi_limits == "full":
+                lims = [0, 360]
+            else: #orders_class.azi_bounds == "default":
+                lims = np.around(lims / 45) * 45
             bin_boundaries = np.linspace(lims[0], lims[1], num=b_num + 1)
 
         else:
@@ -388,7 +446,7 @@ class XYDetector:
             print("bins and occupancy", bins, n)
             print("expected number of data per bin", orders_class.cascade_per_bin)
             print("total data", np.sum(n))
-
+            
         # fit the data to the bins
         chunks = []
         bin_mean_azi = []
@@ -424,10 +482,44 @@ class XYDetector:
         x = np.sort(x)
         return np.interp(np.linspace(0, nlen, nbin + 1), np.arange(nlen), np.sort(x))
 
+    def test_azims(self, steps = 1000):
+        """
+        Returns equally spaced set of aximuths within possible range.
+
+        Parameters
+        ----------
+        steps : Int, optional
+            DESCRIPTION. The default is 1000.
+
+        Returns
+        -------
+        array
+            list of possible azimuths.
+
+        """
+        return np.linspace(self.azm_start,self.azm_end, steps+1)
+    
+    def get_xy(self, mask=None):
+        """
+        Gets the twotheta (i.e. calibrated) values of the data. 
+        :param mask:
+        :return:
+        """
+
+        nx, ny = self.intensity.shape
+        x = np.linspace(0, nx-1, nx)
+        y = np.linspace(0, ny-1, ny)
+        xv, yv = np.meshgrid(x, y)
+
+        if self.calibration["x_dim"]==0:
+            return xv, yv
+        else:
+            return ma.array(yv) * self.calibration["x"][1] + self.calibration["x"][0]
+        
 
     def get_two_theta(self, mask=None):
         """
-        Gets the x values of the data. 
+        Gets the twotheta (i.e. calibrated) values of the data. 
         :param mask:
         :return:
         """
@@ -541,23 +633,23 @@ class XYDetector:
         self.azm.mask = self.original_mask
         self.dspace.mask = self.original_mask
 
-    # def dispersion_ticks(self, disp_ticks=None, unique=10):
-    #     """
-    #     Returns the labels for the dispersion axis/colour bars.
+    def dispersion_ticks(self, disp_ticks=None, unique=10):
+        """
+        Returns the labels for the dispersion axis/colour bars.
 
-    #     :param disp_ticks: -- unused for maintained for compatibility with MED functions
-    #     :param unique:
-    #     :return new_tick_positions:
-    #     """
-    #     slop=2
-    #     if len(np.unique(self.azm)) >= unique:
-    #         disp_lims = np.array(
-    #             [np.min(self.azm.flatten()), np.max(self.azm.flatten())]
-    #         )
-    #         disp_lims = np.around(disp_lims / 180) * 180
-    #         disp_ticks = list(range(int(disp_lims[0]), int(disp_lims[1] + 1), 45))
+        :param disp_ticks: -- unused for maintained for compatibility with MED functions
+        :param unique:
+        :return new_tick_positions:
+        """
+        if len(np.unique(self.azm)) >= unique:
+            disp_lims = np.array(
+                [self.azm_start, self.azm_end]
+            )
+            if disp_lims[1]-disp_lims[0] == 360:
+                disp_lims = np.around(disp_lims / 180) * 180
+                disp_ticks = list(range(int(disp_lims[0]), int(disp_lims[1] + 1), 45))
 
-    #     return disp_ticks
+        return disp_ticks
 
     def plot_masked(self, fig_plot=None):
         """
@@ -827,14 +919,18 @@ class XYDetector:
         else:  # if y_axis is "default" or "azimuth"
             plot_y = self.azm
             plot_i = self.intensity
-            label_y = "Azimuth (deg)"
+            label_y = self.calibration["y_label"]
 
-            y_lims = np.array([np.min(plot_y.flatten()), np.max(plot_y.flatten())])
-            y_lims = np.around(y_lims / 180) * 180
+            #y_lims = np.array([np.min(plot_y.flatten()), np.max(plot_y.flatten())])
+            #y_lims = np.around(y_lims / 180) * 180
+            y_lims = [self.azm_start, self.azm_end]
             axis_plot.set_ylim(y_lims)
             # y_ticks = list(range(int(y_lims[0]),int(y_lims[1]+1),45))
-
+            
             y_ticks = False
+            if y_lims[1]-y_lims[0] == 360:
+                y_ticks = list(range(int(y_lims[0]), int(y_lims[1] + 1), 45))
+
 
         # organise the data to plot
         if data is not None:
@@ -909,6 +1005,6 @@ class XYDetector:
             rasterized=rastered,
         )
         axis_plot.set_xlabel(self.calibration["x_label"])
-        axis_plot.set_ylabel(self.calibration["y_label"])
+        axis_plot.set_ylabel(label_y)
 
         fig_plot.colorbar(mappable=the_plot, extend=cb_extend)

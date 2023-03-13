@@ -36,6 +36,12 @@ class DioptasDetector:
         self.calibration = None
         self.detector = None
 
+        self.x = None
+        self.y = None
+        self.azm_start = -180
+        self.azm_end   =  180
+        self.tth_start = None
+        self.tth_end   = None
         self.intensity = None
         self.tth = None
         self.azm = None
@@ -78,6 +84,10 @@ class DioptasDetector:
         self.tth = self.get_two_theta(mask=self.intensity.mask)
         self.azm = self.get_azimuth(mask=self.intensity.mask)
         self.dspace = self.get_d_space(mask=self.intensity.mask)
+        
+        blocks = 180
+        self.azm_start = np.around(np.min(self.azm.flatten()) / blocks) * blocks
+        self.azm_end = np.around(np.max(self.azm.flatten()) / blocks) * blocks
 
     def get_detector(self, diff_file=None, settings=None):
         """
@@ -484,6 +494,24 @@ class DioptasDetector:
         nlen = len(x)
         x = np.sort(x)
         return np.interp(np.linspace(0, nlen, nbin + 1), np.arange(nlen), np.sort(x))
+
+    def test_azims(self, steps = 360):
+        """
+        Returns equally spaced set of aximuths within possible range.
+
+        Parameters
+        ----------
+        steps : Int, optional
+            DESCRIPTION. The default is 360.
+
+        Returns
+        -------
+        array
+            list of possible azimuths.
+
+        """
+        return np.linspace(self.azm_start,self.azm_end, steps+1)
+
 
     def get_azimuthal_integration(self):
         """
@@ -906,8 +934,7 @@ class DioptasDetector:
             plot_i = self.intensity
             label_y = "Azimuth (deg)"
 
-            y_lims = np.array([np.min(plot_y.flatten()), np.max(plot_y.flatten())])
-            y_lims = np.around(y_lims / 180) * 180
+            y_lims = [self.azm_start, self.azm_end]
             axis_plot.set_ylim(y_lims)
             # y_ticks = list(range(int(y_lims[0]),int(y_lims[1]+1),45))
 

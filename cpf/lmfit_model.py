@@ -672,6 +672,7 @@ def peaks_model(
     azimuth,  # forced to exist as independent values by lmfit
     data_class=None,  # needs to contain conversion factor
     orders=None,  # orders dictionary to get minimum position of the range.
+    start_end=[0, 360],
     **params
 ):
     """Full model of intensities at twotheta and azi given input parameters
@@ -714,19 +715,19 @@ def peaks_model(
         comp = "d"
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
-        d_all = sf.coefficient_expand(azimuth, parms, coeff_type=coeff_type)
+        d_all = sf.coefficient_expand(azimuth, parms, coeff_type=coeff_type, start_end=start_end)
         comp = "h"
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
-        h_all = sf.coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type)
+        h_all = sf.coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end)
         comp = "w"
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
-        w_all = sf.coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type)
+        w_all = sf.coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end)
         comp = "p"
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
-        p_all = sf.coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type)
+        p_all = sf.coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end)
 
         # conversion
         two_theta_all = data_class.conversion(
@@ -749,6 +750,7 @@ def fit_model(
     data_as_class,  # needs to contain intensity, tth, azi (as chunks), conversion factor
     orders,
     params,
+    start_end=[0, 360],
     fit_method="leastsq",
     weights=None,
     max_n_fev=None,
@@ -782,6 +784,7 @@ def fit_model(
                 azimuth=data_as_class.azm,
                 data_class=data_as_class,  # needs to contain tth, azi, conversion factor
                 orders=orders,  # orders class to get peak lengths (if needed)
+                start_end=start_end, # start and end of azimuths if needed
                 nan_policy="propagate",
                 max_n_fev=max_n_fev,
                 xtol=1e-5,
@@ -794,6 +797,7 @@ def fit_model(
             azimuth=data_as_class.azm,
             data_class=data_as_class,  # needs to contain tth, azi, conversion factor
             orders=orders,  # orders class to get peak lengths (if needed)
+            start_end=start_end, # start and end of azimuths if needed
             nan_policy="propagate",
             max_n_fev=max_n_fev,
             xtol=1e-5,
@@ -810,6 +814,7 @@ def coefficient_fit(
     param_str="peak_0",
     symmetry=1,
     fit_method="leastsq",
+    start_end = [0,360],
 ):
     """Fit the Fourier expansion to number of required terms
     :param ydata: Component data array to fit float
@@ -846,7 +851,7 @@ def coefficient_fit(
     azimuth = np.array(azimuth)
 
     coeff_type = inp_param.eval(param_str + "_tp")
-    f_model = Model(sf.coefficient_expand, independent_vars=["azimuth"])
+    f_model = Model(sf.coefficient_expand, independent_vars=["azimuth"], start_end=start_end)
     # print('parameter names: {}'.format(f_model.param_names))
     # print('independent variables: {}'.format(f_model.independent_vars))
 
@@ -865,6 +870,7 @@ def coefficient_fit(
         inp_param,
         azimuth=azimuth[idx] * symmetry,
         coeff_type=coeff_type,
+        start_end=start_end,
         method=fit_method,
         sigma=new_errs,
         comp_str=param_str,

@@ -279,7 +279,7 @@ def fit_sub_pattern(
         # check if the previous fit d-spacings fall within the bounds.
         # if they are not then assume the previous fit must have been poor and discard it.
         fit_centroid = []
-        azims = np.linspace(0,360,361)
+        azims = data_as_class.test_azims()
         for i in range(peeks):
             param = previous_params["peak"][i]["d-space"]
             param_type = previous_params["peak"][i]["d-space_type"]
@@ -363,6 +363,7 @@ def fit_sub_pattern(
                     master_params,
                     (chunk_fits, chunk_positions),
                     settings_as_class,
+                    start_end = [data_as_class.azm_start, data_as_class.azm_end],
                     debug=debug,
                     save_fit=save_fit,
                 )
@@ -423,6 +424,7 @@ def fit_sub_pattern(
                             data_as_class,
                             settings_as_class.subfit_orders,
                             master_params,
+                            start_end = [data_as_class.azm_start, data_as_class.azm_end],
                             fit_method=None,
                             weights=None,
                             max_n_fev=default_max_f_eval,
@@ -485,6 +487,7 @@ def fit_sub_pattern(
                                     data_as_class,
                                     settings_as_class.subfit_orders,
                                     master_params,
+                                    start_end = [data_as_class.azm_start, data_as_class.azm_end],
                                     fit_method=None,
                                     weights=None,
                                     max_n_fev=refine_max_f_eval,
@@ -529,6 +532,8 @@ def fit_sub_pattern(
                 # set these parameters to vary
                 master_params = lmm.vary_params(master_params, param_str, comp)
                 # set part of these parameters to not vary
+                
+            comp_list, comp_names = pf.peak_components(include_profile=True)
             for k in range(peeks):
                 param_str = "peak_" + str(k)
                 
@@ -560,6 +565,7 @@ def fit_sub_pattern(
                 data_as_class,
                 settings_as_class.subfit_orders,
                 master_params,
+                start_end = [data_as_class.azm_start, data_as_class.azm_end],
                 fit_method=None,
                 weights=None,
                 max_n_fev=default_max_f_eval,
@@ -687,16 +693,13 @@ def fit_sub_pattern(
     if (save_fit == 1 or view == 1 or debug) and step>0:
         print("\nPlotting results for fit...\n")
 
-        y_lims = np.array(
-            [np.min(data_as_class.azm.flatten()), np.max(data_as_class.azm.flatten())]
-        )
-        y_lims = np.around(y_lims / 180) * 180
-
+        y_lims = [data_as_class.azm_start, data_as_class.azm_end]
         gmodel = Model(
             lmm.peaks_model,
             independent_vars=["two_theta", "azimuth"],
             data_class=data_as_class,
             orders=settings_as_class.subfit_orders,
+            start_end = [data_as_class.azm_start, data_as_class.azm_end],
         )
         full_fit_intens = gmodel.eval(
             params=master_params,

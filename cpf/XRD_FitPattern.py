@@ -717,7 +717,7 @@ def execute(
                     lmfit_models.append(tmp[1])
 
         # write output files
-        if mode == "fit":
+        if mode == "fit" or mode=="search":
             if parallel is True:
                 tmp = p.map(parallel_processing, parallel_pile)
                 for i in range(len(settings_for_fit.fit_orders)):
@@ -725,9 +725,15 @@ def execute(
                     lmfit_models.append(tmp[i][1])
 
             # store the fit parameters' information as a JSON file.
+            if mode=="search":
+                additional_text = settings_for_fit.file_label
+            else:
+                additional_text = None
+                
             filename = make_outfile_name(
                 settings_for_fit.subfit_filename,
                 directory=settings_for_fit.output_directory,
+                additional_text=additional_text,
                 extension=".json",
                 overwrite=True,
             )

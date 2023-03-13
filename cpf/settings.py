@@ -12,8 +12,10 @@ import cpf.output_formatters as output_formatters
 from cpf.IO_functions import (
     file_list,
     image_list,
+    json_numpy_serializer,
 )  # , get_output_options, detector_factory, register_default_formats
 from cpf.series_functions import coefficient_type_as_number, get_number_coeff
+import json
 
 
 class settings:

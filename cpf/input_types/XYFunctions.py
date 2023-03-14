@@ -278,14 +278,15 @@ class XYDetector:
         if isinstance(msk_file, dict):
                         
             im_mask = np.zeros(self.intensity.shape, 'bool')
-            
-            polygons = msk_file['polygon']
-            for i in polygons:
-                img = Image.new('L', self.intensity.shape, 0)
-                ImageDraw.Draw(img).polygon(i, outline=1, fill=1)
-                im_mask = im_mask +ma.array(img)
-            threshold = msk_file['threshold']
-            im_mask = np.asarray(im_mask) | ma.masked_outside(self.intensity,int(threshold[0]),threshold[1]).mask
+            if "polygon" in msk_file:
+                polygons = msk_file['polygon']
+                for i in polygons:
+                    img = Image.new('L', self.intensity.shape, 0)
+                    ImageDraw.Draw(img).polygon(i, outline=1, fill=1)
+                    im_mask = im_mask +ma.array(img)
+            if "threshold" in msk_file:
+                threshold = msk_file['threshold']
+                im_mask = np.asarray(im_mask) | ma.masked_outside(self.intensity,threshold[0],threshold[1]).mask
             #mask invalid values
             mask2 = ma.masked_invalid(self.intensity).mask
             #combine masks

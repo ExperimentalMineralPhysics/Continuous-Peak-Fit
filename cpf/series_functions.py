@@ -428,7 +428,6 @@ def spline_expand(
     elif isinstance(bc_type, (list, tuple, np.ndarray)):
         points = bc_type
     else:
-        print(start_end, start_end[0], start_end[1], np.size(inp_param))
         points = np.linspace(start_end[0], start_end[1], np.size(inp_param))
 
     if kind == "cubic":  # and bc_type=='periodic':

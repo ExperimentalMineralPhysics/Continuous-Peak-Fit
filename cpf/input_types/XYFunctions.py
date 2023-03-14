@@ -422,12 +422,7 @@ class XYDetector:
                     np.max(self.azm[self.azm.mask == False] + 0.01),
                 ]
             )
-            if orders_class.azi_limits == "tight":
-                pass
-            elif orders_class.azi_limits == "full":
-                lims = [0, 360]
-            else: #orders_class.azi_bounds == "default":
-                lims = np.around(lims / 45) * 45
+            lims = [self.azm_start, self.azm_end]
             bin_boundaries = np.linspace(lims[0], lims[1], num=b_num + 1)
 
         else:

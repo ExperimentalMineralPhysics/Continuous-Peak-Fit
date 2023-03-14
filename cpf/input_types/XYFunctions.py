@@ -917,11 +917,8 @@ class XYDetector:
             plot_i = self.intensity
             label_y = self.calibration["y_label"]
 
-            #y_lims = np.array([np.min(plot_y.flatten()), np.max(plot_y.flatten())])
-            #y_lims = np.around(y_lims / 180) * 180
             y_lims = [self.azm_start, self.azm_end]
-            axis_plot.set_ylim(y_lims)
-            # y_ticks = list(range(int(y_lims[0]),int(y_lims[1]+1),45))
+            y_ticks = list(range(int(y_lims[0]),int(y_lims[1]+1),45))
             
             y_ticks = False
             if y_lims[1]-y_lims[0] == 360:
@@ -980,26 +977,39 @@ class XYDetector:
 
         # set axis limits
         x_lims = [np.min(plot_x.flatten()), np.max(plot_x.flatten())]
-        axis_plot.set_xlim(x_lims)
-        if y_ticks:
-            axis_plot.set_yticks(y_ticks)
+ 
 
-        # the_plot = axis_plot.imshow(plot_i, 
-        #                             cmap=colourmap
-        #                             vmin=IMin,
-        #                             vmax=IMax,)
-
-        the_plot = axis_plot.scatter(
-            plot_x,
-            plot_y,
-            s=1,
-            c=plot_i,
-            edgecolors="none",
-            cmap=colourmap,
-            vmin=IMin,
-            vmax=IMax,
-            rasterized=rastered,
-        )
+        if 0:
+            #code to plot data as images
+            #N.B. doesnt work because the fitted data needs to be reshaped.
+            
+            the_plot = axis_plot.imshow(plot_i, 
+                                        cmap=colourmap,
+                                        vmin=IMin,
+                                        vmax=IMax,
+                                        origin="lower",
+                                        extent=[x_lims[0], x_lims[1], self.azm_start, self.azm_end],
+                                        aspect = (x_lims[1]-x_lims[0])/ (self.azm_end-self.azm_start)#left, right, bottom, top)
+                                        )
+        else:
+            # plot as a scatter plot
+            the_plot = axis_plot.scatter(
+                plot_x,
+                plot_y,
+                s=1,
+                c=plot_i,
+                edgecolors="none",
+                cmap=colourmap,
+                vmin=IMin,
+                vmax=IMax,
+                rasterized=rastered,
+            )
+            
+            axis_plot.set_ylim(y_lims)
+            axis_plot.set_xlim(x_lims)
+            if y_ticks:
+                axis_plot.set_yticks(y_ticks)
+            
         axis_plot.set_xlabel(self.calibration["x_label"])
         axis_plot.set_ylabel(label_y)
 

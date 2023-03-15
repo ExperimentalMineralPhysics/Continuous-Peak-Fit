@@ -428,6 +428,7 @@ def execute(
     mode="fit",
     report=False,
     intensity_threshold = 0,
+    fit_method = "leastsq",
     **kwargs
 ):
     """
@@ -712,6 +713,7 @@ def execute(
                         refine=refine,
                         iterations=iterations,
                         intensity_threshold=intensity_threshold,
+                        fit_method = fit_method
                     )
                     fitted_param.append(tmp[0])
                     lmfit_models.append(tmp[1])

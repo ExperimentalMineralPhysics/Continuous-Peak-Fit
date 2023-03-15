@@ -340,6 +340,7 @@ def fit_sub_pattern(
                     mode=mode,
                     # cascade=cascade,
                     debug=debug,
+                    fit_method=fit_method
                 )
                 # using manual guesses ("PeakPositionSelection") if they exist.
 

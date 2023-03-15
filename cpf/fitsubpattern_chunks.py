@@ -95,7 +95,8 @@ def get_chunk_background_guess(settings_as_class, data_chunk_class, n, debug=Fal
     FIXME: background_type has been removed/depreciated. It is no longer needed. It should be replaced by background_fixed
     """
     # Get indices of sorted two theta values excluding the masked values
-    tth_ord = ma.argsort(data_chunk_class.tth.compressed())
+    # tth_ord = ma.argsort(data_chunk_class.tth.compressed())
+    tth_ord = np.argsort(data_chunk_class.tth)
 
     background_guess = [
         [0.0] for i in range(len(settings_as_class.subfit_orders["background"]))
@@ -111,22 +112,29 @@ def get_chunk_background_guess(settings_as_class, data_chunk_class, n, debug=Fal
             # FIXME: this assumes a positive peak. It may not work for absorption peaks. Not tested though.
             background_guess[0][0] = np.min(
                 [
-                    np.mean(data_chunk_class.intensity.compressed()[tth_ord[:n]]),
-                    np.mean(data_chunk_class.intensity.compressed()[tth_ord[-n:]]),
+                    np.mean(data_chunk_class.intensity[tth_ord[:n]]),
+                    np.mean(data_chunk_class.intensity[tth_ord[-n:]]),
+                        # np.mean(data_chunk_class.intensity.compressed()[tth_ord[:n]]),
+                        # np.mean(data_chunk_class.intensity.compressed()[tth_ord[-n:]]),
                 ]
             )
         else:  # len(orders['background']) > 1:
             # first value (offset) is mean of left-hand values
             background_guess[0][0] = np.mean(
-                data_chunk_class.intensity.compressed()[tth_ord[:n]]
+                data_chunk_class.intensity[tth_ord[:n]]
+                    # data_chunk_class.intensity.compressed()[tth_ord[:n]]
             )
             # if there are more, then calculate a gradient guess.
             background_guess[1][0] = (
-                np.mean(data_chunk_class.intensity.compressed()[tth_ord[-n:]])
-                - np.mean(data_chunk_class.intensity.compressed()[tth_ord[:n]])
+                np.mean(data_chunk_class.intensity[tth_ord[-n:]])
+                - np.mean(data_chunk_class.intensity[tth_ord[:n]])
+                    # np.mean(data_chunk_class.intensity.compressed()[tth_ord[-n:]])
+                    # - np.mean(data_chunk_class.intensity.compressed()[tth_ord[:n]])
             ) / (
-                data_chunk_class.tth.compressed()[tth_ord[-1]]
-                - data_chunk_class.tth.compressed()[tth_ord[0]]
+                data_chunk_class.tth[tth_ord[-1]]
+                - data_chunk_class.tth[tth_ord[0]]
+                    # data_chunk_class.tth.compressed()[tth_ord[-1]]
+                    # - data_chunk_class.tth.compressed()[tth_ord[0]]
             )
             # leave all higher order terms as 0 -- assume they are small.
 
@@ -199,16 +207,19 @@ def get_chunk_peak_guesses(
         else:  # 'guess' guesses from data slice - assuming a single peak
             # find the brightest pixels
             # get index of nth brightest pixel.
-            idx = np.argsort(data_chunk_class.intensity.compressed())[-n:][0]
+            # idx = np.argsort(data_chunk_class.intensity.compressed())[-n:][0]
+            idx = np.argsort(data_chunk_class.intensity)[-n:][0]
 
             # height guess is nth highest intensity - background guess at this position
-            h_guess = (data_chunk_class.intensity.compressed())[idx]
+            # h_guess = (data_chunk_class.intensity.compressed())[idx]
+            h_guess = (data_chunk_class.intensity)[idx]
             if len(background_guess) > 1:
                 h_guess = h_guess - (
                     background_guess[0][0]
                     + background_guess[1][0]
                     * (
-                        data_chunk_class.tth.compressed()[idx]
+                        data_chunk_class.tth[idx]
+                            # data_chunk_class.tth.compressed()[idx]
                         - data_chunk_class.tth.min()
                     )
                 )
@@ -216,7 +227,8 @@ def get_chunk_peak_guesses(
                 h_guess = h_guess - background_guess[0][0]
 
             # d-spacing of the highest nth intensity pixel
-            d_guess = data_chunk_class.dspace.compressed()[idx]
+            # d_guess = data_chunk_class.dspace.compressed()[idx]
+            d_guess = data_chunk_class.dspace[idx]
 
         # w_guess is fractional width of the data range
         w_guess = (
@@ -283,7 +295,7 @@ def fit_chunks(
     settings_as_class,
     save_fit=False,
     debug=False,
-    fit_method=None,
+    fit_method="least_squares",
     mode="fit",
 ):
     """
@@ -372,10 +384,13 @@ def fit_chunks(
         # reduce data to a subset
         # FIXME: this is crude but I am not convinced that it needs to be contained within the data class.
         # FEXME: maybe I need to reconstruct the data class so that dat_class.tth is a function that applies a mask when called. but this will be slower.
-        chunk_data.intensity = chunk_data.intensity.flatten()[chunks[j]]
-        chunk_data.tth = chunk_data.tth.flatten()[chunks[j]]
-        chunk_data.azm = chunk_data.azm.flatten()[chunks[j]]
-        chunk_data.dspace = chunk_data.dspace.flatten()[chunks[j]]
+        chunk_data.intensity = chunk_data.intensity.flatten()[chunks[j]].compressed()
+        # print(type(chunk_data.intensity))
+        # print(chunk_data.intensity.dtype)
+        # stop
+        chunk_data.tth = chunk_data.tth.flatten()[chunks[j]].compressed()
+        chunk_data.azm = chunk_data.azm.flatten()[chunks[j]].compressed()
+        chunk_data.dspace = chunk_data.dspace.flatten()[chunks[j]].compressed()
 
         # find other output from intensities
         if mode == "maxima":
@@ -402,7 +417,8 @@ def fit_chunks(
             # Define parameters to pass to fit
             params = Parameters()
 
-            if ma.MaskedArray.count(chunk_data.intensity) >= min_dat:
+            # if ma.MaskedArray.count(chunk_data.intensity) >= min_dat:
+            if len(chunk_data.intensity) >= min_dat:
 
                 # append azimuth to output
                 new_azi_chunks.append(azichunks[j])

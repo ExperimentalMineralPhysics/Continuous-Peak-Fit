@@ -466,7 +466,8 @@ def initiate_params(
     :return:
     """
     if limits:
-        new_max, new_min = limits
+        new_min = np.min(limits)
+        new_max = np.max(limits)
         half_range = (new_max - new_min) / 2
     else:
         new_min = -np.inf
@@ -476,7 +477,7 @@ def initiate_params(
         value = 0.01
     elif value is None and limits:
         value = new_min + (new_max - new_min) * 3 / 5  # /2#*2/3
-        # N.B. it seems the initiating the splines with values exactly half-way between man and min doesn't work.
+        # N.B. it seems the initiating the splines with values exactly half-way between max and min doesn't work.
         # Anywhere else in the middle of the range seems to do so.
         # FIX ME: Is this fitting-related or a code bug?
     value = np.array(value)  # force input to be array so that can be iterated over

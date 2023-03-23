@@ -238,6 +238,22 @@ class XYDetector:
             plt.show()
             plt.close()
         
+        """
+        # FIXME: this was a smoothing filter imported to sort an LLNL data set. 
+        # ideally it would be set in a separate image_preprocess file along with the mask 
+        # and cosmic preproseccing of the images. 
+        # The input file would then contain a preparation function something like this: 
+        # data_prepare = {"smooth": {"Gaussian": 2},
+        #                "mask": Calib_mask,
+        #                "order": {"smooth", "mask"}}
+        # end FIXME
+        from skimage import filters
+        # smooth_mean = ndi.correlate(bright_square, mean_kernel)
+        sigma = 2
+        # smooth = filters.gaussian(bright_square, sigma)
+        im = filters.gaussian(im, sigma)
+        """
+
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im)
             return ma.array(im)

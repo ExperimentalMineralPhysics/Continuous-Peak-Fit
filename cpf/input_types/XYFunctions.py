@@ -38,7 +38,13 @@ from matplotlib import gridspec
 from matplotlib import cm, colors
 from cpf import IO_functions
 import pickle
-import cpf.lmfit_model as llm
+
+
+# plot the data as an image (TRue) or a scatter plot (false).
+# FIXME: the plot as image (im_show) does not work. The fitted data has to be reshaped 
+# into an image.
+plot_as_image = False
+
 
 class XYDetector:
 
@@ -308,7 +314,6 @@ class XYDetector:
             #combine masks
             im_mask = np.asarray(im_mask) | np.asarray(mask2)
             im_ints = ma.array(im_ints, mask=im_mask)
-            plt.imshow(im_mask)
             
         else:
             #the mask is an image.
@@ -584,30 +589,25 @@ class XYDetector:
         :param i_min:
         :return:
         """
-        local_mask = np.where(
-            (self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1])
-        )
-        self.intensity = self.intensity[local_mask]
-        self.tth = self.tth[local_mask]
-        self.azm = self.azm[local_mask]
-        self.dspace = self.dspace[local_mask]
-
-    # def set_azimuth_limits(self, azi_bounds=[-np.inf, np.inf], azi_flatten=True):
-    #     """
-    #     Set limits to data in azimuth
-    #     :param range_bounds:
-    #     :param i_max:
-    #     :param i_min:
-    #     :return:
-    #     """
-    #     local_mask = np.where((self.azm >= azi_bounds[0]) & (self.azm <= azi_bounds[1]))
-    #     self.intensity = self.intensity[local_mask]
-    #     self.tth = self.tth[local_mask]
-    #     self.azm = self.azm[local_mask]
-    #     self.dspace = self.dspace[local_mask]
-
-    #     if azi_flatten:
-    #         self.azm = np.mean(self.azm)
+        if plot_as_image:            
+            local_mask = ma.masked_where(
+                (self.tth <= range_bounds[0]) | (self.tth >= range_bounds[1]), self.intensity
+            ).mask
+            total_mask = np.ma.mask_or(local_mask , self.intensity.mask)
+            
+            self.intensity.mask = total_mask
+            self.tth.mask = total_mask
+            self.azm.mask = total_mask
+            self.dspace.mask = total_mask
+        else:
+            local_mask = np.where(
+                (self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1])
+            )
+            self.intensity = self.intensity[local_mask]
+            self.tth = self.tth[local_mask]
+            self.azm = self.azm[local_mask]
+            self.dspace = self.dspace[local_mask]
+            
 
     def set_mask(
         self, range_bounds=[-np.inf, np.inf], i_max=np.inf, i_min=-np.inf, mask=None
@@ -619,19 +619,29 @@ class XYDetector:
         :param i_min:
         :return:
         """
-        local_mask = ma.getmask(
-            ma.masked_outside(self.tth, range_bounds[0], range_bounds[1])
-        )
-        local_mask2 = ma.getmask(ma.masked_outside(self.intensity, i_min, i_max))
-        combined_mask = np.ma.mask_or(ma.getmask(self.intensity), local_mask)
-        combined_mask = np.ma.mask_or(combined_mask, local_mask2)
-        NoneType = type(None)
-        if not isinstance(mask, NoneType):  # or mask.all() != None:
-            combined_mask = np.ma.mask_or(combined_mask, mask)
-        self.intensity.mask = combined_mask
-        self.tth.mask = combined_mask
-        self.azm.mask = combined_mask
-        self.dspace.mask = combined_mask
+        
+        if plot_as_image:
+            local_mask = np.where(
+                (self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1])
+            )
+            self.intensity = self.intensity[local_mask]
+            self.tth = self.tth[local_mask]
+            self.azm = self.azm[local_mask]
+            self.dspace = self.dspace[local_mask]
+        else:
+            local_mask = ma.getmask(
+                ma.masked_outside(self.tth, range_bounds[0], range_bounds[1])
+            )
+            local_mask2 = ma.getmask(ma.masked_outside(self.intensity, i_min, i_max))
+            combined_mask = np.ma.mask_or(ma.getmask(self.intensity), local_mask)
+            combined_mask = np.ma.mask_or(combined_mask, local_mask2)
+            NoneType = type(None)
+            if not isinstance(mask, NoneType):  # or mask.all() != None:
+                combined_mask = np.ma.mask_or(combined_mask, mask)
+            self.intensity.mask = combined_mask
+            self.tth.mask = combined_mask
+            self.azm.mask = combined_mask
+            self.dspace.mask = combined_mask
 
     def mask_restore(self):
         """
@@ -995,7 +1005,7 @@ class XYDetector:
         x_lims = [np.min(plot_x.flatten()), np.max(plot_x.flatten())]
  
 
-        if 0:
+        if plot_as_image:
             #code to plot data as images
             #N.B. doesnt work because the fitted data needs to be reshaped.
             
@@ -1012,7 +1022,7 @@ class XYDetector:
             the_plot = axis_plot.scatter(
                 plot_x,
                 plot_y,
-                s=1,
+                s=5,
                 c=plot_i,
                 edgecolors="none",
                 cmap=colourmap,
@@ -1020,8 +1030,8 @@ class XYDetector:
                 vmax=IMax,
                 rasterized=rastered,
             )
-            
-            axis_plot.set_ylim(y_lims)
+            if "y_lims" in locals():
+                axis_plot.set_ylim(y_lims)
             axis_plot.set_xlim(x_lims)
             if y_ticks:
                 axis_plot.set_yticks(y_ticks)

@@ -14,7 +14,7 @@ from cpf.IO_functions import (
     image_list,
     json_numpy_serializer,
 )  # , get_output_options, detector_factory, register_default_formats
-from cpf.series_functions import coefficient_type_as_number, get_number_coeff
+from cpf.series_functions import coefficient_type_as_number, get_number_coeff, coefficient_types, coefficient_type_as_string
 import json
 
 
@@ -436,7 +436,7 @@ class settings:
                     and len(orders[i]["range"]) == 1
                     and len(orders[i]["range"][0]) == 2
                 ):
-                    print("subpattern " + str(i) + ": range is a now a simple list.")
+                    print("  input fix: subpattern " + str(i) + ": range is a now a simple list.")
                     self.fit_orders[i]["range"] = self.fit_orders[i]["range"][0]
                 # check if range is valid
                 if (
@@ -477,7 +477,7 @@ class settings:
                 for l in range(len(comp_modifications)):
                     if "background" + "-" + comp_modifications[l] in self.fit_orders[i]:
                         print(
-                            "subpattern "
+                            "  input fix: subpattern "
                             + str(i)
                             + ": "
                             + "background"
@@ -493,7 +493,20 @@ class settings:
                         ] = self.fit_orders[i].pop(
                             "background" + "-" + comp_modifications[l]
                         )
-
+                if "background_type" in self.fit_orders[i]:
+                    status = self.validate_order_type(
+                            self.fit_orders[i]["background_type"],
+                            peak_set=i,
+                            peak=0,
+                            component="background",
+                            report=report,
+                    )
+                    if isinstance(status, str):
+                        missing.append(status)
+                else:
+                    status = 0
+                            
+                            
             # check peaks
             if "peak" not in orders[i]:
                 missing.append(order_str + " " + str(i) + "has no " + "'peak'")
@@ -532,7 +545,7 @@ class settings:
                                 in self.fit_orders[i]["peak"][j]
                             ):
                                 print(
-                                    "subpattern "
+                                    "  input fix: subpattern "
                                     + str(i)
                                     + ", peak "
                                     + str(j)
@@ -552,10 +565,13 @@ class settings:
                                 )
 
                         # validate component types
-                        # validate
                         if comp_list[k] + "_type" in self.fit_orders[i]["peak"][j]:
                             status = self.validate_order_type(
-                                self.fit_orders[i]["peak"][j][comp_list[k] + "_type"]
+                                    self.fit_orders[i]["peak"][j][comp_list[k] + "_type"],
+                                    peak_set=i,
+                                    peak=j,
+                                    component=comp_list[k],
+                                    report=report,
                             )
                             if isinstance(status, str):
                                 missing.append(status)
@@ -582,9 +598,11 @@ class settings:
 
         # report missing bits and bobs
         if len(missing) > 0:
+            print("\nInput problems that will prevent execution: ")
             for i in range(len(missing)):
                 print(missing[i])
-
+            print("\n")
+            
             if not report:
                 raise ValueError(
                     "The problems listed above will prevent the data fitting."
@@ -596,17 +614,25 @@ class settings:
         else:
             print("fit_orders appears to be correct")
 
-    def validate_order_type(self, comp_type):
+
+    def validate_order_type(self, comp_type, peak_set, peak, component, report=False):
         """
         Checks that a set component type is valid -- i.e. it exists in PeakFunctions.
         """
-        rtrn = coefficient_type_as_number(comp_type, return_error=0)
+        # rtrn = coefficient_type_as_number(comp_type, return_error=0)
 
-        if isinstance(rtrn, str):
-            status = comp_type + ": " + rtrn
-        else:
-            status = 0
-
+        if isinstance(comp_type, str):
+            if comp_type in coefficient_types():
+                status = 0
+            else:
+                status = "subpattern " + str(peak_set) + ", peak" + str(peak) + " " + component + ": the series type is not recognised"
+        elif isinstance(comp_type, int):
+            try:
+                coefficient_type_as_string(comp_type)
+                status = 0
+            except:
+                status = "subpattern " + str(peak_set) + ", peak" + str(peak) + " " + component + ": the series type is not recognised"
+                    
         return status
 
     def validate_order_fixed(self, peak_set, peak, component, report=False):
@@ -633,7 +659,7 @@ class settings:
             # this cannot be validated without referece to the data.
             # FIXME: use the data_class when loaded to check this.
             out.append(
-                "subpattern "
+                "    subpattern "
                 + str(peak_set)
                 + ", peak "
                 + str(peak)
@@ -652,7 +678,7 @@ class settings:
                     self.fit_orders[peak_set]["peak"][peak][component + "_fixed"]
                 ]
                 print(
-                    "subpattern "
+                    "    subpattern "
                     + str(peak_set)
                     + ", peak "
                     + str(peak)

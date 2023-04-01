@@ -182,8 +182,13 @@ def get_image_keys(
                 number_data = datafile[key].shape[index]
                 # print('number_data', number_data)
 
-                if key_end[0] == -1:
-                    key_end[0] = number_data
+                if key_start[0] < 0:
+                    key_start[0] = number_data + key_start[0]
+                else:
+                    pass
+                    #key_start[0] += 1
+                if key_end[0] < 0:
+                    key_end[0] = number_data + key_end[0] + 1
                 else:
                     key_end[0] += 1
 
@@ -229,8 +234,13 @@ def get_image_keys(
 
                 # if we are using all the data make sure we run to the end.
                 # print('keyend',key_end)
-                if key_end[0] == -1:
-                    key_end[0] = number_data
+                if key_start[0] < 0:
+                    key_start[0] = number_data + key_start[0]
+                else:
+                    pass
+                    #key_start[0] += 1
+                if key_end[0] < 0:
+                    key_end[0] = number_data + key_end[0] + 1
                 else:
                     key_end[0] += 1
 
@@ -290,14 +300,16 @@ def get_image_keys(
         # print(key_strings)
         # cut to what we want ot iterate over
         # if we are using all the data make sure we run to the end.
-        if key_end[0] == -1:
-            key_end[0] = len(key_lst)-1
+        if key_start[0] < 0:
+            key_start[0] = len(key_lst) + key_start[0]
+        if key_end[0] < 0:
+            key_end[0] = len(key_lst) + key_end[0]
             
         # if we are looking for more images than there are cut the list
         # key_end[0] = np.min(number_data, key_end[0])
 
         # if the order is reverse switch the values
-        if key_step[0] <= -1:
+        if key_step[0] < 0:
             key_start[0], key_end[0] = key_end[0], key_start[0]
             key_end[0] -= 1
             #key_start[0] -= 1

@@ -236,24 +236,18 @@ def get_image_keys(
                 # print('keyend',key_end)
                 if key_start[0] < 0:
                     key_start[0] = number_data + key_start[0]
-                else:
-                    pass
-                    #key_start[0] += 1
                 if key_end[0] < 0:
                     key_end[0] = number_data + key_end[0] + 1
-                else:
-                    key_end[0] += 1
-
-                # if we are looking for more images than there are cut the list
-                # key_end[0] = np.min(number_data, key_end[0])
 
                 # if the order is reverse switch the values
                 # FIXME: this only works for the input as set needs to be updatedto work for all logics.
                 # FIXME: Should use cpf.IO_functions/file_list work for this.
-                if key_step[0] <= -1:
+                if key_step[0] < 0:
                     key_start[0], key_end[0] = key_end[0], key_start[0]
                     key_end[0] -= 1
-                    key_start[0] -= 1
+                    #key_start[0] -= 1
+                else:
+                    key_end[0] += 1
 
                 #get the labels:
                 lbl_temp=[]

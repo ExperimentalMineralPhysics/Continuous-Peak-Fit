@@ -9,6 +9,7 @@ import numpy as np
 import os
 import re
 import cpf.h5_functions as h5_functions
+import cpf.peak_functions as pf
 from copy import deepcopy
 
 # Needed for JSON to save fitted parameters.
@@ -297,6 +298,40 @@ def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", clean=No
     return obj_to_inspect
 
 
+def any_errors_huge(obj_to_inspect, large_errors=None, index_path="", clean=None):
+    """
+    This function accepts a nested dictionary and list as argument
+    and iterates over all values of nested dictionaries and lists.
+    If any of the error values are more than scale times the fitted value it 
+    flags the errors as huge 
+    :param obj_to_inspect:
+    :param scale:
+    :param index_path:
+    :param clean:
+    :return:
+    """
+    if clean is None:
+        clean = 1
+        
+    for k in range(len(obj_to_inspect["background"])):
+        for j in range(len(obj_to_inspect["background"][k])):
+            if obj_to_inspect["background"][k][j]/obj_to_inspect["background_err"][k][j] >= large_errors:
+                clean = 0
+                print("Huge errors found in background {k}, {j}")
+        
+    comp_list, comp_names = pf.peak_components(include_profile=True)
+    for k in range(len(obj_to_inspect["peak"])):
+        for cp in range(len(comp_list)):
+            comp = comp_names[cp]
+            for j in range(len(obj_to_inspect["peak"][k][comp])):
+                if obj_to_inspect["peak"][k][comp+"_err"][j] != 0:
+                    if obj_to_inspect["peak"][k][comp][j]/obj_to_inspect["peak"][k][comp+"_err"][j] >= large_errors:
+                        clean = 0
+                        print(f"Huge errors found in peak {k}, {comp} {j}")
+
+    return clean
+
+        
 def peak_string(orders, fname=False, peak="all"):
     """
     :param orders: list of peak orders which should include peak names/hkls

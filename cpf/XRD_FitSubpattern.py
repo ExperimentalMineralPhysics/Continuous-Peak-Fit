@@ -209,6 +209,7 @@ def fit_sub_pattern(
     mode="fit",
     cascade=False,
     intensity_threshold = 0,
+    large_errors = 3
 ):
     """
     Perform the various fitting stages to the data
@@ -268,6 +269,7 @@ def fit_sub_pattern(
         # check if the previous fit was 'good' i.e. constrains no 'null' values.
         # N.B. null values in json file are read in as None
         clean = io.any_terms_null(previous_params, val_to_find=None)
+        clean = io.any_errors_huge(previous_params, large_errors=large_errors, clean=clean)
         if clean == 0:
             # the previous fit has problems so discard it
             print(

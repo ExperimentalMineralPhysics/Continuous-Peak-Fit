@@ -8,6 +8,7 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import pathos.multiprocessing as mp
+from cpf import output_formatters
 from cpf.settings import settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 from cpf.Cosmics import image_preprocess as cosmicsimage_preprocess
@@ -32,20 +33,13 @@ def register_default_formats() -> object:
     :return:
     """
     # FIX ME: We could add extra checks here to make sure the required functions exist in each case.
-    # FIX ME: Really these should live in their own sub-folder
-    output_list = [
-        "CoefficientTable",
-        "DifferentialStrain",
-        "MultiFit",
-        "Polydefix",
-        "PolydefixED",
-    ]
+    output_list = output_formatters.module_list
     new_module = {}
     for output_module in output_list:
         module = __import__(
-            "cpf.output_formatters.Write" + output_module, fromlist=[None]
+            "cpf.output_formatters." + output_module, fromlist=[None]
         )
-        new_module[output_module] = module
+        new_module[output_module[5:]] = module
     return new_module
 
 

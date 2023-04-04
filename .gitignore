@@ -9,5 +9,9 @@
 *.fit 
 *.exp
 
+*.gif
+*.mp4
+*.avi
+
 .DS_Store
 venv

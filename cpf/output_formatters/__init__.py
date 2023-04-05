@@ -14,7 +14,7 @@ Each output formatter must contain two modules called "Requirements" and "WriteO
 """
 module_list = []
 for module in os.listdir(os.path.dirname(__file__)):
-    if module == "__init__.py" or module[-3:] != ".py" or not "Write" in module:
+    if module == "__init__.py" or module[-3:] != ".py" or module[:2]=="._" or not "Write" in module:
         # do not list the file to be loaded
         pass
     else:

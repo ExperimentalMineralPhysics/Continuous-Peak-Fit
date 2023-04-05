@@ -171,49 +171,47 @@ def get_image_keys(
     if len(h5key_list) == 1:
         # we are at the end of the list and need to find out how many values are here, or what the values are
         key = key_route + "/" + h5key_list[0]
-        # print('bottom', key)
-
-        # print(bottom_level)
+        
         # make sure the key exists
-        if key in datafile.keys():
-
+        if not key in datafile.keys():
+            err_str = (
+                "The key, '%s' does not exist in '%s'"
+                % (key, key_route))
+            print(err_str)
+        else:
+            number_data = datafile[key].shape[index]
+    
+            if key_start[0] < 0:
+                key_start[0] = number_data + key_start[0]
+            if key_end[0] < 0:
+                key_end[0] = number_data + key_end[0]
+    
+            # if the order is reverse switch the values
+            # FIXME: this only works for the input as set needs to be updatedto work for all logics.
+            # FIXME: Should use cpf.IO_functions/file_list work for this.
+            if key_step[0] < 0:
+                key_start[0], key_end[0] = key_end[0], key_start[0]
+                key_end[0] -= 1
+                #key_start[0] -= 1
+            else:
+                key_end[0] += 1
+                   
             if bottom_level == "sum":
-
-                number_data = datafile[key].shape[index]
-                # print('number_data', number_data)
-
-                if key_start[0] < 0:
-                    key_start[0] = number_data + key_start[0]
-                else:
-                    pass
-                    #key_start[0] += 1
-                if key_end[0] < 0:
-                    key_end[0] = number_data + key_end[0] + 1
-                else:
-                    key_end[0] += 1
-
-                # if the order is reverse switch the values
-                # FIXME: this only works for the input as set needs to be updatedto work for all logics.
-                # FIXME: Should use cpf.IO_functions/file_list work for this.
-                if key_step[0] <= -1:
-                    key_start[0], key_end[0] = key_end[0], key_start[0]
-                    key_end[0] -= 1
-                    key_start[0] -= 1
-
+    
                 index_values = list([*range(key_start[0], key_end[0], key_step[0])])
-
+    
                 # get the labels.
                 # FIXME: this doesnt work if the last enty in the h5key_names list is blank.
                 # FIXME: Should use a function to cover all options and combine with iterate call.
                 labels = key_route + datafile[key_route + "/" + h5key_names[0]][()]
                 # FIXME! this is the line to use if the last entry in the list in empty
                 # labels = str(key_str)
-
+    
                 return [[key, index_values, labels]]
-
+    
             elif bottom_level == "iterate":
                 # iterate over the size of the array in the h5 group.
-
+    
                 #make list of key labels
                 key_strings_new = get_image_key_strings(
                     datafile, 
@@ -227,41 +225,25 @@ def get_image_keys(
                 )
                 #print('new key_strings', key_strings_new)
                 out = []
-
-                # print("data set with the key:", datafile[key])
-                number_data = datafile[key].shape[index]
-                # print('number_data', number_data)
-
-                # if we are using all the data make sure we run to the end.
-                # print('keyend',key_end)
-                if key_start[0] < 0:
-                    key_start[0] = number_data + key_start[0]
-                if key_end[0] < 0:
-                    key_end[0] = number_data + key_end[0] + 1
-
-                # if the order is reverse switch the values
-                # FIXME: this only works for the input as set needs to be updatedto work for all logics.
-                # FIXME: Should use cpf.IO_functions/file_list work for this.
-                if key_step[0] < 0:
-                    key_start[0], key_end[0] = key_end[0], key_start[0]
-                    key_end[0] -= 1
-                    #key_start[0] -= 1
-                else:
-                    key_end[0] += 1
-
+    
+                if number_data != len(key_strings_new):
+                    err_str = (
+                        "The number of data (%i) does not match the number of keys (%i). "
+                        "It is not possible to continue until this error is corrected."
+                        % (number_data, len(key_strings_new)))
+                    raise ValueError(err_str)
+    
                 #get the labels:
                 lbl_temp=[]
                 for i in [*range(key_start[0], key_end[0], key_step[0])]:
+                    print(i)
                     lbl_temp.append([key, i, key_str + sep1+key_strings_new[i]])
-                #print("lbl_temp", lbl_temp)
-
+    
                 return lbl_temp
                 
             else:
-                print("oops")
-                stop
-        else:
-            print("There is no key ", key, ". Skipping over.")
+                err_str = "This h5 process is not recognised."
+                raise ValueError(err_str)
     else:
         # step inside the key_list
 

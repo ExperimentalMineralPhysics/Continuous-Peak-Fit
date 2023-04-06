@@ -298,15 +298,14 @@ def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", clean=No
     return obj_to_inspect
 
 
-def any_errors_huge(obj_to_inspect, large_errors=None, index_path="", clean=None):
+def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
     """
     This function accepts a nested dictionary and list as argument
     and iterates over all values of nested dictionaries and lists.
     If any of the error values are more than scale times the fitted value it 
     flags the errors as huge 
     :param obj_to_inspect:
-    :param scale:
-    :param index_path:
+    :param large_errors:
     :param clean:
     :return:
     """
@@ -315,9 +314,9 @@ def any_errors_huge(obj_to_inspect, large_errors=None, index_path="", clean=None
         
     for k in range(len(obj_to_inspect["background"])):
         for j in range(len(obj_to_inspect["background"][k])):
-            if obj_to_inspect["background"][k][j]/obj_to_inspect["background_err"][k][j] >= large_errors:
+            if obj_to_inspect["background_err"][k][j]/obj_to_inspect["background"][k][j] >= large_errors:
                 clean = 0
-                print("Huge errors found in background {k}, {j}")
+                print(f"Huge errors found in background {k}, {j}")
         
     comp_list, comp_names = pf.peak_components(include_profile=True)
     for k in range(len(obj_to_inspect["peak"])):
@@ -325,9 +324,11 @@ def any_errors_huge(obj_to_inspect, large_errors=None, index_path="", clean=None
             comp = comp_names[cp]
             for j in range(len(obj_to_inspect["peak"][k][comp])):
                 if obj_to_inspect["peak"][k][comp+"_err"][j] != 0:
-                    if obj_to_inspect["peak"][k][comp][j]/obj_to_inspect["peak"][k][comp+"_err"][j] >= large_errors:
+                    if obj_to_inspect["peak"][k][comp+"_err"][j]/obj_to_inspect["peak"][k][comp][j] >= large_errors:
                         clean = 0
-                        print(f"Huge errors found in peak {k}, {comp} {j}")
+                        err_rat = obj_to_inspect["peak"][k][comp+"_err"][j]/obj_to_inspect["peak"][k][comp][j]
+                        # FIXME: format the numbers to be something sensible.
+                        print(f"Huge error found in peak {k}, {comp} {j}: value= {obj_to_inspect['peak'][k][comp][j]}; error={obj_to_inspect['peak'][k][comp+'_err'][j]}; fractional error = {err_rat}")
 
     return clean
 

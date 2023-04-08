@@ -209,7 +209,7 @@ def fit_sub_pattern(
     mode="fit",
     cascade=False,
     intensity_threshold = 0,
-    large_errors = 3
+    large_errors = 1
 ):
     """
     Perform the various fitting stages to the data
@@ -575,8 +575,22 @@ def fit_sub_pattern(
             )
             master_params = fout.params
 
-            if fout.success == 1:
-                # it worked, carry on
+            if (fout.success == 1 and 
+                    previous_params and 
+                    io.any_errors_huge(master_params, large_errors=large_errors)==1):
+                # it worked, but propagated params could have lead to rubbish fits. Try again.
+                step = 0
+                #clear previous_params so we cant get back here
+                previous_params = None
+            elif (fout.success == 1 and 
+                    previous_params and 
+                    io.any_terms_null(master_params, val_to_find=None)==1):
+                # it worked, but propagated params could have lead to rubbish fits. Try again.
+                step = 0
+                #clear previous_params so we cant get back here
+                previous_params = None
+            elif fout.success == 1: 
+                # it worked, errors are not massive, carry on
                 step = step + 100
                 master_params = fout.params
             elif step == 24 and fout.success == 0:
@@ -687,6 +701,8 @@ def fit_sub_pattern(
         }
         
     new_params.update({"FitProperties": fit_stats})
+    new_params.update({"DataProperties": {"max": np.max(data_as_class.intensity),
+                                          "min": np.min(data_as_class.intensity)}})
     
     # add peak names to new_params
     new_params.update({"PeakLabel": io.peak_string(settings_as_class.subfit_orders)})
@@ -715,10 +731,10 @@ def fit_sub_pattern(
                 extension=".png",
                 overwrite=False,
             )
-            plt.savefig(filename)
+            fig.savefig(filename)
 
         if view == 1 or debug:
-            plt.show()
+            fig.show()
 
         plt.close(fig)
         print("Done with Figure")

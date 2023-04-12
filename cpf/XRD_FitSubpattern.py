@@ -209,7 +209,7 @@ def fit_sub_pattern(
     mode="fit",
     cascade=False,
     intensity_threshold = 0,
-    large_errors = 1
+    large_errors = 5
 ):
     """
     Perform the various fitting stages to the data
@@ -577,7 +577,9 @@ def fit_sub_pattern(
 
             if (fout.success == 1 and 
                     previous_params and 
-                    io.any_errors_huge(master_params, large_errors=large_errors)==1):
+                    io.any_errors_huge(
+                        lmm.params_to_new_params(master_params, orders=settings_as_class.subfit_orders),
+                        large_errors=large_errors)==1):
                 # it worked, but propagated params could have lead to rubbish fits. Try again.
                 step = 0
                 #clear previous_params so we cant get back here

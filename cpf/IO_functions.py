@@ -314,7 +314,11 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
         
     for k in range(len(obj_to_inspect["background"])):
         for j in range(len(obj_to_inspect["background"][k])):
-            if obj_to_inspect["background_err"][k][j]/obj_to_inspect["background"][k][j] >= large_errors:
+            print(obj_to_inspect["background_err"][k][j], obj_to_inspect["background"][k][j])
+            if (obj_to_inspect["background"][k][j] != 0 and 
+                obj_to_inspect["background_err"][k][j] != 0 and 
+                obj_to_inspect["background_err"][k][j] != None and 
+                obj_to_inspect["background_err"][k][j]/obj_to_inspect["background"][k][j] >= large_errors):
                 clean = 0
                 print(f"Huge errors found in background {k}, {j}")
         
@@ -323,12 +327,13 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
         for cp in range(len(comp_list)):
             comp = comp_names[cp]
             for j in range(len(obj_to_inspect["peak"][k][comp])):
-                if obj_to_inspect["peak"][k][comp+"_err"][j] != 0:
-                    if obj_to_inspect["peak"][k][comp+"_err"][j]/obj_to_inspect["peak"][k][comp][j] >= large_errors:
-                        clean = 0
-                        err_rat = obj_to_inspect["peak"][k][comp+"_err"][j]/obj_to_inspect["peak"][k][comp][j]
-                        # FIXME: format the numbers to be something sensible.
-                        print(f"Huge error found in peak {k}, {comp} {j}: value= {obj_to_inspect['peak'][k][comp][j]}; error={obj_to_inspect['peak'][k][comp+'_err'][j]}; fractional error = {err_rat}")
+                print(obj_to_inspect["peak"][k][comp+"_err"][j], obj_to_inspect["peak"][k][comp][j] >= large_errors)
+                if (obj_to_inspect["peak"][k][comp+"_err"][j] != 0 and 
+                    obj_to_inspect["peak"][k][comp+"_err"][j] != None and 
+                    obj_to_inspect["peak"][k][comp+"_err"][j]/obj_to_inspect["peak"][k][comp][j] >= large_errors):
+                    clean = 0
+                    err_rat = obj_to_inspect["peak"][k][comp+"_err"][j]/obj_to_inspect["peak"][k][comp][j]
+                    print(f"Huge error found in peak {k}, {comp} {j}: value= {obj_to_inspect['peak'][k][comp][j]: 3.2e}; error={obj_to_inspect['peak'][k][comp+'_err'][j]: 3.2e}; fractional error = {err_rat: 5.1f}")
 
     return clean
 

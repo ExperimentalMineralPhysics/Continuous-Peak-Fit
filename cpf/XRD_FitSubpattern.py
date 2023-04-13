@@ -209,7 +209,7 @@ def fit_sub_pattern(
     mode="fit",
     cascade=False,
     intensity_threshold = 0,
-    large_errors = 5
+    large_errors = 300
 ):
     """
     Perform the various fitting stages to the data
@@ -576,20 +576,20 @@ def fit_sub_pattern(
             master_params = fout.params
 
             if (fout.success == 1 and 
-                    previous_params and 
+                    previous_params != None and 
                     io.any_errors_huge(
                         lmm.params_to_new_params(master_params, orders=settings_as_class.subfit_orders),
-                        large_errors=large_errors)==1):
-                # it worked, but propagated params could have lead to rubbish fits. Try again.
+                        large_errors=large_errors)==0):
+                print("# it worked, but propagated params could have lead to rubbish fits (huge errors). Try again.")
                 step = 0
-                #clear previous_params so we cant get back here
+                # clear previous_params so we can't get back here
                 previous_params = None
             elif (fout.success == 1 and 
-                    previous_params and 
-                    io.any_terms_null(master_params, val_to_find=None)==1):
-                # it worked, but propagated params could have lead to rubbish fits. Try again.
+                    previous_params != None and 
+                    io.any_terms_null(master_params, val_to_find=None)==0):
+                print("# it worked, but propagated params could have lead to rubbish fits (null values). Try again.")
                 step = 0
-                #clear previous_params so we cant get back here
+                # clear previous_params so we can't get back here
                 previous_params = None
             elif fout.success == 1: 
                 # it worked, errors are not massive, carry on

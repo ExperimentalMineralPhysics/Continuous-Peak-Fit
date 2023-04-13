@@ -381,7 +381,7 @@ def fit_sub_pattern(
                     #set step to -11 so that it is still negative at the end
                     step = -11 #get to the end and void the fit
                     fout=master_params
-                if np.max(data_as_class.intensity) < = threshold_data_intensity
+                if np.max(data_as_class.intensity) <= threshold_data_intensity:
                     #then there is likely no determinable peak in the data
                     #set step to -21 so that it is still negative at the end
                     step = -21 #get to the end and void the fit
@@ -413,7 +413,7 @@ def fit_sub_pattern(
                     #set step to -11 so that it is still negative at the end
                     step = -11 #get to the end and void the fit
                     fout=master_params
-                if np.max(data_as_class.intensity) < = threshold_data_intensity
+                if np.max(data_as_class.intensity) <= threshold_data_intensity:
                     #then there is likely no determinable peak in the data
                     #set step to -21 so that it is still negative at the end
                     step = -21 #get to the end and void the fit

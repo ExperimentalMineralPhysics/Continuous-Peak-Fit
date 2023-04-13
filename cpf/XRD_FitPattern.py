@@ -693,7 +693,6 @@ def execute(
                         "debug": debug,
                         "refine": refine,
                         "iterations": iterations,
-                        "intensity_threshold":intensity_threshold,
                         "threshold_data_intensity": threshold_data_intensity,
                         "threshold_peak_intensity": threshold_peak_intensity,
                     }

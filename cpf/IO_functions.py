@@ -314,6 +314,7 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
     for k in range(len(obj_to_inspect["background"])):
         for j in range(len(obj_to_inspect["background"][k])):
             if (obj_to_inspect["background"][k][j] != 0 and 
+                obj_to_inspect["background"][k][j] != None and 
                 obj_to_inspect["background_err"][k][j] != 0 and 
                 obj_to_inspect["background_err"][k][j] != None and 
                 obj_to_inspect["background_err"][k][j]/obj_to_inspect["background"][k][j] >= large_errors):
@@ -326,7 +327,9 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
         for cp in range(len(comp_list)):
             comp = comp_names[cp]
             for j in range(len(obj_to_inspect["peak"][k][comp])):
-                if (obj_to_inspect["peak"][k][comp+"_err"][j] != 0 and 
+                if (obj_to_inspect["peak"][k][comp][j] != 0 and 
+                    obj_to_inspect["peak"][k][comp][j] != None and 
+                    obj_to_inspect["peak"][k][comp+"_err"][j] != 0 and 
                     obj_to_inspect["peak"][k][comp+"_err"][j] != None and 
                     obj_to_inspect["peak"][k][comp+"_err"][j]/obj_to_inspect["peak"][k][comp][j] >= large_errors):
                     clean = 0

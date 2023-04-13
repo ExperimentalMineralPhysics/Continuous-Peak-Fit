@@ -397,6 +397,16 @@ def fit_sub_pattern(
                     values=previous_params,
                     debug=debug,
                 )
+                
+                #get mean height of chunked peaks
+                ave_intensity = []
+                for k in range(peeks):
+                    ave_intensity.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
+                if np.max(ave_intensity) <= intensity_threshold:
+                    #then there is no determinable peak in the data
+                    #set step to -11 so that it is still negative at the end
+                    step = -11 #get to the end and void the fit
+                    fout=master_params
 
             chunks_end = time.time()
             step = step + 10
@@ -700,6 +710,15 @@ def fit_sub_pattern(
             "time-elapsed": t_elapsed,
             "chunks-time": chunks_time,
             "status": step,
+            "sum-residuals-squared": np.nan,
+            "function-evaluations": np.nan,
+            "n-variables": np.nan,
+            "n-data": np.nan,
+            "degree-of-freedom": np.nan,
+            "ChiSq": np.nan,
+            "RedChiSq": np.nan,
+            "aic": np.nan,
+            "bic": np.nan,
         }
         
     new_params.update({"FitProperties": fit_stats})

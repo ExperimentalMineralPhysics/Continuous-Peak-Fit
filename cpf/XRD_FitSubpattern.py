@@ -208,7 +208,8 @@ def fit_sub_pattern(
     fit_method=None,
     mode="fit",
     cascade=False,
-    intensity_threshold = 0,
+    threshold_data_intensity = 0,
+    threshold_peak_intensity = 0,
     large_errors = 300
 ):
     """
@@ -375,10 +376,15 @@ def fit_sub_pattern(
                 ave_intensity = []
                 for k in range(peeks):
                     ave_intensity.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
-                if np.max(ave_intensity) <= intensity_threshold:
+                if np.max(ave_intensity) <= threshold_peak_intensity:
                     #then there is no determinable peak in the data
                     #set step to -11 so that it is still negative at the end
                     step = -11 #get to the end and void the fit
+                    fout=master_params
+                if np.max(data_as_class.intensity) < = threshold_data_intensity
+                    #then there is likely no determinable peak in the data
+                    #set step to -21 so that it is still negative at the end
+                    step = -21 #get to the end and void the fit
                     fout=master_params
 
             else:
@@ -402,10 +408,15 @@ def fit_sub_pattern(
                 ave_intensity = []
                 for k in range(peeks):
                     ave_intensity.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
-                if np.max(ave_intensity) <= intensity_threshold:
+                if np.max(ave_intensity) <= threshold_peak_intensity:
                     #then there is no determinable peak in the data
                     #set step to -11 so that it is still negative at the end
                     step = -11 #get to the end and void the fit
+                    fout=master_params
+                if np.max(data_as_class.intensity) < = threshold_data_intensity
+                    #then there is likely no determinable peak in the data
+                    #set step to -21 so that it is still negative at the end
+                    step = -21 #get to the end and void the fit
                     fout=master_params
 
             chunks_end = time.time()

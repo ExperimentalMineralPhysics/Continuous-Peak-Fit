@@ -787,7 +787,7 @@ def fit_model(
                 orders=orders,  # orders class to get peak lengths (if needed)
                 start_end=start_end, # start and end of azimuths if needed
                 nan_policy="propagate",
-                max_n_fev=max_n_fev,
+                max_nfev=max_n_fev,
                 xtol=1e-5,
             )
     else:
@@ -800,7 +800,7 @@ def fit_model(
             orders=orders,  # orders class to get peak lengths (if needed)
             start_end=start_end, # start and end of azimuths if needed
             nan_policy="propagate",
-            max_n_fev=max_n_fev,
+            max_nfev=max_n_fev,
             xtol=1e-5,
         )
     return out

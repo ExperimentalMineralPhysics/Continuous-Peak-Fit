@@ -586,7 +586,7 @@ def fit_sub_pattern(
                 start_end = [data_as_class.azm_start, data_as_class.azm_end],
                 fit_method=None,
                 weights=None,
-                max_n_fev=default_max_f_eval,
+                max_n_fev=max_n_f_eval,
             )
             master_params = fout.params
 

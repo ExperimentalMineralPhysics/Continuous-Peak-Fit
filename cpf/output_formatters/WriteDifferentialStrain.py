@@ -562,27 +562,27 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                             ).format(fit[y]["FitProperties"]["sum-residuals-squared"])
                         )
                         text_file.write(
-                            ("{0:" + str(width_col - 1) + "d},").format(
+                            ("{0:" + str(width_col - 1) + ".0f},").format(
                                 fit[y]["FitProperties"]["status"]
                             )
                         )
                         text_file.write(
-                            ("{0:" + str(width_col - 1) + "d},").format(
+                            ("{0:" + str(width_col - 1) + ".0f},").format(
                                 fit[y]["FitProperties"]["function-evaluations"]
                             )
                         )
                         text_file.write(
-                            ("{0:" + str(width_col - 1) + "d},").format(
+                            ("{0:" + str(width_col - 1) + ".0f},").format(
                                 fit[y]["FitProperties"]["n-variables"]
                             )
                         )
                         text_file.write(
-                            ("{0:" + str(width_col - 1) + "d},").format(
+                            ("{0:" + str(width_col - 1) + ".0f},").format(
                                 fit[y]["FitProperties"]["n-data"]
                             )
                         )
                         text_file.write(
-                            ("{0:" + str(width_col - 1) + "d},").format(
+                            ("{0:" + str(width_col - 1) + ".0f},").format(
                                 fit[y]["FitProperties"]["degree-of-freedom"]
                             )
                         )

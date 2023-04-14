@@ -333,20 +333,34 @@ def fit_sub_pattern(
             # To help decide which is the best peak parameters.
             chunks_start = time.time()
 
-            # If there is not a previous fit -- Fit data in azimuthal chunks for d.
-            if not previous_params:
-
-                # fit the data in chunks by azimuth.
+            # initiate the model parameter set which is needed for all possible outcomes.
+            # if previous_params = None initiates an empty set.
+            master_params = lmm.initiate_all_params_for_fit(
+                settings_as_class,
+                data_as_class,
+                values=previous_params,
+                debug=debug,
+            )
+            
+            #check if the data intensity is above threshold. 
+            if np.max(data_as_class.intensity) <= threshold_data_intensity:
+                #then there is likely no determinable peak in the data
+                print("Not sufficient intensity in the data to proceed with fitting.")
+                #set step to -21 so that it is still negative at the end
+                step = -21 #get to the end and void the fit
+                fout=master_params
+            
+            if step >= 0 and not previous_params:
+                # There is no previous fit -- Fit data in azimuthal chunks
+                # using manual guesses ("PeakPositionSelection") if they exist.
                 chunk_fits, chunk_positions = fit_chunks(
                     data_as_class,
                     settings_as_class,
                     mode=mode,
-                    # cascade=cascade,
                     debug=debug,
                     fit_method=fit_method
                 )
-                # using manual guesses ("PeakPositionSelection") if they exist.
-
+                
                 if mode != "fit":  # cascade==True:
                     # some cascade option. so exit returning values.
                     return chunk_fits, chunk_positions
@@ -355,12 +369,7 @@ def fit_sub_pattern(
                 print("\n Performing Series fits...")
                 # Feed each d_0,h,w into coefficient function to get fit for coeficient component
                 # get lmfit parameters as output.
-
-                # initiate the model parameter set
-                master_params = lmm.initiate_all_params_for_fit(
-                    settings_as_class, data_as_class, debug=debug
-                )
-
+                
                 # fit the chunk values with fourier/spline series.
                 # iterate over each parameter in turn
                 master_params = fit_series(
@@ -371,53 +380,26 @@ def fit_sub_pattern(
                     debug=debug,
                     save_fit=save_fit,
                 )
-                
-                #get mean height of chunked peaks
+
+                #check if peak intensity is above threshold
                 ave_intensity = []
                 for k in range(peeks):
                     ave_intensity.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
                 if np.max(ave_intensity) <= threshold_peak_intensity:
-                    #then there is no determinable peak in the data
+                    #then there is no determinable peak(s) in the data
+                    print("Not sufficient intensity in the chunked peaks to proceed with fitting.")
                     #set step to -11 so that it is still negative at the end
                     step = -11 #get to the end and void the fit
                     fout=master_params
-                if np.max(data_as_class.intensity) <= threshold_data_intensity:
-                    #then there is likely no determinable peak in the data
-                    #set step to -21 so that it is still negative at the end
-                    step = -21 #get to the end and void the fit
-                    fout=master_params
 
-            else:
+            elif step >= 0 and previous_params:
+                print("Using previously fitted parameters and propagating fit")
                 # FIX ME: This should load the saved lmfit Parameter class object.
                 # Need to initiate usage (save and load).
                 # For now have propagated use of new_params so re-instantiate the master_params object below,
                 # which is clunky.
-                print("Using previously fitted parameters and propagating fit")
 
                 # FIX ME: need to confirm the number of parameters matches the orders of the fits.
-
-                # initiate the model parameter set
-                master_params = lmm.initiate_all_params_for_fit(
-                    settings_as_class,
-                    data_as_class,
-                    values=previous_params,
-                    debug=debug,
-                )
-                
-                #get mean height of chunked peaks
-                ave_intensity = []
-                for k in range(peeks):
-                    ave_intensity.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
-                if np.max(ave_intensity) <= threshold_peak_intensity:
-                    #then there is no determinable peak in the data
-                    #set step to -11 so that it is still negative at the end
-                    step = -11 #get to the end and void the fit
-                    fout=master_params
-                if np.max(data_as_class.intensity) <= threshold_data_intensity:
-                    #then there is likely no determinable peak in the data
-                    #set step to -21 so that it is still negative at the end
-                    step = -21 #get to the end and void the fit
-                    fout=master_params
 
             chunks_end = time.time()
             step = step + 10
@@ -528,6 +510,18 @@ def fit_sub_pattern(
                         master_params.pretty_print()
 
                 step = step + 10
+            
+                #get mean height of chunked peaks and check if it is greater than threshold
+                ave_intensity = []
+                for k in range(peeks):
+                    ave_intensity.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
+                if np.max(ave_intensity) <= threshold_peak_intensity:
+                    #then there is no determinable peak in the data
+                    print("Not sufficient intensity in the chunked peaks to proceed with fitting.")
+                    #set step to -101 so that it is still negative at the end
+                    step = -101 #get to the end and void the fit
+                    fout=master_params
+            
             else:
                 step = step + 11
 

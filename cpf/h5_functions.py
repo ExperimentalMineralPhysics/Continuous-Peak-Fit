@@ -236,7 +236,6 @@ def get_image_keys(
                 #get the labels:
                 lbl_temp=[]
                 for i in [*range(key_start[0], key_end[0], key_step[0])]:
-                    print(i)
                     lbl_temp.append([key, i, key_str + sep1+key_strings_new[i]])
     
                 return lbl_temp
@@ -465,7 +464,7 @@ def get_image_key_strings(
     for i in [*range(key_start, key_end+1, key_step)]:
         lbl_str = ""
         for j in range(len(labels)):
-            # print(i, j, "'",h5key_names[0],"'")
+            #print(i, j, "'",key_names[0],"'")
             if (
                 isinstance(key_names[j], str)
                 and len(key_names[j]) == 0
@@ -485,6 +484,10 @@ def get_image_key_strings(
                     lbl_str = lbl_str + str(labels[j][i])
             else:
                 if np.size(labels[j]) == 1:
+                    # if labels are a single item they can come wrapped in lists. 
+                    # not sure why but this is here to capture it.
+                    labels = [item for items in labels for item in items]
+
                     lbl_str = lbl_str + sep2 + str(labels[j])
                 else:
                     lbl_str = lbl_str + sep2 + str(labels[j][i])

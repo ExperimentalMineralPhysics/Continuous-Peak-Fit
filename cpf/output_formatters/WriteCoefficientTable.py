@@ -214,7 +214,10 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                 
                 if ind != "background" and ind != "symmetry":   
                     for v in range(len(data_to_write["peak"][lists[z,2]][ind])):
-                                   
+                        if data_to_write["peak"][lists[z,2]][ind][v] is None:  # catch  'null' as an error
+                            data_to_write["peak"][lists[z,2]][ind][v] = np.nan
+                        if data_to_write["peak"][lists[z,2]][ind_err][v] is None:  # catch  'null' as an error
+                            data_to_write["peak"][lists[z,2]][ind_err][v] = np.nan   
                         text_file.write(
                             ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
                                 data_to_write["peak"][lists[z,2]][ind][v]
@@ -231,25 +234,31 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                             
                                 
                 elif ind == "symmetry":
+                    if data_to_write["peak"][lists[z,2]][ind] is None:  # catch  'null' as an error
+                        data_to_write["peak"][lists[z,2]][ind] = np.nan
                     text_file.write(
                         ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
                             data_to_write["peak"][lists[z,2]][ind]
                         )
                     )
-                else:
+                else: #background
                     for u in range(len(data_to_write[ind])):
                         for v in range(len(data_to_write[ind][u])):
+                            if data_to_write[ind][u][v] is None:  # catch  'null' as an error
+                                data_to_write[ind][u][v] = np.nan
+                            if data_to_write[ind_err][u][v] is None:  # catch  'null' as an error
+                                data_to_write[ind_err][u][v] = np.nan   
                             
-                                text_file.write(
-                                    ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
-                                        data_to_write[ind][u][v]
-                                    )
+                            text_file.write(
+                                ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
+                                    data_to_write[ind][u][v]
                                 )
-                                text_file.write(
-                                    ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
-                                        data_to_write[ind][u][v]
-                                    )
+                            )
+                            text_file.write(
+                                ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
+                                    data_to_write[ind_err][u][v]
                                 )
+                            )
         
         
             text_file.write("\n")

@@ -188,16 +188,21 @@ def file_list(fit_parameters, fit_settings):
         )
     elif "datafile_Files" not in fit_parameters:
         n_diff_files = int(
-            np.floor(
-                (fit_settings.datafile_EndNum - fit_settings.datafile_StartNum) / step
+            np.round(
+                (fit_settings.datafile_EndNum - fit_settings.datafile_StartNum) / np.abs(step)
                 + 1
             )
         )
         for j in range(n_diff_files):
             # Make list of diffraction pattern names and no. of pattern
-            n = str(fit_settings.datafile_StartNum + j * step).zfill(
-                fit_settings.datafile_NumDigit
-            )
+            if step < 0:
+                n = str(fit_settings.datafile_EndNum + j * step).zfill(
+                    fit_settings.datafile_NumDigit
+                )
+            else:
+                n = str(fit_settings.datafile_StartNum + j * step).zfill(
+                    fit_settings.datafile_NumDigit
+                )
             # Append diffraction pattern name and directory
             diff_files.append(
                 os.path.abspath(
@@ -209,12 +214,17 @@ def file_list(fit_parameters, fit_settings):
                 )
             )
     elif "datafile_Files" in fit_parameters:
-        n_diff_files = int(len(fit_settings.datafile_Files) / step)
+        n_diff_files = int(np.round(len(fit_settings.datafile_Files) / np.abs(step)))
         for j in range(n_diff_files):
             # Make list of diffraction pattern names and no. of pattern
-            n = str(fit_settings.datafile_Files[j * step]).zfill(
-                fit_settings.datafile_NumDigit
-            )
+            if step < 0:
+                n = str(fit_settings.datafile_Files[j * step -1]).zfill(
+                    fit_settings.datafile_NumDigit
+                )
+            else:
+                n = str(fit_settings.datafile_Files[j * step]).zfill(
+                    fit_settings.datafile_NumDigit
+                )
             # Append diffraction pattern name and directory
             diff_files.append(
                 os.path.abspath(

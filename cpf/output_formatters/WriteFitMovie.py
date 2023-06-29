@@ -27,7 +27,7 @@ def Requirements():
     return RequiredParams, OptionalParams
 
 
-def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
+def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     """
     Writes a *.?? file of the fits. 
     

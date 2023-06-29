@@ -385,6 +385,27 @@ def fit_sub_pattern(
                 ave_intensity = []
                 for k in range(peeks):
                     ave_intensity.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
+                if isinstance(threshold_peak_intensity, str):
+                    # is the threshold a multiple of the data's variance of standard deviation? 
+                    if threshold_peak_intensity.find("var") != -1:
+                        var = np.var(data_as_class.intensity.flatten())
+                        threshold_peak_intensity = threshold_peak_intensity.strip("var")
+                        threshold_peak_intensity = threshold_peak_intensity.strip("*")
+                        if threshold_peak_intensity == "":
+                            threshold_peak_intensity = 1
+                        threshold_peak_intensity = float(threshold_peak_intensity) * var
+                        
+                    elif threshold_peak_intensity.find("std") != -1:
+                        std = np.std(data_as_class.intensity.flatten())
+                        threshold_peak_intensity = threshold_peak_intensity.strip("std")
+                        threshold_peak_intensity = threshold_peak_intensity.strip("*")
+                        if threshold_peak_intensity == "":
+                            threshold_peak_intensity = 1
+                        threshold_peak_intensity = float(threshold_peak_intensity) * std
+    
+                    else:
+                        raise ValueError("The 'threshold_peak_intensity' has to be a number of a multiple of 'var' or 'std'")
+                    
                 if np.max(ave_intensity) <= threshold_peak_intensity:
                     #then there is no determinable peak(s) in the data
                     print("Not sufficient intensity in the chunked peaks to proceed with fitting.")
@@ -515,6 +536,27 @@ def fit_sub_pattern(
                 ave_intensity = []
                 for k in range(peeks):
                     ave_intensity.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
+                if isinstance(threshold_peak_intensity, str):
+                    # is the threshold a multiple of the data's variance of standard deviation? 
+                    if threshold_peak_intensity.find("var") != -1:
+                        var = np.var(data_as_class.intensity.flatten())
+                        threshold_peak_intensity = threshold_peak_intensity.strip("var")
+                        threshold_peak_intensity = threshold_peak_intensity.strip("*")
+                        if threshold_peak_intensity == "":
+                            threshold_peak_intensity = 1
+                        threshold_peak_intensity = float(threshold_peak_intensity) * var
+                        
+                    elif threshold_peak_intensity.find("std") != -1:
+                        std = np.std(data_as_class.intensity.flatten())
+                        threshold_peak_intensity = threshold_peak_intensity.strip("std")
+                        threshold_peak_intensity = threshold_peak_intensity.strip("*")
+                        if threshold_peak_intensity == "":
+                            threshold_peak_intensity = 1
+                        threshold_peak_intensity = float(threshold_peak_intensity) * std
+    
+                    else:
+                        raise ValueError("The 'threshold_peak_intensity' has to be a number of a multiple of 'var' or 'std'")
+                        
                 if np.max(ave_intensity) <= threshold_peak_intensity:
                     #then there is no determinable peak in the data
                     print("Not sufficient intensity in the chunked peaks to proceed with fitting.")

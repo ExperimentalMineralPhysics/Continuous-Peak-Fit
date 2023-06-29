@@ -34,10 +34,11 @@ import numpy as np
 
 # import numpy.ma as ma
 import matplotlib.pyplot as plt
+import matplotlib.colors as colours
 import cpf.XRD_FitPattern as XRDFit
 import cpf.IO_functions as IO
 import os.path
-
+import proglog
 # import copy
 # import pandas as pd
 import json
@@ -50,6 +51,7 @@ from cpf.IO_functions import (
     make_outfile_name,
     peak_string,
     any_terms_null,
+    title_file_names,
 )
 
 # from findpeaks import findpeaks
@@ -181,14 +183,14 @@ def execute(
     if settings_for_fit.calibration_data:
         data_to_fill = os.path.abspath(settings_for_fit.calibration_data)
     else:
-        data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
-
+        # data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
+        data_to_fill = settings_for_fit.image_list[0]
     new_data.fill_data(
         data_to_fill,
         settings=settings_for_fit,
         debug=debug,
     )
-
+    
     # Get calibration parameter file
     parms_dict = new_data.calibration
     # FIXME this should be removable.
@@ -211,11 +213,11 @@ def execute(
     settings_for_fit.set_subpatterns(subpatterns=subpattern)
 
     # Process the diffraction patterns #
-    for j in range(settings_for_fit.datafile_number):
+    for j in range(settings_for_fit.image_number):
 
-        print("Process ", settings_for_fit.datafile_list[j])
+        print("Process ", title_file_names(image_name=settings_for_fit.image_list[j]))
         # Get diffraction pattern to process.
-        new_data.import_image(settings_for_fit.datafile_list[j], debug=debug)
+        new_data.import_image(settings_for_fit.image_list[j], debug=debug)
 
         if settings_for_fit.datafile_preprocess is not None:
             # needed because image preprocessing adds to the mask and is different for each image.
@@ -262,7 +264,7 @@ def execute(
             settings_for_fit.set_subpattern(j, i)
 
             if "previous_fit" in locals():  # and mode == "fit":
-                params = previous_fit[i]
+                params = previous_fit
             else:
                 params = []
 
@@ -376,7 +378,7 @@ def execute(
             additional_text="chunks",
             # orders=settings_for_fit.subfit_orders,
             extension=".json",
-            overwrite=True,
+            overwrite=False,
         )
         with open(filename, "w") as TempFile:
             # Write a JSON string into the file.
@@ -412,6 +414,7 @@ def execute(
     plot_peak_count(
         inputs=settings_for_fit, debug=debug, report=report, subpattern="all", **kwargs
     )
+
 
 
 def parallel_processing(p):
@@ -463,8 +466,12 @@ def read_saved_chunks(
 
     all_azis = []
     all_fits = []
+    
+    print("Reading chunk files")
+    logger = proglog.default_bar_logger('bar')  # shorthand to generate a bar logger
 
-    for f in range(setting_class.datafile_number):
+    #for f in range(setting_class.image_number):
+    for f in logger.iter_bar(iteration=range(setting_class.image_number)):
         setting_class.set_subpattern(f, 0)
         filename = IO.make_outfile_name(
             setting_class.subfit_filename,
@@ -480,8 +487,26 @@ def read_saved_chunks(
                 all_azis.append(fit[1])
                 all_fits.append(fit[0])
 
+    print("Finished reading chunk files")
     return all_azis, all_fits
 
+def get_chunks_range(chunks, series="h"):
+    
+    
+    #make length of g
+    min_all = np.inf*np.ones(len(chunks[0]))
+    max_all = -np.inf*np.ones(len(chunks[0]))
+    
+    for e in range(len(chunks)):
+        for g in range(len(chunks[e])):
+            for i in range(len(chunks[e][g][series])):
+                v_min = np.min(chunks[e][g][series][i])
+                v_max = np.max(chunks[e][g][series][i])
+                min_all[g] = np.min([min_all[g], v_min])
+                max_all[g] = np.max([max_all[g], v_max])
+        
+    return min_all, max_all
+    
 
 def plot_cascade_chunks(
     setting_file=None,
@@ -489,7 +514,11 @@ def plot_cascade_chunks(
     inputs=None,
     debug=False,
     report=False,
+    plot_type = "timeseries",
     subpattern="all",
+    scale="linear",
+    vmax=np.inf,
+    vmin=0,
     **kwargs
 ):
     """
@@ -515,14 +544,14 @@ def plot_cascade_chunks(
 
     # get file times
     modified_time_s = []
-    for i in range(setting_class.datafile_number):
-        modified_time_s.append(os.path.getmtime(setting_class.datafile_list[i]))
+    for i in range(setting_class.image_number):
+        modified_time_s.append(os.path.getmtime(setting_class.image_list[i][0]))
     modified_time_s = np.array(modified_time_s)
     modified_time_s = modified_time_s - modified_time_s[0]
     y_label_str = r"Time (s)"
     # use file numbers if all times are the same
     if len(np.unique(modified_time_s)) == 1:
-        modified_time_s = list(range(setting_class.datafile_number))
+        modified_time_s = list(range(setting_class.image_number))
         y_label_str = r"Image in sequence"
 
     # restrict to sub-patterns listed
@@ -536,53 +565,158 @@ def plot_cascade_chunks(
     all_azis, all_data = read_saved_chunks(
         inputs=setting_class, debug=debug, report=report, subpattern=subpattern
     )
+    min_all, max_all = get_chunks_range(all_data, series="h")
+    
 
+        
     for j in range(num_plots):
         # loop over the number of sets of peaks fit for (i.e. len(setting_class.fit_orders))
 
         setting_class.set_subpattern(0, j)
 
+        # set plot limits
+        if vmax==np.inf:
+            vmax=max_all[j]
+        #set colour bar ends
+        if vmax < max_all[j] and vmin > min_all[j]:
+            cb_extend = "both"
+        elif vmax < max_all[j]:
+            cb_extend = "max"
+        elif vmin > min_all[j]:
+            cb_extend = "min"
+        else:
+            cb_extend = "neither"
+        #set colour scale normalisation
+        norm=None
+        if scale == "sqrt":
+            norm = colours.PowerNorm(gamma=0.5)
+        elif scale == "log":
+            norm = colours.LogNorm(vmin = vmin, vmax=vmax)
+        elif scale == "linear":
+            norm = None
         for k in range(len(setting_class.subfit_orders["peak"])):
-            # loop over the number of peaks in each fit_orders
-
-            if all_data[0][j]["h"][k]:
-                # if there is some data in the array plot it.
-                fig, ax = plt.subplots()
-                for i in range(setting_class.datafile_number):
-                    plt.scatter(
-                        all_data[i][j]["chunks"],
-                        modified_time_s[i]
-                        * np.ones(np.shape(all_data[i][j]["chunks"])),
-                        s=1,
-                        c=(all_data[i][j]["h"][k]),
-                        cmap="YlOrBr",
+            
+            
+            if plot_type == "timeseries":
+                # loop over the number of peaks in each fit_orders
+                print("Making cascade plot for "+ IO.peak_string(setting_class.fit_orders[j], peak=k))
+                if all_data[0][j]["h"][k]:
+                    # if there is some data in the array plot it.
+                    fig, ax = plt.subplots()
+                    logger = proglog.default_bar_logger('bar')  # shorthand to generate a bar logger
+                    for i in logger.iter_bar(iteration=range(setting_class.image_number)):
+                        plt.scatter(
+                            all_data[i][j]["chunks"],
+                            modified_time_s[i]
+                            * np.ones(np.shape(all_data[i][j]["chunks"])),
+                            s=1,
+                            c=(all_data[i][j]["h"][k]),
+                            vmax= vmax,
+                            vmin= vmin,
+                            cmap="YlOrBr",
+                            norm=norm
+                        )
+                    # determine the label for the figure -- if there is data in the other peaks then just label as single peak otherwise it is all the peaks
+                    pk = k
+                    for l in range(len(setting_class.subfit_orders["peak"])):
+                        if not all_data[0][j]["h"][l]:
+                            pk = "all"
+                    # make the figure title
+                    ttlstr = IO.peak_string(setting_class.fit_orders[j], peak=pk)
+                    plt.title(ttlstr)
+                    plt.xlabel(r"Azimuth (deg)")
+                    plt.ylabel(y_label_str)
+                    cb = plt.colorbar(extend=cb_extend)
+                    cb.set_label(r"Log$_{10}$(Intensity)")
+                    cb.set_label(r"Intensity")
+                    plt.show()
+                    # save the figure
+                    filename = IO.make_outfile_name(
+                        setting_class.datafile_basename,
+                        directory=setting_class.output_directory,
+                        additional_text="CascadePlot",
+                        orders=setting_class.subfit_orders,
+                        peak=pk,
+                        extension=".png",
+                        overwrite=True,
                     )
-                # determine the label for the figure -- if there is data in the other peaks then just label as single peak otherwise it is all the peaks
-                pk = k
-                for l in range(len(setting_class.subfit_orders["peak"])):
-                    if not all_data[0][j]["h"][l]:
-                        pk = "all"
-                # make the figure title
-                ttlstr = IO.peak_string(setting_class.fit_orders[j], peak=pk)
-                plt.title(ttlstr)
-                plt.xlabel(r"Azimuth (deg)")
-                plt.ylabel(y_label_str)
-                cb = plt.colorbar()
-                cb.set_label(r"Log$_{10}$(Intensity)")
-                cb.set_label(r"Intensity")
-                plt.show()
-                # save the figure
-                filename = IO.make_outfile_name(
-                    setting_class.subfit_filename,
-                    directory=setting_class.output_directory,
-                    additional_text="CascadePlot",
-                    orders=setting_class.subfit_orders,
-                    peak=pk,
-                    extension=".png",
-                    overwrite=True,
-                )
-                fig.savefig(filename, transparent=True, bbox_inches="tight")
+                    fig.savefig(filename, transparent=True, bbox_inches="tight")
+                print("\n")
 
+            elif plot_type == "map":
+                
+                leng = 500
+                
+                pass
+            elif plot_type == "map_video":
+                pass
+            elif plot_type == "data_cube":
+                
+                #plot data cube. 
+                # interactive 3D graph. (i.e. not spyder inline)
+                # x, z are position in space
+                # y is azimuth
+                # plot points for positions with peaks greater than vmin
+                # coloured by azimuth
+                # size is size of symbol (and limited by vmin, vmax and normalisation)
+                """
+                print("Making data cube plot for "+ IO.peak_string(setting_class.fit_orders[j], peak=k))
+                if all_data[0][j]["h"][k]:
+                    # if there is some data in the array plot it.
+                    fig, ax = plt.subplots()
+                    logger = proglog.default_bar_logger('bar')  # shorthand to generate a bar logger
+                    for i in logger.iter_bar(iteration=range(setting_class.image_number)):
+                        points_plot = all_data[i][j]["h"][k] >= vmin
+                        x = all_data[i][j]["chunks"][points_plot]
+                        x_label = r"Azimuth (deg)"
+                        z = modified_time_s[i] * np.ones(np.shape(all_data[i][j]["chunks"]))[points_plot]
+                        z_label = y_label_str
+                        y = all_data[i][j]["h"][k][points_plot]
+                        y_label = 
+                        plt.scatter3(
+                            x, y, z,
+                            s=1,
+                            c=(all_data[i][j]["h"][k]),
+                            vmax= vmax,
+                            vmin= vmin,
+                            cmap="YlOrBr",
+                            norm=norm
+                        )
+                    # determine the label for the figure -- if there is data in the other peaks then just label as single peak otherwise it is all the peaks
+                    pk = k
+                    for l in range(len(setting_class.subfit_orders["peak"])):
+                        if not all_data[0][j]["h"][l]:
+                            pk = "all"
+                    # make the figure title
+                    ttlstr = IO.peak_string(setting_class.fit_orders[j], peak=pk)
+                    plt.title(ttlstr)
+                    plt.xlabel(x_label)
+                    plt.ylabel(y_label)
+                    cb = plt.colorbar(extend=cb_extend)
+                    cb.set_label(r"Log$_{10}$(Intensity)")
+                    cb.set_label(r"Intensity")
+                    plt.show()
+                    # save the figure
+                    filename = IO.make_outfile_name(
+                        setting_class.datafile_basename,
+                        directory=setting_class.output_directory,
+                        additional_text="CascadePlot",
+                        orders=setting_class.subfit_orders,
+                        peak=pk,
+                        extension=".png",
+                        overwrite=True,
+                    )
+                    fig.savefig(filename, transparent=True, bbox_inches="tight")
+                print("\n")
+                """
+                pass
+            
+            elif plot_type == "data_cube_video":
+                pass
+            else:
+                raise ValueError(
+                    "Plot type is not recognised."
+                )
 
 def peak_count(
     setting_file=None,
@@ -647,7 +781,7 @@ def peak_count(
             count_tmp = []
             if all_data[0][j]["h"][k]:
                 # if there is some data in the array plot it.
-                for i in range(setting_class.datafile_number):
+                for i in range(setting_class.image_number):
                     peaks, properties = find_peaks(
                         all_data[i][j]["h"][k], prominence=prominence, width=0
                     )
@@ -705,14 +839,14 @@ def plot_peak_count(
 
     # get file times
     modified_time_s = []
-    for i in range(setting_class.datafile_number):
-        modified_time_s.append(os.path.getmtime(setting_class.datafile_list[i]))
+    for i in range(setting_class.image_number):
+        modified_time_s.append(os.path.getmtime(setting_class.image_list[i][0]))
     modified_time_s = np.array(modified_time_s)
     modified_time_s = modified_time_s - modified_time_s[0]
     y_label_str = r"Time (s)"
     # use file numbers if all times are the same
     if len(np.unique(modified_time_s)) == 1:
-        modified_time_s = list(range(setting_class.datafile_number))
+        modified_time_s = list(range(setting_class.image_number))
         y_label_str = r"Image in sequence"
 
     # restrict to sub-patterns listed
@@ -723,9 +857,9 @@ def plot_peak_count(
     else:
         num_orders = len(subpattern)
 
-    all_azis, all_data = read_saved_chunks(
-        inputs=setting_class, debug=debug, report=report, subpattern=subpattern
-    )
+    #all_azis, all_data = read_saved_chunks(
+    #    inputs=setting_class, debug=debug, report=report, subpattern=subpattern
+    #)
 
     # get the number of peaks
     all_peaks, all_properties, count, titles = peak_count(
@@ -750,7 +884,7 @@ def plot_peak_count(
     filename = IO.make_outfile_name(
         "PeakCountTime",
         directory=setting_class.output_directory,
-        # additional_text="PeakCountTime",
+        additional_text="prominence"+str(prominence),
         extension=".png",
         overwrite=True,
     )

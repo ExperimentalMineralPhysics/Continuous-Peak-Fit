@@ -80,7 +80,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                 ind = coefs_vals_write[1][w]
                 if ind != "background":
                     max_coef[ind] = np.max(
-                        [max_coef[ind], 2*setting_class.fit_orders[y]["peak"][x][ind]+1]
+                        [max_coef[ind], np.max(2*setting_class.fit_orders[y]["peak"][x][ind])+1]
                     )
                 else:
                     for v in range(len(setting_class.fit_orders[y][ind])):

@@ -285,12 +285,14 @@ class settings:
         #     # exit if all parameters are not present
 
         # organise the cascade properties
-        if "cascade_bin_type" in dir(self.settings_from_file):
-            self.cascade_bin_type = self.settings_from_file.cascade_bin_type
-        if "cascade_per_bin" in dir(self.settings_from_file):
-            self.cascade_per_bin = self.settings_from_file.cascade_per_bin
         if "cascade_number_bins" in dir(self.settings_from_file):
             self.cascade_number_bins = self.settings_from_file.cascade_number_bins
+            self.cascade_bin_type = 1
+        if "cascade_per_bin" in dir(self.settings_from_file):
+            self.cascade_per_bin = self.settings_from_file.cascade_per_bin
+            self.cascade_bin_type = 0
+        if "cascade_bin_type" in dir(self.settings_from_file):
+            self.cascade_bin_type = self.settings_from_file.cascade_bin_type
 
         # organise the fits
         if "fit_orders" in dir(self.settings_from_file):

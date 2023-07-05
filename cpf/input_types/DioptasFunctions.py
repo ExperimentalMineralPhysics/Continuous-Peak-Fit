@@ -835,18 +835,17 @@ class DioptasDetector:
             )
             keep = n_entries - n_cut
             all_colours = all_colours[keep:]
-        else:
-            n_cut = np.int(
+        else:#if np.abs(maximum_value) < np.abs(minimum_value):
+            keep= np.int(
                 (
                     (
                         2 * np.abs(minimum_value)
-                        - (maximum_value - np.abs(minimum_value))
+                        - (np.abs(minimum_value)-maximum_value)
                     )
                     / (2 * np.abs(minimum_value))
                 )
                 * n_entries
             )
-            keep = n_entries - n_cut
             all_colours = all_colours[:keep]
         all_colours = colors.ListedColormap(
             all_colours, name="myColorMap", N=all_colours.shape[0]
@@ -891,11 +890,11 @@ class DioptasDetector:
         self,
         fig_plot=None,
         axis_plot=None,
-        show="intensity",
+        show="default",
         x_axis="default",
         y_axis="default",
         data=None,
-        limits=[0, 99.9],
+        limits=[0, 100],
         colourmap="jet",
         rastered=False,
         point_scale=3,
@@ -955,14 +954,6 @@ class DioptasDetector:
         else:  # if show == "intensity"
             plot_i = plot_i
 
-        # set colour map
-        if colourmap == "residuals-blanaced":
-            colourmap = self.residuals_colour_scheme(
-                np.max(plot_i.flatten()), np.min(plot_i.flatten())
-            )
-        else:
-            colourmap = colourmap
-
         # set colour bar and colour maps.
         if colourmap == "Greys":
             IMax = 2.01
@@ -990,6 +981,14 @@ class DioptasDetector:
             else:
                 cb_extend = "neither"
 
+        # set colour map
+        if colourmap == "residuals-blanaced":
+            colourmap = self.residuals_colour_scheme(
+                IMax, IMin
+            )
+        else:
+            colourmap = colourmap
+			
         # set axis limits
         x_lims = [np.min(plot_x.flatten()), np.max(plot_x.flatten())]
         axis_plot.set_xlim(x_lims)
@@ -1011,3 +1010,10 @@ class DioptasDetector:
         axis_plot.set_ylabel(label_y)
 
         fig_plot.colorbar(mappable=the_plot, extend=cb_extend)
+        #try:
+        #    #FIX ME: added to catch error where resuduals have no range. I dontk know where it arrises and dont have tim to fix it now. 
+        #.   # I think this is now fixed by the changes to the 'residuals_colour_scheme' function (July 2023. But this is left here as a 
+		#    # check incase it is not.
+		#    fig_plot.colorbar(mappable=the_plot, extend=cb_extend)
+        #except:
+        #    pass

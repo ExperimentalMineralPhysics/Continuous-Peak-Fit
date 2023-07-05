@@ -442,6 +442,12 @@ def fit_chunks(
                 # Chunks limited to no Fourier expansion so only single value per polynomial order.
                 for b in range(len(background_guess)):
                     if b == 0:
+                        vary=True
+                        if limits["background"][0]==limits["background"][1]:
+                            #catch inace there is no intensity in the chunk.
+                            limits["background"][0] -= 0.1
+                            limits["background"][1] += 0.1
+                            vary=False
                         params.add(
                             "bg_c" + str(b) + "_f" + str(0),
                             background_guess[b][0],
@@ -463,6 +469,11 @@ def fit_chunks(
                             vary = False
                         else:
                             vary = True
+                        if limits["peak"][pk][comp_names[cp]][0]==limits["peak"][pk][comp_names[cp]][1]:
+                            #catch inace there is no intensity in the chunk.
+                            limits["peak"][pk][comp_names[cp]][0] -= 0.1
+                            limits["peak"][pk][comp_names[cp]][1] += 0.1
+                            vary=False
                         params.add(
                             "peak_" + str(pk) + "_" + comp_list[cp] + "0",
                             peaks[pk][comp_names[cp]][0],

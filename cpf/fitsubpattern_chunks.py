@@ -444,15 +444,16 @@ def fit_chunks(
                     if b == 0:
                         vary=True
                         if limits["background"][0]==limits["background"][1]:
-                            #catch inace there is no intensity in the chunk.
+                            # catch incase there is no intensity in the chunk. 
                             limits["background"][0] -= 0.1
                             limits["background"][1] += 0.1
-                            vary=False
+                            vary = False
                         params.add(
                             "bg_c" + str(b) + "_f" + str(0),
                             background_guess[b][0],
                             min=limits["background"][0],
                             max=limits["background"][1],
+                            vary=vary
                         )
                     else:
                         params.add(
@@ -469,8 +470,8 @@ def fit_chunks(
                             vary = False
                         else:
                             vary = True
-                        if limits["peak"][pk][comp_names[cp]][0]==limits["peak"][pk][comp_names[cp]][1]:
-                            #catch inace there is no intensity in the chunk.
+                        if limits["peak"][pk][comp_names[cp]][0] == limits["peak"][pk][comp_names[cp]][1]:
+                            # catch incase there is no intensity in the chunk. 
                             limits["peak"][pk][comp_names[cp]][0] -= 0.1
                             limits["peak"][pk][comp_names[cp]][1] += 0.1
                             vary=False

@@ -782,9 +782,11 @@ def fit_sub_pattern(
         
         fig = plt.figure()
         fig = plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=master_params, params_dict=new_params, figure=fig)
-        title_str = io.peak_string(settings_as_class.subfit_orders) + "; final fit"
+        title_str = io.peak_string(settings_as_class.subfit_orders) + "\n final fit"
         if "note" in settings_as_class.subfit_orders:
             title_str = title_str + " " + settings_as_class.subfit_orders["note"]
+        
+        io.figure_suptitle_space(fig, topmargin=0.4)
         plt.suptitle(title_str)
         #plt.tight_layout()
 

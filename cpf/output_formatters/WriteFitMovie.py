@@ -166,13 +166,14 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                                    params_dict=data_fit, 
                                    figure=fig)
             title_str = (IO.peak_string(setting_class.subfit_orders)+"; " + str(y[int(t*fps)]) +"/" + 
-                            str(setting_class.image_number) + "; " +
+                            str(setting_class.image_number) + "\n" +
                             IO.title_file_names(setting_class, num=y[int(t*fps)], image_name=setting_class.subfit_filename)
                             )
             if "note" in setting_class.subfit_orders:
                 title_str = title_str + " " + setting_class.subfit_orders["note"]
             plt.suptitle(title_str)   
-
+            IO.figure_suptitle_space(fig, topmargin=0.4)
+            
             #return the figure            
             return mplfig_to_npimage(fig)
         

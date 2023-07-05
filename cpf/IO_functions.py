@@ -652,3 +652,27 @@ def licit_filename(fname, replacement="=="):
     fname = number_to_string(fname)
 
     return fname
+
+
+
+
+def figure_suptitle_space(figure, topmargin=1):
+    """ increase figure size to make topmargin (in inches) space for 
+        titles, without changing the axes sizes.
+        after: https://stackoverflow.com/questions/55767312/how-to-position-suptitle#55768955
+		
+		Acutally now does this by compresssing the axes away from the top of the figure.
+        """
+
+    axes = figure.axes
+    pos = []
+    for i in range(len(axes)):
+        pos.append(axes[i].get_position().bounds)
+    w, h = figure.get_size_inches()
+    figh = h - topmargin #- (1-s.y1)*h
+    for i in range(len(axes)):
+        al = pos[i][0]
+        ab = pos[i][1]/h*figh
+        aw = pos[i][2]
+        ah = pos[i][3]/h*figh
+        axes[i].set_position((al,ab,aw,ah))

@@ -83,8 +83,7 @@ def set_range(
     iterations=1,
     # track=False,
     parallel=True,
-    subpattern="all",
-    **kwargs
+    subpattern="all"
 ):
     """
     :param setting_file:
@@ -136,8 +135,7 @@ def initial_peak_position(
     iterations=1,
     # track=False,
     parallel=True,
-    subpattern="all",
-    **kwargs
+    subpattern="all"
 ):
     """
     Calls interactive graph to set the inital peak postion guesses. 
@@ -294,6 +292,7 @@ def order_search(
     search_peak=0,
     search_series=["fourier", "spline"],
     **kwargs
+    search_series=["fourier", "spline"]
 ):
     """
     :param search_series:
@@ -369,8 +368,7 @@ def write_output(
     det=None,
     use_bounds=False,
     differential_only=False,
-    debug=False,
-    **kwargs
+    debug=False
 ):
     """
     :param debug:
@@ -424,7 +422,6 @@ def execute(
     threshold_data_intensity = 0,
     threshold_peak_intensity = 0,
     fit_method = "leastsq",
-    **kwargs
 ):
     """
     :param fit_parameters:

@@ -15,6 +15,8 @@ import numpy.ma as ma
 import matplotlib.pyplot as plt
 from matplotlib import cm, colors, gridspec
 from cpf.input_types import Med, med_detectors
+from cpf.XRD_FitPattern import logger
+
 
 
 # For MED files from Energy dispersive diffraction patterns at X17B2, 6-BMB and others.
@@ -205,9 +207,9 @@ class MedDetector:
             all_present = 1
             for par in parameter_settings:
                 if par in required_list:
-                    print("Got: ", par)
+                    logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    print("The settings file requires a parameter called  '", par, "'")
+                    logger.info(" ".join(map(str, [("The settings file requires a parameter called  '", par, "'")])))
                     all_present = 0
             if all_present == 0:
                 sys.exit(
@@ -264,9 +266,9 @@ class MedDetector:
         else:
             e_in = np.array([[0, e_in]], dtype=object)
 
-        # print('E_in',E_in, 'calib,', calib)
-        # print('type E_in', type(E_in))
-        # print(E_in[:,1])
+        # logger.info(" ".join(map(str, [('E_in',E_in, 'calib,', calib)])))
+        # logger.info(" ".join(map(str, [('type E_in', type(E_in))])))
+        # logger.info(" ".join(map(str, [(E_in[:,1])])))
         # Convert Energy (keV) to wavelength (Angstroms)
         # E = hc/lambda;  h = 4.135667662(25)×10−15 eV s; c = 299792458 m/s
         wavelength = 4.135667662e-15 * (299792458 * 1e10) / (e_in[:, 1] * 1000)
@@ -305,7 +307,7 @@ class MedDetector:
                         )
                     )
                 )
-                # print("dspc_out", dspc_out)
+                # logger.info(" ".join(map(str, [("dspc_out", dspc_out)])))
             dspc_out = np.array(dspc_out)
 
         return dspc_out
@@ -459,7 +461,7 @@ class MedDetector:
         self.azm_start = np.floor((np.min(np.array(parms_dict["azimuths"])) / blocks)) * blocks
         self.azm_end   =  np.ceil((np.max(np.array(parms_dict["azimuths"])) / blocks)) * blocks
 
-        print("get_calibtation", self.azm_start, self.azm_end)
+        logger.info(" ".join(map(str, [("get_calibtation", self.azm_start, self.azm_end)])))
         
         return parms_dict
 
@@ -602,7 +604,7 @@ class MedDetector:
         If the image data is still the same size as the original.
         """
 
-        print("Restore original mask.")
+        logger.info(" ".join(map(str, [("Restore original mask.")])))
         self.intensity.mask = self.original_mask
         self.tth.mask = self.original_mask
         self.azm.mask = self.original_mask
@@ -863,17 +865,12 @@ class MedDetector:
             c_map = cm.get_cmap(name=colourmap)
             for i in range(len(np.unique(self.azm)) - 1, -1, -1):
                 if 0:  # for debugging
-                    print("arrays for plotting")
-                    print(i, np.unique(self.azm))
-                    print("x", plot_x[self.azm == np.unique(self.azm)[i]])
-                    print("y", plot_y[self.azm == np.unique(self.azm)[i]])
-                    print("c", np.mean(plot_c[self.azm == np.unique(self.azm)[i]]))
-                    print(
-                        "mask",
-                        not ma.MaskedArray.all(
-                            plot_x[self.azm == np.unique(self.azm)[i]]
-                        ),
-                    )
+                    logger.info(" ".join(map(str, [("arrays for plotting")])))
+                    logger.info(" ".join(map(str, [(i, np.unique(self.azm))])))
+                    logger.info(" ".join(map(str, [("x", plot_x[self.azm == np.unique(self.azm)[i]])])))
+                    logger.info(" ".join(map(str, [("y", plot_y[self.azm == np.unique(self.azm)[i]])])))
+                    logger.info(" ".join(map(str, [("c", np.mean(plot_c[self.azm == np.unique(self.azm)[i]]))])))
+                    logger.info(" ".join(map(str, [("mask", not ma.MaskedArray.all(plot_x[self.azm == np.unique(self.azm)[i]]),)])))
                 colour = c_map(
                     normalize(np.mean(plot_c[self.azm == np.unique(self.azm)[i]]))
                 )

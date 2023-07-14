@@ -19,7 +19,7 @@ from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.io import ponifile
 from matplotlib import cm, colors
 from cpf import IO_functions
-
+from cpf.XRD_FitPattern import logger
 
 class DioptasDetector:
     # For Dioptas functions to change
@@ -74,7 +74,7 @@ class DioptasDetector:
         """
 
         # self.detector = self.detector_check(calibration_data, detector)
-        #        print(settings.Calib_param)
+        #        logger.info(" ".join(map(str, [(settings.Calib_param)])))
         self.get_calibration(settings.calibration_parameters)
         self.get_detector(diff_file, settings)
 
@@ -232,9 +232,9 @@ class DioptasDetector:
             all_present = 1
             for par in parameter_settings:
                 if par in required_list:
-                    print("Got: ", par)
+                    logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    print("The settings file requires a parameter called  '", par, "'")
+                    logger.info(" ".join(map(str, [("The settings file requires a parameter called  '", par, "'")])))
                     all_present = 0
             if all_present == 0:
                 sys.exit(
@@ -283,7 +283,7 @@ class DioptasDetector:
         im = np.array(im)[::-1]
 
         if debug:
-            print("min+max:", np.min(im), np.max(im))
+            logger.info(" ".join(map(str, [("min+max:", np.min(im), np.max(im))])))
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
             self.plot_collected(fig_plot=fig, axis_plot=ax)
@@ -324,7 +324,7 @@ class DioptasDetector:
         else:
             # convert d-spacing to tth.
             # N.B. this is the reverse function so that labels tth and d_spacing are not correct.
-            # print(tth_in)
+            # logger.info(" ".join(map(str, [(tth_in)])))
             dspc_out = 2 * np.degrees(np.arcsin(wavelength / 2 / tth_in))
         return dspc_out
 
@@ -351,7 +351,7 @@ class DioptasDetector:
         if debug:
             # N.B. The plot is a pig with even 1000x1000 pixel images and takes a long time to render.
             if ImTTH.size > 100000:
-                print(' Have patience. The mask plot will appear but it can take its time to render.')
+                logger.info(" ".join(map(str, [(' Have patience. The mask plot will appear but it can take its time to render.')])))
             fig_1 = plt.figure()
             ax1 = fig_1.add_subplot(1, 3, 1)
             ax1.scatter(ImTTH, ImAzi, s=1, c=(ImInts.data), edgecolors='none', cmap=plt.cm.jet, vmin=0,
@@ -448,17 +448,17 @@ class DioptasDetector:
             raise ValueError(err_str)
 
         if 0:  # for debugging
-            print(bin_boundaries)
-            # print(np.sort(bin_boundaries))
+            logger.info(" ".join(map(str, [(bin_boundaries)])))
+            # logger.info(" ".join(map(str, [(np.sort(bin_boundaries))])))
             # create histogram with equal-frequency bins
             n, bins, patches = plt.hist(
                 self.azm[self.azm.mask == False], bin_boundaries, edgecolor="black"
             )
             plt.show()
             # display bin boundaries and frequency per bin
-            print("bins and occupancy", bins, n)
-            print("expected number of data per bin", orders_class.cascade_per_bin)
-            print("total data", np.sum(n))
+            logger.info(" ".join(map(str, [("bins and occupancy", bins, n)])))
+            logger.info(" ".join(map(str, [("expected number of data per bin", orders_class.cascade_per_bin)])))
+            logger.info(" ".join(map(str, [("total data", np.sum(n))])))
 
         # fit the data to the bins
         chunks = []
@@ -637,7 +637,7 @@ class DioptasDetector:
         If the image data is still the same size as the original.
         """
 
-        print("Restore original mask.")
+        logger.info(" ".join(map(str, [("Restore original mask.")])))
         self.intensity.mask = self.original_mask
         self.tth.mask = self.original_mask
         self.azm.mask = self.original_mask
@@ -826,7 +826,7 @@ class DioptasDetector:
         all_colours = cm.seismic(np.arange(n_entries))
 
         if np.abs(maximum_value) > np.abs(minimum_value):
-            n_cut = np.int(
+            n_cut = int(
                 (
                     (2 * maximum_value - (maximum_value - np.abs(minimum_value)))
                     / (2 * maximum_value)
@@ -836,7 +836,7 @@ class DioptasDetector:
             keep = n_entries - n_cut
             all_colours = all_colours[keep:]
         else:
-            n_cut = np.int(
+            n_cut = int(
                 (
                     (
                         2 * np.abs(minimum_value)
@@ -908,13 +908,11 @@ class DioptasDetector:
         """
 
         if self.intensity.size > 50000:
-            print(
-                " Have patience. The plot(s) will appear but it can take its time to render."
-            )
+            logger.info(" ".join(map(str, [(" Have patience. The plot(s) will appear but it can take its time to render.")])))
             rastered = True
-            # print(type(axis_plot))
+            # logger.info(" ".join(map(str, [(type(axis_plot))])))
             # axis_plot = raster_axes.RasterAxes(axes=axis_plot)
-            # print(type(axis_plot))
+            # logger.info(" ".join(map(str, [(type(axis_plot))])))
 
         if x_axis == "default":
             plot_x = self.tth

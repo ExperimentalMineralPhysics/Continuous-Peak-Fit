@@ -38,6 +38,7 @@ from matplotlib import gridspec
 from matplotlib import cm, colors
 from cpf import IO_functions
 import pickle
+from cpf.XRD_FitPattern import logger
 
 
 # plot the data as an image (TRue) or a scatter plot (false).
@@ -101,7 +102,7 @@ class XYDetector:
         """
 
         # self.detector = self.detector_check(calibration_data, detector)
-        #        print(settings.Calib_param)
+        #        logger.info(" ".join(map(str, [(settings.Calib_param)])))
         self.get_calibration(settings=settings)
         self.get_detector(diff_file, settings)
         
@@ -188,9 +189,9 @@ class XYDetector:
             all_present = 1
             for par in parameter_settings:
                 if par in required_list:
-                    print("Got: ", par)
+                    logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    print("The settings file requires a parameter called  '", par, "'")
+                    logger.info(" ".join(map(str, [("The settings file requires a parameter called  '", par, "'")])))
                     all_present = 0
             if all_present == 0:
                 sys.exit(
@@ -233,9 +234,9 @@ class XYDetector:
         #self.intensity = ma.array(im, dtype="f")
         
         if 0:#debug:
-            print(self.intensity)
-            print("min+max:", np.min(self.intensity), np.max(self.intensity))
-            print("min+max:", np.nanmin(self.intensity), np.nanmax(self.intensity))
+            logger.info(" ".join(map(str, [(self.intensity)])))
+            logger.info(" ".join(map(str, [("min+max:", np.min(self.intensity), np.max(self.intensity))])))
+            logger.info(" ".join(map(str, [("min+max:", np.nanmin(self.intensity), np.nanmax(self.intensity))])))
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
             self.plot_collected(fig_plot=fig, axis_plot=ax)
@@ -325,7 +326,7 @@ class XYDetector:
         return im_ints
 
     def f(x=None, m=0, c=1):
-        print(type(x), type(m), type(c))
+        logger.info(" ".join(map(str, [(type(x), type(m), type(c))])))
         return (x * m) + c
     
     def get_calibration(self, file_name=None, settings=None):
@@ -452,17 +453,17 @@ class XYDetector:
             raise ValueError(err_str)
 
         if 0:  # for debugging
-            print(bin_boundaries)
-            # print(np.sort(bin_boundaries))
+            logger.info(" ".join(map(str, [(bin_boundaries)])))
+            # logger.info(" ".join(map(str, [(np.sort(bin_boundaries))])))
             # create histogram with equal-frequency bins
             n, bins, patches = plt.hist(
                 self.azm[self.azm.mask == False], bin_boundaries, edgecolor="black"
             )
             plt.show()
             # display bin boundaries and frequency per bin
-            print("bins and occupancy", bins, n)
-            print("expected number of data per bin", orders_class.cascade_per_bin)
-            print("total data", np.sum(n))
+            logger.info(" ".join(map(str, [("bins and occupancy", bins, n)])))
+            logger.info(" ".join(map(str, [("expected number of data per bin", orders_class.cascade_per_bin)])))
+            logger.info(" ".join(map(str, [("total data", np.sum(n))])))
             
         # fit the data to the bins
         chunks = []
@@ -649,7 +650,7 @@ class XYDetector:
         If the image data is still the same size as the original.
         """
 
-        print("Restore original mask.")
+        logger.info(" ".join(map(str, [("Restore original mask.")])))
         self.intensity.mask = self.original_mask
         self.tth.mask = self.original_mask
         self.azm.mask = self.original_mask
@@ -917,13 +918,11 @@ class XYDetector:
         """
 
         if self.intensity.size > 50000:
-            print(
-                " Have patience. The plot(s) will appear but it can take its time to render."
-            )
+            logger.info(" ".join(map(str, [(" Have patience. The plot(s) will appear but it can take its time to render.")])))
             rastered = True
-            # print(type(axis_plot))
+            # logger.info(" ".join(map(str, [(type(axis_plot))])))
             # axis_plot = raster_axes.RasterAxes(axes=axis_plot)
-            # print(type(axis_plot))
+            # logger.info(" ".join(map(str, [(type(axis_plot))])))
 
         if x_axis == "default":
             plot_x = self.tth

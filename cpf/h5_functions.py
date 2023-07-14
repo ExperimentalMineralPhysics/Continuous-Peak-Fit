@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import os
 import cpf.IO_functions as IO
 import cpf.XRD_FitPattern as fp
+from cpf.XRD_FitPattern import logger
 
 # copied from internet somewhere August 2022
 def allkeys(obj):
@@ -66,15 +67,15 @@ def image_key_validate(h5key_list, key_start, key_end, key_step):
     number_indicies = len(h5key_list)
 
     if len(key_start) != (1 | number_indicies):
-        print("There are the wrong number of start positions")
+        logger.info(" ".join(map(str, [("There are the wrong number of start positions")])))
         fail = +1
 
     if len(key_end) != (1 | number_indicies):
-        print("There are the wrong number of end positions")
+        logger.info(" ".join(map(str, [("There are the wrong number of end positions")])))
         fail = +1
 
     if len(key_step) != (1 | number_indicies):
-        print("There are the wrong number of step lengths")
+        logger.info(" ".join(map(str, [("There are the wrong number of step lengths")])))
         fail = +1
 
     if fail != 0:
@@ -101,13 +102,13 @@ def unique_labels(labels, i=3, number_data=None):
 
     """
 
-    # print(type(labels[0]))
-    # print(labels)
+    # logger.info(" ".join(map(str, [(type(labels[0]))])))
+    # logger.info(" ".join(map(str, [(labels)])))
 
     number_labels = np.size(labels)
     number_unique = len(np.unique(labels))
 
-    # print(number_labels, number_unique, number_data)
+    # logger.info(" ".join(map(str, [(number_labels, number_unique, number_data)])))
     if number_labels == number_unique and (
         number_data == number_labels or number_labels == 1
     ):
@@ -116,7 +117,7 @@ def unique_labels(labels, i=3, number_data=None):
 
         while done == 0:
 
-            # print(i)
+            # logger.info(" ".join(map(str, [(i)])))
 
             try:  # catch the unique labels not being numbers
                 labels_rounded = np.round(labels, i)
@@ -129,14 +130,14 @@ def unique_labels(labels, i=3, number_data=None):
 
                 else:
                     i += 1
-                # print('pants')
+                # logger.info(" ".join(map(str, [('pants')])))
             except:
                 done = 1
-                # print('ohdear')
+                # logger.info(" ".join(map(str, [('ohdear')])))
                 pass
 
     else:
-        print("there are insufficient unique labels")
+        logger.info(" ".join(map(str, [("there are insufficient unique labels")])))
         stop
 
     return labels
@@ -165,8 +166,8 @@ def get_image_keys(
     sep1 = "_"
     sep2 = "="
     # ...
-    # print('called again')
-    # print(h5key_list)
+    # logger.info(" ".join(map(str, [('called again')])))
+    # logger.info(" ".join(map(str, [(h5key_list)])))
 
     if len(h5key_list) == 1:
         # we are at the end of the list and need to find out how many values are here, or what the values are
@@ -177,7 +178,7 @@ def get_image_keys(
             err_str = (
                 "The key, '%s' does not exist in '%s'"
                 % (key, key_route))
-            print(err_str)
+            logger.info(" ".join(map(str, [(err_str)])))
         else:
             number_data = datafile[key].shape[index]
     
@@ -223,7 +224,7 @@ def get_image_keys(
                     key_step=1,
                     index=index,
                 )
-                #print('new key_strings', key_strings_new)
+                #logger.info(" ".join(map(str, [('new key_strings', key_strings_new)])))
                 out = []
     
                 if number_data != len(key_strings_new):
@@ -236,7 +237,7 @@ def get_image_keys(
                 #get the labels:
                 lbl_temp=[]
                 for i in [*range(key_start[0], key_end[0], key_step[0])]:
-                    print(i)
+                    logger.info(" ".join(map(str, [(i)])))
                     lbl_temp.append([key, i, key_str + sep1+key_strings_new[i]])
     
                 return lbl_temp
@@ -249,7 +250,7 @@ def get_image_keys(
 
         # make current key
         key_str = key_str + "/" + h5key_list[0]
-        # print(key_str)
+        # logger.info(" ".join(map(str, [(key_str)])))
         
         #make list of key labels
         key_strings = get_image_key_strings(
@@ -267,13 +268,13 @@ def get_image_keys(
         if isinstance(h5key_names[0], str) and len(h5key_names[0]) == 0:
             key_lst = list(datafile[h5key_list[0]].keys())
             #key_strings = list(range(len(key_lst)))
-            # print('1)', len(key_str))
+            # logger.info(" ".join(map(str, [('1)', len(key_str))])))
         else:
             key_lst = list(datafile[h5key_list[0]].keys())
             #key_strings = key_lst
-        #     print('2)')
+        #     logger.info(" ".join(map(str, [('2)')])))
         
-        # print(key_strings)
+        # logger.info(" ".join(map(str, [(key_strings)])))
         # cut to what we want ot iterate over
         # if we are using all the data make sure we run to the end.
         if key_start[0] < 0:
@@ -292,11 +293,11 @@ def get_image_keys(
         else:
             key_end[0] += 1    
         # populate the list
-        #print('start loop', [*range(key_start[0], key_end[0], key_step[0])])
+        #logger.info(" ".join(map(str, [('start loop', [*range(key_start[0], key_end[0], key_step[0])])])))
         # for i in range(len(key_lst)):
         for i in [*range(key_start[0], key_end[0], key_step[0])]:
-            # print(key_lst[i])
-            # print(h5key_list[1:])
+            # logger.info(" ".join(map(str, [(key_lst[i])])))
+            # logger.info(" ".join(map(str, [(h5key_list[1:])])))
 
             # use the index to pass either the index of the array or the upper level group index
             if bottom_level == "label":
@@ -304,7 +305,7 @@ def get_image_keys(
                     index = str(key_lst[i])
                 else:
                     index = key_lst[i]
-            # print('index', index, key_lst[i])
+            # logger.info(" ".join(map(str, [('index', index, key_lst[i])])))
 
             keys.extend(
                 get_image_keys(
@@ -321,7 +322,7 @@ def get_image_keys(
                 )
             )
 
-            # print(keys)
+            # logger.info(" ".join(map(str, [(keys)])))
 
     return keys
 
@@ -378,35 +379,35 @@ def get_image_key_strings(
     number_data_tmp1 = []
     number_data_tmp = []
     for i in range(len(key_names)):
-        # print(key_names[i])
+        # logger.info(" ".join(map(str, [(key_names[i])])))
         if isinstance(datafile[key_route + "/" + key_names[i]], h5py.Group) and key_names[i]=="/":
-            print(i, "/")
+            logger.info(" ".join(map(str, [(i, "/")])))
             number_data_tmp.append(len(list(datafile[key_route + "/" + key_names[i]].keys())))
             
         elif isinstance(datafile[key_route + "/" + key_names[i]], h5py.Group) and key_names[i]=="":
             
             try:
-                # print(key_measure)
+                # logger.info(" ".join(map(str, [(key_measure)])))
                 if key_measure == "/":
                     number_data_tmp.append(len(list(datafile[key_route + "/" + key_names[i]].keys())))
                 else:
                     
                     attr=(datafile[key_route + "/" + key_measure])
-                    # print(attr)
+                    # logger.info(" ".join(map(str, [(attr)])))
                     tmp = datafile.get(key_route + "/" + key_measure)
-                    #print(tmp.shape)
+                    #logger.info(" ".join(map(str, [(tmp.shape)])))
                     number_data_tmp.append(tmp.shape[index])
                 
             except:
-                print(i, "value")
+                logger.info(" ".join(map(str, [(i, "value")])))
                 number_data_tmp.append(0)
 
         else:
-            # print("wrong place")
+            # logger.info(" ".join(map(str, [("wrong place")])))
             number_data_tmp.append(datafile[key_route + "/" + key_names[i]].size)
             
     number_data = np.max(number_data_tmp)
-    # print('number_data', number_data)    
+    # logger.info(" ".join(map(str, [('number_data', number_data)])))    
     
     if isinstance(key_names, str):
          key_names = [key_names]
@@ -422,7 +423,7 @@ def get_image_key_strings(
             # if so to 1 count the indicies we add 1 to the prewvious line. 
             #the counting over the arrays needs to be done in get_image_keys
             labels_temp = unique_labels(labels_temp, number_data=number_data)
-            # print(labels_temp)
+            # logger.info(" ".join(map(str, [(labels_temp)])))
         elif key_names[i] == "/":
             # if "/" then list names of subgroups
             labels_temp = list(datafile[key_route + "/" + key_names[i]].keys())
@@ -437,14 +438,14 @@ def get_image_key_strings(
                 labels_temp = datafile[key_route + "/" + key_names[i]][()]
             #if not isinstance(labels_temp, list):
             #    labels_temp = [labels_temp]
-            # print("lbls_tmp",labels_temp, type(labels_temp), labels_temp.size)
+            # logger.info(" ".join(map(str, [("lbls_tmp",labels_temp, type(labels_temp), labels_temp.size)])))
             labels_temp = unique_labels(
                 labels_temp, number_data=labels_temp.size
             )
         labels.append(labels_temp)
         
     # if we are using all the data make sure we run to the end.
-    # print('keyend',key_end)
+    # logger.info(" ".join(map(str, [('keyend',key_end)])))
     if key_end == -1:
         key_end = number_data-1
     # else:
@@ -465,7 +466,7 @@ def get_image_key_strings(
     for i in [*range(key_start, key_end+1, key_step)]:
         lbl_str = ""
         for j in range(len(labels)):
-            # print(i, j, "'",h5key_names[0],"'")
+            # logger.info(" ".join(map(str, [(i, j, "'",h5key_names[0],"'")])))
             if (
                 isinstance(key_names[j], str)
                 and len(key_names[j]) == 0
@@ -560,7 +561,7 @@ def get_images(
         datakey = image_list[n][1][0]
         data_position_in_key = image_list[n][1][1]
         data_tmp = np.array(datafile[datakey][data_position_in_key])
-        # print('size of data (',str(i),'): ', data_tmp.shape)
+        # logger.info(" ".join(map(str, [('size of data (',str(i),'): ', data_tmp.shape)])))
 
         if len(image_num) == 1:
             data = data_tmp
@@ -571,7 +572,7 @@ def get_images(
                 data = np.expand_dims(data, axis=axis)
             else:
                 data = np.append(data, np.expand_dims(data_tmp, axis=axis), axis=axis)
-            # print('size of data (',str(i),'): ', data.shape)
+            # logger.info(" ".join(map(str, [('size of data (',str(i),'): ', data.shape)])))
 
     return data
 
@@ -679,9 +680,9 @@ def save_images(
             extension=export_type,
         )
 
-        # print(im_data.shape)
+        # logger.info(" ".join(map(str, [(im_data.shape)])))
         cv2.imwrite(fnam, im_data[0, :, :])
-        print("Writing:", fnam)
+        logger.info(" ".join(map(str, [("Writing:", fnam)])))
 
 
 if __name__ == "__main__":
@@ -773,7 +774,7 @@ if __name__ == "__main__":
         datafile_h5 = False
 
     else:
-        print("no data")
+        logger.info(" ".join(map(str, [("no data")])))
         stop
 
     h5_key_list = ["/", "measurement/p3"]
@@ -797,7 +798,7 @@ if __name__ == "__main__":
     datafile = h5py.File(fname, "a")
 
     # my_list = get_image_keys(datafile, h5_key_list, key_start=h5_key_start, key_end=k5_hey_end, key_step=h5_key_step, bottom_level=h5_data)
-    # print(my_list)
+    # logger.info(" ".join(map(str, [(my_list)])))
 
     my_labels = get_image_keys(
         datafile,
@@ -809,4 +810,4 @@ if __name__ == "__main__":
         bottom_level=h5_data,
     )
 
-    print(my_labels)
+    logger.info(" ".join(map(str, [(my_labels)])))

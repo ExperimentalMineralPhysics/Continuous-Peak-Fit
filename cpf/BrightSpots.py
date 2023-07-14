@@ -41,6 +41,7 @@ Simon Hunt, March 2023
 __version__ = "0.1"
 
 import numpy as np
+from cpf.XRD_FitPattern import logger
 
 def SpotProcess(sub_data, settings_for_fit):
     

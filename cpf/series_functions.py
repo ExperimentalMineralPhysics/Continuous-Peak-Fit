@@ -25,6 +25,7 @@ import numpy as np
 import numpy.ma as ma
 from scipy.interpolate import make_interp_spline, CubicSpline
 import cpf.peak_functions as pf
+from cpf.XRD_FitPattern import logger
 
 
 def coefficient_types():
@@ -274,8 +275,8 @@ def get_order_from_params(params, comp=None, peak=0):
     elif isinstance(params, (int,)):
         l = 1
     else:
-        print(params)
-        print(type(params))
+        logger.info(" ".join(map(str, [(params)])))
+        logger.info(" ".join(map(str, [(type(params))])))
         raise ValueError("Parameter list is not list or float.")
 
     order = get_order_from_coeff(l)
@@ -298,8 +299,8 @@ def fourier_order(params):
     elif isinstance(params, (int,)):
         order = 0
     else:
-        print(params)
-        print(type(params))
+        logger.info(" ".join(map(str, [(params)])))
+        logger.info(" ".join(map(str, [(type(params))])))
         raise ValueError("Parameter list is not list or float.")
     return order
 

@@ -16,6 +16,17 @@ from cpf.IO_functions import (
 )  # , get_output_options, detector_factory, register_default_formats
 from cpf.series_functions import coefficient_type_as_number, get_number_coeff, coefficient_types, coefficient_type_as_string
 import json
+from cpf.XRD_FitPattern import logger
+
+
+# import logging
+# # Configure the logging module
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format='%(asctime)s [%(levelname)s] %(message)s',
+#     datefmt='%Y-%m-%d %H:%M:%S'
+# )
+
 
 
 class settings:
@@ -364,14 +375,14 @@ class settings:
             files_to_check = [files_to_check]
 
         for j in range(len(files_to_check)):
-            # print(files_to_check[j])
+            # logger.info(" ".join(map(str, [(files_to_check[j])])))
             if os.path.isfile(files_to_check[j]) is False:
                 raise ImportError(
                     "The file " + files_to_check[j] + " is not found but is required."
                 )
             else:
                 if write == True:
-                    print(files_to_check[j] + " exists.")
+                    logger.info(" ".join(map(str, [(files_to_check[j] + " exists.")])))
 
     def check_directory_exists(self, directory, write=False):
         """
@@ -383,7 +394,7 @@ class settings:
             )
         else:
             if write == True:
-                print(directory + " exists.")
+                logger.info(" ".join(map(str, [(directory + " exists.")])))
 
     def validate_datafiles(self):
         """
@@ -391,7 +402,7 @@ class settings:
         """
         self.check_directory_exists(self.datafile_directory, write=True)
         self.check_files_exist(self.datafile_list, write=False)
-        print("All the data files exist.")
+        logger.info(" ".join(map(str, [("All the data files exist.")])))
 
     def validate_fit_orders(self, report=False, peak=None, orders=None):
         """
@@ -436,7 +447,7 @@ class settings:
                     and len(orders[i]["range"]) == 1
                     and len(orders[i]["range"][0]) == 2
                 ):
-                    print("  input fix: subpattern " + str(i) + ": range is a now a simple list.")
+                    logger.info(" ".join(map(str, [("  input fix: subpattern " + str(i) + ": range is a now a simple list.")])))
                     self.fit_orders[i]["range"] = self.fit_orders[i]["range"][0]
                 # check if range is valid
                 if (
@@ -476,18 +487,7 @@ class settings:
                 # bascially -- check if it is old nomlencature (*-*) and replace (with *_*)
                 for l in range(len(comp_modifications)):
                     if "background" + "-" + comp_modifications[l] in self.fit_orders[i]:
-                        print(
-                            "  input fix: subpattern "
-                            + str(i)
-                            + ": "
-                            + "background"
-                            + "-"
-                            + comp_modifications[l]
-                            + " replaced with "
-                            + "background"
-                            + "_"
-                            + comp_modifications[l]
-                        )
+                        logger.info(" ".join(map(str, [("  input fix: subpattern %s : background - %s replaced with background_%s" % (str(i), comp_modifications[l], comp_modifications[l]))])))
                         self.fit_orders[i][
                             "background" + "_" + comp_modifications[l]
                         ] = self.fit_orders[i].pop(
@@ -544,20 +544,8 @@ class settings:
                                 comp_list[k] + "-" + comp_modifications[l]
                                 in self.fit_orders[i]["peak"][j]
                             ):
-                                print(
-                                    "  input fix: subpattern "
-                                    + str(i)
-                                    + ", peak "
-                                    + str(j)
-                                    + ": "
-                                    + comp_list[k]
-                                    + "-"
-                                    + comp_modifications[l]
-                                    + " replaced with "
-                                    + comp_list[k]
-                                    + "_"
-                                    + comp_modifications[l]
-                                )
+                                logger.info(" ".join(map(str, [("  input fix: subpattern %s %s : %s - %s replaced with %s _ %s" 
+                                                                % (str(i), str(j), comp_list[k], comp_modifications[l], comp_list[k],comp_modifications[l]))])))
                                 self.fit_orders[i]["peak"][j][
                                     comp_list[k] + "_" + comp_modifications[l]
                                 ] = self.fit_orders[i]["peak"][j].pop(
@@ -598,21 +586,19 @@ class settings:
 
         # report missing bits and bobs
         if len(missing) > 0:
-            print("\nInput problems that will prevent execution: ")
+            logger.info(" ".join(map(str, [("\nInput problems that will prevent execution: ")])))
             for i in range(len(missing)):
-                print(missing[i])
-            print("\n")
+                logger.info(" ".join(map(str, [(missing[i])])))
+            logger.info(" ".join(map(str, [("\n")])))
             
             if not report:
                 raise ValueError(
                     "The problems listed above will prevent the data fitting."
                 )
             else:
-                print(
-                    "The problems listed above will prevent the data fitting and need to be rectified before execution"
-                )
+                logger.info(" ".join(map(str, [("The problems listed above will prevent the data fitting and need to be rectified before execution")])))
         else:
-            print("fit_orders appears to be correct")
+            logger.info(" ".join(map(str, [("fit_orders appears to be correct")])))
 
 
     def validate_order_type(self, comp_type, peak_set, peak, component, report=False):
@@ -677,15 +663,8 @@ class settings:
                 self.fit_orders[peak_set]["peak"][peak][component + "_fixed"] = [
                     self.fit_orders[peak_set]["peak"][peak][component + "_fixed"]
                 ]
-                print(
-                    "    subpattern "
-                    + str(peak_set)
-                    + ", peak "
-                    + str(peak)
-                    + ": "
-                    + component
-                    + "_fixed changed to a list"
-                )
+                logger.info(" ".join(map(str, [("    subpattern %s, peak %s: %s_fixed changed to a list" 
+                                                % (str(peak_set), str(peak), component))])))
 
             # validate
             if not num_coeffs == len(
@@ -791,14 +770,14 @@ class settings:
         # report findings
         incorrect = False
         if missing:
-            print("\nMissing Values:")
+            logger.info(" ".join(map(str, [("\nMissing Values:")])))
             for i in range(len(missing)):
-                print(missing[i])
+                logger.info(" ".join(map(str, [(missing[i])])))
             incorrect = True
         if extras:
-            print("\nExtra Values:")
+            logger.info(" ".join(map(str, [("\nExtra Values:")])))
             for i in range(len(extras)):
-                print(extras[i])
+                logger.info(" ".join(map(str, [(extras[i])])))
             incorrect = True
         if incorrect:
             if not report:
@@ -806,11 +785,9 @@ class settings:
                     "The problems listed above will prevent the data fitting."
                 )
             else:
-                print(
-                    "The problems listed above will prevent the data fitting and need to be rectified before execution"
-                )
+                logger.info(" ".join(map(str, [("The problems listed above will prevent the data fitting and need to be rectified before execution")])))
         else:
-            print("fit_bounds appears to be correct")
+            logger.info(" ".join(map(str, [("fit_bounds appears to be correct")])))
 
     def set_output_types(self, out_type_list=None, report=False):
         """
@@ -840,7 +817,7 @@ class settings:
         missing = []
         for i in range(len(self.output_types)):
             wr = getattr(output_formatters, "Write" + self.output_types[i])
-            # print(self.output_types[i])
+            # logger.info(" ".join(map(str, [(self.output_types[i])])))
             required, optional = wr.Requirements()
             for j in range(len(required)):
                 try:
@@ -869,12 +846,12 @@ class settings:
                     )
 
         if missing:
-            print("\nMissing output settings:")
+            logger.info(" ".join(map(str, [("\nMissing output settings:")])))
             for i in range(len(missing)):
-                print(missing[i])
-            print("The issues listed above may prevent outputs being written correctly")
+                logger.info(" ".join(map(str, [(missing[i])])))
+            logger.info(" ".join(map(str, [("The issues listed above may prevent outputs being written correctly")])))
         else:
-            print("The output settings appear to be in order")
+            logger.info(" ".join(map(str, [("The output settings appear to be in order")])))
 
     def set_data_files(self, start=0, end=None, keep=None):
         """
@@ -999,7 +976,7 @@ class settings:
         None.
 
         """
-        print("Caution: save_settings writes a temporary file with no content")
+        logger.info(" ".join(map(str, [("Caution: save_settings writes a temporary file with no content")])))
         
         fnam = os.path.join(filepath, filename)
         with open(fnam, "w") as TempFile:
@@ -1011,7 +988,7 @@ class settings:
                 indent=2,
                 default=json_numpy_serializer,
             )
-        print("Done writing", filename)
+        logger.info(" ".join(map(str, [("Done writing", filename)])))
 
 def get_output_options(output_type):
     """

@@ -13,6 +13,7 @@ import cpf.lmfit_model as lmm
 # import cpf.XRD_FitPattern as XRD_FP
 # from cpf.IO_functions import ReplaceNullTerms, FileList, lmfit_fix_int_data_type
 import cpf.IO_functions as IO
+from cpf.XRD_FitPattern import logger
 
 
 def Requirements():
@@ -77,7 +78,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
     # path, filename = os.path.split(base_file_name)
     # base, ext = os.path.splitext(filename)
     # if not base:
-    #     print("No base filename, using input filename instead.")
+    #     logger.info(" ".join(("No base filename, using input filename instead.")))
     #     base =  os.path.splitext(FitSettings.inputfile)[0]
 
     # if base[-1:] == '_': #if the base file name ends in an '_' remove it.
@@ -90,18 +91,18 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
 
     # if not base:
     if base is None or len(base) == 0:
-        print("No base filename, trying ending without extension instead.")
+        logger.info(" ".join(("No base filename, trying ending without extension instead.")))
         base = setting_class.datafile_ending
 
     if base is None:
-        print("No base filename, using input filename instead.")
+        logger.info(" ".join(("No base filename, using input filename instead.")))
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
     out_file = IO.make_outfile_name(
         base, directory=setting_class.output_directory, extension=".dat", overwrite=True, additional_text=setting_class.file_label
     )
 
     text_file = open(out_file, "w")
-    print("Writing", out_file)
+    logger.info(" ".join(("Writing", out_file)))
 
     text_file.write(
         "# Summary of fits produced by continuous_peak_fit for input file: %s.\n"
@@ -214,8 +215,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                     overwrite=True,
                 )
 
-                # print('  Incorporating ' + subfilename)
-                print("  Incorporating: " + out_name + ", " + IO.peak_string(fit[y]))
+                # logger.info(" ".join(('  Incorporating ' + subfilename)))
+                logger.info(" ".join(("  Incorporating: " + out_name + ", " + IO.peak_string(fit[y]))))
 
                 savfilename = IO.make_outfile_name(
                     setting_class.subfit_filename,  # diff_files[z],
@@ -237,9 +238,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                             )
                         except:
                             # raise FileNotFoundError
-                            print(
-                                "    Can't open file with the correlation coefficients in..."
-                            )
+                            logger.info(" ".join(map(str, [("    Can't open file with the correlation coefficients in...")])))
                     # FIX ME: this will only work for one peak. Needs fixing if more then one peak in subpattern
                     try:
                         corr = gmodel.params["peak_0_d3"].correl["peak_0_d4"]
@@ -249,14 +248,14 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                     # lmfit.printfuncs.report_ci(ci)
 
                 else:
-                    # print('  No file ' + subfilename)
+                    # logger.info(" ".join(('  No file ' + subfilename)))
                     corr = np.nan
 
                 # get parameters to write to output file.
                 # file name
                 # out_name = os.path.splitext(os.path.basename(diff_files[z]))[0]
                 # out_name = IO.make_outfile_name(diff_files[z], directory='', overwrite=True)
-                # print(out_name)
+                # logger.info(" ".join((out_name)))
 
                 width_fnam = np.max((width_fnam, len(out_name)))
 
@@ -265,9 +264,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                     out_peak = []
 
                     if fit[y]["peak"][x]["d-space_type"] != "fourier":
-                        raise ValueError(
-                            "This output type is not setup to process non-Fourier peak centroids."
-                        )
+                        raise ValueError("This output type is not setup to process non-Fourier peak centroids.")
 
                     # peak
                     # if 'phase' in fit[y]['peak'][x]:
@@ -282,9 +279,9 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                     #     out_peak = out_peak + orders['peak'][x]['hkl']
                     # else:
                     #     out_peak = out_peak + ' ' + str(x)
-                    # print('old', out_peak)
+                    # logger.info(" ".join(('old', out_peak)))
                     out_peak = IO.peak_string(fit[y], peak=[x])
-                    # print('new', out_peak)
+                    # logger.info(" ".join(('new', out_peak)))
 
                     width_hkl = np.max((width_hkl, len(out_peak)))
 
@@ -613,6 +610,6 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
 
                     text_file.write("\n")
         else:
-            print(filename, " does not exist on the path")
+            logger.info(" ".join((filename, " does not exist on the path")))
             
     text_file.close()

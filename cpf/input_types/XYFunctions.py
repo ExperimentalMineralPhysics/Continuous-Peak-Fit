@@ -575,7 +575,7 @@ class XYDetector:
         if self.calibration["x_dim"]==0:
             return xv, yv
         else:
-            return ma.array(yv) * self.calibration["x"][1] + self.calibration["x"][0]
+            return yv, xv
         
 
     def get_two_theta(self, mask=None):
@@ -591,9 +591,9 @@ class XYDetector:
         xv, yv = np.meshgrid(y,x)
 
         if self.calibration["x_dim"]==0:
-            return ma.array(xv) * self.calibration["x"][1] + self.calibration["x"][0]
+            return ma.array(xv, mask=mask) * self.calibration["x"][1] + self.calibration["x"][0]
         else:
-            return ma.array(yv) * self.calibration["x"][1] + self.calibration["x"][0]
+            return ma.array(yv, mask=mask) * self.calibration["x"][1] + self.calibration["x"][0]
 
 
     def get_azimuth(self, mask=None):
@@ -609,9 +609,9 @@ class XYDetector:
         xv, yv = np.meshgrid(y,x)
 
         if self.calibration["x_dim"]==0:
-            return ma.array(yv) * self.calibration["y"][1] + self.calibration["y"][0]
+            return ma.array(yv, mask=mask) * self.calibration["y"][1] + self.calibration["y"][0]
         else:
-            return ma.array(xv) * self.calibration["y"][1] + self.calibration["y"][0]
+            return ma.array(xv, mask=mask) * self.calibration["y"][1] + self.calibration["y"][0]
 
 
 

@@ -211,21 +211,39 @@ class XYDetector:
         if isinstance(image_name, list):
             # then it is a h5 type file
             im = h5_functions.get_images(image_name)
-        elif os.path.splitext(image_name)[1] == ".txt":
+        elif os.path.splitext(image_name)[1] == ".txt" or os.path.splitext(image_name)[1] == ".csv":
             # then it is a text file, assume there are less than 20 header rows. 
+            # assume the we do not know the delimiters.
             done = 0
             n = 0
             while done == 0:
-                try:
-                    im = np.loadtxt(image_name, skiprows=n)
+                if os.path.splitext(image_name)[1] == ".csv":
+                    import csv
+                    im = []
+                    with open(image_name, 'r', encoding='utf-8-sig') as f:
+                        reader = csv.reader(f)
+                        for row in reader:
+                            for i in range(len(row)):
+                                if row[i] == "":
+                                    row[i] = np.nan
+                                else:
+                                    row[i] = float(row[i])
+                                #row[row == ""] = 0 
+                            im.append(row)
+                            
+                    im = np.array(im)
                     done = 1
-                except:
-                    done = 0
-                    n += 1
-                    if n>20:
-                        # issue an error
-                        err_str = "There seems to be more than 20 header rows in the data file. Is this correct?"
-                        raise ValueError(err_str)
+                else:
+                    try:
+                        im = np.loadtxt(image_name, skiprows=n)
+                        done = 1
+                    except:
+                        done = 0
+                        n += 1
+                        if n>20:
+                            # issue an error
+                            err_str = "There seems to be more than 20 header rows in the data file. Is this correct?"
+                            raise ValueError(err_str)
         else:
             im = image.imread(image_name)
             im = im.data

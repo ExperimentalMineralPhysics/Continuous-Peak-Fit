@@ -248,7 +248,7 @@ class XYDetector:
             im = image.imread(image_name)
             im = im.data
 
-        #self.intensity = ma.array(im, dtype="f")
+        im = ma.array(im, dtype="f")
         
         if 0:#debug:
             print(self.intensity)

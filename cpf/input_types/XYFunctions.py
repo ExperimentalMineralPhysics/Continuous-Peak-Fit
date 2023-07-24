@@ -1,22 +1,49 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+XYFunctions.
 
-# XYFunctions.
-#
-# For simple x, y data the does not require any complex conversions. 
-# The peaks are asumed to run vertically in the image (Y direction)
-# If the peaks run the other way then use the YXFunctions. 
-#
-# The 'Calibration', such as it is, are simple finctions of x or y. 
-#
-# Functions to change for another imput type:
-#   -   get_calibration
-#   -   get_detector 
-#   -   Load/import data
-#   -   Load mask
-#   -   Load Calibration
+For simple x, y data the does not require any complex conversions. 
+The peaks are asumed to run vertically in the image (Y direction)
+If the peaks run the other way then use the YXFunctions (not yet made as a function). 
 
+The 'Calibration', such as it is, are simple finctions of x or y. 
+
+Functions to change for another imput type:
+   -   get_calibration
+   -   get_detector 
+   -   Load/import data
+   -   Load mask
+   -   Load Calibration
+   
+   
+   
+Notes (SAH, March 2023):
+- The images are plotted as scatter plots. This is because I started (but didnt finish)
+making the data plot as images using imshow. The switch "plot_as_image" switches between the scatter 
+and the imshow functions. 
+- Masks are either files/arrays (as in other data types) or dictionaries of polygons and thresholds, more like 
+the functionality of GSAS-II. But only polgons and threasholds are implemented not the other types avaliabe in 
+GSAS-II. An example of the new dictionary type mask is: 
+    Calib_mask     = {"polygon": [[(0,43),(180,43),(205,103),(127,160),(97,247),(80,393),(0,377)],
+                                  [(1000,43),(820,43),(795,103),(853,160),(890,247),(910,393),(1000,377)],
+                                  [(305,357),(286,375),(286,375),(305,275)],
+                                 ],
+                      "threshold": [0.25, 8]
+                      }
+- Calibrations are now also a dictionary that converts the x,y of the data set to calibrated values. 
+Currently only linear cnversions have been implemented. An example: 
+    Calib_param    = {"x_dim": 1, 
+                      "x": [0,1], 
+                      "x_label": r"pixels", 
+                      "y":[360, -360/1000], 
+                      "y_label": "Azimuth", 
+                      "y_start": 0, 
+                      "y_end": 360}
+- 
+   
+"""
 
 
 __all__ = ["XYDetector"]

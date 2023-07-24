@@ -544,7 +544,7 @@ class XYDetector:
         nx, ny = self.intensity.shape
         x = np.linspace(0, nx-1, nx)
         y = np.linspace(0, ny-1, ny)
-        xv, yv = np.meshgrid(x, y)
+        xv, yv = np.meshgrid(y,x)
 
         if self.calibration["x_dim"]==0:
             return xv, yv
@@ -562,7 +562,7 @@ class XYDetector:
         nx, ny = self.intensity.shape
         x = np.linspace(0, nx-1, nx)
         y = np.linspace(0, ny-1, ny)
-        xv, yv = np.meshgrid(x, y)
+        xv, yv = np.meshgrid(y,x)
 
         if self.calibration["x_dim"]==0:
             return ma.array(xv) * self.calibration["x"][1] + self.calibration["x"][0]
@@ -580,7 +580,7 @@ class XYDetector:
         nx, ny = self.intensity.shape
         x = np.linspace(0, nx-1, nx)
         y = np.linspace(0, ny-1, ny)
-        xv, yv = np.meshgrid(x, y)
+        xv, yv = np.meshgrid(y,x)
 
         if self.calibration["x_dim"]==0:
             return ma.array(yv) * self.calibration["y"][1] + self.calibration["y"][0]

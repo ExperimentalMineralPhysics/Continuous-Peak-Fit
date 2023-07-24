@@ -251,13 +251,12 @@ class XYDetector:
         im = ma.array(im, dtype="f")
         
         if 0:#debug:
-            print(self.intensity)
-            print("min+max:", np.min(self.intensity), np.max(self.intensity))
-            print("min+max:", np.nanmin(self.intensity), np.nanmax(self.intensity))
+            print("min+max:", np.min(im), np.max(im))
+            print("min+max:", np.nanmin(im), np.nanmax(im))
+            
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
-            self.plot_collected(fig_plot=fig, axis_plot=ax)
-            # plt.title(os.path.split(image_name)[1])
+            ax.imshow(im)
             plt.title(IO_functions.title_file_names(image_name=image_name))
             plt.show()
             plt.close()

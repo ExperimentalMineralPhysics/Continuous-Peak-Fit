@@ -623,7 +623,7 @@ class XYDetector:
         :return:
         """
         
-        return self.get_two_theta()
+        return self.get_two_theta(mask=mask)
 
     def set_limits(self, range_bounds=[-np.inf, np.inf]):
         """

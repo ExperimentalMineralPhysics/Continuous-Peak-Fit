@@ -590,7 +590,12 @@ class settings:
                                 )
                                 for m in range(len(mssng)):
                                     missing.append(mssng[m])
-
+                                    
+                        # check if phase and hkl are present. If neither then add them to make a label. 
+                        if not "hkl" in self.fit_orders[i]["peak"][j] and not "phase" in self.fit_orders[i]["peak"][j]:
+                            self.fit_orders[i]["peak"][j]["phase"] = "Region"
+                            self.fit_orders[i]["peak"][j]["hkl"] = i+1
+                            
                 if "PeakPositionSelection" in self.fit_orders[i]:
                     mssng = self.validate_position_selection(peak_set=i, report=report)
                     for m in range(len(mssng)):

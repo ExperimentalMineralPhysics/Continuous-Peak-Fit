@@ -297,6 +297,7 @@ def fit_chunks(
     debug=False,
     fit_method="least_squares",
     mode="fit",
+    max_n_f_eval=400 
 ):
     """
     Take the raw data, fit the chunks and return the chunk fits
@@ -496,6 +497,7 @@ def fit_chunks(
                     settings_as_class.subfit_orders,
                     params,
                     fit_method=fit_method,
+                    max_n_fev = max_n_f_eval,
                     weights=None,
                 )
                 params = fit.params  # update lmfit parameters
@@ -590,7 +592,7 @@ def fit_chunks(
     return out_vals, new_azi_chunks
 
 
-def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=False, save_fit=False):
+def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=False, save_fit=False, max_n_f_eval=400):
 
     orders = settings_as_class.subfit_orders
 
@@ -691,6 +693,7 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
                     symmetry=symmetry,
                     errs=data_val_errors,
                     fit_method="leastsq",
+                    max_n_fev=max_n_f_eval
                 )
 
             master_params = fout.params
@@ -698,7 +701,7 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
             # FIX ME. Check which params should be varying and which should not.
             # Need to incorporate vary and un-vary params as well as partial vary
 
-    if 1:  # debug:
+    if debug:
         print("Parameters after initial Fourier fits")
         master_params.pretty_print()
 

@@ -910,7 +910,7 @@ def plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=None, params_
     azi_plot = np.unique(data_as_class.azm.flatten())
     if data_as_class.continuous_azm:
         # if there are lots and lots of data make the list shorter
-        azi_plot = np.array(list(range(np.int(y_lims[0]), np.int(y_lims[1]), 2)))
+        azi_plot = np.array(list(range(np.int_(y_lims[0]), np.int_(y_lims[1]), 2)))
 
     peeks = len(params_dict["peak"])
     fit_centroid = []

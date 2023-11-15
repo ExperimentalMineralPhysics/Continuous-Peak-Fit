@@ -707,7 +707,7 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
 
         # plot output of fourier fits....
         x_lims = start_end
-        azi_plot = range(np.int(x_lims[0]), np.int(x_lims[1]), 2)
+        azi_plot = range(np.int_(x_lims[0]), np.int_(x_lims[1]), 2)
         gmodel = Model(sf.coefficient_expand, independent_vars=["azimuth"])
 
         comp_list = ["h", "d", "w", "p"]

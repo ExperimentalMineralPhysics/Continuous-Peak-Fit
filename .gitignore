@@ -8,6 +8,8 @@
 *.dat 
 *.fit 
 *.exp
+*.flt
+*.spt
 
 *.gif
 *.mp4
@@ -15,3 +17,6 @@
 
 .DS_Store
 venv
+
+/Example1-Fe/results
+/Example2-MgO/results

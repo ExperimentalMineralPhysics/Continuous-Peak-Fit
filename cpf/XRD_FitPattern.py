@@ -758,7 +758,7 @@ def execute(
     if mode == "fit":
         # Write the output files.
         write_output(
-            setting_file=setting_file, setting_class=settings_for_fit, debug=True
+            setting_file=setting_file, setting_class=settings_for_fit, debug=debug
         )
 
     if parallel is True:

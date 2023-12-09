@@ -109,8 +109,11 @@ class DioptasDetector:
             #open the file to get the shape of the data.     
             if diff_file is not None: 
                 im_all = fabio.open(diff_file)
-            else:
+            elif settings.calibration_data is not None:
                 im_all = fabio.open(settings.calibration_data)
+            else:
+                im_all = fabio.open(settings.image_list[0])
+                
 
             if self.calibration.detector:
                  #have read the poni calibration and the detector is present.

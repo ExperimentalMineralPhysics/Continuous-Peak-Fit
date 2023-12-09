@@ -693,7 +693,7 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
                     symmetry=symmetry,
                     errs=data_val_errors,
                     fit_method="leastsq",
-                    max_n_fev=max_n_f_eval
+                    max_nfev = max_n_f_eval
                 )
 
             master_params = fout.params

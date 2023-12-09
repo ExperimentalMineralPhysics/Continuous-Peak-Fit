@@ -536,8 +536,6 @@ def plot_cascade_chunks(
         inputs=setting_class, debug=debug, report=report, subpattern=subpattern
     )
     min_all, max_all = get_chunks_range(all_data, series="h")
-    print(min_all, max_all)
-    
         
     for j in range(num_plots):
         # loop over the number of sets of peaks fit for (i.e. len(setting_class.fit_orders))

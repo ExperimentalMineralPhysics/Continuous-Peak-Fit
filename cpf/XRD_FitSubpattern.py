@@ -404,7 +404,7 @@ def fit_sub_pattern(
                         threshold_peak_intensity = float(threshold_peak_intensity) * std
     
                     else:
-                        raise ValueError("The 'threshold_peak_intensity' has to be a number of a multiple of 'var' or 'std'")
+                        raise ValueError("The 'threshold_peak_intensity' has to be a number or a multiple of 'var' or 'std'")
                     
                 if np.max(ave_intensity) <= threshold_peak_intensity:
                     #then there is no determinable peak(s) in the data
@@ -555,7 +555,7 @@ def fit_sub_pattern(
                         threshold_peak_intensity = float(threshold_peak_intensity) * std
     
                     else:
-                        raise ValueError("The 'threshold_peak_intensity' has to be a number of a multiple of 'var' or 'std'")
+                        raise ValueError("The 'threshold_peak_intensity' has to be a number or a multiple of 'var' or 'std'")
                         
                 if np.max(ave_intensity) <= threshold_peak_intensity:
                     #then there is no determinable peak in the data
@@ -776,7 +776,7 @@ def fit_sub_pattern(
     new_params.update({"PeakLabel": io.peak_string(settings_as_class.subfit_orders)})
     
     # Plot results to check
-    view = 1
+    view = 0
     if (save_fit == 1 or view == 1 or debug) and step>0:
         print("\nPlotting results for fit...\n")
         

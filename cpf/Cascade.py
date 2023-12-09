@@ -67,7 +67,7 @@ import re
 from scipy.signal import find_peaks
 
 
-def initiate(setting_file=None, inputs=None, out_type=None, report=False, **kwargs):
+def initiate(*args, **kwargs):
     """
     Run checks on input files, initiate data class and check output options
     :param report:
@@ -79,28 +79,13 @@ def initiate(setting_file=None, inputs=None, out_type=None, report=False, **kwar
     :return fit_settings:
     """
 
-    # Fail gracefully
-    if setting_file is None:
-        raise ValueError(
-            "Either the settings file or the parameter dictionary need to be specified."
-        )
-    # If no params_dict then initiate. Check all the output functions are present and valid.
-
-    settings_for_fit = settings()
-    settings_for_fit.populate(settings_file=setting_file, report=report)
-
+    # pass everything through to XRD_FitPattern.initiate
+    settings_for_fit = XRD_FitPattern.initiate(*args, **kwargs)
+    
     return settings_for_fit
 
 
-def set_range(
-    setting_file=None,
-    inputs=None,
-    debug=False,
-    save_all=False,
-    parallel=True,
-    subpattern="all",
-    **kwargs
-):
+def set_range(*args, **kwargs):
     """
     :param setting_file:
     :param inputs:
@@ -116,25 +101,9 @@ def set_range(
     :return:
     """
 
-    settings_for_fit = initiate(
-        setting_file, inputs=inputs, report=True, mode="cascade"
-    )
-
-    # search over the first file only
-    # restrict file list to first file
-    settings_for_fit.set_data_files(keep=0)
-
-    # restrict to sub-patterns listed
-    settings_for_fit.set_subpatterns(subpatterns=subpattern)
-
-    execute(
-        setting_class=settings_for_fit,
-        debug=debug,
-        save_all=save_all,
-        parallel=parallel,
-        mode="set-range",
-        report=True,
-    )
+    # pass everything through to XRD_FitPattern.set_range
+    XRD_FitPattern.set_range(*args, **kwargs)
+    
 
 
 def execute(

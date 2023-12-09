@@ -588,6 +588,7 @@ def make_outfile_name(
         filename = (
             filename + "__" + "".join(i for i in orders["note"] if i not in "\/:;*?<>|")
         )
+    filename = filename.strip("_")
     if directory:
         filename = os.path.join(directory, filename)
 

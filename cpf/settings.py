@@ -112,9 +112,9 @@ class settings:
         self.fit_track = False
         self.fit_propagate = True
 
-        self.cascade_bin_type = None
-        self.cascade_per_bin = None
-        self.cascade_number_bins = None
+        self.cascade_bin_type = 0      # set default type - number data per bin
+        self.cascade_per_bin = 50      # set default value
+        self.cascade_number_bins = 900 # set default value
         self.cascade_track = False
 
         # output requirements

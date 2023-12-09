@@ -35,7 +35,7 @@ import numpy as np
 # import numpy.ma as ma
 import matplotlib.pyplot as plt
 import matplotlib.colors as colours
-import cpf.XRD_FitPattern as XRDFit
+import cpf.XRD_FitPattern as XRD_FitPattern
 import cpf.IO_functions as IO
 import os.path
 import proglog
@@ -378,7 +378,7 @@ def execute(
             additional_text="chunks",
             # orders=settings_for_fit.subfit_orders,
             extension=".json",
-            overwrite=False,
+            overwrite=True,
         )
         with open(filename, "w") as TempFile:
             # Write a JSON string into the file.
@@ -517,6 +517,7 @@ def plot_cascade_chunks(
     plot_type = "timeseries",
     subpattern="all",
     scale="linear",
+    azi_range = "all",
     vmax=np.inf,
     vmin=0,
     **kwargs
@@ -566,8 +567,8 @@ def plot_cascade_chunks(
         inputs=setting_class, debug=debug, report=report, subpattern=subpattern
     )
     min_all, max_all = get_chunks_range(all_data, series="h")
+    print(min_all, max_all)
     
-
         
     for j in range(num_plots):
         # loop over the number of sets of peaks fit for (i.e. len(setting_class.fit_orders))
@@ -591,7 +592,7 @@ def plot_cascade_chunks(
         if scale == "sqrt":
             norm = colours.PowerNorm(gamma=0.5)
         elif scale == "log":
-            norm = colours.LogNorm(vmin = vmin, vmax=vmax)
+            norm = colours.LogNorm(vmin=vmin)
         elif scale == "linear":
             norm = None
         for k in range(len(setting_class.subfit_orders["peak"])):
@@ -609,13 +610,18 @@ def plot_cascade_chunks(
                             all_data[i][j]["chunks"],
                             modified_time_s[i]
                             * np.ones(np.shape(all_data[i][j]["chunks"])),
-                            s=1,
+                            s=.05,
                             c=(all_data[i][j]["h"][k]),
-                            vmax= vmax,
-                            vmin= vmin,
+                            #vmax= vmax,
+                            #vmin= vmin,
                             cmap="YlOrBr",
                             norm=norm
                         )
+                    
+                    if azi_range != "all":
+                        ax.set_xlim([azi_range[0],azi_range[1]])
+                        
+                        
                     # determine the label for the figure -- if there is data in the other peaks then just label as single peak otherwise it is all the peaks
                     pk = k
                     for l in range(len(setting_class.subfit_orders["peak"])):
@@ -724,7 +730,7 @@ def peak_count(
     inputs=None,
     debug=False,
     report=False,
-    prominence=1,
+    prominence=15,
     subpattern="all",
     **kwargs
 ):

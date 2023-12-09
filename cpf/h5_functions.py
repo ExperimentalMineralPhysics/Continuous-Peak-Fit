@@ -464,7 +464,7 @@ def get_image_key_strings(
     for i in [*range(key_start, key_end+1, key_step)]:
         lbl_str = ""
         for j in range(len(labels)):
-            #print(i, j, "'",key_names[0],"'")
+            # print(i, j, "'",h5key_names[0],"'")
             if (
                 isinstance(key_names[j], str)
                 and len(key_names[j]) == 0

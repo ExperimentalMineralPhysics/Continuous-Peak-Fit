@@ -754,7 +754,7 @@ def fit_model(
     start_end=[0, 360],
     fit_method="leastsq",
     weights=None,
-    max_n_fev=None,
+    max_n_fev=400,
 ):
     """Initiate model of intensities at twotheta and azi given input parameters and fit
     :param max_n_fev:
@@ -816,6 +816,7 @@ def coefficient_fit(
     symmetry=1,
     fit_method="leastsq",
     start_end = [0,360],
+    max_nfev = 400
 ):
     """Fit the Fourier expansion to number of required terms
     :param ydata: Component data array to fit float
@@ -876,5 +877,6 @@ def coefficient_fit(
         sigma=new_errs,
         comp_str=param_str,
         nan_policy="propagate",
+        max_nfev = max_nfev
     )
     return out

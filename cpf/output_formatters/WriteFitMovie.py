@@ -180,3 +180,4 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
         # make the video clip
         animation = VideoClip(make_frame, duration=duration)
         animation.write_videofile(out_file, fps=fps)
+        animation.close()

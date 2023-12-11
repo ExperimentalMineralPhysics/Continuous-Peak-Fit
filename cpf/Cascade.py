@@ -515,7 +515,7 @@ def plot_cascade_chunks(
     # get file times
     modified_time_s = []
     for i in range(setting_class.image_number):
-        modified_time_s.append(os.path.getmtime(setting_class.image_list[i][0]))
+        modified_time_s.append(os.path.getmtime(setting_class.image_list[i]))
     modified_time_s = np.array(modified_time_s)
     modified_time_s = modified_time_s - modified_time_s[0]
     y_label_str = r"Time (s)"

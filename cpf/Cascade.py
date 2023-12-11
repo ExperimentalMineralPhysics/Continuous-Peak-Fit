@@ -599,6 +599,10 @@ def plot_cascade_chunks(
                     plt.title(ttlstr)
                     plt.xlabel(r"Azimuth (deg)")
                     plt.ylabel(y_label_str)
+                    
+                    x_ticks = setting_class.data_class.dispersion_ticks(disp_lims = azi_range)
+                    ax.set_xticks(x_ticks)
+                    
                     cb = plt.colorbar(extend=cb_extend)
                     cb.set_label(r"Log$_{10}$(Intensity)")
                     cb.set_label(r"Intensity")

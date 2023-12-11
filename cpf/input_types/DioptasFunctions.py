@@ -646,16 +646,20 @@ class DioptasDetector:
         self.azm.mask = self.original_mask
         self.dspace.mask = self.original_mask
 
-    def dispersion_ticks(self, disp_ticks=None, unique=10):
+    def dispersion_ticks(self, disp_ticks=None, unique=10, disp_lims = None):
         """
         Returns the labels for the dispersion axis/colour bars.
 
         :param disp_ticks: -- unused for maintained for compatibility with MED functions
         :param unique:
+        :param disp_lims:
         :return new_tick_positions:
         """
-
-        if len(np.unique(self.azm)) >= unique:
+        
+        if disp_lims is not None:
+            disp_lims = np.around(np.array(disp_lims) / 180) * 180
+            disp_ticks = list(range(int(disp_lims[0]), int(disp_lims[1] + 1), 45))
+        elif len(np.unique(self.azm)) >= unique:
             disp_lims = np.array(
                 [np.min(self.azm.flatten()), np.max(self.azm.flatten())]
             )

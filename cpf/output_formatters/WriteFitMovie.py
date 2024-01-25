@@ -9,7 +9,7 @@ from moviepy.video.io.bindings import mplfig_to_npimage
 
 import cpf.IO_functions as IO
 from cpf.XRD_FitSubpattern import plot_FitAndModel
-from cpf.Cosmics import image_preprocess as cosmicsimage_preprocess
+from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
 from cpf.BrightSpots import SpotProcess
 
 

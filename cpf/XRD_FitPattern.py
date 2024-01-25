@@ -11,7 +11,7 @@ import pathos.multiprocessing as mp
 from cpf import output_formatters
 from cpf.settings import settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
-from cpf.Cosmics import image_preprocess as cosmicsimage_preprocess
+from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
 from cpf.BrightSpots import SpotProcess
 from cpf.IO_functions import (
     json_numpy_serializer,

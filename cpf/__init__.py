@@ -17,6 +17,7 @@ __all__ = [
     "h5_functions",
     "IO_functions",
     "fitsubpattern_chunks"
+    "data_preprocess"
 ]
 
 from . import XRD_FitPattern
@@ -31,6 +32,7 @@ from . import lmfit_model
 from . import Cosmics
 from . import BrightSpots
 from . import Cascade
+from . import data_preprocess
 
 from . import input_types
 from . import output_formatters

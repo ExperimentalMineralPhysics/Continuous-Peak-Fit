@@ -27,6 +27,7 @@ import numpy as np
 import sys
 import warnings
 from lmfit import Parameters, Model
+from lmfit.parameter import Parameters
 import cpf.peak_functions as pf
 import cpf.series_functions as sf
 
@@ -133,10 +134,40 @@ def params_to_new_params(params, orders=None):
     :return:
     """
 
-    num_peaks = len(orders["peak"])
-    num_bg = len(orders["background"])
-
+    # get number of peaks and size of background from input data.
+    num_peaks = 0
+    num_bg = 0
+    if isinstance(orders, dict):
+        num_peaks = len(orders["peak"])
+        num_bg = len(orders["background"])
+    elif orders == None and isinstance(params, Parameters):
+        var_names = list(params.keys())
+        done = 0
+        num_peaks=0
+        while done != 1:
+            if len([match for match in var_names if "peak_"+str(num_peaks) in match]) > 0:
+                num_peaks += 1
+            elif num_peaks >= 50:
+                done = 1
+            else:
+                done = 1
+        done = 0
+        num_bg=0
+        while done == 0:
+            if len([match for match in var_names if "bg_c"+str(num_bg) in match]) > 0:
+                num_bg += 1
+            elif num_bg >= 50:
+                done = 1
+            else:
+                done = 1
+    else:
+        print
+        raise ValueError(
+            "Cannot define number of coefficients."
+        )
+        
     peaks = []
+    new_str = ""
     for i in range(num_peaks):
         new_str = "peak_" + str(i) + "_d"
         d_space = gather_param_errs_to_list(params, new_str)
@@ -152,9 +183,9 @@ def params_to_new_params(params, orders=None):
         p_tp = sf.get_series_type(params, new_str)
 
         tmp_peaks = {}
-        if "phase" in orders["peak"][i]:
+        if isinstance("phase", dict) and "phase" in orders["peak"][i]:
             tmp_peaks["phase"] = orders["peak"][i]["phase"]
-        if "hkl" in orders["peak"][i]:
+        if isinstance("phase", dict) and "hkl" in orders["peak"][i]:
             tmp_peaks["hkl"] = orders["peak"][i]["hkl"]
         tmp_peaks["d-space"] = d_space[0]
         tmp_peaks["d-space_err"] = d_space[1]
@@ -168,7 +199,7 @@ def params_to_new_params(params, orders=None):
         tmp_peaks["profile"] = p_space[0]
         tmp_peaks["profile_err"] = p_space[1]
         tmp_peaks["profile_type"] = sf.coefficient_type_as_string(p_tp)
-        if "symmetry" in orders["peak"][i]:
+        if isinstance("phase", dict) and "symmetry" in orders["peak"][i]:
             tmp_peaks["symmetry"] = orders["peak"][i]["symmetry"]
 
         peaks.append(tmp_peaks)
@@ -176,6 +207,7 @@ def params_to_new_params(params, orders=None):
     # Get background parameters
     bg_space = []
     bg_space_err = []
+    new_str = ""
     for b in range(num_bg):
         new_str = "bg_c" + str(b) + "_f"
         bg_spc = gather_param_errs_to_list(params, new_str)
@@ -191,6 +223,9 @@ def params_to_new_params(params, orders=None):
     }
 
     return new_params
+
+
+
 
 
 # def flatten(li):
@@ -277,7 +312,6 @@ def gather_params_to_list(inp_param, param_str, comp=None):
         new_str = param_str
     param_list = []
     str_keys = [key for key, val in inp_param.items() if new_str in key]
-    # print('yes', new_str, str_keys)
     for i in range(len(str_keys)):
         param_list.append(inp_param[new_str + str(i)].value)
     return param_list
@@ -468,6 +502,10 @@ def initiate_params(
     if limits:
         new_min = np.min(limits)
         new_max = np.max(limits)
+        if np.isclose(new_min, new_max, rtol=1e-05, atol=1e-08):
+            pcent_diff = 0.005
+            new_min *= (1-pcent_diff)
+            new_max *= (1+pcent_diff)
         half_range = (new_max - new_min) / 2
     else:
         new_min = -np.inf

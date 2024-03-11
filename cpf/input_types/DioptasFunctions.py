@@ -400,6 +400,7 @@ class DioptasDetector:
 
         self.calibration = pf
         self.conversion_constant = pf.wavelength * 1e10
+        self.DispersionType = "AngleDispersive"
 
     def bins(self, orders_class, cascade=False):
         """
@@ -658,7 +659,7 @@ class DioptasDetector:
         
         if disp_lims is not None:
             disp_lims = np.around(np.array(disp_lims) / 180) * 180
-            disp_ticks = list(range(int(disp_lims[0]), int(disp_lims[1] + 1), 45))
+            disp_ticks = list(rget_cange(int(disp_lims[0]), int(disp_lims[1] + 1), 45))
         elif len(np.unique(self.azm)) >= unique:
             disp_lims = np.array(
                 [np.min(self.azm.flatten()), np.max(self.azm.flatten())]
@@ -861,7 +862,13 @@ class DioptasDetector:
         return all_colours
 
     def plot_collected(
-        self, fig_plot=None, axis_plot=None, show="intensity", limits=[0, 99.9]
+        self, 
+        fig_plot=None, 
+        axis_plot=None, 
+        show="intensity", 
+        colourmap="jet",
+        limits=[0, 99.9], 
+        location='right'
     ):
         """
         add data to axes.
@@ -870,11 +877,20 @@ class DioptasDetector:
         :return:
         """
 
-        IMax = np.percentile(self.intensity, limits[1])
-        IMin = np.percentile(self.intensity, limits[0])
-        # if IMin < 0:
-        #    IMin = 0
+        if isinstance(show, str) and show == "unmasked_intensity":
+            plot_i = self.intensity.data
+        elif isinstance(show, str) and show == "mask":
+            plot_i = np.array(ma.getmaskarray(self.intensity), dtype="uint8") + 1
+            colourmap = "Greys"
+            limits = [0,2]
+        elif isinstance(show, np.ndarray) or ma.isMaskedArray(show):
+            plot_i = show
+        else:  # if show == "intensity"
+            plot_i = self.intensity
 
+        IMax = np.percentile(plot_i, limits[1])
+        IMin = np.percentile(plot_i, limits[0])
+        
         if limits[0] > 0 and limits[1] < 100:
             cb_extend = "both"
         elif limits[1] < 100:
@@ -885,13 +901,14 @@ class DioptasDetector:
             cb_extend = "neither"
 
         the_plot = axis_plot.imshow(
-            self.intensity, vmin=IMin, vmax=IMax, cmap=plt.cm.jet
+            plot_i, vmin=IMin, vmax=IMax, cmap=colourmap
         )
         axis_plot.set_xlabel("x")
         axis_plot.set_ylabel("y")
         axis_plot.invert_yaxis()
 
-        fig_plot.colorbar(mappable=the_plot, extend=cb_extend)
+        fig_plot.colorbar(mappable=the_plot, ax=axis_plot, extend=cb_extend, location=location)
+
 
     def plot_calibrated(
         self,

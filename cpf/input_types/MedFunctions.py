@@ -452,6 +452,7 @@ class MedDetector:
         parms_dict["quad"] = quad
 
         parms_dict["DispersionType"] = "EnergyDispersive"
+        self.DispersionType = "EnergyDispersive"
         parms_dict["mcas"] = dat
 
         blocks = 90  

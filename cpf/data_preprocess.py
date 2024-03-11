@@ -112,9 +112,11 @@ def image_adjust(data, image_process):
         if processes[i].lower() == "cosmics":
             data = remove_cosmics(data, options=options) 
         elif processes[i].lower() == "smooth":
-            data = smoothimage(data, options=options)
+            data = smooth_image(data, options=options)
         elif processes[i].lower() == "background":
             data = rolling_ball_background(data, options=options)
+        elif processes[i].lower() == "scale":
+            data = scale_by_background(data, options=options)
         else:
             err_str = "Unknown image pre-process type: %s", processes[i]
             raise ValueError(err_str)
@@ -190,7 +192,7 @@ def remove_cosmics(data, options=None, settings_for_fit=None):
 
 
 
-def smoothimage(data, options=None, settings_for_fit=None):
+def smooth_image(data, options=None, settings_for_fit=None):
     """
     Smooth  the diffraction image with either a median or Gaussian filter. 
 
@@ -268,7 +270,7 @@ def rolling_ball_background(data, options=None, settings_for_fit=None):
         Data class with the updated data.
 
     """
-  
+    
     if isinstance(options, dict):
         if "background" in options.keys():
             prep = options
@@ -281,9 +283,22 @@ def rolling_ball_background(data, options=None, settings_for_fit=None):
         prep = settings_for_fit
     else:
         prep = {"background": {"kernel": 50}}    
+        
+    original_data = data.duplicate()
     
+    if "smooth" in prep["background"]:
+        # FIXME: we need a median filter that accounts for the mask. 
+        # This is either a filter than dignors the mask or we make all the masked values nan and run a nanmedial filter. 
+        if prep["background"]["smooth"] == "":
+            prep["background"]["smooth"] = {"filter": "median", "kernel": 5}
+        data = smooth_image(data, prep["background"]["smooth"])
+    elif "smooth" in prep:
+        if prep["smooth"] == "":
+            prep["smooth"] = {"filter": "median", "kernel": 5}        
+        data = smooth_image(data, prep["smooth"])
+        
     dt = data.intensity
-    dt.data[dt.mask==True] = np.median(dt)
+    #dt.data[dt.mask==True] = np.median(dt)
     #FIX ME: the removal here is a metian for no good reason. I am trying to make sure the maksed areas do not bleed back into the iamge proper 
     # I do not know if it is necessary though.
     
@@ -316,61 +331,18 @@ def rolling_ball_background(data, options=None, settings_for_fit=None):
     
     background = restoration.rolling_ball(dt, radius=prep['background']['kernel'])
     
-    plot_result(dt, background, prep['background']['kernel'])
+    plot_result(original_data.intensity, background, prep['background']['kernel'])
     plt.show()
 
-    dt = dt-background
+    no_bg = original_data.intensity - background
     
     # copy data back into data class
-    msk = dt.mask
-    dt = np.ma.array(dt, mask=msk)
-    data.intensity = dt
+    msk = no_bg.mask
+    no_bg = np.ma.array(no_bg, mask=msk)
+    data.intensity = no_bg
         
     return data
 
-
-
-def smoothed_background(data, options=None, settings_for_fit=None):
-    """
-    Performs a rolling ball background removal on a smoothed image. 
-    
-
-    Parameters
-    ----------
-    data : TYPE
-        DESCRIPTION.
-    options : TYPE, optional
-        DESCRIPTION. The default is None.
-    settings_for_fit : TYPE, optional
-        DESCRIPTION. The default is None.
-
-    Returns
-    -------
-    None.
-
-    """
-    
-    
-    # # the background removal has to smooth the data before being run inorder to 
-    # # negate the effects of any dark pixels in the diffraction image. 
-
-    # we also need to NaN masked values to repvent bluring of masked parts into the good data. 
-    # Not NaN. Make the maseked values big. Then rolling the ball around under the image does not 
-    # bleed into the good (unmasked) part of the image. After making the background replace all masked bakgroung values 
-    # with either 0, NaN or a mean of the background... 
-    # This will bleed the background into the masked areas and not the unmasked parts of the image.
-    
-    # I don't think we can use NaN. so reaplce all masked values with maximum intensity of image. 
-    # see :https://scikit-image.org/docs/stable/api/skimage.filters.html#skimage.filters.median
-    
-    # FIXME: need to exapnd the mask. To make sure edges of the dead zone do not affect the image.
-
-
-
-    
-    pass
-    
-    
     
     
 def scale_by_background(data, options=None, settings_for_fit=None):
@@ -396,4 +368,29 @@ def scale_by_background(data, options=None, settings_for_fit=None):
     None.
 
     """
-    pass
+    
+    if isinstance(options, dict):
+        if "background" in options.keys():
+            prep = options
+        else:
+            prep={}
+            prep["background"] = options
+    elif isinstance(settings_for_fit, settings.settings):
+        prep = settings_for_fit.data_prepare
+    elif isinstance(settings_for_fit, dict):
+        prep = settings_for_fit
+    else:
+        prep = {"background": {"kernel": 200, "smooth": {"filter": "median", "kernel": 5}}} 
+
+    original_data = data.duplicate()
+    
+    background = rolling_ball_background(data, prep)
+    
+    no_bg = original_data.intensity / (original_data.intensity-background.intensity)
+    
+    # copy data back into data class
+    msk = no_bg.mask
+    no_bg = np.ma.array(no_bg, mask=msk)
+    data.intensity = no_bg
+        
+    return data

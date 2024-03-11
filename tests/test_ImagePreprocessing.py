@@ -103,11 +103,13 @@ for x in range(2):
 
 
 #%% test rolling ball background. 
-for x in range(2):
+for x in range(3):
     if x==0:
         settings.data_prepare = {"background": ""}
     elif x==1:
         settings.data_prepare = {"background": {"kernel": 10}}
+    elif x==2:
+        settings.data_prepare = {"background": {"kernel": 40, "smooth": ""}}
 
     # no need to modify the image for the test.
     
@@ -131,8 +133,35 @@ for x in range(2):
     ax[2].set_title("differences")
 
 
-#%% test background removal. 
+#%% test background scaling. 
+for x in range(1):
+    if x==0:
+        settings.data_prepare = {"scale": ""}
+    elif x==1:
+        settings.data_prepare = {"scale": {"kernel": 10}}
+    elif x==2:
+        settings.data_prepare = {"scale": {"kernel": 40, "smooth": ""}}
 
+    # no need to modify the image for the test.
+    
+    # run removal
+    scale_data = new_data.duplicate()
+    scale_data = image_adjust(scale_data, settings.data_prepare)
+    
+    #plot original vs. processed
+    fig, ax = plt.subplots(1,3)
+    #ax.plot(azm, r, 'r')
+    pc = new_data.plot_collected(fig_plot=fig, axis_plot=ax[0], show="intensity", limits=[1, 99.0], location='bottom')
+    #fig.colorbar(pc, shrink=0.6, ax=ax[0], location='bottom')
+    ax[0].set_title("original image")
+    
+    pc = scale_data.plot_collected(fig_plot=fig, axis_plot=ax[1], show="intensity", limits=[1, 99], location='bottom')
+    #fig.colorbar(pc, shrink=0.6, ax=ax[1], location='bottom')
+    ax[1].set_title("background removed image")
+    
+    pc = scale_data.plot_collected(fig_plot=fig, axis_plot=ax[2], show=new_data.intensity-scale_data.intensity, limits=[1,99], location='bottom')
+    #fig.colorbar(pc, shrink=0.6, ax=ax[2], location='bottom')
+    ax[2].set_title("differences")
 
 
 

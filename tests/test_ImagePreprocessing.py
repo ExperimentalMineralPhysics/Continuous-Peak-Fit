@@ -73,11 +73,13 @@ for x in range(2):
 
 
 #%% test image smoothing
-for x in range(2):
+for x in range(3):
     if x==0:
         settings.data_prepare = {"smooth": ""}
     elif x==1:
         settings.data_prepare = {"smooth": {"filter": "Gaussian", "kernel": 4}}
+    elif x==2:
+        settings.data_prepare = {"smooth": {"kernel": 40, "filter":"nanmedian"}}
     
     # no need to modify the image for the test.
     
@@ -134,13 +136,14 @@ for x in range(3):
 
 
 #%% test background scaling. 
-for x in range(1):
+for x in range(3):
     if x==0:
         settings.data_prepare = {"scale": ""}
     elif x==1:
         settings.data_prepare = {"scale": {"kernel": 10}}
     elif x==2:
-        settings.data_prepare = {"scale": {"kernel": 40, "smooth": ""}}
+        #settings.data_prepare = {"scale": {"kernel": 40, "smooth": ""}}
+        settings.data_prepare = {"scale": {"kernel": 40, "smooth": {"filter":"nanmedian"}}}
 
     # no need to modify the image for the test.
     

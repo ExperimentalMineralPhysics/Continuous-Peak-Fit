@@ -39,7 +39,7 @@ from cpf.Cosmics import cosmicsimage
 import cpf.settings as settings
 import numpy as np
 import matplotlib.pyplot as plt
-
+import scipy as sp
 
 def image_adjust(data, image_process):
     """
@@ -225,13 +225,28 @@ def smooth_image(data, options=None, settings_for_fit=None):
     dt = data.intensity
     
     if prep['smooth']['filter'].lower() == "median":
-       med_filt = morphology.disk(prep['smooth']['kernel'])
-       dt = filters.median(dt, med_filt)
-       #dt = scipy.ndimage.median_filter(dt, footprint=med_filt)
+        med_filt = morphology.disk(prep['smooth']['kernel'])
+        #dt = filters.median(dt, med_filt)
+        dt = sp.ndimage.median_filter(dt, footprint=med_filt)
     elif prep['smooth']['filter'].lower() == "gaussian":
         sigma = prep['smooth']['kernel']
         dt = filters.gaussian(data.intensity, sigma)
-       
+    elif isinstance(prep['smooth']['filter'], str):#.lower() == "nanmedian":
+        if "nan" in prep['smooth']['filter']:
+            dt.data[dt.mask==True] = np.nan
+        if not "kernel" in prep['smooth']:
+            prep['smooth']['kernel'] = 5
+        try:
+            dt = sp.ndimage.generic_filter(dt, getattr(np, prep['smooth']['filter']), [prep['smooth']['kernel'],prep['smooth']['kernel']])
+        except:
+            err_str = (
+                 "'" +prep['smooth']['filter'] + "' is not a numpy function that can be used as a smoothing function."
+             )
+            raise ValueError(err_str)
+        
+        # if "nan" in prep['smooth']['filter']:
+        #     dt.data[dt.mask==True] = np.nan
+        #     print(dt.data[0])       
     else:
         err_str = (
              "Unknown image smoothing type."
@@ -242,7 +257,7 @@ def smooth_image(data, options=None, settings_for_fit=None):
     msk = data.intensity.mask
     dt = np.ma.array(dt, mask=msk)
     data.intensity = dt
-       
+            
     return data
 
 
@@ -298,7 +313,7 @@ def rolling_ball_background(data, options=None, settings_for_fit=None):
         data = smooth_image(data, prep["smooth"])
         
     dt = data.intensity
-    #dt.data[dt.mask==True] = np.median(dt)
+    dt.data[dt.mask==True] = np.max(dt)
     #FIX ME: the removal here is a metian for no good reason. I am trying to make sure the maksed areas do not bleed back into the iamge proper 
     # I do not know if it is necessary though.
     

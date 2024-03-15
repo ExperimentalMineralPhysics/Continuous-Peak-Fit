@@ -482,6 +482,8 @@ def get_image_key_strings(
                     lbl_str = lbl_str + str(labels[j])
                 else:
                     lbl_str = lbl_str + str(labels[j][i])
+            elif labels[j].size == 1:
+                lbl_str = lbl_str + sep2 + str(labels[j])
             else:
                 if np.size(labels[j]) == 1:
                     # if labels are a single item they can come wrapped in lists. 

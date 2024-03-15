@@ -208,10 +208,12 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                     except:
                         corr = np.nan
 
-                elif "correlation_coeffs" in fit[y]: # try readin correlation coefficient from fit file.
-                    corr_all = json.loads(fit[0]["correlation_coeffs"])
-                    corr = corr_all["peak_0_d3"]["peak_0_d4"]
-                    
+                elif "correlation_coeffs" in fit[y]: # try reading correlation coefficient from fit file.
+                    try:
+                        corr_all = json.loads(fit[0]["correlation_coeffs"])
+                        corr = corr_all["peak_0_d3"]["peak_0_d4"]
+                    except:
+                        corr = np.nan
                 else: #no correlation coefficient. 
                     corr = np.nan
 

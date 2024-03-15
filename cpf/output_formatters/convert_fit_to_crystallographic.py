@@ -88,37 +88,45 @@ def fourier_to_crystallographic(coefficients, SampleGeometry="3d", SampleDeforma
     # d (atan(c))/dc = 1/(c^2+1). c = b/a. dc = c.((da/a)^2 + (db/b)^2)^(1/2)
     # out_angerr = dc.
     # FIX ME need to check this.
-    out_ang = np.arctan(
-        coefficients[subpattern]["peak"][peak]["d-space"][3]
-        / coefficients[subpattern]["peak"][peak]["d-space"][4]
-    ) / 2
-    out_angerr = (
-        1
-        / (
-            (
-                coefficients[subpattern]["peak"][peak]["d-space"][3]
-                / coefficients[subpattern]["peak"][peak]["d-space"][4]
-            )
-            ** 2
-            + 1
-        )
-        * (
-            np.abs(out_ang)
-            * (
+    if coefficients[subpattern]["peak"][peak]["d-space"][4] != 0 and coefficients[subpattern]["peak"][peak]["d-space"][3] != 0:
+        out_ang = np.arctan(
+            coefficients[subpattern]["peak"][peak]["d-space"][3]
+            / coefficients[subpattern]["peak"][peak]["d-space"][4]
+        ) / 2
+        out_angerr = (
+            1
+            / (
                 (
-                    coefficients[subpattern]["peak"][peak]["d-space_err"][3]
-                    / coefficients[subpattern]["peak"][peak]["d-space"][3]
-                )
-                ** 2
-                + (
-                    coefficients[subpattern]["peak"][peak]["d-space_err"][4]
+                    coefficients[subpattern]["peak"][peak]["d-space"][3]
                     / coefficients[subpattern]["peak"][peak]["d-space"][4]
                 )
                 ** 2
+                + 1
             )
-            ** (1 / 2)
-        )
-    ) / 2
+            * (
+                np.abs(out_ang)
+                * (
+                    (
+                        coefficients[subpattern]["peak"][peak]["d-space_err"][3]
+                        / coefficients[subpattern]["peak"][peak]["d-space"][3]
+                    )
+                    ** 2
+                    + (
+                        coefficients[subpattern]["peak"][peak]["d-space_err"][4]
+                        / coefficients[subpattern]["peak"][peak]["d-space"][4]
+                    )
+                    ** 2
+                )
+                ** (1 / 2)
+            )
+        ) / 2
+    elif coefficients[subpattern]["peak"][peak]["d-space"][3] != 0:
+        out_ang = np.pi/2
+        out_angerr = 0
+    else:
+        out_ang = np.nan
+        out_angerr = np.nan
+        #FIXME: this is a bodged fix for now. It needs to be calcualted assuming the error is not also zero. 
     # correction to make angle correct (otherwise potentially out by pi/2)
     if coefficients[subpattern]["peak"][peak]["d-space"][4] > 0:
         if coefficients[subpattern]["peak"][peak]["d-space"][3] <= 0:

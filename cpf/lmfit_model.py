@@ -504,8 +504,12 @@ def initiate_params(
         new_max = np.max(limits)
         if np.isclose(new_min, new_max, rtol=1e-05, atol=1e-08):
             pcent_diff = 0.005
-            new_min *= (1-pcent_diff)
-            new_max *= (1+pcent_diff)
+            if new_min == 0 or new_max == 0:
+                new_min = 0
+                new_max = pcent_diff
+            else:
+                new_min *= (1-pcent_diff)
+                new_max *= (1+pcent_diff)
         half_range = (new_max - new_min) / 2
     else:
         new_min = -np.inf

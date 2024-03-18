@@ -203,7 +203,7 @@ def execute(
             ax = fig.add_subplot(1, 1, 1)
             ax_o1 = plt.subplot(111)
             new_data.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity")
-            plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
+            plt.title(title_file_names(image_name=settings_for_fit.image_list[j]))
             plt.show()
             plt.close()
 

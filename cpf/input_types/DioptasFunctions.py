@@ -46,7 +46,7 @@ class DioptasDetector:
         self.tth = None
         self.azm = None
         self.dspace = None
-        # separate detectors around the ring so not continuous
+        # Single image plate detector so contonuous data.
         self.continuous_azm = True
 
         if settings_class:

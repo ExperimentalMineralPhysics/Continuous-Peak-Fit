@@ -207,6 +207,8 @@ def fit_sub_pattern(
     iterations=2,
     fit_method=None,
     mode="fit",
+    histogram_type = None, 
+    histogram_bins = None,
     cascade=False,
     threshold_data_intensity = 0,
     threshold_peak_intensity = 0,
@@ -357,6 +359,8 @@ def fit_sub_pattern(
                     data_as_class,
                     settings_as_class,
                     mode=mode,
+                    histogram_type = histogram_type, 
+                    histogram_bins = histogram_bins,
                     debug=debug,
                     fit_method=fit_method
                 )

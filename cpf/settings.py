@@ -116,7 +116,9 @@ class settings:
         self.cascade_per_bin = 50      # set default value
         self.cascade_number_bins = 900 # set default value
         self.cascade_track = False
-
+        self.cascade_histogram_type = "data"
+        self.cascade_histogram_bins = None 
+        
         # output requirements
         self.output_directory = "."
         self.output_types = None
@@ -293,6 +295,10 @@ class settings:
             self.cascade_bin_type = 0
         if "cascade_bin_type" in dir(self.settings_from_file):
             self.cascade_bin_type = self.settings_from_file.cascade_bin_type
+        if "cascade_historgram_type" in dir(self.settings_from_file):
+            self.cascade_historgram_type = self.settings_from_file.cascade_historgram_type
+        if "cascade_historgram_bins" in dir(self.settings_from_file):
+            self.cascade_historgram_bins = self.settings_from_file.cascade_historgram_bins
 
         # organise the fits
         if "fit_orders" in dir(self.settings_from_file):

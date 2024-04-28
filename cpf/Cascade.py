@@ -340,8 +340,8 @@ def execute(
                     save_fit=save_figs,
                     debug=debug,
                     mode=mode,
-                    # cascade=True,
-                    # cascade_heights=cascade_heights,
+                    histogram_type = settings_for_fit.cascade_histogram_type,
+                    histogram_bins = settings_for_fit.cascade_histogram_bins,
                 )
                 all_fitted_chunks.append(tmp[0])
                 all_chunk_positions.append(tmp[1])

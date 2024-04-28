@@ -12,6 +12,7 @@ from lmfit import Parameters, Model
 import cpf.IO_functions as io
 import cpf.series_functions as sf
 import cpf.lmfit_model as lmm
+import cpf.histograms as hist
 
 
 def get_manual_guesses(settings_as_class, data_as_class, debug=False):
@@ -293,11 +294,13 @@ def get_chunk_peak_guesses(
 def fit_chunks(
     data_as_class,
     settings_as_class,
-    save_fit=False,
-    debug=False,
     fit_method="least_squares",
     mode="fit",
-    max_n_f_eval=400 
+    histogram_type = None, #"width",
+    histogram_bins = None,
+    max_n_f_eval=400, 
+    save_fit=False,
+    debug=False,
 ):
     """
     Take the raw data, fit the chunks and return the chunk fits
@@ -420,6 +423,17 @@ def fit_chunks(
 
             # if ma.MaskedArray.count(chunk_data.intensity) >= min_dat:
             if len(chunk_data.intensity) >= min_dat:
+
+                # integrate (smooth) the chunks
+                if histogram_type != None:
+                    chunk_data.tth, chunk_data.intensity, chunk_data.azm, chunk_data.dspace = hist.histogram1d(chunk_data.tth,
+                                  chunk_data.intensity,
+                                  azi=chunk_data.azm,
+                                  dspace = chunk_data.dspace,
+                                  histogram_type = histogram_type,
+                                  bin_n = histogram_bins,
+                                  debug=debug
+                            )
 
                 # append azimuth to output
                 new_azi_chunks.append(azichunks[j])

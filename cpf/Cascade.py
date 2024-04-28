@@ -27,6 +27,13 @@ It needs to do a few things.
 
 """
 
+"""
+#another algorithm that could be tried is:
+https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_blob.html
+https://scikit-image.org/docs/stable/api/skimage.feature.html#skimage.feature.blob_log
+"""
+
+
 __all__ = ["initiate", "set_range", "execute"]
 
 

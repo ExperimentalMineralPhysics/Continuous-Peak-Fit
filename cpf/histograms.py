@@ -5,6 +5,7 @@ __all__ = ["integrate1d"]
 
 
 import numpy as np
+import numpy.ma as ma
 import matplotlib.pyplot as plt
 import pyFAI.engines.histogram_engine as he
 
@@ -133,3 +134,69 @@ def histogram1d(tth,
         raise ValueError("the intensity, two theta and azimuth arrays are not the same size")
             
     return np.array(position), np.array(intens), np.array(azm), np.array(dspc)
+
+
+
+
+def histogram2d(
+        data,
+        x,
+        y,
+        x_bins = 500,
+        y_bins = 720):
+    """
+    Reduce the diffraction pixel data into regualar gridded data (in effect an image). 
+    This is basically pyFAI's integrate2d function without all the bells and whistles.
+
+    Parameters
+    ----------
+    data : TYPE
+        DESCRIPTION.
+    x : TYPE
+        DESCRIPTION.
+    y : TYPE
+        DESCRIPTION.
+    x_bins : TYPE, optional
+        DESCRIPTION. The default is 500.
+    y_bins : TYPE, optional
+        DESCRIPTION. The default is 720.
+
+    Returns
+    -------
+    result : TYPE
+        DESCRIPTION.
+    x_edges : TYPE
+        DESCRIPTION.
+    y_edges : TYPE
+        DESCRIPTION.
+    num_pix_per_bin : TYPE
+        DESCRIPTION.
+
+    """
+    #FIX ME: should I just replace this with a call to histogram2d_engine in pyFAI/engines/histogram_engine.py??
+    # To have empyt pixels where there is no data use dummy = np.nan as an option.
+    # (April 2024) I think that it should stay as a function -- even if it eventually calls the pyFAI function 
+    # we can forace all the options we want here rather than having to set them everytime. 
+    
+    
+    if not ma.isMaskedArray(data):
+        data = ma.array(data)
+    if not ma.isMaskedArray(x):
+        x = ma.array(x)
+    if not ma.isMaskedArray(y):
+        y = ma.array(y)
+    
+    x_edges = np.linspace(x[x.mask == False].min(), x[x.mask == False].max(), int(x_bins)+1)
+    y_edges = np.linspace(y[y.mask == False].min(), y[y.mask == False].max(), int(y_bins)+1)
+            
+    num_pix_per_bin, _, _ = np.histogram2d(x[x.mask == False].flatten(),y[y.mask == False].flatten(),bins=[x_edges, y_edges])
+    nominator,   _, _ = np.histogram2d(x[x.mask == False].flatten(),y[y.mask == False].flatten(),bins=[x_edges, y_edges], weights=data[data.mask == False].flatten())
+    result = nominator / num_pix_per_bin.clip(1)
+    
+    i, j = np.where(num_pix_per_bin == 0)
+    result[i,j] = np.nan #make a white (empty) pixel
+    num_pix_per_bin[i,j] = np.nan #make a white (empty) pixel
+    
+    return result, x_edges, y_edges, num_pix_per_bin
+
+

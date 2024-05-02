@@ -3,22 +3,21 @@
 
 __all__ = ["DioptasDetector"]
 
-import os
+
 import sys
 from copy import deepcopy
-import fabio
-import h5py
-import cpf.h5_functions as h5_functions
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
+import matplotlib.pyplot as plt
+import fabio
 import pyFAI
-from PIL import Image
-from matplotlib import gridspec
-from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.io import ponifile
-from matplotlib import cm, colors
+from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from PIL import Image
+from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf import IO_functions
+import cpf.h5_functions as h5_functions
+
 
 
 class DioptasDetector:
@@ -38,30 +37,45 @@ class DioptasDetector:
 
         self.x = None
         self.y = None
-        self.azm_start = -180
-        self.azm_end   =  180
-        self.tth_start = None
-        self.tth_end   = None
         self.intensity = None
         self.tth = None
         self.azm = None
         self.dspace = None
+        self.azm_start = -180
+        self.azm_end   =  180
+        self.tth_start = None
+        self.tth_end   = None
+        
+        self.azm_blocks = 45
+        
         # Single image plate detector so contonuous data.
         self.continuous_azm = True
+        self.DispersionType = "AngleDispersive"
 
         if settings_class:
             self.get_calibration(settings=settings_class)
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
+
+
     def duplicate(self):
         """
-        Makes a "deep" copy of an Dioptas Instance, using copy.deepcopy()
+        Makes an independent copy of a Dioptas Instance
+                
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        Dioptas Instance.
+
         """
-
         new = deepcopy(self)
-
         return new
+
+
 
     def fill_data(
         self, diff_file, settings=None, debug=None
@@ -382,34 +396,65 @@ class DioptasDetector:
         # FIX ME : this could probably all be done by using the detector class in fabio.
         return im_ints
 
+
+
     def get_calibration(self, file_name=None, settings=None):
         """
-        Parse inputs file, create type specific inputs
-        :rtype: object
-        :param file_nam:
-        :return:
-        """
+        Opens the file with the calibration data in it and updates 
+        DioptasCalibration.calibration and 
+        DioptasCalibration.conversion_constant
+        
+        Either file_name or settings should be set. 
+        
+        Parameters
+        ----------
+        file_name : string, optional
+            Filename of the calibration file. In this case a *.poni file.
+            The default is None.
+        settings : settings class, optional
+            cpf settings class containing the calibration file name.
+            The default is None.
 
+        Returns
+        -------
+        None.
+
+        """
         if settings != None:
             parms_file = settings.calibration_parameters
         else:
             parms_file = file_name
-
         pf = ponifile.PoniFile()
         pf.read_from_file(parms_file)
 
         self.calibration = pf
         self.conversion_constant = pf.wavelength * 1e10
-        self.DispersionType = "AngleDispersive"
+
+
 
     def bins(self, orders_class, cascade=False):
         """
-        Determine bins to use in initial fitting.
+        Assign data into azimuthal bins.
+        This is primarily called as part of the initial fitting.
         Assign each data to a chunk corresponding to its azimuth value
         Returns array with indices for each bin and array of bin centroids
-        :param orders_class:
-        :return chunks:
-        :return bin_mean_azi:
+        
+        
+        Parameters
+        ----------
+        orders_class : settings class, optional
+            cpf settings class.
+        cascade : True/False, optional
+            Switch that determines type of outputs returned.
+            The default is False.
+
+        Returns
+        -------
+        chunks : list
+            list of arrays. Each element of the array is an array of data indicies that
+            are part of the bin
+        bin_mean_azi : array
+            list containing mean azimuth of data in each bin.
         """
 
         # determine how to divide the data into bins and how many.
@@ -464,7 +509,7 @@ class DioptasDetector:
             print("expected number of data per bin", orders_class.cascade_per_bin)
             print("total data", np.sum(n))
 
-        # fit the data to the bins
+        # assign the data to the bins
         chunks = []
         bin_mean_azi = []
         temp_azimuth = self.azm.flatten()
@@ -476,6 +521,8 @@ class DioptasDetector:
             bin_mean_azi.append(np.mean(temp_azimuth[azi_chunk]))
 
         return chunks, bin_mean_azi
+
+
 
     def equalObs(self, x, nbin):
         """
@@ -498,6 +545,8 @@ class DioptasDetector:
         nlen = len(x)
         x = np.sort(x)
         return np.interp(np.linspace(0, nlen, nbin + 1), np.arange(nlen), np.sort(x))
+
+
 
     def test_azims(self, steps = 360):
         """
@@ -647,397 +696,15 @@ class DioptasDetector:
         self.azm.mask = self.original_mask
         self.dspace.mask = self.original_mask
 
-    def dispersion_ticks(self, disp_ticks=None, unique=10, disp_lims = None):
-        """
-        Returns the labels for the dispersion axis/colour bars.
-
-        :param disp_ticks: -- unused for maintained for compatibility with MED functions
-        :param unique:
-        :param disp_lims:
-        :return new_tick_positions:
-        """
-        
-        if disp_lims is not None:
-            disp_lims = np.around(np.array(disp_lims) / 180) * 180
-            disp_ticks = list(rget_cange(int(disp_lims[0]), int(disp_lims[1] + 1), 45))
-        elif len(np.unique(self.azm)) >= unique:
-            disp_lims = np.array(
-                [np.min(self.azm.flatten()), np.max(self.azm.flatten())]
-            )
-            disp_lims = np.around(disp_lims / 180) * 180
-            disp_ticks = list(range(int(disp_lims[0]), int(disp_lims[1] + 1), 45))
-
-        return disp_ticks
-
-    def plot_masked(self, fig_plot=None):
-        """
-        Plot all the information needed to mask the data well.
-        :param fig:
-        :return:
-        """
-
-        x_plots = 3
-        y_plots = 2
-        spec = gridspec.GridSpec(
-            ncols=x_plots,
-            nrows=y_plots,
-            width_ratios=[1, 1, 1],
-            wspace=0.5,
-            hspace=0.5,
-            height_ratios=[2, 1],
-        )
-
-        ax1 = fig_plot.add_subplot(spec[0])
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax1,
-            show="unmasked_intensity",
-            x_axis="default",
-            limits=[0, 100],
-        )
-        ax1.set_title("All Data")
-        ax2 = fig_plot.add_subplot(spec[1])
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax2,
-            show="mask",
-            x_axis="default",
-            limits=[0, 100],
-        )
-        ax2.set_title("Mask")
-        ax3 = fig_plot.add_subplot(spec[2])
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax3,
-            show="intensity",
-            x_axis="default",
-            limits=[0, 100],
-        )
-        ax3.set_title("Masked Data")
-
-        ax4 = fig_plot.add_subplot(spec[3])
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax4,
-            show="unmasked_intensity",
-            x_axis="default",
-            y_axis="intensity",
-            limits=[0, 100],
-        )
-
-        ax5 = fig_plot.add_subplot(spec[4])
-        # plot cdf of the intensities.
-        # sort the data in ascending order
-        x1 = np.sort(self.intensity.data)
-        x2 = np.sort(self.intensity)
-
-        # get the cdf values of y
-        y1 = np.arange(np.size(x1)) / float(np.size(x1))
-        y2 = np.arange(np.size(x2)) / float(ma.count(x2))
-
-        # ax1 = fig_1.add_subplot(1, 1, 1)
-        ax5.plot(
-            x1,
-            y1,
-        )
-        ax5.plot(
-            x2,
-            y2,
-        )
-        ax5.set_title("CDF of the intensities")
-
-        ax6 = fig_plot.add_subplot(spec[5])
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax6,
-            show="intensity",
-            x_axis="default",
-            y_axis="intensity",
-            limits=[0, 100],
-        )
-
-    def plot_fitted(self, fig_plot=None, model=None, fit_centroid=None):
-        """
-        add data to axes.
-        :param ax:
-        :param show:
-        :return:
-        """
-
-        # match max and min of colour scales
-        limits = {
-            "max": np.max([np.max(self.intensity), np.max(model)]),
-            "min": np.min([np.min(self.intensity), np.min(model)]),
-        }
-
-        # plot data
-        ax1 = fig_plot.add_subplot(1, 3, 1)
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax1,
-            show="intensity",
-            x_axis="default",
-            limits=limits,
-            colourmap="magma_r",
-        )
-        ax1.set_title("Data")
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
-        # plot model
-        ax2 = fig_plot.add_subplot(1, 3, 2)
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax2,
-            data=model,
-            limits=limits,
-            colourmap="magma_r",
-        )
-        if fit_centroid is not None:
-            for i in range(len(fit_centroid[1])):
-                plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
-        ax2.set_title("Model")
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
-
-        # plot residuals
-        ax3 = fig_plot.add_subplot(1, 3, 3)
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax3,
-            data=self.intensity - model,
-            limits=[0, 100],
-            colourmap="residuals-blanaced",
-        )
-        if fit_centroid is not None:
-            for i in range(len(fit_centroid[1])):
-                plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
-        ax3.set_title("Residuals")
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
-
-        # tidy layout
-        plt.tight_layout()
-
-    @staticmethod
-    def residuals_colour_scheme(maximum_value, minimum_value, **kwargs):
-        # @staticmethod is needed or get an error saying:
-        # "TypeError: residuals_colour_scheme() takes 2 positional arguments but 3 were given"
-
-        # create custom colormap for residuals
-        # ---------------
-        # Need: a colour map that is white at 0 and the colours are equally scaled on each side. So it will match the intensity in black and white. Also one this is truncated so dont have lots of unused colour bar.
-        # This can't be done using DivergingNorm(vcenter=0) or CenteredNorm(vcenter=0) so make new colourmap.
-        #
-        # create a colour map that truncates seismic so balanced around 0.
-        # It is not perfect because the 0 point insn't necessarily perfectly white but it is close enough (I think).
-        n_entries = 256
-        all_colours = cm.seismic(np.arange(n_entries))
-
-        if np.abs(maximum_value) > np.abs(minimum_value):
-            n_cut = np.int_(
-                (
-                    (2 * maximum_value - (maximum_value - np.abs(minimum_value)))
-                    / (2 * maximum_value)
-                )
-                * n_entries
-            )
-            keep = n_entries - n_cut
-            all_colours = all_colours[keep:]
-        else:#if np.abs(maximum_value) < np.abs(minimum_value):
-            keep= np.int_(
-                (
-                    (
-                        2 * np.abs(minimum_value)
-                        - (np.abs(minimum_value)-maximum_value)
-                    )
-                    / (2 * np.abs(minimum_value))
-                )
-                * n_entries
-            )
-            all_colours = all_colours[:keep]
-        all_colours = colors.ListedColormap(
-            all_colours, name="myColorMap", N=all_colours.shape[0]
-        )
-
-        return all_colours
-
-    def plot_collected(
-        self, 
-        fig_plot=None, 
-        axis_plot=None, 
-        show="intensity", 
-        colourmap="jet",
-        limits=[0, 99.9], 
-        location='right'
-    ):
-        """
-        add data to axes.
-        :param ax:
-        :param show:
-        :return:
-        """
-
-        if isinstance(show, str) and show == "unmasked_intensity":
-            plot_i = self.intensity.data
-        elif isinstance(show, str) and show == "mask":
-            plot_i = np.array(ma.getmaskarray(self.intensity), dtype="uint8") + 1
-            colourmap = "Greys"
-            limits = [0,2]
-        elif isinstance(show, np.ndarray) or ma.isMaskedArray(show):
-            plot_i = show
-        else:  # if show == "intensity"
-            plot_i = self.intensity
-
-        IMax = np.percentile(plot_i, limits[1])
-        IMin = np.percentile(plot_i, limits[0])
-        
-        if limits[0] > 0 and limits[1] < 100:
-            cb_extend = "both"
-        elif limits[1] < 100:
-            cb_extend = "max"
-        elif limits[0] > 0:
-            cb_extend = "min"
-        else:
-            cb_extend = "neither"
-
-        the_plot = axis_plot.imshow(
-            plot_i, vmin=IMin, vmax=IMax, cmap=colourmap
-        )
-        axis_plot.set_xlabel("x")
-        axis_plot.set_ylabel("y")
-        axis_plot.invert_yaxis()
-
-        fig_plot.colorbar(mappable=the_plot, ax=axis_plot, extend=cb_extend, location=location)
 
 
-    def plot_calibrated(
-        self,
-        fig_plot=None,
-        axis_plot=None,
-        show="default",
-        x_axis="default",
-        y_axis="default",
-        data=None,
-        limits=[0, 100],
-        colourmap="jet",
-        rastered=False,
-        point_scale=3,
-    ):
-        """
-        add data to axes.
-        :param ax:
-        :param show:
-        :return:
-        """
 
-        if self.intensity.size > 50000:
-            print(
-                " Have patience. The plot(s) will appear but it can take its time to render."
-            )
-            rastered = True
-            # print(type(axis_plot))
-            # axis_plot = raster_axes.RasterAxes(axes=axis_plot)
-            # print(type(axis_plot))
+#these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
+#Each of these methods remains here because they are called by higher-level functions: 
+DioptasDetector.plot_masked      = _Plot_AngleDispersive.plot_masked
+DioptasDetector.plot_fitted      = _Plot_AngleDispersive.plot_fitted
+DioptasDetector.plot_collected   = _Plot_AngleDispersive.plot_collected
+DioptasDetector.plot_calibrated  = _Plot_AngleDispersive.plot_calibrated
+#this function is added because it requires access to self:
+DioptasDetector.dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks
 
-        if x_axis == "default":
-            plot_x = self.tth
-        else:
-            plot_x = self.tth
-        plot_y = self.azm
-
-        if y_axis == "intensity":
-            # plot y rather than azimuth on the y axis
-            plot_y = self.intensity
-            # organise colour scale as azimuth
-            plot_i = self.azm
-            label_y = "Intensity (a.u.)"
-            y_ticks = False
-        else:  # if y_axis is "default" or "azimuth"
-            plot_y = self.azm
-            plot_i = self.intensity
-            label_y = "Azimuth (deg)"
-
-            y_lims = [self.azm_start, self.azm_end]
-            axis_plot.set_ylim(y_lims)
-            # y_ticks = list(range(int(y_lims[0]),int(y_lims[1]+1),45))
-
-            y_ticks = self.dispersion_ticks()
-
-        # organise the data to plot
-        if data is not None:
-            plot_i = data
-        elif show == "unmasked_intensity":
-            plot_x = plot_x.data
-            plot_y = plot_y.data
-            plot_i = plot_i.data
-        elif show == "mask":
-            plot_x = plot_x.data
-            plot_y = plot_y.data
-            plot_i = np.array(ma.getmaskarray(self.intensity), dtype="uint8") + 1
-            colourmap = "Greys"
-        else:  # if show == "intensity"
-            plot_i = plot_i
-
-        # set colour bar and colour maps.
-        if colourmap == "Greys":
-            IMax = 2.01
-            IMin = 0
-            cb_extend = "neither"
-        elif isinstance(limits, dict):
-            IMax = limits["max"]
-            IMin = limits["min"]
-            cb_extend = "neither"
-        else:
-            if limits[1] == 100:
-                IMax = np.max(plot_i)
-            else:
-                IMax = np.percentile(plot_i, limits[1])
-            if limits[0] == 0:
-                IMin = np.min(plot_i)
-            else:
-                IMin = np.percentile(plot_i, limits[0])
-            if limits[0] > 0 and limits[1] < 100:
-                cb_extend = "both"
-            elif limits[1] < 100:
-                cb_extend = "max"
-            elif limits[0] > 0:
-                cb_extend = "min"
-            else:
-                cb_extend = "neither"
-
-        # set colour map
-        if colourmap == "residuals-blanaced":
-            colourmap = self.residuals_colour_scheme(
-                IMax, IMin
-            )
-        else:
-            colourmap = colourmap
-			
-        # set axis limits
-        x_lims = [np.min(plot_x.flatten()), np.max(plot_x.flatten())]
-        axis_plot.set_xlim(x_lims)
-        if y_ticks:
-            axis_plot.set_yticks(y_ticks)
-
-        the_plot = axis_plot.scatter(
-            plot_x,
-            plot_y,
-            s=1,
-            c=plot_i,
-            edgecolors="none",
-            cmap=colourmap,
-            vmin=IMin,
-            vmax=IMax,
-            rasterized=rastered,
-        )
-        axis_plot.set_xlabel(r"2$\theta$ (deg)")
-        axis_plot.set_ylabel(label_y)
-
-        fig_plot.colorbar(mappable=the_plot, extend=cb_extend)
-        #try:
-        #    #FIX ME: added to catch error where resuduals have no range. I dontk know where it arrises and dont have tim to fix it now. 
-        #.   # I think this is now fixed by the changes to the 'residuals_colour_scheme' function (July 2023. But this is left here as a 
-		#    # check incase it is not.
-		#    fig_plot.colorbar(mappable=the_plot, extend=cb_extend)
-        #except:
-        #    pass

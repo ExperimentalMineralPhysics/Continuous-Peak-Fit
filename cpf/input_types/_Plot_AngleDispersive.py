@@ -301,14 +301,14 @@ class _Plot_AngleDispersive:
         axis_plot.invert_yaxis()
     
         if location == "default":
-            print("location", plot_i.shape[-1] , plot_i.shape[-2])
             if plot_i.shape[-1] > plot_i.shape[-2]:
                 location = "bottom"
+                fraction = 0.046
             else:
                 location = "right"
+                fraction = 0.15
     
-    
-        cb = fig_plot.colorbar(mappable=the_plot, ax=axis_plot, extend=cb_extend, location=location)
+        cb = fig_plot.colorbar(mappable=the_plot, ax=axis_plot, extend=cb_extend, fraction=fraction, location=location)
     
         if np.ndim(plot_i) >2:
             

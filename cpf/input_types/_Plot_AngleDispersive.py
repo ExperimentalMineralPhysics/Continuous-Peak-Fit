@@ -351,7 +351,8 @@ class _Plot_AngleDispersive:
         limits=[1, 99.9],
         colourmap="jet",
         rastered=False,
-        point_scale=3,
+        point_scale=2,
+        resample_shape = None,
     ):
         """
         add data to axes.
@@ -487,7 +488,8 @@ class _Plot_AngleDispersive:
                 vmin=IMin,
                 vmax=IMax,
                 colourmap=colourmap,
-                pixels_per_bin = 2
+                pixels_per_bin = point_scale,
+                resample_shape = resample_shape
             )
         axis_plot.set_xlabel(r"2$\theta$ (deg)")
         axis_plot.set_ylabel(label_y)

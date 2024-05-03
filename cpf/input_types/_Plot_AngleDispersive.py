@@ -310,8 +310,8 @@ class _Plot_AngleDispersive:
     
         cb = fig_plot.colorbar(mappable=the_plot, ax=axis_plot, extend=cb_extend, fraction=fraction, location=location)
     
-        if np.ndim(plot_i) >2:
-            
+        if np.ndim(plot_i) >2 and plot_i.shape[0]>1:
+            print("why am I her)")
             # adjust the main plot to make room for the sliders
             fig_plot.subplots_adjust(bottom=0.25)
             

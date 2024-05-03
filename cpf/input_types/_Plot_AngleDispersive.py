@@ -152,8 +152,8 @@ class _Plot_AngleDispersive:
     
         # match max and min of colour scales
         limits = {
-            "max": np.max([np.max(self.intensity), np.max(model)]),
-            "min": np.min([np.min(self.intensity), np.min(model)]),
+            "max": np.max([self.intensity.max(), model.max()]),
+            "min": np.min([self.intensity.min(), model.min()]),
         }
     
         # plot data

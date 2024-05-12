@@ -1,258 +1,699 @@
-
-<!DOCTYPE html>
+<!doctype html>
 
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Continuous peak fit, via the command line &#8212; Continuous-Peak-Fit 0.0 alpha documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      Continuous peak fit, via the command line &#8212; Continuous-Peak-Fit 0.0
+      alpha documentation
+    </title>
     <link rel="stylesheet" href="_static/agogo.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script
+      id="documentation_options"
+      data-url_root="./"
+      src="_static/documentation_options.js"
+    ></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="_static/language_data.js"></script>
-    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script
+      async="async"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Input file structure (short)" href="input file short.html" />
-    <link rel="prev" title="Download and Install" href="installation.html" /> 
-  </head><body>
+    <link
+      rel="next"
+      title="Input file structure (short)"
+      href="input file short.html"
+    />
+    <link rel="prev" title="Download and Install" href="installation.html" />
+  </head>
+  <body>
     <div class="header-wrapper" role="banner">
       <div class="header">
-        <div class="headertitle"><a
-          href="index.html">Continuous-Peak-Fit 0.0 alpha documentation</a></div>
-        <div class="rel" role="navigation" aria-label="related navigation">
-          <a href="installation.html" title="Download and Install"
-             accesskey="P">previous</a> |
-          <a href="input file short.html" title="Input file structure (short)"
-             accesskey="N">next</a> |
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a>
+        <div class="headertitle">
+          <a href="index.html">Continuous-Peak-Fit 0.0 alpha documentation</a>
         </div>
-       </div>
+        <div class="rel" role="navigation" aria-label="related navigation">
+          <a href="installation.html" title="Download and Install" accesskey="P"
+            >previous</a
+          >
+          |
+          <a
+            href="input file short.html"
+            title="Input file structure (short)"
+            accesskey="N"
+            >next</a
+          >
+          |
+          <a href="genindex.html" title="General Index" accesskey="I">index</a>
+        </div>
+      </div>
     </div>
 
     <div class="content-wrapper">
       <div class="content">
         <div class="document">
-            
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body" role="main">
-            
-  <div class="section" id="continuous-peak-fit-via-the-command-line">
-<h1><em>Continuous peak fit</em>, via the command line<a class="headerlink" href="#continuous-peak-fit-via-the-command-line" title="Permalink to this headline">¶</a></h1>
-<p><cite>Continuous-Peak-Fit</cite> is currently run from the python command line. We will make a GUI and OS-specific executables but for now this does not exist.</p>
-<p>This tutorial uses the angle dispersive X-ray diffraction data contained in cpf’s Example 1. The data is for BCC Iron from a DAC experiment and is the first 10 images of a data set of 600 consecutive images.</p>
-<p><cite>Continuous-Peak-Fit</cite> is excuted by calling an input file that contains all the information about the data, calibration and what fitting is desired. Examples of these input files are contained in the <a class="reference external" href="file:///../Fourier-Peak-Fit/Example1-Fe/">Example 1 directory</a>.</p>
-<p>The full package consists of a nuber of subfunctions <code class="code python docutils literal notranslate"><span class="name"><span class="pre">cpf</span></span><span class="operator"><span class="pre">.</span></span><span class="name"><span class="pre">XRD_Fitpattern</span></span></code>. Although each stage is not required it is recommended to ease use of the package.</p>
-<div class="section" id="calibration">
-<h2>Calibration<a class="headerlink" href="#calibration" title="Permalink to this headline">¶</a></h2>
-<p>The detector calibrtation is undertaken in external software. The calibration and mask are saved for import to <cite>cpf</cite>. <a class="reference external" href="http://www.clemensprescher.com/programs/dioptas">Dioptas</a> is used for the calibrations and masks of angle dispersive diffraction data. Other software (e.g. GSAS-II or Fit2D) are implementable if desired.</p>
-<p>From Dioptas <cite>Continuous peak fit</cite> reuqires a calibration file and an optional image mask. See the <a class="reference external" href="https://dioptas.readthedocs.io/en/stable/">Dioptas documentation</a> for how to mask and calibrate and the detector.</p>
-</div>
-<div class="section" id="loading-continuous-peak-fit">
-<h2>Loading <cite>continuous peak fit</cite>.<a class="headerlink" href="#loading-continuous-peak-fit" title="Permalink to this headline">¶</a></h2>
-<p>See <a class="reference internal" href="installation.html"><span class="doc">Download and Install</span></a>. Once installed, run:</p>
-<blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cpf</span>
-</pre></div>
-</div>
-</div></blockquote>
-</div>
-<div class="section" id="input-file-creation">
-<h2>Input file creation<a class="headerlink" href="#input-file-creation" title="Permalink to this headline">¶</a></h2>
-<p>The input file is structured as outlined here: <a class="reference internal" href="input file.html"><span class="doc">Input file structure (long)</span></a> and here: <a class="reference internal" href="input file short.html"><span class="doc">Input file structure (short)</span></a>.
-If is a python file containing a number of dictionaries and lists.</p>
-<p>In the following documentation this file is refered to as <cite>input_file</cite>. The file name may have a py ending.</p>
-</div>
-<div class="section" id="initiate">
-<h2>Initiate<a class="headerlink" href="#initiate" title="Permalink to this headline">¶</a></h2>
-<p>Initiating the input checks that the input file is correctly formatted and if something is missing returns an error message. Run:</p>
-<blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">initiate</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div></blockquote>
-<p>If this completes without returning any errors or other messages the input file is <em>probably</em> formatted correctly. It does not though check that the selections are sensible.</p>
-</div>
-<div class="section" id="set-range">
-<h2>Set range<a class="headerlink" href="#set-range" title="Permalink to this headline">¶</a></h2>
-<p>The two-theta vs. azimuth data plotted in the <a class="reference external" href="https://dioptas.readthedocs.io/en/stable/integration.html">Dioptas integration</a> window is resampled onto an orthonormal two-theta–azimuth grid and consequently somewhat smoothed. <cite>Continuous peak fit</cite> uses the raw data from the detector, therefore is it worth checking that the data range is acceptable and the data does not contain too many dark or bright comsic spots that would distort the fitting.</p>
-<p>To check the data ranges, run:</p>
-<blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">setrange</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div></blockquote>
-<p>This will make range plots for all the selected peaks. A typical figure will look something like this:</p>
-<p>RANGE FIGURE.</p>
-<p>In the left hand column is the raw, unmasked data, plotted as two theta vs. azimuth and two theta vs. intensity. The middle column plots the mask (top) and the Intineisties cumulative distribution function (bottom). The right hand column contains the masked data again plotted as two theta vs. azimuth and two theta vs. intensity.</p>
-<p>The extent of the selection is adjusted by changing the max and min <code class="docutils literal notranslate"><span class="pre">range</span></code> values in the input file (LINK). It is sometimes necessary to limit the maximum intenstiy in each peak selection, which is done via the <code class="docutils literal notranslate"><span class="pre">Imax</span></code> peak definition (LINK).</p>
-<p>Cheching the range for a single peak is done by:</p>
-<blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">setrange</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">,</span> <span class="n">peak_selection</span> <span class="o">=</span> <span class="o">.....</span><span class="p">)</span>
-</pre></div>
-</div>
-</div></blockquote>
-<p>The peak_selection is zero counted, so the first peak is 0.</p>
-<p><cite>input_file</cite>_mask.tif files are saved in the output directory.</p>
-</div>
-<div class="section" id="initial-guess-selection-for-multiple-weak-or-obscured-peaks">
-<span id="initial-guess"></span><h2>Initial guess selection for multiple, weak or obscured peaks<a class="headerlink" href="#initial-guess-selection-for-multiple-weak-or-obscured-peaks" title="Permalink to this headline">¶</a></h2>
-<p>The strong peaks coninuous peak fit is able to guess the position of a single strong peak (LINK). But for multiple, weak or spotty peaks some inital guidance is needed.</p>
-<p>Initial guesses can be derived from Dioptas manually by using the two theta and azimuth position of the curser on the <a class="reference external" href="https://dioptas.readthedocs.io/en/stable/integration.html">Dioptas integration</a>. Alternatively, the peak guesses can be selected using the mouse +/- keyboard by running:</p>
-<blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">initialpeakposition</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">peak_selection</span> <span class="o">=</span> <span class="n">n</span><span class="p">])</span>
-</pre></div>
-</div>
-</div></blockquote>
-<p>where <code class="docutils literal notranslate"><span class="pre">n</span></code> is the subpattern range to be selected and is an optional call. As with set range [LINK] the subpatterns are 0 counted. Leaving the <code class="docutils literal notranslate"><span class="pre">peak</span> <span class="pre">selection</span></code> out works through the initial guesses for all the peak ranges.</p>
-<p>This presents a file of the masked data like so:</p>
-<p>IMAGE</p>
-<p>The position of the peaks are selected using the mouse or keyboard. peaks should be selected 1 - n. The left mouse botton returns ‘1’ and the right mouse button is mapped to ‘2’. More peaks have to be selected using the keyboard. When the figure is closed the peak selection is printed in the command window.</p>
-<p>It is formatted as:</p>
-<blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+          <div class="documentwrapper">
+            <div class="bodywrapper">
+              <div class="body" role="main">
+                <div
+                  class="section"
+                  id="continuous-peak-fit-via-the-command-line"
+                >
+                  <h1>
+                    <em>Continuous peak fit</em>, via the command line<a
+                      class="headerlink"
+                      href="#continuous-peak-fit-via-the-command-line"
+                      title="Permalink to this headline"
+                      >¶</a
+                    >
+                  </h1>
+                  <p>
+                    <cite>Continuous-Peak-Fit</cite> is currently run from the
+                    python command line. We will make a GUI and OS-specific
+                    executables but for now this does not exist.
+                  </p>
+                  <p>
+                    This tutorial uses the angle dispersive X-ray diffraction
+                    data contained in cpf’s Example 1. The data is for BCC Iron
+                    from a DAC experiment and is the first 10 images of a data
+                    set of 600 consecutive images.
+                  </p>
+                  <p>
+                    <cite>Continuous-Peak-Fit</cite> is excuted by calling an
+                    input file that contains all the information about the data,
+                    calibration and what fitting is desired. Examples of these
+                    input files are contained in the
+                    <a
+                      class="reference external"
+                      href="file:///../Fourier-Peak-Fit/Example1-Fe/"
+                      >Example 1 directory</a
+                    >.
+                  </p>
+                  <p>
+                    The full package consists of a nuber of subfunctions
+                    <code class="code python docutils literal notranslate"
+                      ><span class="name"><span class="pre">cpf</span></span
+                      ><span class="operator"><span class="pre">.</span></span
+                      ><span class="name"
+                        ><span class="pre">XRD_Fitpattern</span></span
+                      ></code
+                    >. Although each stage is not required it is recommended to
+                    ease use of the package.
+                  </p>
+                  <div class="section" id="calibration">
+                    <h2>
+                      Calibration<a
+                        class="headerlink"
+                        href="#calibration"
+                        title="Permalink to this headline"
+                        >¶</a
+                      >
+                    </h2>
+                    <p>
+                      The detector calibrtation is undertaken in external
+                      software. The calibration and mask are saved for import to
+                      <cite>cpf</cite>.
+                      <a
+                        class="reference external"
+                        href="http://www.clemensprescher.com/programs/dioptas"
+                        >Dioptas</a
+                      >
+                      is used for the calibrations and masks of angle dispersive
+                      diffraction data. Other software (e.g. GSAS-II or Fit2D)
+                      are implementable if desired.
+                    </p>
+                    <p>
+                      From Dioptas <cite>Continuous peak fit</cite> reuqires a
+                      calibration file and an optional image mask. See the
+                      <a
+                        class="reference external"
+                        href="https://dioptas.readthedocs.io/en/stable/"
+                        >Dioptas documentation</a
+                      >
+                      for how to mask and calibrate and the detector.
+                    </p>
+                  </div>
+                  <div class="section" id="loading-continuous-peak-fit">
+                    <h2>
+                      Loading <cite>continuous peak fit</cite>.<a
+                        class="headerlink"
+                        href="#loading-continuous-peak-fit"
+                        title="Permalink to this headline"
+                        >¶</a
+                      >
+                    </h2>
+                    <p>
+                      See
+                      <a class="reference internal" href="installation.html"
+                        ><span class="doc">Download and Install</span></a
+                      >. Once installed, run:
+                    </p>
+                    <blockquote>
+                      <div>
+                        <div class="highlight-python notranslate">
+                          <div class="highlight">
+                            <pre><span></span><span class="kn">import</span> <span class="nn">cpf</span>
+</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </blockquote>
+                  </div>
+                  <div class="section" id="input-file-creation">
+                    <h2>
+                      Input file creation<a
+                        class="headerlink"
+                        href="#input-file-creation"
+                        title="Permalink to this headline"
+                        >¶</a
+                      >
+                    </h2>
+                    <p>
+                      The input file is structured as outlined here:
+                      <a class="reference internal" href="input file.html"
+                        ><span class="doc">Input file structure (long)</span></a
+                      >
+                      and here:
+                      <a class="reference internal" href="input file short.html"
+                        ><span class="doc"
+                          >Input file structure (short)</span
+                        ></a
+                      >. If is a python file containing a number of dictionaries
+                      and lists.
+                    </p>
+                    <p>
+                      In the following documentation this file is refered to as
+                      <cite>input_file</cite>. The file name may have a py
+                      ending.
+                    </p>
+                  </div>
+                  <div class="section" id="initiate">
+                    <h2>
+                      Initiate<a
+                        class="headerlink"
+                        href="#initiate"
+                        title="Permalink to this headline"
+                        >¶</a
+                      >
+                    </h2>
+                    <p>
+                      Initiating the input checks that the input file is
+                      correctly formatted and if something is missing returns an
+                      error message. Run:
+                    </p>
+                    <blockquote>
+                      <div>
+                        <div class="highlight-python notranslate">
+                          <div class="highlight">
+                            <pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">initiate</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
+</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </blockquote>
+                    <p>
+                      If this completes without returning any errors or other
+                      messages the input file is <em>probably</em> formatted
+                      correctly. It does not though check that the selections
+                      are sensible.
+                    </p>
+                  </div>
+                  <div class="section" id="set-range">
+                    <h2>
+                      Set range<a
+                        class="headerlink"
+                        href="#set-range"
+                        title="Permalink to this headline"
+                        >¶</a
+                      >
+                    </h2>
+                    <p>
+                      The two-theta vs. azimuth data plotted in the
+                      <a
+                        class="reference external"
+                        href="https://dioptas.readthedocs.io/en/stable/integration.html"
+                        >Dioptas integration</a
+                      >
+                      window is resampled onto an orthonormal two-theta–azimuth
+                      grid and consequently somewhat smoothed.
+                      <cite>Continuous peak fit</cite> uses the raw data from
+                      the detector, therefore is it worth checking that the data
+                      range is acceptable and the data does not contain too many
+                      dark or bright comsic spots that would distort the
+                      fitting.
+                    </p>
+                    <p>To check the data ranges, run:</p>
+                    <blockquote>
+                      <div>
+                        <div class="highlight-python notranslate">
+                          <div class="highlight">
+                            <pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">setrange</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
+</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </blockquote>
+                    <p>
+                      This will make range plots for all the selected peaks. A
+                      typical figure will look something like this:
+                    </p>
+                    <p>RANGE FIGURE.</p>
+                    <p>
+                      In the left hand column is the raw, unmasked data, plotted
+                      as two theta vs. azimuth and two theta vs. intensity. The
+                      middle column plots the mask (top) and the Intineisties
+                      cumulative distribution function (bottom). The right hand
+                      column contains the masked data again plotted as two theta
+                      vs. azimuth and two theta vs. intensity.
+                    </p>
+                    <p>
+                      The extent of the selection is adjusted by changing the
+                      max and min
+                      <code class="docutils literal notranslate"
+                        ><span class="pre">range</span></code
+                      >
+                      values in the input file (LINK). It is sometimes necessary
+                      to limit the maximum intenstiy in each peak selection,
+                      which is done via the
+                      <code class="docutils literal notranslate"
+                        ><span class="pre">Imax</span></code
+                      >
+                      peak definition (LINK).
+                    </p>
+                    <p>Cheching the range for a single peak is done by:</p>
+                    <blockquote>
+                      <div>
+                        <div class="highlight-python notranslate">
+                          <div class="highlight">
+                            <pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">setrange</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">,</span> <span class="n">peak_selection</span> <span class="o">=</span> <span class="o">.....</span><span class="p">)</span>
+</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </blockquote>
+                    <p>
+                      The peak_selection is zero counted, so the first peak is
+                      0.
+                    </p>
+                    <p>
+                      <cite>input_file</cite>_mask.tif files are saved in the
+                      output directory.
+                    </p>
+                  </div>
+                  <div
+                    class="section"
+                    id="initial-guess-selection-for-multiple-weak-or-obscured-peaks"
+                  >
+                    <span id="initial-guess"></span>
+                    <h2>
+                      Initial guess selection for multiple, weak or obscured
+                      peaks<a
+                        class="headerlink"
+                        href="#initial-guess-selection-for-multiple-weak-or-obscured-peaks"
+                        title="Permalink to this headline"
+                        >¶</a
+                      >
+                    </h2>
+                    <p>
+                      The strong peaks coninuous peak fit is able to guess the
+                      position of a single strong peak (LINK). But for multiple,
+                      weak or spotty peaks some inital guidance is needed.
+                    </p>
+                    <p>
+                      Initial guesses can be derived from Dioptas manually by
+                      using the two theta and azimuth position of the curser on
+                      the
+                      <a
+                        class="reference external"
+                        href="https://dioptas.readthedocs.io/en/stable/integration.html"
+                        >Dioptas integration</a
+                      >. Alternatively, the peak guesses can be selected using
+                      the mouse +/- keyboard by running:
+                    </p>
+                    <blockquote>
+                      <div>
+                        <div class="highlight-python notranslate">
+                          <div class="highlight">
+                            <pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">initialpeakposition</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">peak_selection</span> <span class="o">=</span> <span class="n">n</span><span class="p">])</span>
+</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </blockquote>
+                    <p>
+                      where
+                      <code class="docutils literal notranslate"
+                        ><span class="pre">n</span></code
+                      >
+                      is the subpattern range to be selected and is an optional
+                      call. As with set range [LINK] the subpatterns are 0
+                      counted. Leaving the
+                      <code class="docutils literal notranslate"
+                        ><span class="pre">peak</span>
+                        <span class="pre">selection</span></code
+                      >
+                      out works through the initial guesses for all the peak
+                      ranges.
+                    </p>
+                    <p>This presents a file of the masked data like so:</p>
+                    <p>IMAGE</p>
+                    <p>
+                      The position of the peaks are selected using the mouse or
+                      keyboard. peaks should be selected 1 - n. The left mouse
+                      botton returns ‘1’ and the right mouse button is mapped to
+                      ‘2’. More peaks have to be selected using the keyboard.
+                      When the figure is closed the peak selection is printed in
+                      the command window.
+                    </p>
+                    <p>It is formatted as:</p>
+                    <blockquote>
+                      <div>
+                        <div class="highlight-python notranslate">
+                          <div class="highlight">
+                            <pre><span></span><span class="p">[</span>
 <span class="p">[</span> <span class="n">peak</span> <span class="n">num</span><span class="p">,</span> <span class="n">azimuth</span><span class="p">,</span> <span class="n">two</span> <span class="n">theta</span><span class="p">],</span>
 <span class="o">...</span>
 <span class="p">]</span>
-</pre></div>
-</div>
-</div></blockquote>
-<p>The peaks are 1 counted. This array needs to be copied into the input file manually. The array is the content of the “InitialPeakPosition” ??? of the peak list (LINK).</p>
-<p>An example of a properly structured input is:</p>
-<p>COPY SOMETHING FROM AN INPUT FILE</p>
-</div>
-<div class="section" id="order-search">
-<h2>Order search<a class="headerlink" href="#order-search" title="Permalink to this headline">¶</a></h2>
-<p>The optimal number of coefficients (the order) for each parameter is not necessarily obvious. For smooth but structured diffraction data a good guess for the order of the peak height is the number of peaks in the diffraction ring. But this is not necessarily optimal, and there is often a ply off between quality of fit and execution time.</p>
-<p>The parameter that is most strongly affected by the order is the peak height because for X-ray data the other coefficients have orders generally &lt;= 2. To run a sweep over the possible height orders run:</p>
-<blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">ordersearch</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div></blockquote>
-<p>This runs a seach of heights over all the subpatterns and peaks.</p>
-<p>To change the parameter or peak searched over add the optional calls, formatted as option=set:</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 14%" />
-<col style="width: 19%" />
-<col style="width: 67%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>option</p></th>
-<th class="head"><p>Values</p></th>
-<th class="head"><p>default, notes</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>search_parameter</p></td>
-<td><p>string of peak parameter</p></td>
-<td><p>default ‘height’ (e.g. ‘background’, ‘height’, ‘d-space’… )</p></td>
-</tr>
-<tr class="row-odd"><td><p>search_over</p></td>
-<td><p>[min,max]</p></td>
-<td><p>[0,20]</p></td>
-</tr>
-<tr class="row-even"><td><p>subpattern</p></td>
-<td><p>‘all’ or list of numbers</p></td>
-<td><p>‘all’     no</p></td>
-</tr>
-<tr class="row-odd"><td><p>search_peak</p></td>
-<td><p>number</p></td>
-<td><p>0, zero counted, can’t be greater than the number of peaks, -1 for last peak is permitted.</p></td>
-</tr>
-<tr class="row-even"><td><p>search_series</p></td>
-<td><p>series string</p></td>
-<td><p>[‘fourier’, ‘spline’]</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section" id="execution">
-<h2>Execution<a class="headerlink" href="#execution" title="Permalink to this headline">¶</a></h2>
-<p>Running the fitting is done by calling:</p>
-<blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div></blockquote>
-<p>This fits all the files in turn, propagating the fit from one file to the next (LINK). All possible swithes are listed here: LINK.
-The most likely ones (and their defaulr settings) are:</p>
-<blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">,</span>
+</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </blockquote>
+                    <p>
+                      The peaks are 1 counted. This array needs to be copied
+                      into the input file manually. The array is the content of
+                      the “InitialPeakPosition” ??? of the peak list (LINK).
+                    </p>
+                    <p>An example of a properly structured input is:</p>
+                    <p>COPY SOMETHING FROM AN INPUT FILE</p>
+                  </div>
+                  <div class="section" id="order-search">
+                    <h2>
+                      Order search<a
+                        class="headerlink"
+                        href="#order-search"
+                        title="Permalink to this headline"
+                        >¶</a
+                      >
+                    </h2>
+                    <p>
+                      The optimal number of coefficients (the order) for each
+                      parameter is not necessarily obvious. For smooth but
+                      structured diffraction data a good guess for the order of
+                      the peak height is the number of peaks in the diffraction
+                      ring. But this is not necessarily optimal, and there is
+                      often a ply off between quality of fit and execution time.
+                    </p>
+                    <p>
+                      The parameter that is most strongly affected by the order
+                      is the peak height because for X-ray data the other
+                      coefficients have orders generally &lt;= 2. To run a sweep
+                      over the possible height orders run:
+                    </p>
+                    <blockquote>
+                      <div>
+                        <div class="highlight-python notranslate">
+                          <div class="highlight">
+                            <pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">ordersearch</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
+</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </blockquote>
+                    <p>
+                      This runs a seach of heights over all the subpatterns and
+                      peaks.
+                    </p>
+                    <p>
+                      To change the parameter or peak searched over add the
+                      optional calls, formatted as option=set:
+                    </p>
+                    <table class="docutils align-default">
+                      <colgroup>
+                        <col style="width: 14%" />
+                        <col style="width: 19%" />
+                        <col style="width: 67%" />
+                      </colgroup>
+                      <thead>
+                        <tr class="row-odd">
+                          <th class="head"><p>option</p></th>
+                          <th class="head"><p>Values</p></th>
+                          <th class="head"><p>default, notes</p></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr class="row-even">
+                          <td><p>search_parameter</p></td>
+                          <td><p>string of peak parameter</p></td>
+                          <td>
+                            <p>
+                              default ‘height’ (e.g. ‘background’, ‘height’,
+                              ‘d-space’… )
+                            </p>
+                          </td>
+                        </tr>
+                        <tr class="row-odd">
+                          <td><p>search_over</p></td>
+                          <td><p>[min,max]</p></td>
+                          <td><p>[0,20]</p></td>
+                        </tr>
+                        <tr class="row-even">
+                          <td><p>subpattern</p></td>
+                          <td><p>‘all’ or list of numbers</p></td>
+                          <td><p>‘all’ no</p></td>
+                        </tr>
+                        <tr class="row-odd">
+                          <td><p>search_peak</p></td>
+                          <td><p>number</p></td>
+                          <td>
+                            <p>
+                              0, zero counted, can’t be greater than the number
+                              of peaks, -1 for last peak is permitted.
+                            </p>
+                          </td>
+                        </tr>
+                        <tr class="row-even">
+                          <td><p>search_series</p></td>
+                          <td><p>series string</p></td>
+                          <td><p>[‘fourier’, ‘spline’]</p></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="section" id="execution">
+                    <h2>
+                      Execution<a
+                        class="headerlink"
+                        href="#execution"
+                        title="Permalink to this headline"
+                        >¶</a
+                      >
+                    </h2>
+                    <p>Running the fitting is done by calling:</p>
+                    <blockquote>
+                      <div>
+                        <div class="highlight-python notranslate">
+                          <div class="highlight">
+                            <pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
+</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </blockquote>
+                    <p>
+                      This fits all the files in turn, propagating the fit from
+                      one file to the next (LINK). All possible swithes are
+                      listed here: LINK. The most likely ones (and their defaulr
+                      settings) are:
+                    </p>
+                    <blockquote>
+                      <div>
+                        <div class="highlight-python notranslate">
+                          <div class="highlight">
+                            <pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">,</span>
                                <span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                                <span class="n">propagate</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                                <span class="n">parallel</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                                <span class="n">save_all</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-</pre></div>
-</div>
-</div></blockquote>
-<p>debug makes some more figures.</p>
-<p>save_all makes even more files than debug, saving an image for each subpattern fitted.</p>
-<p>propagate uses the fit from the previous data file as a initial guess for the current one.</p>
-<p>parallel uses the parallel options (if installed), speeding up the code exection.</p>
-<p>A json file is created for each diffraction pattern which contains the fit parameters.
-For the first file in the sequence a figure of the fit for each region is also saved, e.g.:</p>
-<p>FIT FIGURE.</p>
-<p>We also save a *.sav file which contains all the lmfit fit object (LINK).</p>
-</div>
-<div class="section" id="creating-output-files">
-<h2>Creating output files.<a class="headerlink" href="#creating-output-files" title="Permalink to this headline">¶</a></h2>
-<p>The execute call will generate the output files listed in  <code class="docutils literal notranslate"><span class="pre">input_file</span></code>. But the outputs can be generated directly, from the json files, by calling:</p>
-<blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">write_output</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div></blockquote>
-<p>The optional call <code class="docutils literal notranslate"><span class="pre">write_output</span> <span class="pre">=</span> <span class="pre">...</span></code> allows for the creation of different output types without editing the input file.</p>
-<p>The currently recognised output types are listed here: LINK TO OUTPUT TYPES.</p>
-<p>Additional types can be generated by editing the cpf.Write… file to make a file formated as you wish.</p>
-</div>
-</div>
+</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </blockquote>
+                    <p>debug makes some more figures.</p>
+                    <p>
+                      save_all makes even more files than debug, saving an image
+                      for each subpattern fitted.
+                    </p>
+                    <p>
+                      propagate uses the fit from the previous data file as a
+                      initial guess for the current one.
+                    </p>
+                    <p>
+                      parallel uses the parallel options (if installed),
+                      speeding up the code exection.
+                    </p>
+                    <p>
+                      A json file is created for each diffraction pattern which
+                      contains the fit parameters. For the first file in the
+                      sequence a figure of the fit for each region is also
+                      saved, e.g.:
+                    </p>
+                    <p>FIT FIGURE.</p>
+                    <p>
+                      We also save a *.sav file which contains all the lmfit fit
+                      object (LINK).
+                    </p>
+                  </div>
+                  <div class="section" id="creating-output-files">
+                    <h2>
+                      Creating output files.<a
+                        class="headerlink"
+                        href="#creating-output-files"
+                        title="Permalink to this headline"
+                        >¶</a
+                      >
+                    </h2>
+                    <p>
+                      The execute call will generate the output files listed in
+                      <code class="docutils literal notranslate"
+                        ><span class="pre">input_file</span></code
+                      >. But the outputs can be generated directly, from the
+                      json files, by calling:
+                    </p>
+                    <blockquote>
+                      <div>
+                        <div class="highlight-python notranslate">
+                          <div class="highlight">
+                            <pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">write_output</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
+</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </blockquote>
+                    <p>
+                      The optional call
+                      <code class="docutils literal notranslate"
+                        ><span class="pre">write_output</span>
+                        <span class="pre">=</span>
+                        <span class="pre">...</span></code
+                      >
+                      allows for the creation of different output types without
+                      editing the input file.
+                    </p>
+                    <p>
+                      The currently recognised output types are listed here:
+                      LINK TO OUTPUT TYPES.
+                    </p>
+                    <p>
+                      Additional types can be generated by editing the
+                      cpf.Write… file to make a file formated as you wish.
+                    </p>
+                  </div>
+                </div>
 
-
-            <div class="clearer"></div>
+                <div class="clearer"></div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
         </div>
         <div class="sidebar">
-          
           <h3>Table of Contents</h3>
           <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="algorithm.html">Algorithm</a></li>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#"><em>Continuous peak fit</em>, via the command line</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#calibration">Calibration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#loading-continuous-peak-fit">Loading <cite>continuous peak fit</cite>.</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#input-file-creation">Input file creation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#initiate">Initiate</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#set-range">Set range</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#initial-guess-selection-for-multiple-weak-or-obscured-peaks">Initial guess selection for multiple, weak or obscured peaks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#order-search">Order search</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#execution">Execution</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#creating-output-files">Creating output files.</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="input file short.html">Input file structure (short)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="input file.html">Input file structure (long)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="subpattern structure.html">Subpatterns and peaks</a></li>
-<li class="toctree-l1"><a class="reference internal" href="whatsnew.html">Release Notes</a></li>
-</ul>
+            <li class="toctree-l1">
+              <a class="reference internal" href="algorithm.html">Algorithm</a>
+            </li>
+            <li class="toctree-l1">
+              <a class="reference internal" href="installation.html"
+                >Download and Install</a
+              >
+            </li>
+            <li class="toctree-l1 current">
+              <a class="current reference internal" href="#"
+                ><em>Continuous peak fit</em>, via the command line</a
+              >
+              <ul>
+                <li class="toctree-l2">
+                  <a class="reference internal" href="#calibration"
+                    >Calibration</a
+                  >
+                </li>
+                <li class="toctree-l2">
+                  <a
+                    class="reference internal"
+                    href="#loading-continuous-peak-fit"
+                    >Loading <cite>continuous peak fit</cite>.</a
+                  >
+                </li>
+                <li class="toctree-l2">
+                  <a class="reference internal" href="#input-file-creation"
+                    >Input file creation</a
+                  >
+                </li>
+                <li class="toctree-l2">
+                  <a class="reference internal" href="#initiate">Initiate</a>
+                </li>
+                <li class="toctree-l2">
+                  <a class="reference internal" href="#set-range">Set range</a>
+                </li>
+                <li class="toctree-l2">
+                  <a
+                    class="reference internal"
+                    href="#initial-guess-selection-for-multiple-weak-or-obscured-peaks"
+                    >Initial guess selection for multiple, weak or obscured
+                    peaks</a
+                  >
+                </li>
+                <li class="toctree-l2">
+                  <a class="reference internal" href="#order-search"
+                    >Order search</a
+                  >
+                </li>
+                <li class="toctree-l2">
+                  <a class="reference internal" href="#execution">Execution</a>
+                </li>
+                <li class="toctree-l2">
+                  <a class="reference internal" href="#creating-output-files"
+                    >Creating output files.</a
+                  >
+                </li>
+              </ul>
+            </li>
+            <li class="toctree-l1">
+              <a class="reference internal" href="input file short.html"
+                >Input file structure (short)</a
+              >
+            </li>
+            <li class="toctree-l1">
+              <a class="reference internal" href="input file.html"
+                >Input file structure (long)</a
+              >
+            </li>
+            <li class="toctree-l1">
+              <a class="reference internal" href="subpattern structure.html"
+                >Subpatterns and peaks</a
+              >
+            </li>
+            <li class="toctree-l1">
+              <a class="reference internal" href="whatsnew.html"
+                >Release Notes</a
+              >
+            </li>
+          </ul>
 
           <div role="search">
-            <h3 style="margin-top: 1.5em;">Search</h3>
+            <h3 style="margin-top: 1.5em">Search</h3>
             <form class="search" action="search.html" method="get">
-                <input type="text" name="q" />
-                <input type="submit" value="Go" />
+              <input type="text" name="q" />
+              <input type="submit" value="Go" />
             </form>
           </div>
-
         </div>
         <div class="clearer"></div>
       </div>
@@ -263,29 +704,31 @@ For the first file in the sequence a figure of the fit for each region is also s
         <div class="left">
           <div role="navigation" aria-label="related navigaton">
             <a href="installation.html" title="Download and Install"
-              >previous</a> |
+              >previous</a
+            >
+            |
             <a href="input file short.html" title="Input file structure (short)"
-              >next</a> |
-            <a href="genindex.html" title="General Index"
-              >index</a>
+              >next</a
+            >
+            |
+            <a href="genindex.html" title="General Index">index</a>
           </div>
           <div role="note" aria-label="source link">
-              <br/>
-              <a href="_sources/running cpf.rst.txt"
-                rel="nofollow">Show Source</a>
+            <br />
+            <a href="_sources/running cpf.rst.txt" rel="nofollow"
+              >Show Source</a
+            >
           </div>
         </div>
 
         <div class="right">
-          
-    <div class="footer" role="contentinfo">
-        &#169; Copyright Simon Hunt &amp; Danielle Fenech, 2020.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.2.
-    </div>
+          <div class="footer" role="contentinfo">
+            &#169; Copyright Simon Hunt &amp; Danielle Fenech, 2020. Created
+            using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.2.
+          </div>
         </div>
         <div class="clearer"></div>
       </div>
     </div>
-
   </body>
 </html>

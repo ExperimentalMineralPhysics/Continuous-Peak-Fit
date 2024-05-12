@@ -1,0 +1,63 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools>=54.2",
+]
+
+[project]
+name = "continuous-peak-fit"
+version = "0.0.1.dev1"
+description="Fits azimuth/time dependency of peaks with Fourier Series descriptions."
+readme = "README.md"
+keywords = [
+  "",
+]
+license.file = "LICENSE.txt"
+authors = [
+    {name = "Simon Hunt", email = "simon.hunt@manchester.ac.uk"},
+    {name = "Danielle Fenech"},
+]
+requires-python = ">= 3.9"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+  "fabio",
+  "h5py",
+  "hdf5plugin",
+  "lmfit",
+  "matplotlib",
+  "numpy",
+  "opencv-python",
+  "pathos",
+  "pillow",
+  "pycairo",
+  "pyFAI",
+  "pyopencl",
+  "scipy",
+]
+[project.optional-dependencies]
+dev = [
+  "ipykernel",
+  "pre-commit",
+]
+[project.urls]
+Repository = "https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit"
+[project.scripts]
+CPF_XRD_FitPattern = "bin:CPF_XRD_FitPattern"
+CPF_generate_inputs = "bin:CPF_generate_inputs"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "cpf",
+    "bin"
+]
+namespaces = false

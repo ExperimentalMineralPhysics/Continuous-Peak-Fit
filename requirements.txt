@@ -11,6 +11,6 @@ scipy~=1.6.1
 fabio~=0.11.0
 setuptools~=54.2.0
 
-Pathos
+pathos
 hdf5plugin
-Openvc-python
+opencv-python

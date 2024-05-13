@@ -1,7 +1,7 @@
 [build-system]
 build-backend = "setuptools.build_meta"
 requires = [
-  "setuptools>=54.2",
+  "setuptools",
 ]
 
 [project]
@@ -24,40 +24,42 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.10", # pip install works for 3.10.14
+  "Programming Language :: Python :: 3.11", # pip install works for 3.11.9
   "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
   "fabio",
   "h5py",
   "hdf5plugin",
+  "ImageD11",
   "lmfit",
   "matplotlib",
+  "moviepy",
   "numpy",
   "opencv-python",
   "pathos",
   "pillow",
   "pycairo",
   "pyFAI",
-  "pyopencl",
+  "pyopencl", # NOTE: ImageD11 mentions using pyopengl
   "scipy",
 ]
 [project.optional-dependencies]
 dev = [
-  "ipykernel",
-  "pre-commit",
+  "ipykernel", # For Jupyter Notebook interactive development
+  "pre-commit", # For running code checks with
 ]
 [project.urls]
 Repository = "https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit"
 [project.scripts]
-CPF_XRD_FitPattern = "bin:CPF_XRD_FitPattern"
-CPF_generate_inputs = "bin:CPF_generate_inputs"
+CPF_XRD_FitPattern = "bin:CPF_XRD_FitPattern.py"
+CPF_generate_inputs = "bin:CPF_generate_inputs.py"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = [
     "cpf",
-    "bin"
+    "bin",
 ]
 namespaces = false

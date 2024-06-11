@@ -627,7 +627,7 @@ class DioptasDetector:
                 self.calibration.wavelength * 1e10 / 2 / np.sin(ai.twoThetaArray() / 2)
             )
 
-    def set_limits(self, range_bounds=[-np.inf, np.inf]):
+    def set_limits(self, range_bounds=[-np.inf, np.inf], azm_bounds=[-np.inf, np.inf]):
         """
         Set limits to data in two theta
         :param range_bounds:
@@ -636,7 +636,8 @@ class DioptasDetector:
         :return:
         """
         local_mask = np.where(
-            (self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1])
+            (self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1]) &
+            (self.azm >= azm_bounds[0])   & (self.azm <= azm_bounds[1])
         )
         self.intensity = self.intensity[local_mask]
         self.tth = self.tth[local_mask]

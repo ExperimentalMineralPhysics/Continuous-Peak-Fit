@@ -139,8 +139,43 @@ class _Plot_AngleDispersive:
             y_axis="intensity",
             limits=[0, 100],
         )
+        
     
+    def plot_range(self, fig_plot=None, range_bounds=[-np.inf, np.inf], azm_bounds=[-np.inf, np.inf]):
+        """
+        Plot data within given range. 
+        add data to axes.
+        :param ax:
+        :param show:
+        :return:
+        """
+        
+        self.set_limits(range_bounds=range_bounds, azm_bounds=range_bounds)
     
+        # match max and min of colour scales
+        limits = {
+            "max": self.intensity.max(),
+            "min": self.intensity.min(),
+        }
+    
+        # plot data
+        ax1 = fig_plot.add_subplot(1, 1, 1)
+        self.plot_calibrated(
+            fig_plot=fig_plot,
+            axis_plot=ax1,
+            show="intensity",
+            x_axis="default",
+            limits=limits,
+            colourmap="magma_r",
+        )
+        ax1.set_title("Data")
+        locs, labels = plt.xticks()
+        plt.setp(labels, rotation=90)
+           
+        # tidy layout
+        plt.tight_layout()
+
+          
     
     def plot_fitted(self, fig_plot=None, model=None, fit_centroid=None):
         """

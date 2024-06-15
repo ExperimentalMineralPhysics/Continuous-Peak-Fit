@@ -150,7 +150,7 @@ class ESRFlvpDetector():
     
     def __init__(self, settings_class=None):
         """
-        :param calibration_parameters:
+        :param settings_class: 
         """
 
         self.requirements = self.get_requirements()
@@ -510,7 +510,6 @@ class ESRFlvpDetector():
         elif mask is not None:
             # apply given mask
             self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
-            #self.intensity = self.get_masked_intensity(mask, im)
             print("exit load2")
             return ma.array(im, mask=mask)
         else:
@@ -522,7 +521,8 @@ class ESRFlvpDetector():
 
 
     def fill_data(
-        self, diff_file=None, settings=None, mask=None, debug=False
+        self, diff_file=None, settings=None, mask=None, make_zyx = False, 
+        debug=False
     ):
         """
         Initiates the data arrays. 
@@ -541,6 +541,13 @@ class ESRFlvpDetector():
         settings : settings class, optional
             cpf settings class containing the calibration file name.
             The default is None.
+        mask : string or dirctionarry, optional
+            Filename or dictionary of instructions to make data mask. 
+            The default is None.
+        make_zyx : boolian, optional
+            Switch to make x,y,z arrays for the pixels. These arrats are not
+            used by default. They exist incase ever needed. 
+            The default is False.
         debug : True/False, optional
             Additional output, used for debugging.
             The default is False.
@@ -590,21 +597,17 @@ class ESRFlvpDetector():
                 self.intensity = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
         
         print(time.time()-st)
-        
-        ## create and populate the data arrays 
-        # the x, y, z, arrays are not usually needed. 
-        # but if created can fill the memory.
-        # switch created incase needed/wanted in future.
-        save_memory = True
-        
+                
         #create emmpty arrays
         self.tth = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
         self.azm = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
-        if not save_memory:
+        if make_zyx:
+            # the x, y, z, arrays are not usually needed. 
+            # but if created can fill the memory.
+            # switched incase ever needed/wanted
             self.x = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
             self.y = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
             self.z = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
-        
         print(self.tth.shape, self.azm.shape)
         
         # fill the arrays
@@ -612,13 +615,12 @@ class ESRFlvpDetector():
             self.tth[i,:,:] = np.rad2deg(self.detector.ais[i].twoThetaArray())
             self.azm[i,:,:] = np.rad2deg(self.detector.ais[i].chiArray())
             print("AMZ", np.min(self.azm), np.max(self.azm), self.azm.shape)
-            if not save_memory:
+            if make_zyx:
                 zyx = self.detector.ais[i].calc_pos_zyx() 
                 self.z[i,:,:] = zyx[0]
                 self.y[i,:,:] = zyx[1] 
                 self.x[i,:,:] = zyx[2] 
-        #FIX ME: should we apply the mask as the arrays are populated rather than 
-        # in the next bit. 
+
         print(time.time()-st)
         
         # from sys import getsizeof
@@ -626,9 +628,12 @@ class ESRFlvpDetector():
         
         
         print("now here")
+        #F IX ME: (June 2024) i dont know that the d-space array is needed. 
+        # Check for calls and if this is the only one then remove it
         self.dspace    = self._get_d_space()
         
         # add masks to arrays
+        #FIX ME: should we apply the mask as the arrays are populated rather than here?
         mask_array = self.get_mask(mask, self.intensity)
         #print("mask_array", mask_array)
         
@@ -647,51 +652,8 @@ class ESRFlvpDetector():
         # FIX ME: change data to match azm_Start and azm_end. not the otherway round??
         self.azm_start = np.around(self.azm.min() / self.azm_blocks) * self.azm_blocks
         self.azm_end = np.around(self.azm.max() / self.azm_blocks) * self.azm_blocks
-        
 
-        
-        
-    def _get_d_space(self, mask=None):
-        """
-        Give d-spacing value for detector x,y position; calibration info in data
-        Get as twotheta and then convert into d-spacing
-        :param mask:
-        :return:
-        """
-        #FIX ME: i dont know that this method is needed. It could be wrapped into
-        # fill_data. Check for calls and if this is the only one then remove it
-        if mask is not None:
-            return ma.array(
-                self.conversion(self.tth, reverse=False),
-                mask=mask,
-            )
-        else:
-            return ma.array(
-                self.conversion(self.tth, reverse=False)
-            )
-      
   
-
-    def conversion(self, tth_in, azm=None, reverse=False):
-        """
-        Convert two theta values into d-spacing.
-        azm is needed to enable compatibility with the energy dispersive detectors
-        :param tth_in:
-        :param reverse:
-        :param azm:
-        :return:
-        """
-        wavelength = self.conversion_constant
-        if not reverse:
-            # convert tth to d_spacing
-            dspc_out = wavelength / 2 / np.sin(np.radians(tth_in / 2))
-        else:
-            # convert d-spacing to tth.
-            # N.B. this is the reverse function so that labels tth and d_spacing are not correct.
-            # print(tth_in)
-            dspc_out = 2 * np.degrees(np.arcsin(wavelength / 2 / tth_in))
-        return dspc_out
-        
   
         
     def get_requirements(self, parameter_settings=None):
@@ -702,6 +664,8 @@ class ESRFlvpDetector():
         
         # FIX ME: this should be called as part of the settings initiation. But it is not. 
         # FIX ME: the different bits of this function are not checked and unlikely ot be correct.
+        # FIX ME: this function should return the lists of parameters and the checking 
+        # done in the settings class file. 
         
         # List all the required parameters.
         # NOTE: No doubt this will change hence denoted as a list that is worked over.
@@ -714,7 +678,7 @@ class ESRFlvpDetector():
         #       - file listing data file numbers (needs directory, file name, number digits, ending)
         #       - beginning and numbers for files (needs directory, file name, number digits, ending)
         required_list = [
-            "Calib_type",
+            "Calib_type",          # Must be 'ESRFlvp'
             #"Calib_detector"      # not required -- this is a unique deteor type for ESRF LVP. 
             # 'Calib_data',        # Removed because this is not strictly required.
             "Calib_param",         # *.json file the holds the multigeometry calibration
@@ -795,6 +759,8 @@ ESRFlvpDetector.mask_restore = _masks.mask_restore
 ESRFlvpDetector.mask_remove  = _masks.mask_remove
 
 # add common function. 
+ESRFlvpDetector._get_d_space = _AngleDispersive_common._get_d_space
+ESRFlvpDetector.conversion   = _AngleDispersive_common.conversion
 ESRFlvpDetector.bins         = _AngleDispersive_common.bins
 ESRFlvpDetector.set_limits   = _AngleDispersive_common.set_limits
 

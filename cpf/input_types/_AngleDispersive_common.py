@@ -3,6 +3,7 @@
 
 
 import numpy as np
+import numpy.ma as ma
 import matplotlib.pyplot as plt
 
 
@@ -26,6 +27,49 @@ class _AngleDispersive_common():
         self = detector_class
 
 
+
+    def _get_d_space(self, mask=None):
+        """
+        Give d-spacing value for detector x,y position; calibration info in data
+        Get as twotheta and then convert into d-spacing
+        :param mask:
+        :return:
+        """
+        #FIX ME: i dont know that this method is needed. It could be wrapped into
+        # fill_data. Check for calls and if this is the only one then remove it
+        if mask is not None:
+            return ma.array(
+                self.conversion(self.tth, reverse=False),
+                mask=mask,
+            )
+        else:
+            return ma.array(
+                self.conversion(self.tth, reverse=False)
+            )
+  
+        
+        
+    def conversion(self, tth_in, azm=None, reverse=False):
+        """
+        Convert two theta values into d-spacing.
+        azm is needed to enable compatibility with the energy dispersive detectors
+        :param tth_in:
+        :param reverse:
+        :param azm:
+        :return:
+        """
+        #wavelength = self.calibration.wavelength * 1e10
+        wavelength = self.conversion_constant
+        if not reverse:
+            # convert tth to d_spacing
+            dspc_out = wavelength / 2 / np.sin(np.radians(tth_in / 2))
+        else:
+            # convert d-spacing to tth.
+            # N.B. this is the reverse function so that labels tth and d_spacing are not correct.
+            # print(tth_in)
+            dspc_out = 2 * np.degrees(np.arcsin(wavelength / 2 / tth_in))
+        return dspc_out
+    
     
 
     def bins(self, orders_class, cascade=False):

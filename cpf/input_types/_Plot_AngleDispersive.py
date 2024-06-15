@@ -9,7 +9,7 @@ from matplotlib import gridspec, cm, colors
 from cpf.histograms import histogram2d
 
 
-class _Plot_AngleDispersive:
+class _Plot_AngleDispersive():
     """
     This class cannot be imported as a stand alone class. Instead the methods 
     contained within it are created as methods in the angle dispersive diffraction
@@ -30,6 +30,9 @@ class _Plot_AngleDispersive:
             disp_lims = np.around(np.array(disp_lims) / self.azm_blocks) * self.azm_blocks
             disp_ticks = list(range(int(disp_lims[0]), int(disp_lims[1] + 1), int(self.azm_blocks)))
         elif self.azm_end is not None and self.azm_start is not None:
+            num_blocks = (self.azm_end- self.azm_start) / self.azm_blocks
+            if num_blocks < 3:
+                self.azm_blocks = np.around((self.azm_end- self.azm_start) / 3)
             disp_lims = np.around(np.array([self.azm_start, self.azm_end]) / self.azm_blocks) * self.azm_blocks
             disp_ticks = list(range(int(disp_lims[0]), int(disp_lims[1] + 1), int(self.azm_blocks)))
         elif len(np.unique(self.azm)) <= unique:

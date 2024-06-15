@@ -178,39 +178,42 @@ class _AngleDispersive_common():
         self.intensity = self.intensity[local_mask]
         self.tth = self.tth[local_mask]
         self.azm = self.azm[local_mask]
-        if "dspace" in self.__dict__.items():
+        if self.dspace is not None:
             self.dspace = self.dspace[local_mask]
         
-        if "x" in self.__dict__.items():
-            self.x = self.x[local_mask]
-        if "y" in self.__dict__.items():         
-            self.y = self.y[local_mask]
-        if "z" in self.__dict__.items():
-            self.z = self.z[local_mask]
+        if "x" in dir(self): 
+            if self.x is not None:
+                self.x = self.x[local_mask]
+        if "y" in dir(self): 
+            if self.y is not None:
+                self.y = self.y[local_mask]
+        if "z" in dir(self): 
+            if self.z is not None:
+                self.z = self.z[local_mask]
             
         self.azm_end = np.max(self.azm)
         self.azm_start = np.min(self.azm)
         
         
         
-        # FIX ME This appears to be unused and has been removed. 
-    # def test_azims(self, steps = 360):
-    #     """
-    #     Returns equally spaced set of aximuths within possible range.
 
-    #     Parameters
-    #     ----------
-    #     steps : Int, optional
-    #         DESCRIPTION. The default is 360.
+    def test_azims(self, steps = 360):
+        """
+        Returns equally spaced set of aximuths within possible range.
 
-    #     Returns
-    #     -------
-    #     array
-    #         list of possible azimuths.
+        Parameters
+        ----------
+        steps : Int, optional
+            DESCRIPTION. The default is 360.
 
-    #     """
+        Returns
+        -------
+        array
+            list of possible azimuths.
+
+        """
         
-    #     return np.linspace(self.azm_start,self.azm_end, steps+1)
+        return np.linspace(self.azm_start,self.azm_end, steps+1)
 
 
 

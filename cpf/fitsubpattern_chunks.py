@@ -278,7 +278,6 @@ def get_chunk_peak_guesses(
                 param=["height", "d-space", "width", "profile"],
             )
         )
-        data_chunk_class
 
     limits = {
         "background": lmm.parse_bounds(

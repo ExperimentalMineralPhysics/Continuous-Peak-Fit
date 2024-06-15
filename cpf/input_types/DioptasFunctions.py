@@ -5,6 +5,7 @@ __all__ = ["DioptasDetector"]
 
 
 import sys
+import re
 from copy import deepcopy
 import numpy as np
 import numpy.ma as ma
@@ -13,8 +14,10 @@ import fabio
 import pyFAI
 from pyFAI.io import ponifile
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
-from PIL import Image
+#from PIL import Image
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
+from cpf.input_types._Masks import _masks
 from cpf import IO_functions
 import cpf.h5_functions as h5_functions
 
@@ -45,13 +48,16 @@ class DioptasDetector:
         self.azm_end   =  180
         self.tth_start = None
         self.tth_end   = None
+        # Single image plate detector so contonuous data.
+        self.DispersionType = "AngleDispersive"
+        self.continuous_azm = True
         
         self.azm_blocks = 45
         
-        # Single image plate detector so contonuous data.
-        self.continuous_azm = True
-        self.DispersionType = "AngleDispersive"
-
+        self.calibration = None
+        self.conversion_constant = None
+        self.detector = None
+        
         if settings_class:
             self.get_calibration(settings=settings_class)
         if self.calibration:
@@ -77,86 +83,289 @@ class DioptasDetector:
 
 
 
-    def fill_data(
-        self, diff_file, settings=None, debug=None
-    ):  # , calibration_mask=None):
+    def get_calibration(self, file_name=None, settings=None):
         """
-        :param settings: -- now a class.
-        :param diff_file:
-        :param debug:
-        :param calibration_mask: -- now removed because calibration mask file is contained in settings class
-        """
-
-        # self.detector = self.detector_check(calibration_data, detector)
-        #        print(settings.Calib_param)
-        self.get_calibration(settings.calibration_parameters)
-        self.get_detector(diff_file, settings)
-
-        self.intensity = self.get_masked_calibration(
-            diff_file, debug, calibration_mask=settings.calibration_mask
-        )
-        self.tth = self.get_two_theta(mask=self.intensity.mask)
-        self.azm = self.get_azimuth(mask=self.intensity.mask)
-        self.dspace = self.get_d_space(mask=self.intensity.mask)
+        Opens the file with the calibration data in it and updates 
+        DioptasClass.calibration and 
+        DioptasClass.conversion_constant
         
-        blocks = 180
-        self.azm_start = np.around(np.min(self.azm.flatten()) / blocks) * blocks
-        self.azm_end = np.around(np.max(self.azm.flatten()) / blocks) * blocks
+        Either file_name or settings should be set. 
+        
+        Parameters
+        ----------
+        file_name : string, optional
+            Filename of the calibration file. In this case a *.poni file.
+            The default is None.
+        settings : settings class, optional
+            cpf settings class containing the calibration file name.
+            The default is None.
 
-    def get_detector(self, diff_file=None, settings=None):
+        Returns
+        -------
+        None.
+
         """
-        :param diff_file:
-        :param settings:
-        :return:
-        """
-        # if self.calibration.detector:
-        #     #have read the poni calibration and the detector is present.
-        #     #this seems to be the updated Dioptas/pyFAI way of storing the pixel size [i.e. poni version 2]???
-        #     self.detector = self.calibration.detector
-        # el
-        if settings.calibration_detector is not None:
-            #if we tell it the type of detector.
-            self.detector = pyFAI.detector_factory(settings.calibration_detector)
+        if settings != None:
+            parms_file = settings.calibration_parameters
         else:
-            #we dont know anything. so recreate a detector. 
-                
-            #open the file to get the shape of the data.     
-            if diff_file is not None: 
-                im_all = fabio.open(diff_file)
-            elif settings.calibration_data is not None:
-                im_all = fabio.open(settings.calibration_data)
-            else:
-                im_all = fabio.open(settings.image_list[0])
-                
+            parms_file = file_name
+        pf = ponifile.PoniFile()
+        pf.read_from_file(parms_file)
 
-            if self.calibration.detector:
-                 #have read the poni calibration and the detector is present.
-                 #this seems to be the updated Dioptas/pyFAI way of storing the pixel size [i.e. poni version 2]???
-                 #self.detector = self.calibration.detector
-                 sz1 = self.calibration.detector.pixel1
-                 sz2 = self.calibration.detector.pixel2
-                 
-            elif "pixelsize1" in self.calibration:
-                #old Dioptas/pyFAI way of storing the pixel size???
-                sz1 = self.calibration["pixelsize1"]
-                sz2 = self.calibration["pixelsize2"]
-            elif settings.calibration_pixel_size is not None:
-                #get the pixel size from the input file
-                sz1 = settings.calibration_pixel_size * 1e-6
-                sz2 = settings.calibration_pixel_size * 1e-6
-            else:
-                #this won't work
-                err_str = (
-                    "The pixel size or the detector are is not defined. Add to inputs."
-                )
-                raise ValueError(err_str)
+        self.calibration = pf
+        self.conversion_constant = pf.wavelength * 1e10 #in angstroms
 
-            self.detector = pyFAI.detectors.Detector(
-                pixel1=sz1, pixel2=sz2, splineFile=None, max_shape=im_all.shape
+
+
+    def get_detector(self, settings=None, calibration_file=None, diffraction_data=None, debug=False):
+        """
+        Takes the detector information from the settings class, or the 
+        calibration *.json file and creates a detector-type instance which converts 
+        the x,y,azimith of the diffraction data pixels into two-theta vs. 
+        azimuth.
+        
+        Either settings or the file_name are required. 
+        
+        Parameters
+        ----------
+        file_name : string, optional
+            Filename of the calibration file. In this case a *.poni file.
+            The default is None.
+        settings : settings class, optional
+            cpf settings class containing the calibration file name.
+            The default is None.
+        debug : True/False, optional
+            Additional output, used for debigging.
+            The default is False.
+
+        Returns
+        -------
+        None.
+
+        """
+        if self.calibration == None:
+            self.get_calibration(settings=settings, file_name=calibration_file, debug=debug)
+        
+        if self.calibration:
+            #use the poni file/calibration to make the detector
+            self.detector = AzimuthalIntegrator(
+                detector=self.calibration.detector, 
+                dist=self.calibration.dist,
+                poni1=self.calibration.poni1,
+                poni2=self.calibration.poni2,
+                rot1=self.calibration.rot1,
+                rot2=self.calibration.rot2,
+                rot3=self.calibration.rot3,
+                wavelength=self.calibration.wavelength,
             )
-        # FIX ME: check the detector type is valid.
-        # self.detector = self.detector_check(calibration_data, detector=None)
-        # return detector
+            
+            if (self.detector.detector.get_name() == "Detector" and 
+                "detector_config" in self.calibration.as_dict()):
+                
+                config = self.calibration.as_dict()["detector_config"]
+                
+                if config["max_shape"] == None:
+                    # open the file to get the shape of the data.     
+                    if diffraction_data is not None: 
+                        im_all = fabio.open(diffraction_data)
+                    elif settings.calibration_data is not None:
+                        im_all = fabio.open(settings.calibration_data)
+                    elif settings.image_list[0] != None:
+                        im_all = fabio.open(settings.image_list[0])
+                    if im_all:
+                        config["max_shape"] = im_all.shape
+                        
+                #make sure the pixel sizes are correct
+                self.detector.detector.set_config(config)
+            
+            if debug:
+                print(self.detector.detector.get_name())
+                print(self.detector.detector.pixel1)
+                print(self.detector.chiArray())
+                print(self.detector.detector.max_shape)
+                print(type(self.detector))
+                
+        
+   
+    # @staticmethod
+    def import_image(self, image_name=None, settings=None, mask=None, dtype=None, debug=False):
+        """
+        Import the data image into the intensity array.        
+        Apply new mask to the data (if given) otherwise use previous mask
+    
+        Parameters
+        ----------
+        image_name : string, optional
+            Name of the image set to import. Either this or settings are required.
+        settings : settings class, optional
+            Cpf setting class that constins the image set to import. 
+            Either this or imagename is required.
+        mask : array, optional
+            Mask array to apply to data. The default is None.
+        dtype : string, optional
+            Data type string, to force the data type and bit depth. The default is None.
+        debug : boolian, optional
+            True/Flase to display debuging information. The default is False.
+    
+        Raises
+        ------
+        ValueError
+            If there is no image_name of the settings.subpattern is not set.
+    
+        Returns
+        -------
+        Im : masked array
+            Masked image intensity array.
+    
+        """
+        # FIX ME: nxs files need to be checked. But they should be read like h5 files.
+
+        #check inputs
+        if image_name == None and settings.subpattern == None:
+            raise ValueError("Settings are given but no subpattern is set.")
+
+        if self.detector == None:
+            self.load_detector(settings)
+
+        if image_name == None:
+            #load the data for the chosen subpattern.
+            image_name = settings.subfit_filename
+            
+        #read image
+        if isinstance(image_name, list):
+            # then it is a h5 type file
+            im = h5_functions.get_images(image_name)
+
+        # elif file_extension == ".nxs":
+        #     im_all = h5py.File(image_name, "r")
+        #     # FIX ME: This assumes that there is only one image in the nxs file.
+        #     # If there are more, then it will only read 1.
+        #     im = np.array(im_all["/entry1/instrument/detector/data"])
+        else:
+            im_all = fabio.open(image_name)
+            im = im_all.data
+
+        # Convert the input data from integer to float because the lmfit model values
+        # inherits integer properties from the data.
+        #
+        # Allow option for the data type to be set.
+        if dtype==None:
+            if self.intensity is None and np.size(self.intensity) > 2:
+                # self.intensity has been set before. Inherit the dtype.
+                dtype = self.intensity.dtype  
+            elif "int" in im[0].dtype.name:
+                #the type is either int or uint - convert to float
+                # using same bit precision 
+                precision = re.findall("\d+", im[0].dtype.name)[0]
+                dtype = np.dtype("float"+precision)
+        im = ma.array(im, dtype=dtype)
+
+        # Dioptas flips the images to match the orientations in Fit2D
+        # Therefore implemented here to be consistent with Dioptas.
+        im = np.array(im)[::-1]
+
+        if debug:
+            print("min+max:", np.min(im), np.max(im))
+            fig = plt.figure()
+            ax = fig.add_subplot(1, 1, 1)
+            self.plot_collected(fig_plot=fig, axis_plot=ax)
+            # plt.title(os.path.split(image_name)[1])
+            plt.title(IO_functions.title_file_names(image_name=image_name))
+            plt.show()
+            plt.close()
+
+        # apply mask to the intensity array
+        if mask == None and ma.is_masked(self.intensity) == False:
+            self.intensity = ma.array(im)
+            return ma.array(im)
+        elif mask is not None:
+            # apply given mask
+            self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
+            return ma.array(im, mask=mask)
+        else:
+            #apply mask from intensities
+            self.intensity = ma.array(im, mask=self.intensity.mask)
+            return ma.array(im)
+
+        
+
+    def fill_data(
+        self, diff_file=None, settings=None, mask=None, make_zyx=False, 
+        debug=False
+    ):
+        """
+        Initiates the data arrays. 
+        Creates the intensity, two theta, azimuth and d-spacing arrays from the 
+        Detector and the data.
+        
+        If diffraction data is provided this makes the intensity array otherwise 
+        the intensity array is filled with zeros.
+
+        It must be called after setting the detector but before import_data.
+        
+        Parameters
+        ----------
+        diff_file : string, optional
+            Filename of the diffraction data files to import.
+        settings : settings class, optional
+            cpf settings class containing the calibration file name.
+            The default is None.
+        mask : string or dirctionarry, optional
+            Filename or dictionary of instructions to make data mask. 
+            The default is None.
+        make_zyx : boolian, optional
+            Switch to make x,y,z arrays for the pixels. These arrats are not
+            used by default. They exist incase ever needed. 
+            The default is False.
+        debug : True/False, optional
+            Additional output, used for debugging.
+            The default is False.
+
+        Returns
+        -------
+        None.
+        """
+
+        #check inputs
+        if diff_file != None:
+            pass
+        elif settings != None: # and diff_file == None
+            #load the data for the chosen subpattern.
+            if settings.subfit_filename != None:
+                diff_file = settings.subfit_filename
+            else:
+                raise ValueError("Settings are given but no subpattern is set.")
+        else:
+            raise ValueError("No diffreaction file or settings have been given.")
+            
+        if mask==None:
+            if settings.calibration_mask:# in settings.items():
+                mask = settings.calibration_mask
+        
+        if self.detector == None:
+            self.get_detector(settings=settings)
+
+        #get the intensities (without mask)
+        self.intensity = self.import_image(diff_file)
+        # FIXME: (June 2024) because of how self.detector is instanciated the 
+        # shape might not be correct (or recognised). Hence the check here and 
+        # inclusion of the shape in the array getting.
+        if self.intensity.shape != self.detector.detector.max_shape:
+            raise ValueError("The pixel size of the data and the detector are not the same")
+            
+        self.tth = ma.array(np.rad2deg(self.detector.twoThetaArray(self.detector.detector.max_shape)))
+        self.azm = ma.array(np.rad2deg(self.detector.chiArray(self.detector.detector.max_shape)))
+        
+        self.dspace = self._get_d_space()
+        
+        #get and apply mask
+        mask_array = self.get_mask(mask, self.intensity)
+        self.mask_apply(mask_array, debug=debug)
+        
+        self.azm_start = np.around(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        self.azm_end = np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+
+
 
     @staticmethod
     def detector_check(calibration_data, settings=None):
@@ -182,30 +391,8 @@ class DioptasDetector:
             )
         # FIX ME: check the detector type is valid.
         return detector
+    
 
-    def get_masked_calibration(self, calibration_data, debug, calibration_mask=None):
-        """
-        load calibration data/image -- to get intensities for mask
-        :param calibration_data:
-        :param debug:
-        :param calibration_mask:
-        :return:
-        """
-
-        im = self.import_image(calibration_data)
-        # im=im_all.data
-        # im = np.array(im)[::-1]
-
-        # im = im_a.data # self.ImportImage(calibration_data, debug=debug)
-        intens = ma.array(im.data)
-        # create mask from mask file if present. If not make all values valid
-        if calibration_mask:
-            intens = self.get_mask(calibration_mask, intens)
-        else:
-            im_mask = np.zeros_like(intens)
-            intens = ma.array(intens, mask=im_mask)
-            intens = ma.masked_outside(intens, 0, np.inf)
-        return intens
 
     def get_requirements(self, parameter_settings=None):
         """
@@ -260,445 +447,20 @@ class DioptasDetector:
                 )
         return required_list
 
-    # @staticmethod
-    def import_image(self, image_name, mask=None, debug=False):
-        """
-        Import the data image
-        :param mask:
-        :param image_name: Name of file
-        :param debug: extra output for debugging - plot
-        :return: intensity array
-        """
-        # FIX ME: why is mask in here? should it inherit from previous data if it exists?
 
-        # FIX ME: nxs files need to be checked. But they should be read like h5 files.
-
-        # im = Image.open(ImageName) ##always tiff?- no
-        # filename, file_extension = os.path.splitext(image_name)
-        if isinstance(image_name, list):
-            # then it is a h5 type file
-
-            im = h5_functions.get_images(image_name)
-
-        # elif file_extension == ".nxs":
-        #     im_all = h5py.File(image_name, "r")
-        #     # FIX ME: This assumes that there is only one image in the nxs file.
-        #     # If there are more, then it will only read 1.
-        #     im = np.array(im_all["/entry1/instrument/detector/data"])
-        else:
-            im_all = fabio.open(image_name)
-            im = im_all.data
-
-        # FIX ME: Copied from MED_functions.
-        # FIX ME: Convert the input data from integer to float because otherwise the model inherits Integer properties somewhere along the line.
-        # FIX ME: I dont know if this needed here but given everything else is the same I have copied it from MED_functions.
-        im = np.array(im, dtype="f")
-
-        # Dioptas flips the images to match the orientations in Plot2D (should this be Fit2D?).
-        # Therefore implemented here to be consistent with Dioptas.
-        # FIX ME: what to do about this?
-        im = np.array(im)[::-1]
-
-        if debug:
-            print("min+max:", np.min(im), np.max(im))
-            fig = plt.figure()
-            ax = fig.add_subplot(1, 1, 1)
-            self.plot_collected(fig_plot=fig, axis_plot=ax)
-            # plt.title(os.path.split(image_name)[1])
-            plt.title(IO_functions.title_file_names(image_name=image_name))
-            plt.show()
-            plt.close()
-
-        if mask == None and ma.is_masked(self.intensity) == False:
-            self.intensity = ma.array(im)
-            return ma.array(im)
-        elif mask is not None:
-            self.intensity = ma.array(im, mask=mask)
-            return ma.array(im, mask=mask)
-        else:
-            self.intensity = ma.array(im, mask=self.intensity.mask)
-            return ma.array(im)
-
-        if mask is not None:
-            return ma.array(im, mask=mask)
-        else:
-            return ma.array(im)
-
-    def conversion(self, tth_in, azm=None, reverse=False):
-        """
-        Convert two theta values into d-spacing.
-        azm is needed to enable compatibility with the energy dispersive detectors
-        :param tth_in:
-        :param reverse:
-        :param azm:
-        :return:
-        """
-
-        wavelength = self.calibration.wavelength * 1e10
-        if not reverse:
-            # convert tth to d_spacing
-            dspc_out = wavelength / 2 / np.sin(np.radians(tth_in / 2))
-        else:
-            # convert d-spacing to tth.
-            # N.B. this is the reverse function so that labels tth and d_spacing are not correct.
-            # print(tth_in)
-            dspc_out = 2 * np.degrees(np.arcsin(wavelength / 2 / tth_in))
-        return dspc_out
-
-    def get_mask(self, msk_file, im_ints):
-        """
-        Dioptas mask is compressed Tiff image.
-        Save and load functions within Dioptas are: load_mask and save_mask in dioptas/model/MaskModel.py
-        :param msk_file:
-        :param im_ints:
-        :return:
-        """
-        im_mask = np.array(Image.open(msk_file))
-        # im_mask = np.array(im_mask)[::-1]
-        im_ints = ma.array(im_ints, mask=im_mask)
-
-        im_ints = ma.masked_less(im_ints, 0)
-
-        self.original_mask = im_mask
-        # TALK TO SIMON ABOUT WHAT TO DO WITH THIS
-        # SAH!! July 2021: we need a mask function that makes sure all the arrays have the same mask applied to them.
-        #     == and possibly one that returns just the mask.
-
-        """
-        if debug:
-            # N.B. The plot is a pig with even 1000x1000 pixel images and takes a long time to render.
-            if ImTTH.size > 100000:
-                print(' Have patience. The mask plot will appear but it can take its time to render.')
-            fig_1 = plt.figure()
-            ax1 = fig_1.add_subplot(1, 3, 1)
-            ax1.scatter(ImTTH, ImAzi, s=1, c=(ImInts.data), edgecolors='none', cmap=plt.cm.jet, vmin=0,
-                        vmax=np.percentile(ImInts.flatten(), 98))
-            ax1.set_title('All data')
-
-            ax2 = fig_1.add_subplot(1, 3, 2)
-            ax2.scatter(ImTTH, ImAzi, s=1, c=im_mask, edgecolors='none', cmap='Greys')
-            ax2.set_title('Mask')
-            ax2.set_xlim(ax1.get_xlim())
-
-            ax3 = fig_1.add_subplot(1, 3, 3)
-            ax3.scatter(ImTTH, ImAzi, s=1, c=(ImInts), edgecolors='none', cmap=plt.cm.jet, vmin=0,
-                        vmax=np.percentile(ImInts.flatten(), 98))
-            ax3.set_title('Masked data')
-            ax3.set_xlim(ax1.get_xlim())
-            # ax2.colorbar()
-            plt.show()
-
-            plt.close()
-        """
-
-        # FIX ME: need to validate size of images vs. detector name. Otherwise, the mask can be the wrong size
-        # det_size = pyFAI.detectors.ALL_DETECTORS['picam_v1'].MAX_SHAPE
-        # FIX ME : this could probably all be done by using the detector class in fabio.
-        return im_ints
-
-
-
-    def get_calibration(self, file_name=None, settings=None):
-        """
-        Opens the file with the calibration data in it and updates 
-        DioptasCalibration.calibration and 
-        DioptasCalibration.conversion_constant
-        
-        Either file_name or settings should be set. 
-        
-        Parameters
-        ----------
-        file_name : string, optional
-            Filename of the calibration file. In this case a *.poni file.
-            The default is None.
-        settings : settings class, optional
-            cpf settings class containing the calibration file name.
-            The default is None.
-
-        Returns
-        -------
-        None.
-
-        """
-        if settings != None:
-            parms_file = settings.calibration_parameters
-        else:
-            parms_file = file_name
-        pf = ponifile.PoniFile()
-        pf.read_from_file(parms_file)
-
-        self.calibration = pf
-        self.conversion_constant = pf.wavelength * 1e10
-
-
-
-    def bins(self, orders_class, cascade=False):
-        """
-        Assign data into azimuthal bins.
-        This is primarily called as part of the initial fitting.
-        Assign each data to a chunk corresponding to its azimuth value
-        Returns array with indices for each bin and array of bin centroids
-        
-        
-        Parameters
-        ----------
-        orders_class : settings class, optional
-            cpf settings class.
-        cascade : True/False, optional
-            Switch that determines type of outputs returned.
-            The default is False.
-
-        Returns
-        -------
-        chunks : list
-            list of arrays. Each element of the array is an array of data indicies that
-            are part of the bin
-        bin_mean_azi : array
-            list containing mean azimuth of data in each bin.
-        """
-
-        # determine how to divide the data into bins and how many.
-        if cascade:
-            bt = orders_class.cascade_bin_type
-            if bt == 1:
-                b_num = orders_class.cascade_number_bins
-            else:
-                b_num = orders_class.cascade_per_bin
-        else:
-            bt = orders_class.fit_bin_type
-            if bt == 1:
-                b_num = orders_class.fit_number_bins
-            else:
-                b_num = orders_class.fit_per_bin
-
-        # make the bins
-        if bt == 0:
-            # split the data into bins with an approximately constant number of data.
-            # uses b_num to determine bin size
-            num_bins = int(np.round(len(self.azm[self.azm.mask == False]) / b_num))
-            bin_boundaries = self.equalObs(
-                np.sort(self.azm[self.azm.mask == False]), num_bins
-            )
-        elif bt == 1:
-            # split the data into a fixed number of bins
-            # uses b_num to determine bin size
-            lims = np.array(
-                [
-                    np.min(self.azm[self.azm.mask == False]),
-                    np.max(self.azm[self.azm.mask == False] + 0.01),
-                ]
-            )
-            lims = np.around(lims / 45) * 45
-            bin_boundaries = np.linspace(lims[0], lims[1], num=b_num + 1)
-
-        else:
-            # issue an error
-            err_str = "The bin type is not recognised. Check input file."
-            raise ValueError(err_str)
-
-        if 0:  # for debugging
-            print(bin_boundaries)
-            # print(np.sort(bin_boundaries))
-            # create histogram with equal-frequency bins
-            n, bins, patches = plt.hist(
-                self.azm[self.azm.mask == False], bin_boundaries, edgecolor="black"
-            )
-            plt.show()
-            # display bin boundaries and frequency per bin
-            print("bins and occupancy", bins, n)
-            print("expected number of data per bin", orders_class.cascade_per_bin)
-            print("total data", np.sum(n))
-
-        # assign the data to the bins
-        chunks = []
-        bin_mean_azi = []
-        temp_azimuth = self.azm.flatten()
-        for i in range(len(bin_boundaries) - 1):
-            start = bin_boundaries[i]
-            end = bin_boundaries[i + 1]
-            azi_chunk = np.where((temp_azimuth > start) & (temp_azimuth <= end))
-            chunks.append(azi_chunk)
-            bin_mean_azi.append(np.mean(temp_azimuth[azi_chunk]))
-
-        return chunks, bin_mean_azi
-
-
-
-    def equalObs(self, x, nbin):
-        """
-        get equally populated bins for data set.
-        copied from: https://www.statology.org/equal-frequency-binning-python/ on 26th May 2022.
-
-        Parameters
-        ----------
-        x : TYPE
-            data to disperse.
-        nbin : TYPE
-            number of bins.
-
-        Returns
-        -------
-        TYPE
-            DESCRIPTION.
-
-        """
-        nlen = len(x)
-        x = np.sort(x)
-        return np.interp(np.linspace(0, nlen, nbin + 1), np.arange(nlen), np.sort(x))
-
-
-
-    def test_azims(self, steps = 360):
-        """
-        Returns equally spaced set of aximuths within possible range.
-
-        Parameters
-        ----------
-        steps : Int, optional
-            DESCRIPTION. The default is 360.
-
-        Returns
-        -------
-        array
-            list of possible azimuths.
-
-        """
-        return np.linspace(self.azm_start,self.azm_end, steps+1)
-
-
-    def get_azimuthal_integration(self):
-        """
-
-        :return:
-        """
-
-        ai = AzimuthalIntegrator(
-            dist=self.calibration.dist,
-            poni1=self.calibration.poni1,
-            poni2=self.calibration.poni2,
-            rot1=self.calibration.rot1,
-            rot2=self.calibration.rot2,
-            rot3=self.calibration.rot3,
-            detector=self.detector,
-            wavelength=self.calibration.wavelength,
-        )
-        return ai
-
-    def get_two_theta(self, mask=None):
-        """
-        Give 2-theta value for detector x,y position; calibration info in data
-        :param mask:
-        :return:
-        """
-
-        ai = self.get_azimuthal_integration()
-        if mask is not None:
-            return ma.array(np.degrees(ai.twoThetaArray()), mask=mask)
-        else:
-            return ma.array(np.degrees(ai.twoThetaArray()))
-
-    def get_azimuth(self, mask=None):
-        """
-        Give azimuth value for detector x,y position; calibration info in data
-        :param mask:
-        :return:
-        """
-        ai = self.get_azimuthal_integration()
-        if mask is not None:
-            return ma.array(np.degrees(ai.chiArray()), mask=mask)
-        else:
-            return ma.array(np.degrees(ai.chiArray()))
-
-    def get_d_space(self, mask=None):
-        """
-        Give d-spacing value for detector x,y position; calibration info in data
-        Get as twotheta and then convert into d-spacing
-        :param mask:
-        :return:
-        """
-        ai = self.get_azimuthal_integration()
-        if mask is not None:
-            return ma.array(
-                self.calibration.wavelength * 1e10 / 2 / np.sin(ai.twoThetaArray() / 2),
-                mask=mask,
-            )
-        else:
-            return ma.array(
-                self.calibration.wavelength * 1e10 / 2 / np.sin(ai.twoThetaArray() / 2)
-            )
-
-    def set_limits(self, range_bounds=[-np.inf, np.inf], azm_bounds=[-np.inf, np.inf]):
-        """
-        Set limits to data in two theta
-        :param range_bounds:
-        :param i_max:
-        :param i_min:
-        :return:
-        """
-        local_mask = np.where(
-            (self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1]) &
-            (self.azm >= azm_bounds[0])   & (self.azm <= azm_bounds[1])
-        )
-        self.intensity = self.intensity[local_mask]
-        self.tth = self.tth[local_mask]
-        self.azm = self.azm[local_mask]
-        self.dspace = self.dspace[local_mask]
-
-    # def set_azimuth_limits(self, azi_bounds=[-np.inf, np.inf], azi_flatten=True):
-    #     """
-    #     Set limits to data in azimuth
-    #     :param range_bounds:
-    #     :param i_max:
-    #     :param i_min:
-    #     :return:
-    #     """
-    #     local_mask = np.where((self.azm >= azi_bounds[0]) & (self.azm <= azi_bounds[1]))
-    #     self.intensity = self.intensity[local_mask]
-    #     self.tth = self.tth[local_mask]
-    #     self.azm = self.azm[local_mask]
-    #     self.dspace = self.dspace[local_mask]
-
-    #     if azi_flatten:
-    #         self.azm = np.mean(self.azm)
-
-    def set_mask(
-        self, range_bounds=[-np.inf, np.inf], i_max=np.inf, i_min=-np.inf, mask=None
-    ):
-        """
-        Set limits to data
-        :param range_bounds:
-        :param i_max:
-        :param i_min:
-        :return:
-        """
-        local_mask = ma.getmask(
-            ma.masked_outside(self.tth, range_bounds[0], range_bounds[1])
-        )
-        local_mask2 = ma.getmask(ma.masked_outside(self.intensity, i_min, i_max))
-        combined_mask = np.ma.mask_or(ma.getmask(self.intensity), local_mask)
-        combined_mask = np.ma.mask_or(combined_mask, local_mask2)
-        NoneType = type(None)
-        if not isinstance(mask, NoneType):  # or mask.all() != None:
-            combined_mask = np.ma.mask_or(combined_mask, mask)
-        self.intensity.mask = combined_mask
-        self.tth.mask = combined_mask
-        self.azm.mask = combined_mask
-        self.dspace.mask = combined_mask
-
-    def mask_restore(self):
-        """
-        Restores the loaded mask.
-        If the image data is still the same size as the original.
-        """
-
-        print("Restore original mask.")
-        self.intensity.mask = self.original_mask
-        self.tth.mask = self.original_mask
-        self.azm.mask = self.original_mask
-        self.dspace.mask = self.original_mask
-
-
-
+# add common function. 
+DioptasDetector._get_d_space = _AngleDispersive_common._get_d_space
+DioptasDetector.conversion   = _AngleDispersive_common.conversion
+DioptasDetector.bins         = _AngleDispersive_common.bins
+DioptasDetector.set_limits   = _AngleDispersive_common.set_limits
+DioptasDetector.test_azims   = _AngleDispersive_common.test_azims
+
+#add masking functions to detetor class.
+DioptasDetector.get_mask     = _masks.get_mask
+DioptasDetector.set_mask     = _masks.set_mask
+DioptasDetector.mask_apply   = _masks.mask_apply
+DioptasDetector.mask_restore = _masks.mask_restore
+DioptasDetector.mask_remove  = _masks.mask_remove
 
 #these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
 #Each of these methods remains here because they are called by higher-level functions: 
@@ -708,4 +470,3 @@ DioptasDetector.plot_collected   = _Plot_AngleDispersive.plot_collected
 DioptasDetector.plot_calibrated  = _Plot_AngleDispersive.plot_calibrated
 #this function is added because it requires access to self:
 DioptasDetector.dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks
-

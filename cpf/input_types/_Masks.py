@@ -73,8 +73,7 @@ class _masks():
     
         # if the mask is an image string then wrap it in a dictionary. 
         if not isinstance(mask, dict):
-            mask == {"image": mask}
-    
+            mask = {"image": mask}
         # make empty mask
         im_mask = np.zeros(im_ints.shape, 'bool')
     
@@ -164,7 +163,7 @@ class _masks():
     
     
     
-    def mask_outside(self,
+    def set_mask(self,
         intensity_bounds=[-np.inf, np.inf],
         range_bounds=[-np.inf, np.inf],
         azm_bounds=[-np.inf, np.inf],
@@ -184,10 +183,11 @@ class _masks():
         print("after")
         local_mask = np.where(
             (self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1]) &
-            (self.azm >= azm_bounds[0])   & (self.azm <= azm_bounds[1])
+            (self.azm >= azm_bounds[0])   & (self.azm <= azm_bounds[1]),
+            True, False
         )
         
-        ma.masked_outside(self.tth,(limits[0]),(limits[1])).mask
+        #ma.masked_outside(self.tth,(limits[0]),(limits[1])).mask
         
         local_mask2 = ma.masked_outside(self.intensity, intensity_bounds[0], intensity_bounds[1]).mask
         

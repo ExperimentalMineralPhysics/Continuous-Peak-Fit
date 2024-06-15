@@ -303,7 +303,7 @@ class ESRFlvpDetector():
         
         
     
-    def get_detector(self, settings=None, calibration_file=None, calibration_data=None, debug=False):
+    def get_detector(self, settings=None, calibration_file=None, diffraction_data=None, debug=False):
         """
         Takes the detector information from the settings class, or the 
         calibration *.json file and creates a detector-type instance which converts 
@@ -335,8 +335,8 @@ class ESRFlvpDetector():
             self.get_calibration(settings=settings, file_name=calibration_file, debug=debug)
         
         # set the file to use for the shape of the data.     
-        if calibration_data is not None:
-            calib_frames = calibration_data
+        if diffraction_data is not None:
+            calib_frames = diffraction_data
         elif settings.calibration_data is not None:
             calib_frames = settings.calibration_data
         elif settings.image_list is not None:
@@ -521,7 +521,7 @@ class ESRFlvpDetector():
 
 
     def fill_data(
-        self, diff_file=None, settings=None, mask=None, make_zyx = False, 
+        self, diff_file=None, settings=None, mask=None, make_zyx=False, 
         debug=False
     ):
         """
@@ -568,7 +568,7 @@ class ESRFlvpDetector():
             diff_file = settings.subfit_filename
         
         if mask==None:
-            if "calibration_mask" in settings:
+            if settings.calibration_mask:# in settings.items():
                 mask = settings.calibration_mask
         
         if self.detector == None:
@@ -751,18 +751,19 @@ class ESRFlvpDetector():
         return detector
 
 
-#add masking functions to detetor class.
-ESRFlvpDetector.get_mask     = _masks.get_mask
-ESRFlvpDetector.mask_outside = _masks.mask_outside
-ESRFlvpDetector.mask_apply   = _masks.mask_apply
-ESRFlvpDetector.mask_restore = _masks.mask_restore
-ESRFlvpDetector.mask_remove  = _masks.mask_remove
-
 # add common function. 
 ESRFlvpDetector._get_d_space = _AngleDispersive_common._get_d_space
 ESRFlvpDetector.conversion   = _AngleDispersive_common.conversion
 ESRFlvpDetector.bins         = _AngleDispersive_common.bins
 ESRFlvpDetector.set_limits   = _AngleDispersive_common.set_limits
+ESRFlvpDetector.test_azims   = _AngleDispersive_common.test_azims
+
+#add masking functions to detetor class.
+ESRFlvpDetector.get_mask     = _masks.get_mask
+ESRFlvpDetector.set_mask     = _masks.set_mask
+ESRFlvpDetector.mask_apply   = _masks.mask_apply
+ESRFlvpDetector.mask_restore = _masks.mask_restore
+ESRFlvpDetector.mask_remove  = _masks.mask_remove
 
 #these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
 #Each of these methods remains here because they are called by higher-level functions: 
@@ -771,6 +772,4 @@ ESRFlvpDetector.plot_fitted      = _Plot_AngleDispersive.plot_fitted
 ESRFlvpDetector.plot_collected   = _Plot_AngleDispersive.plot_collected
 ESRFlvpDetector.plot_calibrated  = _Plot_AngleDispersive.plot_calibrated
 #this function is added because it requires access to self:
-ESRFlvpDetector.dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks
-
-    
+ESRFlvpDetector.dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks    

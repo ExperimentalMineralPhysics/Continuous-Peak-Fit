@@ -158,12 +158,12 @@ class ESRFlvpDetector():
         self.calibration = None
         self.detector = None
 
-        self.x = None
-        self.y = None
         self.intensity = None
         self.tth = None
         self.azm = None
         self.dspace = None
+        self.x = None
+        self.y = None
         self.azm_start = -180
         self.azm_end   =  180
         self.tth_start = None
@@ -183,7 +183,6 @@ class ESRFlvpDetector():
         
         if settings_class:
             self.get_calibration(settings=settings_class)
-        
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 

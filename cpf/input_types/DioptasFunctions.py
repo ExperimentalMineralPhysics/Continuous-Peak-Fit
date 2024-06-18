@@ -48,7 +48,6 @@ class DioptasDetector:
         self.azm_end   =  180
         self.tth_start = None
         self.tth_end   = None
-        # Single image plate detector so contonuous data.
         self.DispersionType = "AngleDispersive"
         self.continuous_azm = True
         

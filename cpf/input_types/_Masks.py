@@ -52,7 +52,7 @@ class _masks():
     #     self = detector_class
     
     
-    def get_mask(self, mask, im_ints, debug=False):
+    def get_mask(self, mask, im_ints=None, debug=False):
         """
         Creates the mask for the diffracion data and returns a boolian image. 
     
@@ -70,7 +70,10 @@ class _masks():
             Mask to be applied to the diffraction data.
     
         """
-    
+        
+        if im_ints == None:
+            im_ints = self.intensity
+            
         # if the mask is an image string then wrap it in a dictionary. 
         if not isinstance(mask, dict):
             mask = {"image": mask}
@@ -103,6 +106,15 @@ class _masks():
         if "threshold" in mask:
             threshold = mask['threshold']
             im_mask = np.asarray(im_mask) | ma.masked_outside(im_ints,threshold[0],threshold[1]).mask
+
+        if "detector" in mask:
+            # Masks for energy dispersive detector elements for full detector.
+            # Works by removing complete detectors.
+            for x in range(len(mask["detector"])):
+                im_mask[mask["detector"][x] - 1] = True
+
+        if "energy" in mask:
+            raise ValueError("'Energy' is not implemented.")
             
         if ("two theta" in mask) or ("twotheta" in mask):
             if ("two theta" in mask):
@@ -157,7 +169,42 @@ class _masks():
     
             plt.close()
         """
-
+        """
+        Energy dispersive mask debug
+        #     # FIX ME: DMF update to use class plot function!
+        #     if debug:
+        #         # Plot mask.
+        #         # This is left in here for debugging.
+        #         fig = plt.figure()
+        #         ax = fig.add_subplot(1, 2, 1)
+        #         plt.subplot(121)
+        #         plt.scatter(
+        #             im_two_theta,
+        #             im_azimuth,
+        #             s=4,
+        #             c=im_ints,
+        #             edgecolors="none",
+        #             cmap=plt.cm.jet,
+        #         )
+        #         ax.set_ylim([0, 360])
+        #         ax = fig.add_subplot(1, 2, 2)
+        #         plt.subplot(122)
+        #         plt.scatter(
+        #             ma.array(im_two_theta, mask=im_mask),
+        #             ma.array(im_azimuth, mask=im_mask),
+        #             s=4,
+        #             c=im_ints,
+        #             edgecolors="none",
+        #             cmap=plt.cm.jet,
+        #         )
+        #         ax.set_ylim([0, 360])
+        #         plt.colorbar()
+        #         plt.show()
+        #         plt.close()
+        """
+        
+        self.original_mask = im_mask
+        
         return im_mask
     
     
@@ -253,8 +300,8 @@ class _masks():
 
     def mask_remove(self):
         """
-        Revmoes all masks from the daa arrays.
+        Revmoes all masks from the data arrays.
         """
 
-        print("Restore original mask.")
+        print("REmove all masks.")
         self.mask_apply(None)

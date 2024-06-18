@@ -191,8 +191,8 @@ class _AngleDispersive_common():
             if self.z is not None:
                 self.z = self.z[local_mask]
             
-        self.azm_end = np.max(self.azm)
-        self.azm_start = np.min(self.azm)
+        # self.azm_end = np.max(self.azm)
+        # self.azm_start = np.min(self.azm)
         
         
         

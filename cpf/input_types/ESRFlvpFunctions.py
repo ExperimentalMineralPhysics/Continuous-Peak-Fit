@@ -463,7 +463,7 @@ class ESRFlvpDetector():
             raise ValueError("Settings are given but no subpattern is set.")
         
         if self.detector == None:
-            self.load_detector(settings)
+            self.get_detector(settings)
 
         if image_name == None:
             #load the data for the chosen subpattern.

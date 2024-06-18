@@ -385,8 +385,11 @@ class _Plot_AngleDispersive():
         show="default",
         x_axis="default",
         y_axis="default",
+        x_label = r"2$\theta$ (deg)",
+        y_label = "Azimuth (deg)",
         data=None,
         limits=[1, 99.9],
+        y_lims = None,
         colourmap="jet",
         rastered=False,
         point_scale=2,
@@ -436,10 +439,10 @@ class _Plot_AngleDispersive():
         else:  # if y_axis is "default" or "azimuth"
             plot_y = self.azm
             plot_i = self.intensity
-            label_y = "Azimuth (deg)"
-    
-            y_lims = [self.azm_start, self.azm_end]
-            y_lims = [self.azm.min(), self.azm.max()]
+            label_y = y_label
+            if y_lims == None:
+                y_lims = [self.azm_start, self.azm_end]
+                # y_lims = [self.azm.min(), self.azm.max()]
             axis_plot.set_ylim(y_lims)
             # y_ticks = list(range(int(y_lims[0]),int(y_lims[1]+1),45))
     
@@ -498,7 +501,7 @@ class _Plot_AngleDispersive():
     			
         # set axis limits
         x_lims = [plot_x.min(), plot_x.max()]
-        print(x_lims)
+        # print(x_lims)
         axis_plot.set_xlim(x_lims)
         if y_ticks:
             axis_plot.set_yticks(y_ticks)
@@ -529,7 +532,7 @@ class _Plot_AngleDispersive():
                 pixels_per_bin = point_scale,
                 resample_shape = resample_shape
             )
-        axis_plot.set_xlabel(r"2$\theta$ (deg)")
+        axis_plot.set_xlabel(x_label)
         axis_plot.set_ylabel(label_y)
     
         fig_plot.colorbar(mappable=the_plot, extend=cb_extend)

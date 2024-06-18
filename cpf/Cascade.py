@@ -592,10 +592,6 @@ def plot_cascade_chunks(
                             norm=norm
                         )
                     
-                    if azi_range != "all":
-                        ax.set_xlim([azi_range[0],azi_range[1]])
-                        
-                        
                     # determine the label for the figure -- if there is data in the other peaks then just label as single peak otherwise it is all the peaks
                     pk = k
                     for l in range(len(setting_class.subfit_orders["peak"])):
@@ -607,11 +603,13 @@ def plot_cascade_chunks(
                     plt.xlabel(r"Azimuth (deg)")
                     plt.ylabel(y_label_str)
                     
+                    if azi_range == "all":
+                        azi_range = [np.min(all_data[i][j]["chunks"]),np.max(all_data[i][j]["chunks"])]
                     x_ticks = setting_class.data_class.dispersion_ticks(disp_lims = azi_range)
                     ax.set_xticks(x_ticks)
                     
                     cb = plt.colorbar(extend=cb_extend)
-                    cb.set_label(r"Log$_{10}$(Intensity)")
+                    # cb.set_label(r"Log$_{10}$(Intensity)")
                     cb.set_label(r"Intensity")
                     plt.show()
                     # save the figure

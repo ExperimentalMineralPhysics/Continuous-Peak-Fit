@@ -161,7 +161,7 @@ class ESRFlvpDetector():
         self.intensity = None
         self.tth = None
         self.azm = None
-        self.dspace = None
+        # self.dspace = None
         self.x = None
         self.y = None
         self.azm_start = -180
@@ -629,7 +629,7 @@ class ESRFlvpDetector():
         print("now here")
         #F IX ME: (June 2024) i dont know that the d-space array is needed. 
         # Check for calls and if this is the only one then remove it
-        self.dspace    = self._get_d_space()
+        # self.dspace    = self._get_d_space()
         
         # add masks to arrays
         #FIX ME: should we apply the mask as the arrays are populated rather than here?

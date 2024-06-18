@@ -229,7 +229,7 @@ def get_chunk_peak_guesses(
 
             # d-spacing of the highest nth intensity pixel
             # d_guess = data_chunk_class.dspace.compressed()[idx]
-            d_guess = data_chunk_class.dspace[idx]
+            d_guess = data_chunk_class.conversion(data_chunk_class.tth[idx])
 
         # w_guess is fractional width of the data range
         w_guess = (
@@ -393,7 +393,7 @@ def fit_chunks(
         # stop
         chunk_data.tth = chunk_data.tth.flatten()[chunks[j]].compressed()
         chunk_data.azm = chunk_data.azm.flatten()[chunks[j]].compressed()
-        chunk_data.dspace = chunk_data.dspace.flatten()[chunks[j]].compressed()
+        # chunk_data.dspace = chunk_data.dspace.flatten()[chunks[j]].compressed()
 
         # find other output from intensities
         if mode == "maxima":
@@ -425,10 +425,9 @@ def fit_chunks(
 
                 # integrate (smooth) the chunks
                 if histogram_type != None:
-                    chunk_data.tth, chunk_data.intensity, chunk_data.azm, chunk_data.dspace = hist.histogram1d(chunk_data.tth,
+                    chunk_data.tth, chunk_data.intensity, chunk_data.azm = hist.histogram1d(chunk_data.tth,
                                   chunk_data.intensity,
                                   azi=chunk_data.azm,
-                                  dspace = chunk_data.dspace,
                                   histogram_type = histogram_type,
                                   bin_n = histogram_bins,
                                   debug=debug

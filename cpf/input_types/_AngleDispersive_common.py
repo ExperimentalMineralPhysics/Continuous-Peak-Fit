@@ -58,9 +58,19 @@ class _AngleDispersive_common():
         :param azm:
         :return:
         """
+        
+        if isinstance(tth_in, list):
+            tth_in = np.array(tth_in)
+            a = True
+        else:
+            a=False
+            
         #wavelength = self.calibration.wavelength * 1e10
         wavelength = self.conversion_constant
-        if not reverse:
+        
+        if self.conversion_constant == None:
+            dspc_out = tth_in
+        elif not reverse:
             # convert tth to d_spacing
             dspc_out = wavelength / 2 / np.sin(np.radians(tth_in / 2))
         else:
@@ -68,6 +78,9 @@ class _AngleDispersive_common():
             # N.B. this is the reverse function so that labels tth and d_spacing are not correct.
             # print(tth_in)
             dspc_out = 2 * np.degrees(np.arcsin(wavelength / 2 / tth_in))
+            
+        if a==True:
+            dspc_out = list(dspc_out)
         return dspc_out
     
     
@@ -178,7 +191,7 @@ class _AngleDispersive_common():
         self.intensity = self.intensity[local_mask]
         self.tth = self.tth[local_mask]
         self.azm = self.azm[local_mask]
-        if self.dspace is not None:
+        if "dspace" in dir(self):
             self.dspace = self.dspace[local_mask]
         
         if "x" in dir(self): 

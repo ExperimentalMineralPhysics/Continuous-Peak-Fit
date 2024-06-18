@@ -729,7 +729,7 @@ def fit_sub_pattern(
         {
             "range": [
                 [data_as_class.tth.min(), data_as_class.tth.max()],
-                [data_as_class.dspace.min(), data_as_class.dspace.max()],
+                data_as_class.conversion([data_as_class.tth.min(), data_as_class.tth.max()]),
             ]
         }
     )

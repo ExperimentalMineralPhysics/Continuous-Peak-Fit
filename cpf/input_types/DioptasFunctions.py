@@ -41,7 +41,7 @@ class DioptasDetector:
         self.intensity = None
         self.tth = None
         self.azm = None
-        self.dspace = None
+        # self.dspace = None
         self.x = None
         self.y = None
         self.azm_start = -180
@@ -356,7 +356,7 @@ class DioptasDetector:
         self.tth = ma.array(np.rad2deg(self.detector.twoThetaArray(self.detector.detector.max_shape)))
         self.azm = ma.array(np.rad2deg(self.detector.chiArray(self.detector.detector.max_shape)))
         
-        self.dspace = self._get_d_space()
+        # self.dspace = self._get_d_space()
         
         #get and apply mask
         mask_array = self.get_mask(mask, self.intensity)

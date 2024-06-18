@@ -93,7 +93,7 @@ class XYDetector:
         self.intensity = None
         self.tth = None
         self.azm = None
-        self.dspace = None
+        # self.dspace = None
         self.x = None
         self.y = None
         self.azm_start = None
@@ -180,7 +180,7 @@ class XYDetector:
        if "conversion_constant" in self.calibration:
            self.conversion_constant = self.calibration["conversion_constant"]
        else: 
-           self.conversion_constant = 1
+           self.conversion_constant = None
        # self.azm_start = self.calibration["y_start"]
        # self.azm_end = self.calibration["y_end"]
        
@@ -401,7 +401,7 @@ class XYDetector:
         self.tth = ma.array(self.detector.get_horizontal())
         self.azm = ma.array(self.detector.get_vertical())
                 
-        self.dspace = self._get_d_space()
+        # self.dspace = self._get_d_space()
 
         #get and apply mask
         mask_array = self.get_mask(mask, self.intensity)

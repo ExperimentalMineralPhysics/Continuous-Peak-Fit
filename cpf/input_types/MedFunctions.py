@@ -3,9 +3,9 @@
 
 __all__ = ["MedDetector"]
 
-import sys
+
 import os
-import csv
+import sys
 import re
 import pandas as pd
 from copy import deepcopy, copy
@@ -14,23 +14,25 @@ import numpy.ma as ma
 import matplotlib.pyplot as plt
 from matplotlib import cm, colors, gridspec
 from cpf.input_types import Med, med_detectors
-from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
 
 
-# For MED files from Energy dispersive diffraction patterns at X17B2, 6-BMB and others.
-
-# For ease of use the *.med files are imported using Mark Rivers' Med.py and Mca.py functions.
-# These were downloaded from ??? in June 2019.
-# and edited to remove unnecessary dependencies e.g. 'Numeric' and 'LinearAlgebra' packages and functions that had
-# further dependencies.
-# I don't know how much of this is required but for now I am just adding the packages.
-
-# FIX ME: Need a dependency check.
-
 
 class MedDetector:
+    """
+    Data class for Energy dispersive diffraction. 
+    
+    The defines the class for energy dispersive diffraction detectors and is 
+    currently implemented for the *.med files used by GSECARS and the APS, 
+    specifically APS beamline 6-BMB. 
+    
+    The data reading uses Mark Rivers' Med.py and Mca.py functions, which were 
+    downloaded from Github in June 2019. These were then edited to remove 
+    unnecessary dependencies e.g. the 'Numeric' and 'LinearAlgebra' packages 
+    and other functions that had further dependencies.
+    """   
+    
     def __init__(self, settings_class=None):
         """
         :param calibration_parameters:
@@ -70,11 +72,21 @@ class MedDetector:
 
     def duplicate(self):
         """
-        Makes a "deep" copy of an Mca instance, using copy.deepcopy() on all of
-        the attributes of the Mca instance. All of the attribute will point to
-        new objects.
-        """
+        Makes an independent copy of a MedDetector Instance.    
+        
+        Parameters
+        ----------
+        None.
 
+        Returns
+        -------
+        MedDetector Instance.
+        """
+        
+        """
+        Cannot use deepcopy on the detector class itself. So have to use a 
+        combination of copy and deepcopy.
+        """
         new = MedDetector()
         # new.parameters = copy(self.parameters)
         new.calibration = copy(self.calibration)
@@ -96,16 +108,15 @@ class MedDetector:
 
     def get_calibration(self, file_name=None, settings=None, debug=False):
         """
-        Opens the file with the calibration data in it and updates 
-        MedClass.calibration and 
-        MedClass.conversion_constant
+        Opens the *.med file with the calibration data in it and updates 
+        MedClass.calibration and MedClass.conversion_constant
         
         Either file_name or settings should be set. 
         
         Parameters
         ----------
         file_name : string, optional
-            Filename of the calibration file. In this case a *.poni file.
+            Filename of the calibration file. In this case a *.med file.
             The default is None.
         settings : settings class, optional
             cpf settings class containing the calibration file name.
@@ -170,14 +181,13 @@ class MedDetector:
 
                 parms_dict["azimuths"] = det
             except:
-                sys.exit("\n\n Energy dispersice detector file is unknown.\n\n")
+                sys.exit("\n\n Energy dispersive detector is unknown.\n\n")
 
         # get and store the calibration parameters
         two_theta = []
         offset = []
         slope = []
         quad = []
-        # all_angle = []
         for x in range(dat.n_detectors):
             two_theta.append(dat.mcas[x].calibration.two_theta)
             offset.append(dat.mcas[x].calibration.offset)
@@ -189,11 +199,8 @@ class MedDetector:
         parms_dict["slope"] = slope
         parms_dict["quad"] = quad
 
-        parms_dict["DispersionType"] = "EnergyDispersive"
-        self.DispersionType = "EnergyDispersive"
         parms_dict["mcas"] = dat
 
-        # l = parms_dict["mcas"].mcas[0].data.shape
         self.azm_start = np.floor((np.min(np.array(parms_dict["azimuths"])) / self.azm_blocks)) * self.azm_blocks
         self.azm_end   =  np.ceil((np.max(np.array(parms_dict["azimuths"])) / self.azm_blocks)) * self.azm_blocks
 
@@ -206,7 +213,7 @@ class MedDetector:
     def get_detector(self, settings=None, calibration_file=None, diffraction_data=None, debug=False):
         """
         Takes the detector information from the settings class, or the 
-        calibration *.json file and creates a detector-type instance which converts 
+        calibration *.med file and creates a detector-type instance which converts 
         the x,y,azimith of the diffraction data pixels into two-theta vs. 
         azimuth.
         
@@ -215,7 +222,7 @@ class MedDetector:
         Parameters
         ----------
         file_name : string, optional
-            Filename of the calibration file. In this case a *.poni file.
+            Filename of the calibration file. In this case a *.med file.
             The default is None.
         settings : settings class, optional
             cpf settings class containing the calibration file name.
@@ -270,13 +277,24 @@ class MedDetector:
             Masked image intensity array.
         
         """
-        filename, file_extension = os.path.splitext(image_name)
+        
+        #check inputs
+        if image_name == None and settings.subpattern == None:
+            raise ValueError("Settings are given but no subpattern is set.")
+        
+        if self.detector == None:
+            self.get_detector(settings)
+
+        if image_name == None:
+            #load the data for the chosen subpattern.
+            image_name = settings.subfit_filename        
+        
+        _, file_extension = os.path.splitext(image_name)
         if file_extension == ".med":
-            dat = Med.Med()
-            dat.read_file(image_name)
+            self.detector.read_file(image_name)
             im_all = []
-            for x in range(dat.n_detectors):
-                im_all.append(dat.mcas[x].get_data())
+            for x in range(self.detector.n_detectors):
+                im_all.append(self.detector.mcas[x].get_data())
         else:
             sys.exit("Unknown file type. A *.med file is required")
 
@@ -335,7 +353,7 @@ class MedDetector:
             Filename or dictionary of instructions to make data mask. 
             The default is None.
         make_zyx : boolian, optional
-            Switch to make x,y,z arrays for the pixels. These arrats are not
+            Switch to make x,y,z arrays for the pixels. These arrays are not
             used by default. They exist incase ever needed. 
             The default is False.
         debug : True/False, optional
@@ -346,7 +364,7 @@ class MedDetector:
         -------
         None.
         """
-
+            
         #check inputs
         if diff_file != None:
             pass
@@ -357,7 +375,7 @@ class MedDetector:
             else:
                 raise ValueError("Settings are given but no subpattern is set.")
         else:
-            raise ValueError("No diffreaction file or settings have been given.")
+            raise ValueError("No diffraction file or settings have been given.")
             
         if mask==None:
             if settings.calibration_mask:# in settings.items():
@@ -372,6 +390,9 @@ class MedDetector:
         self.tth    = self._get_two_theta()
         self.azm    = self._get_azimuth()
         self.dspace = self._get_d_space()
+        if make_zyx:
+            raise ValueError("'make_zyx' is not implemented for MedDetector. ")
+            #  FIXME: (SAH 19th June 2024) implement this. 
         
         #get and apply mask
         # catch old formtting of the mask
@@ -458,6 +479,69 @@ class MedDetector:
 
 
 
+    def _get_two_theta(self, mask=None, pix=None, det=None):
+        """
+        Called get two theta, but it is really getting the energy.
+        :param mask:
+        :param pix:
+        :param det:
+        :return:
+        """
+        channels = np.arange(self.calibration["mcas"].mcas[0].data.shape[0])
+        en = []
+        for x in range(self.calibration["mcas"].n_detectors):
+            en.append(self.calibration["mcas"].mcas[x].channel_to_energy(channels))
+        if mask is not None:
+            en = ma.array(en, mask=mask)
+        else:
+            en = ma.array(en)
+        return en
+
+
+
+    def _get_azimuth(self, mask=None, pix=None, det=None):
+        """
+        Give azimuth value for detector x,y position; have to assume geometry of the detectors
+        :param mask:
+        :param pix:
+        :param det:
+        :return:
+        """
+        l = self.calibration["mcas"].mcas[0].data.shape
+        azi = np.tile(self.calibration["azimuths"], [l[0], 1]).T
+        if mask is not None:
+            azi = ma.array(azi, mask=mask)
+        else:
+            azi = ma.array(azi, mask=None)
+        return azi
+
+
+# =============================================================================
+#  start of functions defined as 'common' for angle dispersive classes.
+#  but the functions here are not common with the angle dispersive versions.
+# =============================================================================
+
+
+    def _get_d_space(self, mask=None, pix=None, det=None):
+        """
+        Give d-spacing value for detector x,y position; calibration info in data
+        :param mask:
+        :param pix:
+        :param det:
+        :return:
+        """
+        channels = np.arange(self.calibration["mcas"].mcas[0].data.shape[0])
+        dspc = []
+        for x in range(self.calibration["mcas"].n_detectors):
+            dspc.append(self.calibration["mcas"].mcas[x].channel_to_d(channels))
+        if mask is not None:
+            d_space = ma.array(dspc, mask=mask)
+        else:
+            d_space = ma.array(dspc)
+        return d_space
+
+
+
     def conversion(self, e_in, azm=None, reverse=False):
         """
         Convert energy values into d-spacing.
@@ -516,7 +600,6 @@ class MedDetector:
                         )
                     )
                 )
-                # print("dspc_out", dspc_out)
             dspc_out = np.array(dspc_out)
 
         return dspc_out
@@ -547,7 +630,7 @@ class MedDetector:
 
     def test_azims(self, steps = None):
         """
-        Returns unique azimuths in the dsata set.
+        Returns unique azimuths in the data set.
     
         Parameters
         ----------
@@ -563,92 +646,26 @@ class MedDetector:
         return np.unique(self.azm)
 
 
-
-    def _get_two_theta(self, mask=None, pix=None, det=None):
-        """
-        Called get two theta, but it is really getting the energy.
-        :param mask:
-        :param pix:
-        :param det:
-        :return:
-        """
-        channels = np.arange(self.calibration["mcas"].mcas[0].data.shape[0])
-        en = []
-        for x in range(self.calibration["mcas"].n_detectors):
-            en.append(self.calibration["mcas"].mcas[x].channel_to_energy(channels))
-        if mask is not None:
-            en = ma.array(en, mask=mask)
-        else:
-            en = ma.array(en)
-        return en
-
-    def _get_azimuth(self, mask=None, pix=None, det=None):
-        """
-        Give azimuth value for detector x,y position; have to assume geometry of the detectors
-        :param mask:
-        :param pix:
-        :param det:
-        :return:
-        """
-        l = self.calibration["mcas"].mcas[0].data.shape
-        azi = np.tile(self.calibration["azimuths"], [l[0], 1]).T
-        if mask is not None:
-            azi = ma.array(azi, mask=mask)
-        else:
-            azi = ma.array(azi, mask=None)
-        return azi
-
-    def _get_d_space(self, mask=None, pix=None, det=None):
-        """
-        Give d-spacing value for detector x,y position; calibration info in data
-        :param mask:
-        :param pix:
-        :param det:
-        :return:
-        """
-        channels = np.arange(self.calibration["mcas"].mcas[0].data.shape[0])
-        dspc = []
-        for x in range(self.calibration["mcas"].n_detectors):
-            dspc.append(self.calibration["mcas"].mcas[x].channel_to_d(channels))
-        if mask is not None:
-            d_space = ma.array(dspc, mask=mask)
-        else:
-            d_space = ma.array(dspc)
-        return d_space
-
-
-
-    def set_limits(self, range_bounds=[-np.inf, np.inf], i_max=np.inf, i_min=-np.inf):
-        """
-        Set limits to data
-        :param range_bounds:
-        :param i_max:
-        :param i_min:
-        :return:
-        """
-        local_mask = np.where(
-            (self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1])
-        )
-        self.intensity = ma.masked_array(self.intensity[local_mask])
-        self.tth = ma.masked_array(self.tth[local_mask])
-        self.azm = ma.masked_array(self.azm[local_mask])
-        self.dspace = ma.masked_array(self.dspace[local_mask])
-
-
-
-
-    def dispersion_ticks(self, disp_ticks=None, unique=10):
+# =============================================================================
+# Start of plotting functions. 
+# Not common with the angle dispersive plotting 
+# =============================================================================
+    
+    
+    def _dispersion_ticks(self, disp_ticks=None, unique=10, disp_lims = None):
         """
         Returns the labels for the dispersion axis/colour bars.
 
         :param disp_ticks:
         :param unique:
+        :param disp_lims: not used maintained for compatibility with angle dispersive
         :return new_tick_positions:
         """
         if len(np.unique(self.azm)) <= unique:
             disp_ticks = np.unique(np.unique(self.azm))
 
         return disp_ticks
+
     
 
     def plot_masked(self, fig_plot=None):
@@ -684,7 +701,7 @@ class MedDetector:
 
         # match max and min of colour scales
         # FIXME: this is not used but should be used to set to colour ranges of the data -- by azimuth.
-        limits = {"max": self.azm_start, "min": self.azm_end}
+        # limits = {"max": self.azm_start, "min": self.azm_end}
 
         # make axes
         gs = gridspec.GridSpec(1, 3, wspace=0.0)
@@ -755,6 +772,8 @@ class MedDetector:
 
         # tidy layout
         plt.tight_layout()
+        
+
 
     def plot_collected(
         self,
@@ -784,6 +803,8 @@ class MedDetector:
         axis_plot.set_xlabel("Channel number")
         axis_plot.set_ylabel("Counts")
 
+
+
     def plot_calibrated(
         self,
         fig_plot=None,
@@ -795,6 +816,7 @@ class MedDetector:
         limits=[0, 99.9],
         colourmap="jet",
         colourbar=True,
+        debug=False,
     ):
         """
         add data to axes in form collected in.
@@ -894,7 +916,7 @@ class MedDetector:
             normalize = colors.Normalize(vmin=self.azm_start, vmax=self.azm_end)
             c_map = cm.get_cmap(name=colourmap)
             for i in range(len(np.unique(self.azm)) - 1, -1, -1):
-                if 0:  # for debugging
+                if debug:
                     print("arrays for plotting")
                     print(i, np.unique(self.azm))
                     print("x", plot_x[self.azm == np.unique(self.azm)[i]])
@@ -927,7 +949,7 @@ class MedDetector:
             s_map = cm.ScalarMappable(norm=normalize, cmap=c_map)
             # label colour bar with unique azimuths if there are less than 10
             # set colour bar labels with unique azimuths (if there are less than 'unique' azimuths - see function for value of unique).
-            ticks = self.dispersion_ticks()
+            ticks = self._dispersion_ticks()
             if colourbar is True:
                 cbar = fig_plot.colorbar(s_map, ticks=ticks, orientation=orientation)
                 cbar.set_label("Azimuth")
@@ -941,13 +963,8 @@ class MedDetector:
 
 
 
-
-# add common function. 
-# MedDetector._get_d_space = _AngleDispersive_common._get_d_space
-# MedDetector.conversion   = _AngleDispersive_common.conversion
-# MedDetector.bins         = _AngleDispersive_common.bins
-# MedDetector.set_limits   = _AngleDispersive_common.set_limits
-# MedDetector.test_azims   = _AngleDispersive_common.test_azims
+# add common functions. 
+MedDetector.set_limits   = _AngleDispersive_common.set_limits
 
 #add masking functions to detetor class.
 MedDetector.get_mask     = _masks.get_mask
@@ -955,13 +972,3 @@ MedDetector.set_mask     = _masks.set_mask
 MedDetector.mask_apply   = _masks.mask_apply
 MedDetector.mask_restore = _masks.mask_restore
 MedDetector.mask_remove  = _masks.mask_remove
-
-#these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
-#Each of these methods remains here because they are called by higher-level functions: 
-# MedDetector.plot_masked      = _Plot_AngleDispersive.plot_masked
-# MedDetector.plot_fitted      = _Plot_AngleDispersive.plot_fitted
-# MedDetector.plot_collected   = _Plot_AngleDispersive.plot_collected
-# MedDetector.plot_calibrated  = _Plot_AngleDispersive.plot_calibrated
-# #this function is added because it requires access to self:
-# MedDetector.dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks
-

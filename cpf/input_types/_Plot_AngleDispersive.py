@@ -459,9 +459,6 @@ class _Plot_AngleDispersive():
                 " Have patience. The plot(s) will appear but it can take its time to render."
             )
             rastered = True
-            # print(type(axis_plot))
-            # axis_plot = raster_axes.RasterAxes(axes=axis_plot)
-            # print(type(axis_plot))
     
         if x_axis == "default":
             plot_x = self.tth

@@ -195,11 +195,19 @@ class _Plot_AngleDispersive():
             "min": np.min([self.intensity.min(), model.min()]),
         }
     
+        tight=True
+
         # make axes
-        gs = gridspec.GridSpec(1, 3, wspace=0.0)
         ax = []
-        for i in range(3):
-            ax.append(fig_plot.add_subplot(gs[i]))
+        if tight==True:
+            gs = gridspec.GridSpec(1, 3, wspace=0.0)
+            for i in range(3):
+                ax.append(fig_plot.add_subplot(gs[i]))
+            location = "bottom"
+        else:
+            for i in range(3):
+                ax.append(fig_plot.add_subplot(1, 3, i+1))
+            location = "right"
     
         # plot data
         self.plot_calibrated(
@@ -209,7 +217,7 @@ class _Plot_AngleDispersive():
             x_axis="default",
             limits=limits,
             colourmap="magma_r",
-            location='bottom'
+            location=location
         )
         ax[0].set_title("Data")
         locs, labels = plt.xticks()
@@ -222,7 +230,7 @@ class _Plot_AngleDispersive():
             data=model,
             limits=limits,
             colourmap="magma_r",
-            location='bottom'
+            location=location
         )
         if fit_centroid is not None:
             for i in range(len(fit_centroid[1])):
@@ -238,7 +246,7 @@ class _Plot_AngleDispersive():
             data=self.intensity - model,
             limits=[0, 100],
             colourmap="residuals-blanaced",
-            location='bottom'
+            location=location
         )
         if fit_centroid is not None:
             for i in range(len(fit_centroid[1])):
@@ -248,92 +256,29 @@ class _Plot_AngleDispersive():
         # plt.setp(labels, rotation=90)
     
         # organise the axes and labelling.
-        bottom0, top0 = ax[0].get_ylim()
-        bottom1, top1 = ax[1].get_ylim()
-        bottom2, top2 = ax[2].get_ylim()
-        top_max = np.max([top0, top1, top2])
-        bottom_min = np.min([bottom0, bottom1, bottom2])
-        ax[0].set_ylim(top=top_max, bottom=bottom_min)
-        ax[1].set_ylim(top=top_max, bottom=bottom_min)
-        ax[2].set_ylim(top=top_max, bottom=bottom_min)
-        ax[1].set(yticklabels=[])
-        ax[2].set(yticklabels=[])
-        ax[1].set(ylabel=None)
-        ax[2].set(ylabel=None)
-        ax[0].yaxis.set_ticks_position('both')
-        ax[1].yaxis.set_ticks_position('both')
-        ax[2].yaxis.set_ticks_position('both')
-        ax[0].xaxis.set_ticks_position('both')
-        ax[1].xaxis.set_ticks_position('both')
-        ax[2].xaxis.set_ticks_position('both')
+        if tight==True:
+            bottom0, top0 = ax[0].get_ylim()
+            bottom1, top1 = ax[1].get_ylim()
+            bottom2, top2 = ax[2].get_ylim()
+            top_max = np.max([top0, top1, top2])
+            bottom_min = np.min([bottom0, bottom1, bottom2])
+            ax[0].set_ylim(top=top_max, bottom=bottom_min)
+            ax[1].set_ylim(top=top_max, bottom=bottom_min)
+            ax[2].set_ylim(top=top_max, bottom=bottom_min)
+            ax[1].set(yticklabels=[])
+            ax[2].set(yticklabels=[])
+            ax[1].set(ylabel=None)
+            ax[2].set(ylabel=None)
+            ax[0].yaxis.set_ticks_position('both')
+            ax[1].yaxis.set_ticks_position('both')
+            ax[2].yaxis.set_ticks_position('both')
+            ax[0].xaxis.set_ticks_position('both')
+            ax[1].xaxis.set_ticks_position('both')
+            ax[2].xaxis.set_ticks_position('both')
    
         # tidy layout
         plt.tight_layout()
         
-        
-
-    def plot_fitted_loose(self, fig_plot=None, model=None, fit_centroid=None):
-        """
-        add data to axes.
-        :param ax:
-        :param show:
-        :return:
-        """
-    
-        # match max and min of colour scales
-        limits = {
-            "max": np.max([self.intensity.max(), model.max()]),
-            "min": np.min([self.intensity.min(), model.min()]),
-        }
-    
-        # plot data
-        ax1 = fig_plot.add_subplot(1, 3, 1)
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax1,
-            show="intensity",
-            x_axis="default",
-            limits=limits,
-            colourmap="magma_r",
-        )
-        ax1.set_title("Data")
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
-        # plot model
-        ax2 = fig_plot.add_subplot(1, 3, 2)
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax2,
-            data=model,
-            limits=limits,
-            colourmap="magma_r",
-        )
-        if fit_centroid is not None:
-            for i in range(len(fit_centroid[1])):
-                plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
-        ax2.set_title("Model")
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
-    
-        # plot residuals
-        ax3 = fig_plot.add_subplot(1, 3, 3)
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax3,
-            data=self.intensity - model,
-            limits=[0, 100],
-            colourmap="residuals-blanaced",
-        )
-        if fit_centroid is not None:
-            for i in range(len(fit_centroid[1])):
-                plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
-        ax3.set_title("Residuals")
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
-    
-        # tidy layout
-        plt.tight_layout()
-    
         
     
     

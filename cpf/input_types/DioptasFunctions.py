@@ -293,8 +293,8 @@ class DioptasDetector:
         debug=False
     ):
         """
-        Initiates the data arrays. 
-        Creates the intensity, two theta, azimuth and d-spacing arrays from the 
+        Initiates the data arrays.
+        Creates the intensity, two theta and azimuth arrays from the 
         Detector and the data.
         
         If diffraction data is provided this makes the intensity array otherwise 
@@ -335,7 +335,7 @@ class DioptasDetector:
             else:
                 raise ValueError("Settings are given but no subpattern is set.")
         else:
-            raise ValueError("No diffreaction file or settings have been given.")
+            raise ValueError("No diffraction file or settings have been given.")
             
         if mask==None:
             if settings.calibration_mask:# in settings.items():
@@ -354,8 +354,12 @@ class DioptasDetector:
             
         self.tth = ma.array(np.rad2deg(self.detector.twoThetaArray(self.detector.detector.max_shape)))
         self.azm = ma.array(np.rad2deg(self.detector.chiArray(self.detector.detector.max_shape)))
-        
         # self.dspace = self._get_d_space()
+        if make_zyx:
+            zyx = self.detector.calc_pos_zyx() 
+            self.z = zyx[0]
+            self.y = zyx[1] 
+            self.x = zyx[2] 
         
         #get and apply mask
         mask_array = self.get_mask(mask, self.intensity)

@@ -525,7 +525,7 @@ class ESRFlvpDetector():
     ):
         """
         Initiates the data arrays. 
-        Creates the intensity, two theta, azimuth and d-spacing arrays from the 
+        Creates the intensity, two theta and azimuth arrays from the 
         Detector and the data.
         
         If diffraction data is provided this makes the intensity array otherwise 
@@ -558,13 +558,16 @@ class ESRFlvpDetector():
         # parts of this methos are copied from ESRF/ID7 (Wilson Crichton's) code.
         
         #check inputs
-        if diff_file == None and settings == None:
-            raise ValueError("No diffreaction file or settings have been given.")
-        elif settings != None and settings.subpattern == None:
-            raise ValueError("Settings are given but no subpattern is set.")
-        if diff_file == None:
+        if diff_file != None:
+            pass
+        elif settings != None: # and diff_file == None
             #load the data for the chosen subpattern.
-            diff_file = settings.subfit_filename
+            if settings.subfit_filename != None:
+                diff_file = settings.subfit_filename
+            else:
+                raise ValueError("Settings are given but no subpattern is set.")
+        else:
+            raise ValueError("No diffraction file or settings have been given.")
         
         if mask==None:
             if settings.calibration_mask:# in settings.items():

@@ -252,6 +252,7 @@ class _Plot_AngleDispersive():
         colourmap="jet",
         limits=[0, 99.9], 
         location='default',
+        debug=False
     ):
         """
         Plots the collected data as images.

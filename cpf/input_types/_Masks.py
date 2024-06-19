@@ -71,7 +71,7 @@ class _masks():
     
         """
         
-        if im_ints == None:
+        if im_ints is None:
             im_ints = self.intensity
             
         # if the mask is an image string then wrap it in a dictionary. 

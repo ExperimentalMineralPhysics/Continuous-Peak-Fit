@@ -667,6 +667,24 @@ class MedDetector:
         return disp_ticks
 
     
+    def _plot_spacing(self, gap=200):
+        """
+        Sets the spacing for the detectors in the plots. 
+
+        Parameters
+        ----------
+        gap : number, optional
+            Desired spacing for the azimuths. The default is 200.
+
+        Returns
+        -------
+        number
+            Spacing to use for the plotting of azimuths.
+
+        """
+        return np.max(self.intensity) / gap
+
+
 
     def plot_masked(self, fig_plot=None):
         """
@@ -719,23 +737,23 @@ class MedDetector:
         )
         ax[0].set_title("Data")
         # plot model
+        if fit_centroid is not None:
+            for i in range(len(fit_centroid[1])):
+                ax[1].plot(np.squeeze(fit_centroid[1][i]), self._plot_spacing(gap=200)* np.unique(self.azm), ".k--", linewidth=0.5)
         self.plot_calibrated(
             fig_plot=fig_plot, axis_plot=ax[1], data=model2, colourbar=False
         )
-        # if fit_centroid is not None:
-        #     for i in range(len(fit_centroid[1])):
-        #         plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
         ax[1].set_title("Model")
         # plot residuals
+        if fit_centroid is not None:
+            for i in range(len(fit_centroid[1])):
+                ax[2].plot(np.squeeze(fit_centroid[1][i]), self._plot_spacing(gap=200)* np.unique(self.azm), ".k--", linewidth=0.5)
         self.plot_calibrated(
             fig_plot=fig_plot,
             axis_plot=ax[2],
             data=self.intensity - model2,
             colourbar=True,
         )
-        # if fit_centroid is not None:
-        #     for i in range(len(fit_centroid[1])):
-        #         plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
         ax[2].set_title("Residuals")
 
         # organise the axes and labelling.
@@ -782,6 +800,7 @@ class MedDetector:
         show="intensity",
         x_axis="default",
         limits=[0, 100],
+        spacing=None,
     ):
         """
         add data to axes in form collected in.
@@ -793,8 +812,8 @@ class MedDetector:
         :return:
         """
 
-        max_counts = np.max(self.intensity)
-        spacing = max_counts / 10
+        if spacing == None:        
+            spacing = self._plot_spacing(gap=10)
 
         for x in range(len(self.intensity)):
             axis_plot.plot(
@@ -812,6 +831,7 @@ class MedDetector:
         show="intensity",
         x_axis="default",
         y_axis="default",
+        spacing=None, 
         data=None,
         limits=[0, 99.9],
         colourmap="jet",
@@ -828,9 +848,9 @@ class MedDetector:
         :return:
         """
 
-        max_counts = np.max(self.intensity)
-        spacing = max_counts / 10 / 20
-
+        if spacing == None:        
+            spacing = self._plot_spacing(gap=200)
+            
         if x_axis == "default":
             plot_x = self.tth
         else:

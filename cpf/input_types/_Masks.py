@@ -75,10 +75,14 @@ class _masks():
             im_ints = self.intensity
             
         # if the mask is an image string then wrap it in a dictionary. 
-        if not isinstance(mask, dict):
+        if not isinstance(mask, dict) and mask is not None:
             mask = {"image": mask}
+        elif mask is None:
+            #make empty dictionary
+            mask = {}
+            
         # make empty mask
-        im_mask = np.zeros(im_ints.shape, 'bool')
+        im_mask = np.zeros(im_ints.shape, dtype='bool')
     
         if "image" in mask:
             #Dioptas mask is compressed Tiff image.

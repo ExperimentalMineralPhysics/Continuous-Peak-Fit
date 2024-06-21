@@ -500,6 +500,9 @@ class _Plot_AngleDispersive():
         else:  # if show == "intensity"
             plot_i = plot_i
     
+        # set axis limits
+        x_lims = [plot_x.min(), plot_x.max()]
+    
         # set colour bar and colour maps.
         if colourmap == "Greys":
             IMax = 2.01
@@ -527,7 +530,16 @@ class _Plot_AngleDispersive():
             else:
                 cb_extend = "neither"
         if location == None:
-            if plot_i.shape[-1] > plot_i.shape[-2]:
+            if plot_y.ndim == 1:
+                x_range = x_lims[1] - x_lims[0]
+                y_range = y_lims[1] - y_lims[0]
+                if x_range >= y_range:
+                    location = "bottom"
+                    fraction = 0.046
+                else:
+                    location = "right"
+                    fraction = 0.15
+            elif plot_i.squeeze().shape[-1] > plot_i.squeeze().shape[-2]:
                 location = "bottom"
                 fraction = 0.046
             else:
@@ -537,8 +549,7 @@ class _Plot_AngleDispersive():
             location=="right"
         else:
             pass
-    
-    
+        
         # set colour map
         if colourmap == "residuals-blanaced":
             # colourmap = self.residuals_colour_scheme(
@@ -547,14 +558,7 @@ class _Plot_AngleDispersive():
             )
         else:
             colourmap = colourmap
-    			
-        # set axis limits
-        x_lims = [plot_x.min(), plot_x.max()]
-        # print(x_lims)
-        axis_plot.set_xlim(x_lims)
-        if y_ticks:
-            axis_plot.set_yticks(y_ticks)
-    
+
         if rastered == False:
             the_plot = axis_plot.scatter(
                 plot_x,
@@ -584,6 +588,10 @@ class _Plot_AngleDispersive():
         axis_plot.set_xlabel(x_label)
         axis_plot.set_ylabel(label_y)
     
+        axis_plot.set_xlim(x_lims)
+        if y_ticks:
+            axis_plot.set_yticks(y_ticks)
+            
         #p2 = axis_plot.get_position().get_points().flatten()        
         #ax_cbar1 = fig_plot.add_axes([p2[0], 0, p2[2]-p2[0], 0.05]) 
     

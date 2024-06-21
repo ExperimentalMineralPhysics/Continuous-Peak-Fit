@@ -173,8 +173,8 @@ class ESRFlvpDetector():
         self.DispersionType = "AngleDispersive"
         self.continuous_azm = True
 
-        self.azm_blocks = 2.5
-        # default blocks are 2.5 degrees incase using only a single detector position
+        self.azm_blocks = 2
+        # default blocks are 2 degrees incase using only a single detector position
         # if the detector is being spun then the blocks are changed to a larger value.
         
         self.calibration = None
@@ -569,8 +569,8 @@ class ESRFlvpDetector():
         else:
             raise ValueError("No diffraction file or settings have been given.")
         
-        if mask==None:
-            if settings.calibration_mask:# in settings.items():
+        if mask==None and settings is not None:
+            if settings.calibration_mask is not None:# in settings.items():
                 mask = settings.calibration_mask
         
         if self.detector == None:
@@ -623,6 +623,28 @@ class ESRFlvpDetector():
                 self.y[i,:,:] = zyx[1] 
                 self.x[i,:,:] = zyx[2] 
 
+        if debug:
+            print(self.detector)   
+            
+            #plot all the positions of the AzimuthalIntegrators. 
+            p_angles = []
+            p_Chi = []
+        
+            fig,ax = plt.subplots(1, figsize=(9,9))
+            
+            frames = int(len(self.detector.ais))
+            
+            p_angles = np.array([np.rad2deg(self.detector.ais[frame].rot3) for frame in range(frames)])
+            p_Chi   = np.array(np.rad2deg([np.mean(self.detector.ais[frame].chiArray()) for frame in range(frames)]))
+                
+            ax.plot(p_angles, p_Chi, marker='.', ls='--')
+            ax.set_ylabel("Mean ChiArray from azimuthal integrators (°)")
+            ax.set_xlabel("Rot3, from azimuthal integrators  (°)")
+            plt.title("rot3 vs Chi for EXRF lvp Multigeometry")
+            
+            # plt.tight_layout()
+
+
         print(time.time()-st)
         
         # from sys import getsizeof
@@ -651,11 +673,10 @@ class ESRFlvpDetector():
         #print(self.tth.dtype, self.azm.dtype, self.dspace.dtype )
         print("done")
                
-        # FIX ME: change data to match azm_Start and azm_end. not the otherway round??
-        self.azm_start = np.around(self.azm.min() / self.azm_blocks) * self.azm_blocks
-        self.azm_end = np.around(self.azm.max() / self.azm_blocks) * self.azm_blocks
-
-  
+        self.azm_start = np.floor(self.azm.min() / self.azm_blocks) * self.azm_blocks
+        self.azm_end = np.ceil(self.azm.max() / self.azm_blocks) * self.azm_blocks
+        
+        
   
         
     def get_requirements(self, parameter_settings=None):

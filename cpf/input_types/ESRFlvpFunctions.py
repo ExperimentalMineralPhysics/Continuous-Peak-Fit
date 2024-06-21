@@ -348,12 +348,8 @@ class ESRFlvpDetector():
         positions = np.deg2rad(positions)
         frames = int(len(imgs_))
 
-        # make pyFAI AzimuthalIntegrator object for single detector.
-        ai = AzimuthalIntegrator(detector=self.calibration["detector"], wavelength=self.calibration["wavelength"])
-        
         # make list of AzimuthalIntegrator objects for all detector postions
         ais = []
-        ai.reset()
         for i in range(frames):
             pos = positions[i]
             print("position", np.rad2deg(pos))
@@ -372,16 +368,18 @@ class ESRFlvpDetector():
             poni2_expr = eval(self.calibration["trans_function"]['poni2_expr'])
             dist_expr = eval(self.calibration["trans_function"]['dist_expr'])
             
-            my_ai = copy.copy(ai)
-            my_ai.dist = dist_expr
-            my_ai.poni1 = poni1_expr
-            my_ai.poni2 = poni2_expr
-            my_ai.rot1 = rot1_expr
-            my_ai.rot2 = rot2_expr
-            my_ai.rot3 = pos 
-           
+            # make pyFAI AzimuthalIntegrator object for each detector position and append.
+            #edit from ESRP code - which edited AzimuthalIntegrator properties and was very slow.
+            # makeing a new AzimuthalIntegrator each time is 100s-1000s of times faster. 
+            my_ai = AzimuthalIntegrator(detector=self.calibration["detector"], wavelength=self.calibration["wavelength"],
+                        dist = dist_expr,
+                        poni1 = poni1_expr,
+                        poni2 = poni2_expr,
+                        rot1 = rot1_expr,
+                        rot2 = rot2_expr,
+                        rot3 = pos)
             ais.append(my_ai)    
-        
+            
         # create the multigeometry detector object.
         self.detector = MultiGeometry(ais, unit="2th_deg", radial_range=(1, 13), azimuth_range=(self.azm_start, self.azm_end)) 
         

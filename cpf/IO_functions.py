@@ -11,6 +11,7 @@ import re
 import cpf.h5_functions as h5_functions
 import cpf.peak_functions as pf
 from copy import deepcopy
+from cpf.XRD_FitPattern import logger
 
 # Needed for JSON to save fitted parameters.
 # Copied from https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array#24375113
@@ -270,7 +271,7 @@ def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", clean=None):
 
     if obj_to_inspect == val_to_find:
         clean = 0
-        print(f"Value {val_to_find} found at {index_path}")
+        logger.info(" ".join(map(str, [(f"Value {val_to_find} found at {index_path}")])))
 
     return clean
 
@@ -303,7 +304,7 @@ def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", clean=No
 
     if obj_to_inspect == val_to_find:
         obj_to_inspect = replace_with
-        print(f"Value {val_to_find} found at {index_path}")
+        logger.info(" ".join(map(str, [(f"Value {val_to_find} found at {index_path}")])))
 
     return obj_to_inspect
 
@@ -330,7 +331,7 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
                 obj_to_inspect["background_err"][k][j]/obj_to_inspect["background"][k][j] >= large_errors):
                 clean = 0
                 err_rat = obj_to_inspect["background_err"][k][j] / obj_to_inspect["background"][k][j]
-                print(f"Huge errors found in background {k}, {j}: value= {obj_to_inspect['background'][k][j]: 3.2e}; error={obj_to_inspect['background_err'][k][j]: 3.2e}; fractional error = {err_rat: 5.1f}")
+                logger.info(" ".join(map(str, [(f"Huge errors found in background {k}, {j}: value= {obj_to_inspect['background'][k][j]: 3.2e}; error={obj_to_inspect['background_err'][k][j]: 3.2e}; fractional error = {err_rat: 5.1f}")])))
         
     comp_list, comp_names = pf.peak_components(include_profile=True)
     for k in range(len(obj_to_inspect["peak"])):
@@ -344,7 +345,7 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
                     obj_to_inspect["peak"][k][comp+"_err"][j]/obj_to_inspect["peak"][k][comp][j] >= large_errors):
                     clean = 0
                     err_rat = obj_to_inspect["peak"][k][comp+"_err"][j]/obj_to_inspect["peak"][k][comp][j]
-                    print(f"Huge error found in peak {k}, {comp} {j}: value= {obj_to_inspect['peak'][k][comp][j]: 3.2e}; error={obj_to_inspect['peak'][k][comp+'_err'][j]: 3.2e}; fractional error = {err_rat: 5.1f}")
+                    logger.info(" ".join(map(str, [(f"Huge error found in peak {k}, {comp} {j}: value= {obj_to_inspect['peak'][k][comp][j]: 3.2e}; error={obj_to_inspect['peak'][k][comp+'_err'][j]: 3.2e}; fractional error = {err_rat: 5.1f}")])))
 
     return clean
 
@@ -510,7 +511,7 @@ def title_file_names(settings_for_fit=None, num=0, image_name=None, string=True)
     if image_name == None:
         image_name = settings_for_fit.image_list[num]
 
-    # print(image_name)
+    # logger.info(" ".join(map(str, [(image_name)])))
 
     if isinstance(image_name, list):
         t_f_str = os.path.split(image_name[0])[1]
@@ -622,7 +623,7 @@ def lmfit_fix_int_data_type(fname):
 
     txt_content = txt_content.replace("uint", "float")
     txt_content = txt_content.replace("int", "float")
-    print("    Rewriting", fname)
+    logger.info(" ".join(map(str, [("    Rewriting", fname)])))
 
     obj_read = open(fname, "w")
     obj_read.write(txt_content)

@@ -20,7 +20,7 @@ from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
 from cpf import IO_functions
 import cpf.h5_functions as h5_functions
-
+from cpf.XRD_FitPattern import logger
 
 
 class DioptasDetector:
@@ -79,7 +79,6 @@ class DioptasDetector:
         """
         new = deepcopy(self)
         return new
-
 
 
     def get_calibration(self, file_name=None, settings=None):
@@ -439,9 +438,9 @@ class DioptasDetector:
             all_present = 1
             for par in parameter_settings:
                 if par in required_list:
-                    print("Got: ", par)
+                    logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    print("The settings file requires a parameter called  '", par, "'")
+                    logger.info(" ".join(map(str, [("The settings file requires a parameter called  '", par, "'")])))
                     all_present = 0
             if all_present == 0:
                 sys.exit(

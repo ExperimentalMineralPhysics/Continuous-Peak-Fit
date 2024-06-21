@@ -13,4 +13,4 @@ setuptools~=54.2.0
 
 Pathos
 hdf5plugin
-Openvc-python
+Opencv-python

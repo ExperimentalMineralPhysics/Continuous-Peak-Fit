@@ -13,6 +13,7 @@ import cpf.IO_functions as io
 import cpf.series_functions as sf
 import cpf.lmfit_model as lmm
 import cpf.histograms as hist
+from cpf.XRD_FitPattern import logger
 
 
 def get_manual_guesses(settings_as_class, data_as_class, debug=False):
@@ -177,7 +178,7 @@ def get_chunk_peak_guesses(
         # FIX ME: altered from locals call as now passed as None - check!
         if dfour:  # If the positions have been pre-guessed extract values from dfour.
             if debug and k == 0:
-                print("dfour in locals \n")
+                logger.info(" ".join(map(str, [("dfour in locals \n")])))
 
             coeff_type = sf.params_get_type(
                 settings_as_class.subfit_orders, "d", peak=k
@@ -320,17 +321,11 @@ def fit_chunks(
             p = "peaks"
         else:
             p = "peak"
-        print(
-            "\nNo previous fits or selections. Assuming "
-            + str(peeks)
-            + " "
-            + p
-            + " and group fitting in azimuth...\n"
-        )
+        logger.info(" ".join(map(str, [("\nNo previous fits or selections. Assuming " + str(peeks) + " " + p + " and group fitting in azimuth...\n")])))
         dfour = None
         # FIXME: passed as None now - check functions as expected
     else:
-        print("\nUsing manual selections for initial guesses...\n")
+        logger.info(" ".join(map(str, [("\nUsing manual selections for initial guesses...\n")])))
         # FIXME: Need to check that the num. of peaks for which we have parameters is the same as the
         # number of peaks guessed at.
         # dfour = get_manual_guesses(peeks, orders, bounds, twotheta, debug=None)
@@ -374,13 +369,10 @@ def fit_chunks(
     out_vals["peak"] = io.peak_string(settings_as_class.subfit_orders)
 
     for j in range(len(chunks)):
-        # print('\nFitting to data chunk ' + str(j + 1) + ' of ' + str(len(chunks)) + '\n')
+        # logger.info(" ".join(map(str, [('\nFitting to data chunk ' + str(j + 1) + ' of ' + str(len(chunks)) + '\n')])))
         if debug:
-            print("\n")
-        print(
-            "\rFitting to data chunk %s of %s " % (str(j + 1), str(len(chunks))),
-            end="\r",
-        )
+            logger.info(" ".join(map(str, [("\n")])))
+        logger.info(" ".join(map(str, [("\rFitting to data chunk %s of %s \r" % (str(j + 1), str(len(chunks))))])))
 
         # make data class for chunks.
         chunk_data = data_as_class.duplicate()
@@ -388,8 +380,8 @@ def fit_chunks(
         # FIXME: this is crude but I am not convinced that it needs to be contained within the data class.
         # FEXME: maybe I need to reconstruct the data class so that dat_class.tth is a function that applies a mask when called. but this will be slower.
         chunk_data.intensity = chunk_data.intensity.flatten()[chunks[j]].compressed()
-        # print(type(chunk_data.intensity))
-        # print(chunk_data.intensity.dtype)
+        # logger.info(" ".join(map(str, [(type(chunk_data.intensity))])))
+        # logger.info(" ".join(map(str, [(chunk_data.intensity.dtype)])))
         # stop
         chunk_data.tth = chunk_data.tth.flatten()[chunks[j]].compressed()
         chunk_data.azm = chunk_data.azm.flatten()[chunks[j]].compressed()
@@ -497,9 +489,9 @@ def fit_chunks(
                         )
 
                 if debug:
-                    print("Initiallised chunk fit; " + str(j) + "/" + str(len(chunks)))
+                    logger.info(" ".join(map(str, [("Initiallised chunk fit; " + str(j) + "/" + str(len(chunks)))])))
                     params.pretty_print()
-                    print("\n")
+                    logger.info(" ".join(map(str, [("\n")])))
                     # keep the original params for plotting afterwards
                     guess = params
 
@@ -515,7 +507,7 @@ def fit_chunks(
                 params = fit.params  # update lmfit parameters
 
                 if debug:
-                    print("Final chunk fit; " + str(j) + "/" + str(len(chunks)))
+                    logger.info(" ".join(map(str, [("Final chunk fit; " + str(j) + "/" + str(len(chunks)))])))
                     params.pretty_print()
 
                 # get values from fit and append to arrays for output
@@ -712,9 +704,8 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
 
             # FIX ME. Check which params should be varying and which should not.
             # Need to incorporate vary and un-vary params as well as partial vary
-
-    if debug:
-        print("Parameters after initial Fourier fits")
+    if 1:  # debug:
+        logger.info(" ".join(map(str, [("Parameters after initial Fourier fits")])))
         master_params.pretty_print()
 
         # plot output of fourier fits....

@@ -17,6 +17,7 @@ import cpf.peak_functions as pf
 import cpf.lmfit_model as lmm
 import cpf.IO_functions as io
 from cpf.fitsubpattern_chunks import fit_chunks, fit_series
+from cpf.XRD_FitPattern import logger
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -42,12 +43,7 @@ def order_set_peaks(orders, peeks, bg_order):
                 not sf.fourier_order(orders["peak"][y]["profile_fixed"])
                 == orders["peak"][y]["profile"]
             ):
-                print(
-                    "Peak "
-                    + str(y)
-                    + ": The order of the profile does not match that of the fixed profile. "
-                    "Changing profile to match fixed profile."
-                )
+                logger.info(" ".join(map(str, [("Peak %i: The order of the profile does not match that of the fixed profile. Changing profile to match fixed profile." % y)])))
                 orders["peak"][y]["profile"] = sf.fourier_order(
                     orders["peak"][y]["profile_fixed"]
                 )
@@ -187,7 +183,7 @@ def check_num_azimuths(peeks, azimu, orders):
         coeff_type = sf.params_get_type(orders, param, peak=y)
         if coeff_type != 5:  # if parameters are not independent
             max_coeff = np.max([max_coeff, np.max(orders["background"][y]) * 2 + 1])
-    # print(max_coeff, len(np.unique(azimu)))
+    # logger.info(" ".join(map(str, [(max_coeff, len(np.unique(azimu)))])))
     if max_coeff > len(np.unique(azimu)):
         err_str = (
             "The maximum order, %i, needs more coefficients than the number of unique azimuths, %i. "
@@ -202,7 +198,7 @@ def fit_sub_pattern(
     settings_as_class=None,
     previous_params=None,
     save_fit=False,
-    debug=False,
+    debug=True,
     refine=True,
     iterations=2,
     fit_method=None,
@@ -248,7 +244,7 @@ def fit_sub_pattern(
         data_as_class.intensity = float(data_as_class.intensity)
     elif isinstance(data_as_class.intensity, np.int64):
         data_as_class.intensity = np.float64(data_as_class.intensity)
-    # FIX ME: this doesn't seem to work. the data type is got by print(intens.dtype)
+    # FIX ME: this doesn't seem to work. the data type is got by logger.info(" ".join(map(str, [(intens.dtype)])))
 
     # FIX ME: need to match orders of arrays to previous numbers.
     # if no parameters
@@ -275,9 +271,7 @@ def fit_sub_pattern(
         clean = io.any_errors_huge(previous_params, large_errors=large_errors, clean=clean)
         if clean == 0:
             # the previous fit has problems so discard it
-            print(
-                "Propagated fit has problems so discarding it and doing fit from scratch"
-            )
+            logger.info(" ".join(map(str, [("Propagated fit has problems so discarding it and doing fit from scratch")])))
             previous_params = None
             
     if previous_params:
@@ -299,7 +293,7 @@ def fit_sub_pattern(
             np.min(fit_centroid) < settings_as_class.subfit_orders["range"][0] or 
             np.min(fit_centroid) > settings_as_class.subfit_orders["range"][1]
         ):
-            print("fit d-spacing limits are out of bounds; discarding the fit and starting again.")
+            logger.info(" ".join(map(str, [("fit d-spacing limits are out of bounds; discarding the fit and starting again.")])))
             previous_params = None
 
 
@@ -347,7 +341,7 @@ def fit_sub_pattern(
             #check if the data intensity is above threshold. 
             if np.max(data_as_class.intensity) <= threshold_data_intensity:
                 #then there is likely no determinable peak in the data
-                print("Not sufficient intensity in the data to proceed with fitting.")
+                logger.info(" ".join(map(str, [("Not sufficient intensity in the data to proceed with fitting.")])))
                 #set step to -21 so that it is still negative at the end
                 step = -21 #get to the end and void the fit
                 fout=master_params
@@ -370,7 +364,7 @@ def fit_sub_pattern(
                     return chunk_fits, chunk_positions
 
                 # Fitting stage 2:
-                print("\n Performing Series fits...")
+                logger.info(" ".join(map(str, [("\n Performing Series fits...")])))
                 # Feed each d_0,h,w into coefficient function to get fit for coeficient component
                 # get lmfit parameters as output.
                 
@@ -412,13 +406,13 @@ def fit_sub_pattern(
                     
                 if np.max(ave_intensity) <= threshold_peak_intensity:
                     #then there is no determinable peak(s) in the data
-                    print("Not sufficient intensity in the chunked peaks to proceed with fitting.")
+                    logger.info(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting.")])))
                     #set step to -11 so that it is still negative at the end
                     step = -11 #get to the end and void the fit
                     fout=master_params
 
             elif step >= 0 and previous_params:
-                print("Using previously fitted parameters and propagating fit")
+                logger.info(" ".join(map(str, [("Using previously fitted parameters and propagating fit")])))
                 # FIX ME: This should load the saved lmfit Parameter class object.
                 # Need to initiate usage (save and load).
                 # For now have propagated use of new_params so re-instantiate the master_params object below,
@@ -434,10 +428,7 @@ def fit_sub_pattern(
             # if refine or step>=10 or not PreviousParams:
             if refine or step != 10 or step != 15 and iterations >= 1:
                 # Iterate over each parameter series in turn.
-                print(
-                    "\nRe-fitting for d, h, w, +/-p, bg separately... will refine %i time(s)\n"
-                    % iterations
-                )
+                logger.info(" ".join(map(str, [("\nRe-fitting for d, h, w, +/-p, bg separately... will refine %i time(s)\n"% iterations)])))
                 for j in range(iterations):
                     for k in range(len(settings_as_class.subfit_orders["background"])):
                         param_str = "bg_c" + str(k)
@@ -523,17 +514,11 @@ def fit_sub_pattern(
                                     weights=None,
                                     max_n_fev=refine_max_f_eval,
                                 )
-                                master_params = fout.params
-                                
+                                master_params = fout.params       
                     if debug:
-                        print(" ")
-                        print(
-                            "Parameters after refining series fits "
-                            + str(j + 1)
-                            + " time(s)"
-                        )
+                        logger.debug(" ".join(map(str, [(" ")])))
+                        logger.debug(" ".join(map(str, [("Parameters after refining series fits %i time(s)" % (j+1))])))
                         master_params.pretty_print()
-
                 step = step + 10
             
                 #get mean height of chunked peaks and check if it is greater than threshold
@@ -563,7 +548,7 @@ def fit_sub_pattern(
                         
                 if np.max(ave_intensity) <= threshold_peak_intensity:
                     #then there is no determinable peak in the data
-                    print("Not sufficient intensity in the chunked peaks to proceed with fitting.")
+                    logger.info(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting.")])))
                     #set step to -101 so that it is still negative at the end
                     step = -101 #get to the end and void the fit
                     fout=master_params
@@ -577,7 +562,7 @@ def fit_sub_pattern(
             # import/export within lmfit.
 
             # Refit through full equation with all data for d,h,w,bg independently
-            print("\nFinal fit solving for all parms...\n")
+            logger.info(" ".join(map(str, [("\nFinal fit solving for all parms...\n")])))
 
             if any(x == step for x in [20, 21, 22, 25, 26, 27]):
                 # if we are on the first go round of the fitting.
@@ -641,14 +626,14 @@ def fit_sub_pattern(
                     io.any_errors_huge(
                         lmm.params_to_new_params(master_params, orders=settings_as_class.subfit_orders),
                         large_errors=large_errors)==0):
-                print("# it worked, but propagated params could have lead to rubbish fits (huge errors). Try again.")
+                logger.info(" ".join(map(str, [("# it worked, but propagated params could have lead to rubbish fits (huge errors). Try again.")])))
                 step = 0
                 # clear previous_params so we can't get back here
                 previous_params = None
             elif (fout.success == 1 and 
                     previous_params != None and 
                     io.any_terms_null(master_params, val_to_find=None)==0):
-                print("# it worked, but propagated params could have lead to rubbish fits (null values). Try again.")
+                logger.info(" ".join(map(str, [("# it worked, but propagated params could have lead to rubbish fits (null values). Try again.")])))
                 step = 0
                 # clear previous_params so we can't get back here
                 previous_params = None
@@ -701,13 +686,13 @@ def fit_sub_pattern(
     #     new_params.update({"FitProperties": fit_stats})
     # else:
     if step > 0:        
-        print("\nFinal Coefficients\n")
-        print(fout.fit_report(show_correl=False))
+        logger.info(" ".join(map(str, [("\nFinal Coefficients\n")])))
+        logger.info(" ".join(map(str, [(fout.fit_report(show_correl=False))])))
     
         # Print some stats
-        print("number data", fout.ndata)
-        print("degrees of freedom", fout.nfree)
-        print("ChiSquared", fout.chisqr)
+        logger.info(" ".join(map(str, [("number data", fout.ndata)])))
+        logger.info(" ".join(map(str, [("degrees of freedom", fout.nfree)])))
+        logger.info(" ".join(map(str, [("ChiSquared", fout.chisqr)])))
     
 
     
@@ -782,7 +767,7 @@ def fit_sub_pattern(
     # Plot results to check
     view = 0
     if (save_fit == 1 or view == 1 or debug) and step>0:
-        print("\nPlotting results for fit...\n")
+        logger.info(" ".join(map(str, [("\nPlotting results for fit...\n")])))
         
         fig = plt.figure()
         fig = plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=master_params, params_dict=new_params, figure=fig)
@@ -811,7 +796,7 @@ def fit_sub_pattern(
             fig.show()
 
         plt.close(fig)
-        print("Done with Figure")
+        logger.info(" ".join(map(str, [("Done with Figure")])))
 
     # Save lmfit structure
     if save_fit:
@@ -827,12 +812,12 @@ def fit_sub_pattern(
             save_modelresult(fout, filename)
 
         except BaseException:
-            print("Cannot save lmfit object")
+            logger.info(" ".join(map(str, [("Cannot save lmfit object")])))
             # if os.path.isfile(filename):
             #     os.remove(filename)
             #     save_modelresult(out, filename)
             # else:
-            #     print("File does not exist!")
+            #     logger.info(" ".join(map(str, [("File does not exist!")])))
 
     return [new_params, fout]
 
@@ -915,7 +900,6 @@ def plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=None, params_
     if data_as_class.continuous_azm:
         # if there are lots and lots of data make the list shorter
         azi_plot = np.array(list(range(np.int_(y_lims[0]), np.int_(y_lims[1]), 2)))
-
     peeks = len(params_dict["peak"])
     fit_centroid = []
     for i in range(peeks):

@@ -11,7 +11,7 @@ import cpf.IO_functions as IO
 import json
 import re
 import datetime
-
+from cpf.XRD_FitPattern import logger
 
 def Requirements():
     # List non-universally required parameters for writing this output type.
@@ -62,12 +62,12 @@ def WriteOutput(
 
     # base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
     # if not base:
-    #     print("No base filename, using input filename instead.")
+    #     logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
     #     base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
 
     base = setting_class.datafile_basename
     if base is None:
-        print("No base filename, using input filename instead.")
+        logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
     if differential_only is not False:
         base = base + "_DiffOnly"
@@ -94,7 +94,7 @@ def WriteOutput(
     # out_file = out_dir + base + '.exp'
 
     text_file = open(out_file, "w")
-    print("Writing", out_file)
+    logger.info(" ".join(map(str, [("Writing", out_file)])))
 
     # headers. set file version to be 1.
     text_file.write("# Experiment analysis file. to be used with PolydefixED\n")

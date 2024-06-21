@@ -69,7 +69,8 @@ from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
 from cpf import IO_functions
 import cpf.h5_functions as h5_functions
-
+import pickle
+from cpf.XRD_FitPattern import logger
 
 
 # plot the data as an image (TRue) or a scatter plot (false).
@@ -451,9 +452,9 @@ class XYDetector:
             all_present = 1
             for par in parameter_settings:
                 if par in required_list:
-                    print("Got: ", par)
+                    logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    print("The settings file requires a parameter called  '", par, "'")
+                    logger.info(" ".join(map(str, [("The settings file requires a parameter called  '", par, "'")])))
                     all_present = 0
             if all_present == 0:
                 sys.exit(
@@ -461,7 +462,6 @@ class XYDetector:
                     "are all present."
                 )
         return required_list
-
 
 
     def plot_calibrated(
@@ -485,13 +485,11 @@ class XYDetector:
         """
 
         if self.intensity.size > 50000:
-            print(
-                " Have patience. The plot(s) will appear but it can take its time to render."
-            )
+            logger.info(" ".join(map(str, [(" Have patience. The plot(s) will appear but it can take its time to render.")])))
             rastered = True
-            # print(type(axis_plot))
+            # logger.info(" ".join(map(str, [(type(axis_plot))])))
             # axis_plot = raster_axes.RasterAxes(axes=axis_plot)
-            # print(type(axis_plot))
+            # logger.info(" ".join(map(str, [(type(axis_plot))])))
 
         if x_axis == "default":
             plot_x = self.tth

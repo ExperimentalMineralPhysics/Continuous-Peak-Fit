@@ -2,6 +2,21 @@
 
 __all__ = ["execute", "write_output"]
 
+import logging
+
+# Configure the logging module
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.FileHandler('CPF.log', mode='a', encoding=None, delay=False),  # Log to a file
+        logging.StreamHandler()  # Log to stdout
+    ]
+)
+# Create a logger instance
+logger = logging.getLogger(__name__)
+
 import json
 import os
 import sys
@@ -168,12 +183,11 @@ def initial_peak_position(
     # restrict to sub-patterns listed
     settings_for_fit.set_subpatterns(subpatterns=subpattern)
 
-    print("\n'initial_peak_position' needs an interactive matplotlib figure.")
-    print(
-        "If you are using sypder with inline figures, call '%matplotlib qt', then rerun the script"
-    )
-    print("To restore the inline plotting afterwards call '%matplotlib inline'")
-    print("To move to the next peak selection close the window.\n")
+
+    logger.info("\n'initial_peak_position' needs an interactive matplotlib figure.")
+    logger.info(" ".join(map(str, [("If you are using sypder with inline figures, call '%matplotlib qt', then rerun the script")])))
+    logger.info(" ".join(map(str, [("To restore the inline plotting afterwards call '%matplotlib inline'")])))
+    logger.info(" ".join(map(str, [("To move to the next peak selection close the window.\n")])))
 
     execute(
         setting_class=settings_for_fit,
@@ -200,7 +214,7 @@ class PointBuilder:
         self.cid2 = points.figure.canvas.mpl_connect("key_press_event", self)
 
     def __call__(self, event):
-        # print('click', event)
+        # logger.info(" ".join(map(str, [('click', event)])))
         if event.inaxes != self.points.axes:
             return
         self.xs.append(event.xdata)
@@ -385,14 +399,14 @@ def write_output(
         setting_class = initiate(setting_file, report=True, out_type=out_type)
 
     if out_type is not None:
-        print("Changing output_type to " + out_type)
+        logger.info(" ".join(map(str, [("Changing output_type to " + out_type)])))
         setting_class.set_output_types(out_type_list=out_type)
 
     if setting_class.output_types is None:
-        print("Thre are no output types. Add 'Output_type' to input file or specify 'out_type' in command.")
+        logger.info(" ".join(map(str, [("Thre are no output types. Add 'Output_type' to input file or specify 'out_type' in command.")])))
     else:
         for mod in setting_class.output_types:
-            print("\nWrite output file(s) using", mod)
+            logger.info(" ".join(map(str, [("\nWrite output file(s) using", mod)])))
             wr = output_methods_modules[mod]
             wr.WriteOutput(
                 setting_class=setting_class,
@@ -457,7 +471,7 @@ def execute(
     else:
         # data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
         data_to_fill = settings_for_fit.image_list[0]
-    print(data_to_fill)
+    logger.info(" ".join(map(str, [(data_to_fill)])))
     new_data.fill_data(
         data_to_fill,
         settings=settings_for_fit,
@@ -492,8 +506,8 @@ def execute(
     # Process the diffraction patterns #
     for j in range(settings_for_fit.image_number):
 
-        # print("Process ", settings_for_fit.image_list[j])
-        print("Process ", title_file_names(image_name=settings_for_fit.image_list[j]))
+        # logger.info(" ".join(map(str, [("Process ", settings_for_fit.image_list[j])])))
+        logger.info(" ".join(map(str, [("Process ", title_file_names(image_name=settings_for_fit.image_list[j]))])))
 
         # Get diffraction pattern to process.
         new_data.import_image(settings_for_fit.image_list[j], debug=debug)
@@ -525,7 +539,7 @@ def execute(
             and mode == "fit"
         ):
             # Read JSON data from file
-            print("Loading previous fit results from %s" % temporary_data_file)
+            logger.info(" ".join(map(str, [("Loading previous fit results from %s" % temporary_data_file)])))
             with open(temporary_data_file) as json_data:
                 previous_fit = json.load(json_data)
                 
@@ -568,31 +582,31 @@ def execute(
                     )
                     params = []
                 else:
-                    print("old subpattern range", tth_range)
+                    logger.info(" ".join(map(str, [("old subpattern range", tth_range)])))
                     mid = []
                     for k in range(len(params["peak"])):
                         mid.append(params["peak"][k]["d-space"][0])
                         # FIXME: replace with caluculation of mean d-spacing.
 
                     # Replace this with call through to class structure?
-                    # print(mid)
+                    # logger.info(" ".join(map(str, [(mid)])))
                     cent = new_data.conversion(np.mean(mid), reverse=True)
-                    # print("cent", cent)
-                    # print("mean tth_range", np.mean(tth_range))
-                    # print((tth_range[1] + tth_range[0]) / 2)
+                    # logger.info(" ".join(map(str, [("cent", cent)])))
+                    # logger.info(" ".join(map(str, [("mean tth_range", np.mean(tth_range))])))
+                    # logger.info(" ".join(map(str, [((tth_range[1] + tth_range[0]) / 2)])))
                     move_by = cent - np.mean(tth_range)
-                    print("move by", move_by)
+                    logger.info(" ".join(map(str, [("move by", move_by)])))
                     tth_range = tth_range + move_by
                     # tth_range[0] = tth_range[0] - ((tth_range[1] + tth_range[0]) / 2) + cent
                     # tth_range[1] = tth_range[1] - ((tth_range[1] + tth_range[0]) / 2) + cent
-                    # print("move by:", ((tth_range[1] + tth_range[0]) / 2) - cent)
-                    print("new subpattern range", tth_range)
+                    # logger.info(" ".join(map(str, [("move by:", ((tth_range[1] + tth_range[0]) / 2) - cent)])))
+                    logger.info(" ".join(map(str, [("new subpattern range", tth_range)])))
 
                     # copy new positions back into settings_for_fit
                     settings_for_fit.fit_orders[i]["range"] = (
                         settings_for_fit.fit_orders[i]["range"] + move_by
                     )
-                    print(settings_for_fit.fit_orders[i]["range"])
+                    logger.info(" ".join(map(str, [(settings_for_fit.fit_orders[i]["range"])])))
 
                     # The PeakPositionSelections are only used if the fits are not being propagated
                     if "PeakPositionSelection" in settings_for_fit.fit_orders[i]:
@@ -669,16 +683,16 @@ def execute(
                 plt.show(block=True)
 
                 selection_arr = point_builder.array()
-                # print(selection_arr)
-                print("")
+                # logger.info(" ".join(map(str, [(selection_arr)])))
+                logger.info(" ".join(map(str, [("")])))
                 print(
                     "Selected points, %s:" % peak_string(settings_for_fit.subfit_orders)
                 )
-                print("[")
+                logger.info(" ".join(map(str, [("[")])))
                 for k in range(len(selection_arr)):
-                    print(json.dumps(selection_arr[k]) + ",")
-                print("]")
-                print("")
+                    logger.info(" ".join(map(str, [(json.dumps(selection_arr[k]) + ",")])))
+                logger.info(" ".join(map(str, [("]")])))
+                logger.info(" ".join(map(str, [("")])))
 
             else:
                 if parallel is True:  # setup parallel version
@@ -774,7 +788,11 @@ if __name__ == "__main__":
     # Load settings fit settings file.
     sys.path.append(os.getcwd())
     settings_file = sys.argv[1]
-    print(settings_file)
+    logger.info(" ".join(map(str, [(settings_file)])))
+    # Safely exit the program
+    for handler in logging.getLogger().handlers:
+        handler.flush()
+    # # sys.exit()
     execute(
         inputs=None,
         debug=False,

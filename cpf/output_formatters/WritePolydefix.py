@@ -9,6 +9,7 @@ import numpy as np
 import cpf.output_formatters.WriteMultiFit as WriteMultiFit
 import json
 import cpf.IO_functions as IO
+from cpf.XRD_FitPattern import logger
 
 # import re
 # import datetime
@@ -80,10 +81,10 @@ def WriteOutput(
     # base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
     base = setting_class.datafile_basename
     if base is None:
-        print("No base filename, using input filename instead.")
+        logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
     # if not base:
-    #     print("No base filename, using input filename instead.")
+    #     logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
     #     base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
     if differential_only is not False:
         base = base + "_DiffOnly"
@@ -178,7 +179,7 @@ def WriteOutput(
             overwrite=True,
         )
         text_file = open(out_file, "w")
-        print("Writing", out_file)
+        logger.info(" ".join(map(str, [("Writing", out_file)])))
 
         # headers. set file version to be 1.
         text_file.write("# Experiment analysis file. to be used with Polydefix\n")
@@ -211,7 +212,7 @@ def WriteOutput(
             setting_class.settings_from_file.datafile_StartNum
             > setting_class.settings_from_file.datafile_EndNum
         ):
-            print("start>end")
+            logger.info(" ".join(map(str, [("start>end")])))
             strt = setting_class.settings_from_file.datafile_EndNum
             eend = setting_class.settings_from_file.datafile_StartNum
         else:

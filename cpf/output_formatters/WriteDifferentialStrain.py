@@ -12,6 +12,8 @@ import cpf.lmfit_model as lmm
 
 import cpf.IO_functions as IO
 import cpf.output_formatters.convert_fit_to_crystallographic as cfc
+from cpf.XRD_FitPattern import logger
+
 
 def Requirements():
     # List non-universally required parameters for writing this output type.
@@ -72,23 +74,22 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
     if "SampleDeformation" in setting_class.output_settings:
             SampleDeformation = setting_class.output_settings["SampleDeformation"].lower()
 
-
     base = setting_class.datafile_basename
 
     # if not base:
     if base is None or len(base) == 0:
-        print("No base filename, trying ending without extension instead.")
+        logger.info(" ".join(("No base filename, trying ending without extension instead.")))
         base = setting_class.datafile_ending
 
     if base is None:
-        print("No base filename, using input filename instead.")
+        logger.info(" ".join(("No base filename, using input filename instead.")))
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
     out_file = IO.make_outfile_name(
         base, directory=setting_class.output_directory, extension=".dat", overwrite=True, additional_text=setting_class.file_label
     )
 
     text_file = open(out_file, "w")
-    print("Writing", out_file)
+    logger.info(" ".join(("Writing", out_file)))
 
     text_file.write(
         "# Summary of fits produced by continuous_peak_fit for input file: %s.\n"
@@ -176,7 +177,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                     directory="",
                     overwrite=True,
                 )
-                print("  Incorporating: " + out_name + ", " + IO.peak_string(fit[y]))
+                # logger.info(" ".join(('  Incorporating ' + subfilename)))
+                logger.info(" ".join(("  Incorporating: " + out_name + ", " + IO.peak_string(fit[y]))))
 
                 # try reading an lmfit object file.
                 savfilename = IO.make_outfile_name(
@@ -199,9 +201,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                             )
                         except:
                             # raise FileNotFoundError
-                            print(
-                                "    Can't open file with the correlation coefficients in..."
-                            )
+                            logger.info(" ".join(map(str, [("    Can't open file with the correlation coefficients in...")])))
                     # FIX ME: this will only work for one peak. Needs fixing if more then one peak in subpattern
                     try:
                         corr = gmodel.params["peak_0_d3"].correl["peak_0_d4"]
@@ -224,15 +224,12 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                     out_peak = []
 
                     if fit[y]["peak"][x]["d-space_type"] != "fourier":
-                        raise ValueError(
-                            "This output type is not setup to process non-Fourier peak centroids."
-                        )
+                        raise ValueError("This output type is not setup to process non-Fourier peak centroids.")
 
                     # peak
                     out_peak = IO.peak_string(fit[y], peak=[x])
                     width_hkl = np.max((width_hkl, len(out_peak)))
 
- 
                     #%%% get converted values. 
                     crystallographic_values = cfc.fourier_to_crystallographic(fit, SampleGeometry=SampleGeometry, SampleDeformation=SampleDeformation,  subpattern=y, peak=x)
                     
@@ -501,6 +498,6 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
 
                     text_file.write("\n")
         else:
-            print(filename, " does not exist on the path")
+            logger.info(" ".join((filename, " does not exist on the path")))
             
     text_file.close()

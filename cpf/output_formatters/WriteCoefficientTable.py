@@ -8,6 +8,7 @@ from itertools import product
 # import cpf.XRD_FitPattern as XRD_FP
 import cpf.IO_functions as IO
 import cpf.peak_functions as pf
+from cpf.XRD_FitPattern import logger
 
 
 def Requirements():
@@ -54,7 +55,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     #make filename for output
     base = setting_class.datafile_basename
     if base is None:
-        print("No base filename, using input filename instead.")
+        logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
     out_file = IO.make_outfile_name(
         base, directory=setting_class.output_directory, extension=".dat", overwrite=True, additional_text="all_coefficients",
@@ -92,7 +93,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                 
 
     text_file = open(out_file, "w")
-    print("Writing", out_file)
+    logger.info(" ".join(map(str, [("Writing", out_file)])))
 
     text_file.write(
         "# Summary of fits produced by continuous_peak_fit for input file: %s.\n"

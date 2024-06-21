@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import matplotlib.path as mlp
 import sys
 from scipy.optimize import curve_fit
+from cpf.XRD_FitPattern import logger
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -134,9 +135,9 @@ class GSASIIDetector:
             all_present = 1
             for par in parameter_settings:
                 if par in required_list:
-                    print("Got: ", par)
+                    logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    print("The settings file requires a parameter called  '", par, "'")
+                    logger.info(" ".join(map(str, [("The settings file requires a parameter called  '", par, "'")])))
                     all_present = 0
             if all_present == 0:
                 sys.exit(
@@ -276,10 +277,10 @@ class GSASIIDetector:
         if FrmLms:
             path = mlp.Path(FrmLms)
             grid = path.contains_points(points) - True
-            print(Imx.shape[0])
-            print(Imx.shape[1])
-            print(Imx.shape[0] * Imx.shape[1])
-            print(grid.shape)
+            logger.info(" ".join(map(str, [(Imx.shape[0])])))
+            logger.info(" ".join(map(str, [(Imx.shape[1])])))
+            logger.info(" ".join(map(str, [(Imx.shape[0] * Imx.shape[1])])))
+            logger.info(" ".join(map(str, [(grid.shape)])))
             grid = np.reshape(grid, (Imx.shape[0], Imx.shape[1]))
             ImMsk.mask = ma.mask_or(ma.getmask(ImMsk), grid)
         if debug:
@@ -574,7 +575,7 @@ class GSASIIDetector:
         :param pix:
         :return:
         """
-        print(image_name)
+        logger.info(" ".join(map(str, [(image_name)])))
         im = ImportImage(image_name)
         imarray = np.array(im)
 

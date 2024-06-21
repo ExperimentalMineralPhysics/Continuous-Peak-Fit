@@ -9,6 +9,7 @@ This file contains a list of the default energy dispersive detectors that contin
 
 New detectors can either be added to this list or added via a csv file. For details see ... 
 """
+from cpf.XRD_FitPattern import logger
 
 
 def W2010_10element():

@@ -70,7 +70,7 @@ def SpotProcess(sub_data, settings_for_fit):
         else:
             imin = int(settings_for_fit.subfit_orders["imin"])
             
-    sub_data.set_mask(i_min=imin, i_max=imax)
+    sub_data.set_mask(intensity_bounds=[imin, imax])#(i_min=imin, i_max=imax)
 
     return sub_data
 

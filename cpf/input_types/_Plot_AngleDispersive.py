@@ -9,7 +9,7 @@ from matplotlib import gridspec, cm, colors
 from cpf.histograms import histogram2d
 
 
-class _Plot_AngleDispersive:
+class _Plot_AngleDispersive():
     """
     This class cannot be imported as a stand alone class. Instead the methods 
     contained within it are created as methods in the angle dispersive diffraction
@@ -30,6 +30,9 @@ class _Plot_AngleDispersive:
             disp_lims = np.around(np.array(disp_lims) / self.azm_blocks) * self.azm_blocks
             disp_ticks = list(range(int(disp_lims[0]), int(disp_lims[1] + 1), int(self.azm_blocks)))
         elif self.azm_end is not None and self.azm_start is not None:
+            num_blocks = (self.azm_end- self.azm_start) / self.azm_blocks
+            if num_blocks < 3:
+                self.azm_blocks = np.around((self.azm_end- self.azm_start) / 3)
             disp_lims = np.around(np.array([self.azm_start, self.azm_end]) / self.azm_blocks) * self.azm_blocks
             disp_ticks = list(range(int(disp_lims[0]), int(disp_lims[1] + 1), int(self.azm_blocks)))
         elif len(np.unique(self.azm)) <= unique:
@@ -139,25 +142,27 @@ class _Plot_AngleDispersive:
             y_axis="intensity",
             limits=[0, 100],
         )
+        
     
-    
-    
-    def plot_fitted(self, fig_plot=None, model=None, fit_centroid=None):
+    def plot_range(self, fig_plot=None, range_bounds=[-np.inf, np.inf], azm_bounds=[-np.inf, np.inf]):
         """
+        Plot data within given range. 
         add data to axes.
         :param ax:
         :param show:
         :return:
         """
+        
+        self.set_limits(range_bounds=range_bounds, azm_bounds=range_bounds)
     
         # match max and min of colour scales
         limits = {
-            "max": np.max([self.intensity.max(), model.max()]),
-            "min": np.min([self.intensity.min(), model.min()]),
+            "max": self.intensity.max(),
+            "min": self.intensity.min(),
         }
     
         # plot data
-        ax1 = fig_plot.add_subplot(1, 3, 1)
+        ax1 = fig_plot.add_subplot(1, 1, 1)
         self.plot_calibrated(
             fig_plot=fig_plot,
             axis_plot=ax1,
@@ -169,42 +174,113 @@ class _Plot_AngleDispersive:
         ax1.set_title("Data")
         locs, labels = plt.xticks()
         plt.setp(labels, rotation=90)
-        # plot model
-        ax2 = fig_plot.add_subplot(1, 3, 2)
+           
+        # tidy layout
+        plt.tight_layout()
+
+          
+    
+    
+    def plot_fitted(self, fig_plot=None, model=None, fit_centroid=None):
+        """
+        add data to axes.
+        :param ax:
+        :param show:
+        :return:
+        """
+        
+        # match max and min of colour scales
+        limits = {
+            "max": np.max([self.intensity.max(), model.max()]),
+            "min": np.min([self.intensity.min(), model.min()]),
+        }
+    
+        tight=True
+
+        # make axes
+        ax = []
+        if tight==True:
+            gs = gridspec.GridSpec(1, 3, wspace=0.0)
+            for i in range(3):
+                ax.append(fig_plot.add_subplot(gs[i]))
+            location = "bottom"
+        else:
+            for i in range(3):
+                ax.append(fig_plot.add_subplot(1, 3, i+1))
+            location = "right"
+    
+        # plot data
         self.plot_calibrated(
             fig_plot=fig_plot,
-            axis_plot=ax2,
+            axis_plot=ax[0],
+            show="intensity",
+            x_axis="default",
+            limits=limits,
+            colourmap="magma_r",
+            location=location
+        )
+        ax[0].set_title("Data")
+        locs, labels = plt.xticks()
+        # plt.setp(labels, rotation=90)
+        
+        # plot model
+        self.plot_calibrated(
+            fig_plot=fig_plot,
+            axis_plot=ax[1],
             data=model,
             limits=limits,
             colourmap="magma_r",
+            location=location
         )
         if fit_centroid is not None:
             for i in range(len(fit_centroid[1])):
-                plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
-        ax2.set_title("Model")
+                ax[1].plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
+        ax[1].set_title("Model")
         locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
-    
+        # plt.setp(labels, rotation=90)
+        
         # plot residuals
-        ax3 = fig_plot.add_subplot(1, 3, 3)
         self.plot_calibrated(
             fig_plot=fig_plot,
-            axis_plot=ax3,
+            axis_plot=ax[2],
             data=self.intensity - model,
             limits=[0, 100],
             colourmap="residuals-blanaced",
+            location=location
         )
         if fit_centroid is not None:
             for i in range(len(fit_centroid[1])):
-                plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
-        ax3.set_title("Residuals")
+                ax[2].plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
+        ax[2].set_title("Residuals")
         locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
+        # plt.setp(labels, rotation=90)
     
+        # organise the axes and labelling.
+        if tight==True:
+            bottom0, top0 = ax[0].get_ylim()
+            bottom1, top1 = ax[1].get_ylim()
+            bottom2, top2 = ax[2].get_ylim()
+            top_max = np.max([top0, top1, top2])
+            bottom_min = np.min([bottom0, bottom1, bottom2])
+            ax[0].set_ylim(top=top_max, bottom=bottom_min)
+            ax[1].set_ylim(top=top_max, bottom=bottom_min)
+            ax[2].set_ylim(top=top_max, bottom=bottom_min)
+            ax[1].set(yticklabels=[])
+            ax[2].set(yticklabels=[])
+            ax[1].set(ylabel=None)
+            ax[2].set(ylabel=None)
+            ax[0].yaxis.set_ticks_position('both')
+            ax[1].yaxis.set_ticks_position('both')
+            ax[2].yaxis.set_ticks_position('both')
+            ax[0].xaxis.set_ticks_position('both')
+            ax[1].xaxis.set_ticks_position('both')
+            ax[2].xaxis.set_ticks_position('both')
+   
         # tidy layout
         plt.tight_layout()
-    
         
+        
+    
     
     def plot_collected(
         self, 
@@ -214,6 +290,7 @@ class _Plot_AngleDispersive:
         colourmap="jet",
         limits=[0, 99.9], 
         location='default',
+        debug=False
     ):
         """
         Plots the collected data as images.
@@ -347,12 +424,16 @@ class _Plot_AngleDispersive:
         show="default",
         x_axis="default",
         y_axis="default",
+        x_label = r"2$\theta$ ($^\circ$)",
+        y_label = "Azimuth ($^\circ$)",
         data=None,
         limits=[1, 99.9],
+        y_lims = None,
         colourmap="jet",
         rastered=False,
         point_scale=2,
         resample_shape = None,
+        location = None
     ):
         """
         add data to axes.
@@ -373,14 +454,11 @@ class _Plot_AngleDispersive:
             # axis exists but figure not refrenced. 
             pass    
         
-        if self.intensity.size > 1000000: # was 50000 until fixed max/min functions 
+        if self.intensity.size > 100000000000:# 1000000: # was 50000 until fixed max/min functions 
             print(
                 " Have patience. The plot(s) will appear but it can take its time to render."
             )
             rastered = True
-            # print(type(axis_plot))
-            # axis_plot = raster_axes.RasterAxes(axes=axis_plot)
-            # print(type(axis_plot))
     
         if x_axis == "default":
             plot_x = self.tth
@@ -398,10 +476,10 @@ class _Plot_AngleDispersive:
         else:  # if y_axis is "default" or "azimuth"
             plot_y = self.azm
             plot_i = self.intensity
-            label_y = "Azimuth (deg)"
-    
-            y_lims = [self.azm_start, self.azm_end]
-            y_lims = [self.azm.min(), self.azm.max()]
+            label_y = y_label
+            if y_lims == None:
+                y_lims = [self.azm_start, self.azm_end]
+                # y_lims = [self.azm.min(), self.azm.max()]
             axis_plot.set_ylim(y_lims)
             # y_ticks = list(range(int(y_lims[0]),int(y_lims[1]+1),45))
     
@@ -448,6 +526,18 @@ class _Plot_AngleDispersive:
                 cb_extend = "min"
             else:
                 cb_extend = "neither"
+        if location == None:
+            if plot_i.shape[-1] > plot_i.shape[-2]:
+                location = "bottom"
+                fraction = 0.046
+            else:
+                location = "right"
+                fraction = 0.15
+        elif location == "default":
+            location=="right"
+        else:
+            pass
+    
     
         # set colour map
         if colourmap == "residuals-blanaced":
@@ -460,7 +550,7 @@ class _Plot_AngleDispersive:
     			
         # set axis limits
         x_lims = [plot_x.min(), plot_x.max()]
-        print(x_lims)
+        # print(x_lims)
         axis_plot.set_xlim(x_lims)
         if y_ticks:
             axis_plot.set_yticks(y_ticks)
@@ -469,13 +559,13 @@ class _Plot_AngleDispersive:
             the_plot = axis_plot.scatter(
                 plot_x,
                 plot_y,
-                s=.5,
+                s=1.5,
                 c=plot_i,
                 edgecolors="none",
                 cmap=colourmap,
                 vmin=IMin,
                 vmax=IMax,
-                rasterized=rastered,
+                #rasterized=rastered,
             )
         else:
             # the_plot = self.raster_plot(
@@ -491,10 +581,13 @@ class _Plot_AngleDispersive:
                 pixels_per_bin = point_scale,
                 resample_shape = resample_shape
             )
-        axis_plot.set_xlabel(r"2$\theta$ (deg)")
+        axis_plot.set_xlabel(x_label)
         axis_plot.set_ylabel(label_y)
     
-        fig_plot.colorbar(mappable=the_plot, extend=cb_extend)
+        #p2 = axis_plot.get_position().get_points().flatten()        
+        #ax_cbar1 = fig_plot.add_axes([p2[0], 0, p2[2]-p2[0], 0.05]) 
+    
+        cb = fig_plot.colorbar(mappable=the_plot, ax=axis_plot, extend=cb_extend, location=location, shrink=0.9)
 
 
 

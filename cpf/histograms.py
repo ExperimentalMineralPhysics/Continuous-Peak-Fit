@@ -71,8 +71,6 @@ def histogram1d(tth,
         intensity = intensity[order]
         if azi.all != None:
             azi = azi[order]
-        if dspace.all != None:
-            dspace = dspace[order]
         
         mean_per_bin = order.size / bin_n
         
@@ -98,8 +96,6 @@ def histogram1d(tth,
             count.append(np.size(tth[data_start:data_end]))
             if azi.all != None:
                 azm.append(np.mean(azi[data_start:data_end]))
-            if dspace.all != None:
-                dspc.append(np.mean(dspace[data_start:data_end]))
         
         if debug==True:
             plt.plot(tth,intensity,'.',position, intens, '-', position, count, '-') 
@@ -133,7 +129,7 @@ def histogram1d(tth,
     else:
         raise ValueError("the intensity, two theta and azimuth arrays are not the same size")
             
-    return np.array(position), np.array(intens), np.array(azm), np.array(dspc)
+    return np.array(position), np.array(intens), np.array(azm)
 
 
 

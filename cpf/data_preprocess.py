@@ -68,7 +68,7 @@ def image_adjust(data, image_process):
         
     Examples of acceptable inputs:
     image_process = 'cosmics'
-    image_process = ['cosmics', smooth', 'background']
+    image_process = ['cosmics', 'smooth', 'background']
     image_process = {"cosmics": {"gain": 2.5, "sigclip": 3, "objlim": 3, "sigfrac": 0.3},
                      "smooth": {"filter": "Gaussian", "kernel": 4},
                      "background": {"kernel": 300}

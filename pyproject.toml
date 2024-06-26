@@ -36,7 +36,7 @@ dependencies = [
   "lmfit",
   "matplotlib",
   "moviepy",
-  "numpy<2",  # Locked to <2 to give dependencies time to catch up
+  "numpy<2", # Locked to <2 to give dependencies time to catch up
   "opencv-python",
   "pathos",
   "pillow",
@@ -47,6 +47,7 @@ dependencies = [
 ]
 [project.optional-dependencies]
 dev = [
+  "bump2version", # For version control
   "ipykernel", # For Jupyter Notebook interactive development
   "pre-commit", # For running code checks with
 ]

@@ -36,7 +36,7 @@ dependencies = [
   "lmfit",
   "matplotlib",
   "moviepy",
-  "numpy",
+  "numpy<2",  # Locked to <2 to give dependencies time to catch up
   "opencv-python",
   "pathos",
   "pillow",

@@ -28,7 +28,7 @@ repos:
         name: Formatting the pyproject.toml file
         additional_dependencies: ["tox>=4.9"]
 
-  # Use Prettier to format other files
+  # Use Prettier to format other non-Python file types
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0 # Released 2023-11-13 | Latest stable version
     hooks:

@@ -8,7 +8,7 @@ The development of the code is ongoing. Each new data set we process finds new l
 
 ## Installation
 
-Installation is available through Git or via pip. In order for some of the dependencies to be compiled and installed, Microsoft Visual C++ 14.0 is required. The simplest way to acquire it is to download and install "Microsoft Visual C++ Build Tools" using the following link: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+Installation is available through Git or via pip. In order for some of the dependencies to be compiled and installed, Microsoft Visual C++ 14.0 or greater is required. The simplest way to acquire it is to download and install "Microsoft Visual C++ Build Tools" using the following link: https://visualstudio.microsoft.com/visual-cpp-build-tools/
 
 ### Using Git
 
@@ -22,11 +22,11 @@ After cloning the repository, while having it as your current working directory,
 
 ### Using pip
 
-Continuous-Peak-Fit can also be installed directly from pip using the following command:
+Continuous-Peak-Fit can also be installed directly from PyPI using the following command:
 
 `pip install continuous-peak-fit`
 
-This should automatically install the required dependencies.
+This should automatically install the package and its required dependencies.
 
 ## Usage
 

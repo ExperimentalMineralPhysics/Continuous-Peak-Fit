@@ -32,11 +32,11 @@ np.set_printoptions(threshold=sys.maxsize)
 #        -- this maybe a dependency of fabio and so installed with pyFAI but I have not checked.
 # pyFAI  -- sudo apt-get install pyfai
 # Fabio  -- but this appears to be installed with pyFAI.
-# lmfit  -- 
-# pillow -- 
+# lmfit  --
+# pillow --
 
 
-# Needed for JSON to save fitted parameters. 
+# Needed for JSON to save fitted parameters.
 # copied from https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array#24375113
 # on 13th November 2018
 def json_numpy_serialzer(o):
@@ -54,8 +54,8 @@ def json_numpy_serialzer(o):
     """
     numpy_types = (
         np.bool_,
-        # np.bytes_, -- python `bytes` class is not json serializable     
-        # np.complex64,  -- python `complex` class is not json serializable  
+        # np.bytes_, -- python `bytes` class is not json serializable
+        # np.complex64,  -- python `complex` class is not json serializable
         # np.complex128,  -- python `complex` class is not json serializable
         # np.complex256,  -- special handling below
         # np.datetime64,  -- python `datetime.datetime` class is not json serializable
@@ -84,7 +84,7 @@ def json_numpy_serialzer(o):
     elif isinstance(o, np.float128):
         return o.astype(np.float64).item()
     # elif isinstance(o, np.complex256): -- no python native for np.complex256
-    #     return o.astype(np.complex128).item() -- python `complex` class is not json serializable 
+    #     return o.astype(np.complex128).item() -- python `complex` class is not json serializable
     else:
         raise TypeError("{} of type {} is not JSON serializable".format(repr(o), type(o)))
 
@@ -261,7 +261,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
         else:
             tempbackg = [[backg]]
         backg = tempbackg
-    
+
     elif backg_type == 'order':
         # orders requested, figure out height using best guess
         print('TBD')
@@ -282,10 +282,10 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
             tempbackg.append(tempbackg_f)
             bg_order.append(nfourier)
         backg = tempbackg
-    
+
     elif backg_type == 'flat':
         backg = [[backg]]
-    
+
     print(backg, 'backg')
     '''
 
@@ -488,10 +488,15 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
     wr.WriteOutput(FitSettings, parms_dict)
 
 
-if __name__ == '__main__':
-
+# Encase in a function to enable calling from the command line
+def run():
     # Load settings fit settings file.
     sys.path.append(os.getcwd())
     settings_file = sys.argv[1]
     print(settings_file)
     execute(inputs=None, settings_file=settings_file, debug=False, refine=True, iterations=1)
+
+
+# Run script if called directly
+if __name__ == '__main__':
+    run()

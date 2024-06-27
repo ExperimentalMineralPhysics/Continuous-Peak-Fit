@@ -38,6 +38,7 @@ dependencies = [
   "moviepy",
   "numpy<2", # Locked to <2 to give dependencies time to catch up
   "opencv-python",
+  "pandas",
   "pathos",
   "pillow",
   "pycairo",
@@ -54,13 +55,9 @@ dev = [
 [project.urls]
 Repository = "https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit"
 [project.scripts]
-CPF_XRD_FitPattern = "bin:CPF_XRD_FitPattern.py"
-CPF_generate_inputs = "bin:CPF_generate_inputs.py"
+"cpf.fit_pattern" = "cpf.cli.CPF_XRD_FitPattern:run"
+"cpf.generate_inputs" = "cpf.cli.CPF_generate_inputs:run"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = [
-    "cpf",
-    "bin",
-]
+where = ["src"]
 namespaces = false

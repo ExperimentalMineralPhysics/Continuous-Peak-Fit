@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 
-__all__ = ['execute']
+__all__ = ["execute"]
 
+import argparse
 import json
 import os
 import sys
+
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -40,7 +43,7 @@ np.set_printoptions(threshold=sys.maxsize)
 # copied from https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array#24375113
 # on 13th November 2018
 def json_numpy_serialzer(o):
-    """ Serialize numpy types for json
+    """Serialize numpy types for json
 
     Parameters:
         o (object): any python object which fails to be serialized by json
@@ -86,7 +89,9 @@ def json_numpy_serialzer(o):
     # elif isinstance(o, np.complex256): -- no python native for np.complex256
     #     return o.astype(np.complex128).item() -- python `complex` class is not json serializable
     else:
-        raise TypeError("{} of type {} is not JSON serializable".format(repr(o), type(o)))
+        raise TypeError(
+            "{} of type {} is not JSON serializable".format(repr(o), type(o))
+        )
 
 
 def execute(settings_file=None, inputs=None, debug=False, refine=True, iterations=1):
@@ -103,12 +108,12 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
 
     if settings_file:
         try:
-            print('  ')
-            print('The name of the settings file is: ', settings_file)
+            print("  ")
+            print("The name of the settings file is: ", settings_file)
 
-            if not str.endswith(settings_file, '.py'):
-                settings_file = settings_file + '.py'
-            spec = importlib.util.spec_from_file_location("settings_module", settings_file)
+            spec = importlib.util.spec_from_file_location(
+                "settings_module", settings_file
+            )
             FitSettings = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(FitSettings)
 
@@ -116,14 +121,14 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
             #     settings_file = settings_file.strip('.py')
             # FitSettings = __import__(settings_file)
             FitParameters = dir(FitSettings)
-        except:
-            raise FileNotFoundError
+        except Exception as e:
+            raise e
 
     elif inputs:
         raise NotImplementedError
 
     else:
-        raise ValueError('No inputs provided')
+        raise ValueError("No inputs provided")
 
     # List all the required parameters.
     # NOTE: No doubt this will change hence denoted as a list that is worked over.
@@ -136,43 +141,51 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
     #       - file listing data file numbers (needs directory, file name, number digits, ending)
     #       - beginning and and numbers for files (needs directory, file name, number digits, ending)
 
-    RequiredList = ['Calib_type',
-                    # 'Calib_data',        # Removed because this is not strictly required.
-                    # 'Calib_param',       # Now added to calibration function file.
-                    # 'Calib_pixels',      # this is only needed for GSAS-II and should be read from image file. FIX
-                    # ME: add to GSAS-II inputfile.
-                    # 'Calib_mask',        # a mask file is not strictly required.
-                    'datafile_directory',
-                    'datafile_Basename',
-                    'datafile_Ending',
-                    # 'datafile_StartNum',  # now optionally replaced by datafile_Files
-                    # 'datafile_EndNum',    # now optionally replaced by datafile_Files
-                    'datafile_NumDigit',
-                    'AziBins',
-                    'fit_orders',
-                    # 'Output_type',		   # should be optional
-                    # 'Output_NumAziWrite',  # should be optional
-                    # 'Output_directory']	   # should be optional
-                    ]
-    AlternativesList = [
-        [['datafile_StartNum', 'datafile_EndNum'], ['datafile_Files']]
+    RequiredList = [
+        "Calib_type",
+        # 'Calib_data',        # Removed because this is not strictly required.
+        # 'Calib_param',       # Now added to calibration function file.
+        # 'Calib_pixels',      # this is only needed for GSAS-II and should be read from image file. FIX
+        # ME: add to GSAS-II inputfile.
+        # 'Calib_mask',        # a mask file is not strictly required.
+        "datafile_directory",
+        "datafile_Basename",
+        "datafile_Ending",
+        # 'datafile_StartNum',  # now optionally replaced by datafile_Files
+        # 'datafile_EndNum',    # now optionally replaced by datafile_Files
+        "datafile_NumDigit",
+        "AziBins",
+        "fit_orders",
+        # 'Output_type',		   # should be optional
+        # 'Output_NumAziWrite',  # should be optional
+        # 'Output_directory']	   # should be optional
     ]
+    AlternativesList = [[["datafile_StartNum", "datafile_EndNum"], ["datafile_Files"]]]
 
     # load the detector functions here.
-    if not 'Calib_type' in FitParameters:
+    if "Calib_type" not in FitParameters:
         sys.exit(
-            'There is no ''Calib_type'' in the settings. The fitting cannot proceed until a recognised '
-            'Calibration type is present.')
+            "There is no "
+            "Calib_type"
+            " in the settings. The fitting cannot proceed until a recognised "
+            "Calibration type is present."
+        )
     else:
         # calib_mod = 'FPF_' + FitSettings.Calib_type + 'Functions'
-        calib_mod = 'cpf.' + FitSettings.Calib_type + 'Functions'
+        calib_mod = "cpf." + FitSettings.Calib_type + "Functions"
     try:
         det = importlib.import_module(calib_mod)
         # det = __import__(calib_mod)
     except ImportError:
         raise ImportError(
-            'The ''Calib_type'' ' + FitSettings.Calib_type + ' is not recognised; the file ' + calib_mod +
-            ' does not exist. Check if the calibration type exists.')
+            "The "
+            "Calib_type"
+            " "
+            + FitSettings.Calib_type
+            + " is not recognised; the file "
+            + calib_mod
+            + " does not exist. Check if the calibration type exists."
+        )
         # FIX ME: List possible calibration types.
 
     # Add detector requirements to the Required List of parameters - which has been read from the Detector functions.
@@ -180,16 +193,22 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
 
     # load output function(s) and check output options are present and valid
     # FIX ME: inly works for single output should work for multiple.
-    if 'Output_type' in FitParameters:
+    if "Output_type" in FitParameters:
         # output_mod = 'FPF_Write' + FitSettings.Output_type
-        output_mod = 'cpf.Write' + FitSettings.Output_type
+        output_mod = "cpf.Write" + FitSettings.Output_type
         try:
             wr = importlib.import_module(output_mod)
             # wr = __import__(output_mod)
         except ImportError:
             raise ImportError(
-                'The ''Output_type'' ' + FitSettings.Output_type + ' is not recognised; the file ' + output_mod +
-                ' does not exist. Check if the calibration type exists.')
+                "The "
+                "Output_type"
+                " "
+                + FitSettings.Output_type
+                + " is not recognised; the file "
+                + output_mod
+                + " does not exist. Check if the calibration type exists."
+            )
             # FIX ME: List possible output types.
 
         RequiredList = RequiredList + wr.Requirements()
@@ -199,9 +218,11 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
     # properties of the data files.
     for x in range(len(RequiredList)):
         if RequiredList[x] in FitParameters:
-            print('Got: ', RequiredList[x])
+            print("Got: ", RequiredList[x])
         else:
-            print('The settings file requires a parameter called  \'', RequiredList[x], '\'')
+            print(
+                "The settings file requires a parameter called  '", RequiredList[x], "'"
+            )
             all_present = 0
 
     possible = [[[], []] * len(AlternativesList)]
@@ -209,7 +230,6 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
         for y in range(2):
             for z in range(len(AlternativesList[x][y])):
                 if AlternativesList[x][y][z] in FitParameters:
-
                     possible[x][y].append(1)
                 else:
                     possible[x][y].append(0)
@@ -217,35 +237,38 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
     # exit if all parameters are not present
     if all_present == 0:
         sys.exit(
-            "The highlighted settings are missing from the input file. Fitting cannot proceed until they are all present.")
+            "The highlighted settings are missing from the input file. Fitting cannot proceed until they are all present."
+        )
 
     # Detector check.
     # Check if the detector is required and if so if it is present and recognised.
-    if 'Calib_detector' in FitParameters:
+    if "Calib_detector" in FitParameters:
         det_name = FitSettings.Calib_detector
     else:
         det_name = None
-    FitSettings.Calib_detector = det.DetectorCheck(os.path.abspath(FitSettings.Calib_data), det_name)
+    FitSettings.Calib_detector = det.DetectorCheck(
+        os.path.abspath(FitSettings.Calib_data), det_name
+    )
 
     # define locally required names.
-    temporary_data_file = 'PreviousFit_JSON.dat'
+    temporary_data_file = "PreviousFit_JSON.dat"
 
     # backg_type = 'flat'
     # backg = [[4]]
 
     # Main code #
 
-    '''
+    """
     ## Load files ##
-    '''
+    """
 
     # calibration parameter file #
     parms_dict = det.GetCalibration(os.path.abspath(FitSettings.Calib_param))
 
-    '''
+    """
     ### Sort background out ####
-    '''
-    '''
+    """
+    """
     if backg_type == 'coeffs':
         # coefficients provided, figure out height using values
         tempbackg = []
@@ -287,23 +310,31 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
         backg = [[backg]]
 
     print(backg, 'backg')
-    '''
+    """
 
     # diffraction patterns #
-    if not 'datafile_Files' in FitParameters:
+    if "datafile_Files" not in FitParameters:
         n_diff_files = FitSettings.datafile_EndNum - FitSettings.datafile_StartNum + 1
         diff_files = []
         for j in range(n_diff_files):
             # make list of diffraction pattern names
 
             # make number of pattern
-            n = str(j + FitSettings.datafile_StartNum).zfill(FitSettings.datafile_NumDigit)
+            n = str(j + FitSettings.datafile_StartNum).zfill(
+                FitSettings.datafile_NumDigit
+            )
 
             # append diffraction pattern name and directory
-            diff_files.append(os.path.abspath(
-                FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n +
-                FitSettings.datafile_Ending))
-    elif 'datafile_Files' in FitParameters:
+            diff_files.append(
+                os.path.abspath(
+                    FitSettings.datafile_directory
+                    + os.sep
+                    + FitSettings.datafile_Basename
+                    + n
+                    + FitSettings.datafile_Ending
+                )
+            )
+    elif "datafile_Files" in FitParameters:
         n_diff_files = len(FitSettings.datafile_Files)
         diff_files = []
         for j in range(n_diff_files):
@@ -313,20 +344,38 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
             n = str(FitSettings.datafile_Files[j]).zfill(FitSettings.datafile_NumDigit)
 
             # append diffraction pattern name and directory
-            diff_files.append(os.path.abspath(
-                FitSettings.datafile_directory + os.sep + FitSettings.datafile_Basename + n +
-                FitSettings.datafile_Ending))
+            diff_files.append(
+                os.path.abspath(
+                    FitSettings.datafile_directory
+                    + os.sep
+                    + FitSettings.datafile_Basename
+                    + n
+                    + FitSettings.datafile_Ending
+                )
+            )
     else:
         n_diff_files = len(FitSettings.datafile_Files)
 
     # get calibration for image set.
     # get array for azimuth, two theta and d-space the same size as the image.
-    azimu = det.GetAzm(os.path.abspath(FitSettings.Calib_data), parms_dict, FitSettings.Calib_pixels,
-                       FitSettings.Calib_detector)
-    twotheta = det.GetTth(os.path.abspath(FitSettings.Calib_data), parms_dict, FitSettings.Calib_pixels,
-                          FitSettings.Calib_detector)
-    dspace = det.GetDsp(os.path.abspath(FitSettings.Calib_data), parms_dict, FitSettings.Calib_pixels,
-                        FitSettings.Calib_detector)
+    azimu = det.GetAzm(
+        os.path.abspath(FitSettings.Calib_data),
+        parms_dict,
+        FitSettings.Calib_pixels,
+        FitSettings.Calib_detector,
+    )
+    twotheta = det.GetTth(
+        os.path.abspath(FitSettings.Calib_data),
+        parms_dict,
+        FitSettings.Calib_pixels,
+        FitSettings.Calib_detector,
+    )
+    dspace = det.GetDsp(
+        os.path.abspath(FitSettings.Calib_data),
+        parms_dict,
+        FitSettings.Calib_pixels,
+        FitSettings.Calib_detector,
+    )
     # FIX ME: Should be able to send diffraction patter, mask and calibration parameters to a function and get back
     # three masked arrays.
 
@@ -336,10 +385,17 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
 
     # create mask from mask file if present.
     # if not make all values valid
-    if 'Calib_mask' in FitParameters:
+    if "Calib_mask" in FitParameters:
         mask_file = os.path.abspath(FitSettings.Calib_mask)
-        intens = det.GetMask(mask_file, intens, twotheta, azimu, os.path.abspath(FitSettings.Calib_data),
-                             FitSettings.Calib_pixels, debug=debug)
+        intens = det.GetMask(
+            mask_file,
+            intens,
+            twotheta,
+            azimu,
+            os.path.abspath(FitSettings.Calib_data),
+            FitSettings.Calib_pixels,
+            debug=debug,
+        )
     else:
         # print np.shape(intens), type(intens)
         # print np.shape(intens.mask), type(intens)
@@ -358,17 +414,27 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
     # plot calibration file
     if debug:
         fig = plt.figure()
-        if FitSettings.Calib_type == 'Med':
+        if FitSettings.Calib_type == "Med":
             # plt.scatter(twotheta, azimuth, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
             # vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
             for x in range(9):
-                plt.plot(twotheta[x], intens[x] + 100 * x)  # Better for energy dispersive data. #FIX ME: need variable
+                plt.plot(
+                    twotheta[x], intens[x] + 100 * x
+                )  # Better for energy dispersive data. #FIX ME: need variable
                 # for vmax.
 
         else:
             # plt.scatter(twotheta, azimuth, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0, vmax = 1000)
             # #Better for monochromatic data.             #FIX ME: need variable for vmax.
-            plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin=0)
+            plt.scatter(
+                twotheta,
+                azimu,
+                s=4,
+                c=(intens),
+                edgecolors="none",
+                cmap=plt.cm.jet,
+                vmin=0,
+            )
             # Better for monochromatic data.             #FIX ME: need variable for vmax.
             plt.colorbar()
         plt.show()
@@ -377,8 +443,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
     # Process the diffraction patterns #
 
     for j in range(n_diff_files):
-
-        print('Process ', diff_files[j])
+        print("Process ", diff_files[j])
 
         # Get diffraction pattern to process.
         im = det.ImportImage(diff_files[j])
@@ -389,21 +454,30 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
         # plot input file
         if debug:
             fig = plt.figure()
-            if FitSettings.Calib_type == 'Med':
+            if FitSettings.Calib_type == "Med":
                 # plt.scatter(twotheta, azimuth, s=intens/10, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
                 # vmax = 1000)  #Better for energy dispersive data.  #FIX ME: need variable for vmax.
                 for x in range(9):
-                    plt.plot(twotheta[x], intens[
-                        x] + 100 * x)  # Better for energy dispersive data.  #FIX ME: need variable for vmax.
+                    plt.plot(
+                        twotheta[x], intens[x] + 100 * x
+                    )  # Better for energy dispersive data.  #FIX ME: need variable for vmax.
 
             else:
                 # plt.scatter(twotheta, azimuth, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin = 0,
                 # vmax = 1000)  #Better for monochromatic data.             #FIX ME: need variable for vmax.
-                plt.scatter(twotheta, azimu, s=4, c=(intens), edgecolors='none', cmap=plt.cm.jet, vmin=0,
-                            vmax=4000)  # FIX ME: need variable for vmax.
+                plt.scatter(
+                    twotheta,
+                    azimu,
+                    s=4,
+                    c=(intens),
+                    edgecolors="none",
+                    cmap=plt.cm.jet,
+                    vmin=0,
+                    vmax=4000,
+                )  # FIX ME: need variable for vmax.
                 plt.colorbar()
-            plt.xlabel(r'2$\theta$')
-            plt.ylabel('Azimuth')
+            plt.xlabel(r"2$\theta$")
+            plt.ylabel("Azimuth")
             plt.show()
             plt.close()
 
@@ -413,7 +487,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
         # load temporary fit file - if it exists.
         if os.path.isfile(temporary_data_file):
             # Read JSON data from file
-            print('Loading previous fit results from %s' % temporary_data_file)
+            print("Loading previous fit results from %s" % temporary_data_file)
             with open(temporary_data_file) as json_data:
                 previous_fit = json.load(json_data)
 
@@ -429,8 +503,7 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
         Fitted_param = []
 
         for i in range(n_subpats):
-
-            tthRange = FitSettings.fit_orders[i]['range'][0]
+            tthRange = FitSettings.fit_orders[i]["range"][0]
 
             # get subsections of data to pass
             subpat = np.where((twotheta >= tthRange[0]) & (twotheta <= tthRange[1]))
@@ -439,14 +512,14 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
             azimu_sub = azimu[subpat]
             intens_sub = intens[subpat]
 
-            if 'previous_fit' in locals():
+            if "previous_fit" in locals():
                 params = previous_fit[i]
             else:
                 params = []
 
             if FitSettings.fit_orders:
                 orders = FitSettings.fit_orders[i]
-                orders['AziBins'] = FitSettings.AziBins
+                orders["AziBins"] = FitSettings.AziBins
             # print orders
 
             # print(twotheta_sub.shape, dspacing_sub.shape, parms_dict, azimu_sub.shape, intens_sub.shape, orders,
@@ -454,19 +527,36 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
 
             # fit the subpattern
             Fitted_param.append(
-                fit_sub_pattern([twotheta_sub, dspacing_sub, parms_dict], azimu_sub, intens_sub, orders, params,
-                                DetFuncs=calib_mod, save_fit=SaveFigs, debug=debug, refine=refine, iterations=iterations))
+                fit_sub_pattern(
+                    [twotheta_sub, dspacing_sub, parms_dict],
+                    azimu_sub,
+                    intens_sub,
+                    orders,
+                    params,
+                    DetFuncs=calib_mod,
+                    save_fit=SaveFigs,
+                    debug=debug,
+                    refine=refine,
+                    iterations=iterations,
+                )
+            )
 
         # write output files
 
         # store all the fit information as a JSON file.
         # filename, file_extension = os.path.splitext(diff_files[j])
         filename = os.path.splitext(os.path.basename(diff_files[j]))[0]
-        filename = filename + '.json'
+        filename = filename + ".json"
         # print(filename)
-        with open(filename, 'w') as TempFile:
+        with open(filename, "w") as TempFile:
             # Write a JSON string into the file.
-            json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
+            json_string = json.dump(
+                Fitted_param,
+                TempFile,
+                sort_keys=True,
+                indent=2,
+                default=json_numpy_serialzer,
+            )
 
         # #Write the fits to a temporary file
         # TempFilename = open(temporary_data_file, 'w')
@@ -476,27 +566,70 @@ def execute(settings_file=None, inputs=None, debug=False, refine=True, iteration
         # TempFilename.write(json_string)
 
         # print json_string
-        with open(temporary_data_file, 'w') as TempFile:
-
+        with open(temporary_data_file, "w") as TempFile:
             # Write a JSON string into the file.
-            json_string = json.dump(Fitted_param, TempFile, sort_keys=True, indent=2, default=json_numpy_serialzer)
+            json_string = json.dump(
+                Fitted_param,
+                TempFile,
+                sort_keys=True,
+                indent=2,
+                default=json_numpy_serialzer,
+            )
 
     # Write the output files.
     # This is there so that the output file can be run separately from the fitting of the diffraction patterns.
     # FIX ME: Need to add options for more than one output.
-    print('\nWrite out file(s)')
+    print("\nWrite out file(s)")
     wr.WriteOutput(FitSettings, parms_dict)
 
 
 # Encase in a function to enable calling from the command line
 def run():
+    # Add argument parser object to handle additional arguments
+    parser = argparse.ArgumentParser(
+        description="Reads an input file and uses it to fit an XRD pattern"
+    )
+
+    parser.add_argument(
+        "settings_file",
+        type=str,
+        help="Path to the settings file to be used to fit the XRD pattern",
+    )
+
+    parser.add_argument(
+        "--debug",
+        default=False,
+        type=bool,
+        help="Turns on verbose logging and plotting for debugging purposes",
+    )
+
+    parser.add_argument(
+        "--refine",
+        default=True,
+        type=bool,
+        help="Toggles whether to refine the fitting process",
+    )
+
+    parser.add_argument(
+        "-i",
+        "--iterations",
+        default=1,
+        type=int,
+        help="Determines the number of iterations to run the fitting over",
+    )
+
+    args = parser.parse_args()
+
     # Load settings fit settings file.
-    sys.path.append(os.getcwd())
-    settings_file = sys.argv[1]
-    print(settings_file)
-    execute(inputs=None, settings_file=settings_file, debug=False, refine=True, iterations=1)
+    execute(
+        inputs=None,
+        settings_file=Path(args.settings_file),
+        debug=args.debug,
+        refine=args.refine,
+        iterations=args.iterations,
+    )
 
 
 # Run script if called directly
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

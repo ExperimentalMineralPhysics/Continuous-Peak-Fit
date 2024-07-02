@@ -267,7 +267,7 @@ def fit_sub_pattern(
         clean = io.any_errors_huge(previous_params, large_errors=large_errors, clean=clean)
         if clean == 0:
             # the previous fit has problems so discard it
-            logger.debug(" ".join(map(str, [("Propagated fit has problems so discarding it and doing fit from scratch")])))
+            logger.moreinfo(" ".join(map(str, [("Propagated fit has problems so discarding it and doing fit from scratch")])))
             previous_params = None
             
     if previous_params:
@@ -289,7 +289,7 @@ def fit_sub_pattern(
             np.min(fit_centroid) < settings_as_class.subfit_orders["range"][0] or 
             np.min(fit_centroid) > settings_as_class.subfit_orders["range"][1]
         ):
-            logger.debug(" ".join(map(str, [("Fitted d-spacing limits are out of bounds; discarding the fit and starting again.")])))
+            logger.moreinfo(" ".join(map(str, [("Fitted d-spacing limits are out of bounds; discarding the fit and starting again.")])))
             previous_params = None
 
 
@@ -337,7 +337,7 @@ def fit_sub_pattern(
             #check if the data intensity is above threshold. 
             if np.max(data_as_class.intensity) <= threshold_data_intensity:
                 #then there is likely no determinable peak in the data
-                logger.debug(" ".join(map(str, [("Not sufficient intensity in the data to proceed with fitting (I_max < %s)." % threshold_data_intensity)])))
+                logger.moreinfo(" ".join(map(str, [("Not sufficient intensity in the data to proceed with fitting (I_max < %s)." % threshold_data_intensity)])))
                 #set step to -21 so that it is still negative at the end
                 step = -21 #get to the end and void the fit
                 fout=master_params
@@ -360,7 +360,7 @@ def fit_sub_pattern(
                     return chunk_fits, chunk_positions
 
                 # Fitting stage 2:
-                logger.debug(" ".join(map(str, [("Performing Series fits...")])))
+                logger.moreinfo(" ".join(map(str, [("Performing Series fits...")])))
                 # Feed each d_0,h,w into coefficient function to get fit for coeficient component
                 # get lmfit parameters as output.
                 
@@ -404,13 +404,13 @@ def fit_sub_pattern(
                         
                 if np.max(ave_intensity) <= threshold_peak_intensity:
                     #then there is no determinable peak(s) in the data
-                    logger.debug(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting (h_max < %s)." % threshold_peak_intensity)])))
+                    logger.moreinfo(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting (h_max < %s)." % threshold_peak_intensity)])))
                     #set step to -11 so that it is still negative at the end
                     step = -11 #get to the end and void the fit
                     fout=master_params
 
             elif step >= 0 and previous_params:
-                logger.debug(" ".join(map(str, [("Using previously fitted parameters and propagating fit")])))
+                logger.moreinfo(" ".join(map(str, [("Using previously fitted parameters and propagating fit")])))
                 # FIX ME: This should load the saved lmfit Parameter class object.
                 # Need to initiate usage (save and load).
                 # For now have propagated use of new_params so re-instantiate the master_params object below,
@@ -426,7 +426,7 @@ def fit_sub_pattern(
             # if refine or step>=10 or not PreviousParams:
             if refine or step != 10 or step != 15 and iterations >= 1:
                 # Iterate over each parameter series in turn.
-                logger.debug(" ".join(map(str, [("Re-fitting for d, h, w, +/-p, bg separately... will refine %i time(s)"% iterations)])))
+                logger.moreinfo(" ".join(map(str, [("Re-fitting for d, h, w, +/-p, bg separately... will refine %i time(s)"% iterations)])))
                 for j in range(iterations):
                     for k in range(len(settings_as_class.subfit_orders["background"])):
                         param_str = "bg_c" + str(k)
@@ -514,9 +514,9 @@ def fit_sub_pattern(
                                 )
                                 master_params = fout.params       
 
-                    logger.debug(" ".join(map(str, [("Parameters after refining series fits %i time(s):" % (j+1))])))
+                    logger.effusive(" ".join(map(str, [("Parameters after refining series fits %i time(s):" % (j+1))])))
                     #master_params.pretty_print()
-                    lg.pretty_print_to_logger(master_params, level="DEBUG")
+                    lg.pretty_print_to_logger(master_params, level="EFFUSIVE")
                         
                 step = step + 10
             
@@ -549,7 +549,7 @@ def fit_sub_pattern(
                         
                 if np.max(ave_intensity) <= threshold_peak_intensity:
                     #then there is no determinable peak in the data
-                    logger.debug(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting.")])))
+                    logger.moreinfo(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting.")])))
                     #set step to -101 so that it is still negative at the end
                     step = -101 #get to the end and void the fit
                     fout=master_params
@@ -563,7 +563,7 @@ def fit_sub_pattern(
             # import/export within lmfit.
 
             # Refit through full equation with all data for d,h,w,bg independently
-            logger.debug(" ".join(map(str, [("Final fit solving for all parms...")])))
+            logger.moreinfo(" ".join(map(str, [("Final fit solving for all parms...")])))
 
             if any(x == step for x in [20, 21, 22, 25, 26, 27]):
                 # if we are on the first go round of the fitting.
@@ -627,14 +627,14 @@ def fit_sub_pattern(
                     io.any_errors_huge(
                         lmm.params_to_new_params(master_params, orders=settings_as_class.subfit_orders),
                         large_errors=large_errors)==0):
-                logger.debug(" ".join(map(str, [("The fitting worked, but propagated params could have lead to rubbish fits (huge errors). Try again.")])))
+                logger.moreinfo(" ".join(map(str, [("The fitting worked, but propagated params could have lead to rubbish fits (huge errors). Try again.")])))
                 step = 0
                 # clear previous_params so we can't get back here
                 previous_params = None
             elif (fout.success == 1 and 
                     previous_params != None and 
                     io.any_terms_null(master_params, val_to_find=None)==0):
-                logger.debug(" ".join(map(str, [("The fitting worked, but propagated params could have lead to rubbish fits (null values). Try again.")])))
+                logger.moreinfo(" ".join(map(str, [("The fitting worked, but propagated params could have lead to rubbish fits (null values). Try again.")])))
                 step = 0
                 # clear previous_params so we can't get back here
                 previous_params = None
@@ -686,13 +686,12 @@ def fit_sub_pattern(
     #     new_params.update({"FitProperties": fit_stats})
     # else:
     if step > 0:        
-        logger.debug(" ".join(map(str, [("Final Coefficients")])))
-        logger.debug(" ".join(map(str, [(fout.fit_report(show_correl=False))])))
+        logger.effusive(" ".join(map(str, [("Final Coefficients")])))
+        logger.effusive(" ".join(map(str, [(fout.fit_report(show_correl=False))])))
         # Record some stats
-        logger.debug(" ".join(map(str, [("number data", fout.ndata)])))
-        logger.debug(" ".join(map(str, [("degrees of freedom", fout.nfree)])))
-        logger.debug(" ".join(map(str, [("ChiSquared", fout.chisqr)])))
-    
+        logger.effusive(" ".join(map(str, [("number data %i" % fout.ndata)])))
+        logger.effusive(" ".join(map(str, [("degrees of freedom %i" % fout.nfree)])))
+        logger.effusive(" ".join(map(str, [("ChiSquared %f" % fout.chisqr)])))
         # get all correlation coefficients
         # FIX ME: this lists all the coefficients rather than just the unique half -- ie.
         # it contains corr(a,b) and corr(b,a)
@@ -763,8 +762,8 @@ def fit_sub_pattern(
     
     # Plot results to check
     view = 0
-    if (save_fit == 1 or view == 1 or debug) and step>0:
-        logger.debug(" ".join(map(str, [("Plotting results for fit...")])))
+    if (save_fit == 1 or view == 1 or lg.make_logger_output("EFFUSIVE")) and step>0:
+        logger.effusive(" ".join(map(str, [("Plotting results for fit...")])))
         
         fig = plt.figure()
         fig = plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=master_params, params_dict=new_params, figure=fig)
@@ -776,7 +775,7 @@ def fit_sub_pattern(
         plt.suptitle(title_str)
         #plt.tight_layout()
 
-        if view == 1 or debug:
+        if view == 1 or lg.make_logger_output("EFFUSIVE"):
             plt.show()
         # save figures without overwriting old names
         if save_fit:
@@ -790,7 +789,7 @@ def fit_sub_pattern(
             fig.savefig(filename)
 
         plt.close(fig)
-        logger.debug(" ".join(map(str, [("Done with Figure")])))
+        logger.effusive(" ".join(map(str, [("Done with Figure")])))
 
     # Save lmfit structure
     if save_fit:

@@ -292,7 +292,7 @@ class _masks():
         If the image data is still the same size as the original.
         """
 
-        logger.info(" ".join(map(str, [("Restore original mask.")])))
+        logger.effusive(" ".join(map(str, [("Restore original mask.")])))
         self.mask_apply(self.original_mask)
 
 
@@ -304,5 +304,5 @@ class _masks():
         Revmoes all masks from the data arrays.
         """
 
-        logger.info(" ".join(map(str, [("Remove all masks.")])))
+        logger.effusive(" ".join(map(str, [("Remove all masks.")])))
         self.mask_apply(None)

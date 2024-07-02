@@ -386,7 +386,7 @@ class ESRFlvpDetector():
         self.detector = MultiGeometry(ais, unit="2th_deg", radial_range=(1, 13), azimuth_range=(self.azm_start, self.azm_end)) 
         
 
-        logger.debug(" ".join(map(str, [("Detector is: ", self.detector)] )) )
+        logger.moreinfo(" ".join(map(str, [("Detector is: ", self.detector)] )) )
         if lg.make_logger_output(level="DEBUG"):            
             
             #plot all the positions of the AzimuthalIntegrators. 
@@ -615,7 +615,7 @@ class ESRFlvpDetector():
                 self.x[i,:,:] = zyx[2] 
 
         logger.debug(" ".join(map(str, [("Detector is: ", self.detector)] )) )
-        if 0:#lg.make_logger_output(level="DEBUG"):  
+        if lg.make_logger_output(level="DEBUG"):  
             
             #plot all the positions of the AzimuthalIntegrators. 
             p_angles = []

@@ -560,9 +560,6 @@ class MedDetector:
         else:
             e_in = np.array([[0, e_in]], dtype=object)
 
-        # logger.info(" ".join(map(str, [('E_in',E_in, 'calib,', calib)])))
-        # logger.info(" ".join(map(str, [('type E_in', type(E_in))])))
-        # logger.info(" ".join(map(str, [(E_in[:,1])])))
         # Convert Energy (keV) to wavelength (Angstroms)
         # E = hc/lambda;  h = 4.135667662(25)×10−15 eV s; c = 299792458 m/s
         wavelength = 4.135667662e-15 * (299792458 * 1e10) / (e_in[:, 1] * 1000)
@@ -936,13 +933,6 @@ class MedDetector:
             normalize = colors.Normalize(vmin=self.azm_start, vmax=self.azm_end)
             c_map = cm.get_cmap(name=colourmap)
             for i in range(len(np.unique(self.azm)) - 1, -1, -1):
-                
-                logger.debug(" ".join(map(str, [("arrays for plotting")])))
-                logger.debug(" ".join(map(str, [(i, np.unique(self.azm))])))
-                logger.debug(" ".join(map(str, [("x", plot_x[self.azm == np.unique(self.azm)[i]])])))
-                logger.debug(" ".join(map(str, [("y", plot_y[self.azm == np.unique(self.azm)[i]])])))
-                logger.debug(" ".join(map(str, [("c", np.mean(plot_c[self.azm == np.unique(self.azm)[i]]))])))
-                logger.debug(" ".join(map(str, [("mask", not ma.MaskedArray.all(plot_x[self.azm == np.unique(self.azm)[i]]),)])))
                 
                 colour = c_map(
                     normalize(np.mean(plot_c[self.azm == np.unique(self.azm)[i]]))

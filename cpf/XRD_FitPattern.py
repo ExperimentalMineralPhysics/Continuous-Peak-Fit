@@ -14,8 +14,45 @@ logging.basicConfig(
         logging.StreamHandler()  # Log to stdout
     ]
 )
+#add custom logging levels.
+levelNum = 17
+levelName = "MOREINFO"
+def logForMI(self, message, *args, **kwargs):
+        if self.isEnabledFor(levelNum):
+            self._log(levelNum, message, args, **kwargs)
+def logToRoot(message, *args, **kwargs):
+    logging.log(levelNum, message, *args, **kwargs)
+
+logging.addLevelName(levelNum, levelName)
+setattr(logging, levelName, levelNum)
+setattr(logging.getLoggerClass(), levelName.lower(), logForMI)
+setattr(logging, levelName.lower(), logToRoot)
+
+
+levelName2 = "EFFUSIVE"
+levelNum2 = 13
+def logForE(self, message, *args, **kwargs):
+        if self.isEnabledFor(levelNum2):
+            self._log(levelNum2, message, args, **kwargs)
+def logToRoot(message, *args, **kwargs):
+    logging.log(levelNum2, message, *args, **kwargs)
+
+logging.addLevelName(levelNum2, levelName2)
+setattr(logging, levelName2, levelNum2)
+setattr(logging.getLoggerClass(), levelName2.lower(), logForE)
+setattr(logging, levelName2.lower(), logToRoot)
+
 # Create a logger instance
 logger = logging.getLogger(__name__)
+
+# logging levels and what they need to record
+# DEBUG   10   Detailed information, typically of interest only when diagnosing problems. 	
+# INFO    20   Confirmation that things are working as expected. 	 
+#              Usually at this level the logging output is so low level that it’s not useful to users who are not familiar with the software’s internals.
+# WARNING 30   An indication that something unexpected happened, or indicative of some problem in the near future (e.g. ‘disk space low’). The software is still working as expected.
+#ERROR    40 	Due to a more serious problem, the software has not been able to perform some function. 	 
+#CRITICAL 50 	A serious error, indicating that the program itself may be unable to continue running.
+
 
 import json
 import os
@@ -116,7 +153,6 @@ def initiate(setting_file=None, inputs=None, out_type=None, report=False, **kwar
         pass # level should be a number
     logger.setLevel(level)
 
-    print(logger)
     # make a header in the log file so that we know where the processing starts
     logger.info("")
     logger.info("=================================================================")
@@ -449,7 +485,7 @@ def write_output(
         setting_class = initiate(setting_file, report=report, out_type=out_type)
 
     if out_type is not None:
-        logger.info(" ".join(map(str, [("Output_type was provided as an option; will use %s " % out_type)])))
+        logger.moreinfo(" ".join(map(str, [("Output_type was provided as an option; will use %s " % out_type)])))
         setting_class.set_output_types(out_type_list=out_type)
 
     if setting_class.output_types is None:
@@ -521,7 +557,6 @@ def execute(
     else:
         # data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
         data_to_fill = settings_for_fit.image_list[0]
-    #logger.info(" ".join(map(str, [(data_to_fill)])))
     new_data.fill_data(
         data_to_fill,
         settings=settings_for_fit,
@@ -556,7 +591,6 @@ def execute(
     # Process the diffraction patterns #
     for j in range(settings_for_fit.image_number):
 
-        # logger.info(" ".join(map(str, [("Process ", settings_for_fit.image_list[j])])))
         logger.info(" ".join(map(str, [("Processing %s" % title_file_names(image_name=settings_for_fit.image_list[j]))])))
 
         # Get diffraction pattern to process.
@@ -589,7 +623,7 @@ def execute(
             and mode == "fit"
         ):
             # Read JSON data from file
-            logger.debug(" ".join(map(str, [("Loading previous fit results from %s" % temporary_data_file)])))
+            logger.moreinfo(" ".join(map(str, [("Loading previous fit results from %s" % temporary_data_file)])))
             with open(temporary_data_file) as json_data:
                 previous_fit = json.load(json_data)
                 
@@ -627,7 +661,7 @@ def execute(
                 clean = any_terms_null(params, val_to_find=None)
                 if clean == 0:
                     # the previous fit has problems so discard it
-                    logger.info(" ".join(map(str, [("Tracking peak centre but propagated fit has problems. Not sensible to track the centre of the fit for this step.")])))
+                    logger.moreinfo(" ".join(map(str, [("Tracking peak centre but propagated fit has problems. Not sensible to track the centre of the fit for this step.")])))
                     params = []
                 else:
                     mid = []
@@ -646,7 +680,7 @@ def execute(
                         settings_for_fit.fit_orders[i]["range"] + move_by
                     )
                     
-                    logger.info(" ".join(map(str, [(
+                    logger.moreinfo(" ".join(map(str, [(
                        f"Move range for fitting. \n Initial range: [{tth_range[0]:4.2f},{tth_range[1]:4.2f}]; will be moved by {move_by:4.2f}; the new range is [{tth_range[0]+move_by:4.2f},{tth_range[1]+move_by:4.2f}]"
                         )])))
                     
@@ -718,10 +752,11 @@ def execute(
                 selection_arr = point_builder.array()
                 
                 # report the points selected.
-                logger.info(" ".join(map(str, [("Selected points for %s peak(s): [" % peak_string(settings_for_fit.subfit_orders))])))
+                # set to critical to ensure that they are printed -- because HAS to be done.
+                logger.critical(" ".join(map(str, [("Selected points for %s peak(s): [" % peak_string(settings_for_fit.subfit_orders))])))
                 for k in range(len(selection_arr)):
-                    logger.info(" ".join(map(str, [(json.dumps(selection_arr[k]) + ",")])))
-                logger.info(" ".join(map(str, [("]")])))
+                    logger.critical(" ".join(map(str, [(json.dumps(selection_arr[k]) + ",")])))
+                logger.critical(" ".join(map(str, [("]")])))
 
             else:
                 if parallel is True:  # setup parallel version

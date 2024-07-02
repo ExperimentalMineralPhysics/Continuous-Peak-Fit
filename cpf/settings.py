@@ -602,7 +602,6 @@ class settings:
             logger.error(" ".join(map(str, [("Input problems that will prevent execution: ")])))
             for i in range(len(missing)):
                 logger.error(" ".join(map(str, [(missing[i])])))
-            #logger.error(" ".join(map(str, [("\n")])))
             logger.error(" ".join(map(str, [("The problems listed above will prevent the data fitting and need to be rectified before execution")])))
             if not report:
                 raise ValueError(
@@ -781,22 +780,24 @@ class settings:
         # report findings
         incorrect = False
         if missing:
-            logger.error(" ".join(map(str, [("\nMissing Values:")])))
+            logger.error(" ".join(map(str, [("")])))
+            logger.error(" ".join(map(str, [("Missing Values:")])))
             for i in range(len(missing)):
                 logger.error(" ".join(map(str, [(missing[i])])))
             incorrect = True
         if extras:
-            logger.warning(" ".join(map(str, [("\nExtra Values:")])))
+            logger.warning(" ".join(map(str, [("")])))
+            logger.warning(" ".join(map(str, [("Extra Values:")])))
             for i in range(len(extras)):
                 logger.warning(" ".join(map(str, [(extras[i])])))
             incorrect = True
         if incorrect:
+            err_str = "The problems listed above will prevent the data fitting and need to be rectified before execution."
             if not report:
-                raise ValueError(
-                    "The problems listed above will prevent the data fitting."
-                )
+                logger.error(" ".join(map(str, [(err_str)])))
+                raise ValueError(err_str)
             else:
-                logger.error(" ".join(map(str, [("The problems listed above will prevent the data fitting and need to be rectified before execution")])))
+                logger.error(" ".join(map(str, [(err_str)])))
         else:
             logger.info(" ".join(map(str, [("fit_bounds appears to be correct")])))
 
@@ -828,7 +829,6 @@ class settings:
         missing = []
         for i in range(len(self.output_types)):
             wr = getattr(output_formatters, "Write" + self.output_types[i])
-            # logger.info(" ".join(map(str, [(self.output_types[i])])))
             required, optional = wr.Requirements()
             for j in range(len(required)):
                 try:

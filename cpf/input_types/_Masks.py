@@ -33,9 +33,10 @@ Remove mask functions from these class files and put in separate common file.
 
 import numpy as np
 import numpy.ma as ma
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 #from matplotlib import gridspec, cm, colors
 from PIL import Image, ImageDraw
+from cpf.XRD_FitPattern import logger
 
 
 
@@ -151,7 +152,7 @@ class _masks():
         if debug:
             # N.B. The plot is a pig with even 1000x1000 pixel images and takes a long time to render.
             if ImTTH.size > 100000:
-                print(' Have patience. The mask plot will appear but it can take its time to render.')
+                logger.info(" ".join(map(str, [("Have patience. The mask plot will appear but it can take its time to render.")])))
             fig_1 = plt.figure()
             ax1 = fig_1.add_subplot(1, 3, 1)
             ax1.scatter(ImTTH, ImAzi, s=1, c=(ImInts.data), edgecolors='none', cmap=plt.cm.jet, vmin=0,
@@ -229,9 +230,7 @@ class _masks():
         
         if mask==None:
             mask = self.intensity.mask
-            #print(mask)
-            print("that was the mask")
-        print("after")
+            logger.debug(" ".join(map(str, [("Retreived previous mask")])))
         local_mask = np.where(
             (self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1]) &
             (self.azm >= azm_bounds[0])   & (self.azm <= azm_bounds[1]),
@@ -239,12 +238,10 @@ class _masks():
         )
         
         #ma.masked_outside(self.tth,(limits[0]),(limits[1])).mask
-        
         local_mask2 = ma.masked_outside(self.intensity, intensity_bounds[0], intensity_bounds[1]).mask
         
-        print(type(mask), type(local_mask))
-        print(mask.shape, (local_mask.shape))
-        # print(mask[0][0]ß, (local_mask2[0][0]))
+        logger.debug(" ".join(map(str, [("type(mask), type(local_mask)", type(mask), type(local_mask))])))
+        logger.debug(" ".join(map(str, [("mask.shape, (local_mask.shape)", mask.shape, (local_mask.shape))])))
         combined_mask = np.ma.mask_or(mask, local_mask)
         combined_mask = np.ma.mask_or(combined_mask, local_mask2)
         NoneType = type(None)
@@ -295,7 +292,7 @@ class _masks():
         If the image data is still the same size as the original.
         """
 
-        print("Restore original mask.")
+        logger.info(" ".join(map(str, [("Restore original mask.")])))
         self.mask_apply(self.original_mask)
 
 
@@ -307,5 +304,5 @@ class _masks():
         Revmoes all masks from the data arrays.
         """
 
-        print("REmove all masks.")
+        logger.info(" ".join(map(str, [("Remove all masks.")])))
         self.mask_apply(None)

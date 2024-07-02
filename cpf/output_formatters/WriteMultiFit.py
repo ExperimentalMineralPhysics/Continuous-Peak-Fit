@@ -121,7 +121,7 @@ def WriteOutput(
         #     logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
         #     base =  os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
 
-        logger.info(" ".join(map(str, [("Writing:", out_file)])))
+        logger.info(" ".join(map(str, [("Writing: %s" % out_file)])))
 
         text_file = open(out_file, "w")
 

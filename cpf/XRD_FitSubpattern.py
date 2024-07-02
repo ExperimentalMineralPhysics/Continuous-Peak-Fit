@@ -18,6 +18,7 @@ import cpf.lmfit_model as lmm
 import cpf.IO_functions as io
 from cpf.fitsubpattern_chunks import fit_chunks, fit_series
 from cpf.XRD_FitPattern import logger
+import cpf.logger_functions as lg
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -43,7 +44,7 @@ def order_set_peaks(orders, peeks, bg_order):
                 not sf.fourier_order(orders["peak"][y]["profile_fixed"])
                 == orders["peak"][y]["profile"]
             ):
-                logger.info(" ".join(map(str, [("Peak %i: The order of the profile does not match that of the fixed profile. Changing profile to match fixed profile." % y)])))
+                logger.warning(" ".join(map(str, [("Peak %i: The order of the profile does not match that of the fixed profile. Changing profile to match fixed profile." % y)])))
                 orders["peak"][y]["profile"] = sf.fourier_order(
                     orders["peak"][y]["profile_fixed"]
                 )
@@ -85,7 +86,6 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                 elif np.max(orders["peak"][y][param]) < sf.fourier_order(
                     previous_params["peak"][y][param]
                 ):
-                    # print 'smaller'
                     change_by = (
                         np.size(previous_params["peak"][y][param])
                         - np.max(orders["peak"][y][param]) * 2
@@ -115,7 +115,6 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                 if np.max(orders["background"][y]) > sf.fourier_order(
                     previous_params["background"][y]
                 ):
-                    # print 'longer'
                     change_by = (
                         np.max(orders["background"][y]) * 2
                         + 1
@@ -127,7 +126,6 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                 elif np.max(orders["background"][y]) < sf.fourier_order(
                     previous_params["background"][y]
                 ):
-                    # print 'smaller'
                     change_by = np.size(previous_params["background"][y]) - (
                         np.max(orders["background"][y]) * 2 + 1
                     )
@@ -167,7 +165,6 @@ def check_num_azimuths(peeks, azimu, orders):
     :param orders:
     :return:
     """
-    n_azimuths = len(np.unique(azimu))
     max_coeff = 0
     choice_list = ["d-space", "height", "width", "profile"]
     for y in range(peeks):
@@ -183,7 +180,6 @@ def check_num_azimuths(peeks, azimu, orders):
         coeff_type = sf.params_get_type(orders, param, peak=y)
         if coeff_type != 5:  # if parameters are not independent
             max_coeff = np.max([max_coeff, np.max(orders["background"][y]) * 2 + 1])
-    # logger.info(" ".join(map(str, [(max_coeff, len(np.unique(azimu)))])))
     if max_coeff > len(np.unique(azimu)):
         err_str = (
             "The maximum order, %i, needs more coefficients than the number of unique azimuths, %i. "
@@ -271,7 +267,7 @@ def fit_sub_pattern(
         clean = io.any_errors_huge(previous_params, large_errors=large_errors, clean=clean)
         if clean == 0:
             # the previous fit has problems so discard it
-            logger.info(" ".join(map(str, [("Propagated fit has problems so discarding it and doing fit from scratch")])))
+            logger.debug(" ".join(map(str, [("Propagated fit has problems so discarding it and doing fit from scratch")])))
             previous_params = None
             
     if previous_params:
@@ -293,7 +289,7 @@ def fit_sub_pattern(
             np.min(fit_centroid) < settings_as_class.subfit_orders["range"][0] or 
             np.min(fit_centroid) > settings_as_class.subfit_orders["range"][1]
         ):
-            logger.info(" ".join(map(str, [("fit d-spacing limits are out of bounds; discarding the fit and starting again.")])))
+            logger.debug(" ".join(map(str, [("Fitted d-spacing limits are out of bounds; discarding the fit and starting again.")])))
             previous_params = None
 
 
@@ -341,7 +337,7 @@ def fit_sub_pattern(
             #check if the data intensity is above threshold. 
             if np.max(data_as_class.intensity) <= threshold_data_intensity:
                 #then there is likely no determinable peak in the data
-                logger.info(" ".join(map(str, [("Not sufficient intensity in the data to proceed with fitting.")])))
+                logger.debug(" ".join(map(str, [("Not sufficient intensity in the data to proceed with fitting (I_max < %s)." % threshold_data_intensity)])))
                 #set step to -21 so that it is still negative at the end
                 step = -21 #get to the end and void the fit
                 fout=master_params
@@ -364,7 +360,7 @@ def fit_sub_pattern(
                     return chunk_fits, chunk_positions
 
                 # Fitting stage 2:
-                logger.info(" ".join(map(str, [("\n Performing Series fits...")])))
+                logger.debug(" ".join(map(str, [("Performing Series fits...")])))
                 # Feed each d_0,h,w into coefficient function to get fit for coeficient component
                 # get lmfit parameters as output.
                 
@@ -402,17 +398,19 @@ def fit_sub_pattern(
                         threshold_peak_intensity = float(threshold_peak_intensity) * std
     
                     else:
-                        raise ValueError("The 'threshold_peak_intensity' has to be a number or a multiple of 'var' or 'std'")
-                    
+                        err_str = "The 'threshold_peak_intensity' has to be a number or a multiple of 'var' or 'std'"
+                        logger.critical(" ".join(map(str, [(err_str)])))
+                        raise ValueError(err_str)
+                        
                 if np.max(ave_intensity) <= threshold_peak_intensity:
                     #then there is no determinable peak(s) in the data
-                    logger.info(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting.")])))
+                    logger.debug(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting (h_max < %s)." % threshold_peak_intensity)])))
                     #set step to -11 so that it is still negative at the end
                     step = -11 #get to the end and void the fit
                     fout=master_params
 
             elif step >= 0 and previous_params:
-                logger.info(" ".join(map(str, [("Using previously fitted parameters and propagating fit")])))
+                logger.debug(" ".join(map(str, [("Using previously fitted parameters and propagating fit")])))
                 # FIX ME: This should load the saved lmfit Parameter class object.
                 # Need to initiate usage (save and load).
                 # For now have propagated use of new_params so re-instantiate the master_params object below,
@@ -428,7 +426,7 @@ def fit_sub_pattern(
             # if refine or step>=10 or not PreviousParams:
             if refine or step != 10 or step != 15 and iterations >= 1:
                 # Iterate over each parameter series in turn.
-                logger.info(" ".join(map(str, [("\nRe-fitting for d, h, w, +/-p, bg separately... will refine %i time(s)\n"% iterations)])))
+                logger.debug(" ".join(map(str, [("Re-fitting for d, h, w, +/-p, bg separately... will refine %i time(s)"% iterations)])))
                 for j in range(iterations):
                     for k in range(len(settings_as_class.subfit_orders["background"])):
                         param_str = "bg_c" + str(k)
@@ -515,10 +513,11 @@ def fit_sub_pattern(
                                     max_n_fev=refine_max_f_eval,
                                 )
                                 master_params = fout.params       
-                    if debug:
-                        logger.debug(" ".join(map(str, [(" ")])))
-                        logger.debug(" ".join(map(str, [("Parameters after refining series fits %i time(s)" % (j+1))])))
-                        master_params.pretty_print()
+
+                    logger.debug(" ".join(map(str, [("Parameters after refining series fits %i time(s):" % (j+1))])))
+                    #master_params.pretty_print()
+                    lg.pretty_print_to_logger(master_params, level="DEBUG")
+                        
                 step = step + 10
             
                 #get mean height of chunked peaks and check if it is greater than threshold
@@ -544,11 +543,13 @@ def fit_sub_pattern(
                         threshold_peak_intensity = float(threshold_peak_intensity) * std
     
                     else:
-                        raise ValueError("The 'threshold_peak_intensity' has to be a number or a multiple of 'var' or 'std'")
+                        err_str = "The 'threshold_peak_intensity' has to be a number or a multiple of 'var' or 'std'"
+                        logger.critical(" ".join(map(str, [(err_str)])))
+                        raise ValueError(err_str)
                         
                 if np.max(ave_intensity) <= threshold_peak_intensity:
                     #then there is no determinable peak in the data
-                    logger.info(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting.")])))
+                    logger.debug(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting.")])))
                     #set step to -101 so that it is still negative at the end
                     step = -101 #get to the end and void the fit
                     fout=master_params
@@ -562,7 +563,7 @@ def fit_sub_pattern(
             # import/export within lmfit.
 
             # Refit through full equation with all data for d,h,w,bg independently
-            logger.info(" ".join(map(str, [("\nFinal fit solving for all parms...\n")])))
+            logger.debug(" ".join(map(str, [("Final fit solving for all parms...")])))
 
             if any(x == step for x in [20, 21, 22, 25, 26, 27]):
                 # if we are on the first go round of the fitting.
@@ -626,14 +627,14 @@ def fit_sub_pattern(
                     io.any_errors_huge(
                         lmm.params_to_new_params(master_params, orders=settings_as_class.subfit_orders),
                         large_errors=large_errors)==0):
-                logger.info(" ".join(map(str, [("# it worked, but propagated params could have lead to rubbish fits (huge errors). Try again.")])))
+                logger.debug(" ".join(map(str, [("The fitting worked, but propagated params could have lead to rubbish fits (huge errors). Try again.")])))
                 step = 0
                 # clear previous_params so we can't get back here
                 previous_params = None
             elif (fout.success == 1 and 
                     previous_params != None and 
                     io.any_terms_null(master_params, val_to_find=None)==0):
-                logger.info(" ".join(map(str, [("# it worked, but propagated params could have lead to rubbish fits (null values). Try again.")])))
+                logger.debug(" ".join(map(str, [("The fitting worked, but propagated params could have lead to rubbish fits (null values). Try again.")])))
                 step = 0
                 # clear previous_params so we can't get back here
                 previous_params = None
@@ -642,9 +643,9 @@ def fit_sub_pattern(
                 step = step + 100
                 master_params = fout.params
             elif step == 24 and fout.success == 0:
-                raise ValueError(
-                    "Oh Dear. It should not be possible to get here. Something has gone very wrong with the fitting."
-                )
+                err_str = "Oh Dear. It should not be possible to get here. Something has gone very wrong with the fitting."
+                logger.critical(" ".join(map(str, [(err_str)])))
+                raise ValueError(err_str)
             elif step == 29 and fout.success == 0:
                 step = 0  # go back to the start, discard PreviousParams and do the chunks for this data set.
             elif any(x == step for x in [20, 25]) and fout.success == 0:
@@ -655,10 +656,9 @@ def fit_sub_pattern(
                 if any(x == step for x in [23, 28]):
                     iterations = np.max((iterations, 3))
             else:
-                raise ValueError("The value of step here is not possible. Oops.")
-
-            # FIX ME: we could make an option for output the chunks without any Fourier/global fitting.
-            # Would this be useful?
+                err_str = "The value of step here is not possible. Oops."
+                logger.critical(" ".join(map(str, [(err_str)])))
+                raise ValueError(err_str)
 
         if step < 0:
             #the fit is void and we need to exit.
@@ -686,15 +686,12 @@ def fit_sub_pattern(
     #     new_params.update({"FitProperties": fit_stats})
     # else:
     if step > 0:        
-        logger.info(" ".join(map(str, [("\nFinal Coefficients\n")])))
-        logger.info(" ".join(map(str, [(fout.fit_report(show_correl=False))])))
-    
-        # Print some stats
-        logger.info(" ".join(map(str, [("number data", fout.ndata)])))
-        logger.info(" ".join(map(str, [("degrees of freedom", fout.nfree)])))
-        logger.info(" ".join(map(str, [("ChiSquared", fout.chisqr)])))
-    
-
+        logger.debug(" ".join(map(str, [("Final Coefficients")])))
+        logger.debug(" ".join(map(str, [(fout.fit_report(show_correl=False))])))
+        # Record some stats
+        logger.debug(" ".join(map(str, [("number data", fout.ndata)])))
+        logger.debug(" ".join(map(str, [("degrees of freedom", fout.nfree)])))
+        logger.debug(" ".join(map(str, [("ChiSquared", fout.chisqr)])))
     
         # get all correlation coefficients
         # FIX ME: this lists all the coefficients rather than just the unique half -- ie.
@@ -767,7 +764,7 @@ def fit_sub_pattern(
     # Plot results to check
     view = 0
     if (save_fit == 1 or view == 1 or debug) and step>0:
-        logger.info(" ".join(map(str, [("\nPlotting results for fit...\n")])))
+        logger.debug(" ".join(map(str, [("Plotting results for fit...")])))
         
         fig = plt.figure()
         fig = plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=master_params, params_dict=new_params, figure=fig)
@@ -792,11 +789,8 @@ def fit_sub_pattern(
             )
             fig.savefig(filename)
 
-        if view == 1 or debug:
-            fig.show()
-
         plt.close(fig)
-        logger.info(" ".join(map(str, [("Done with Figure")])))
+        logger.debug(" ".join(map(str, [("Done with Figure")])))
 
     # Save lmfit structure
     if save_fit:
@@ -812,7 +806,7 @@ def fit_sub_pattern(
             save_modelresult(fout, filename)
 
         except BaseException:
-            logger.info(" ".join(map(str, [("Cannot save lmfit object")])))
+            logger.debug(" ".join(map(str, [("Cannot save lmfit object")])))
             # if os.path.isfile(filename):
             #     os.remove(filename)
             #     save_modelresult(out, filename)

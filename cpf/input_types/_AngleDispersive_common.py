@@ -5,6 +5,8 @@
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
+from cpf.XRD_FitPattern import logger
+import cpf.logger_functions as lg
 
 
 class _AngleDispersive_common():
@@ -76,7 +78,6 @@ class _AngleDispersive_common():
         else:
             # convert d-spacing to tth.
             # N.B. this is the reverse function so that labels tth and d_spacing are not correct.
-            # print(tth_in)
             dspc_out = 2 * np.degrees(np.arcsin(wavelength / 2 / tth_in))
             
         if a==True:
@@ -134,18 +135,17 @@ class _AngleDispersive_common():
             err_str = "The bin type is not recognised. Check input file."
             raise ValueError(err_str)
 
-        if 0:  # for debugging
-            print(bin_boundaries)
-            # print(np.sort(bin_boundaries))
+        if 0:#lg.make_logger_output(level="DEBUG"):            
             # create histogram with equal-frequency bins
             n, bins, patches = plt.hist(
                 self.azm[self.azm.mask == False], bin_boundaries, edgecolor="black"
             )
             plt.show()
-            # display bin boundaries and frequency per bin
-            print("bins and occupancy", bins, n)
-            print("expected number of data per bin", orders_class.cascade_per_bin)
-            print("total data", np.sum(n))
+            logger.debug(" ".join(map(str, [("bins and occupancy", bins, n)])))
+            logger.debug(" ".join(map(str, [("total data", np.sum(n))])))
+        # display bin boundaries and frequency per bin
+        logger.debug(" ".join(map(str, [("bin boundaries:", bin_boundaries)])))
+        logger.debug(" ".join(map(str, [("expected number of data per bin", orders_class.cascade_per_bin)])))
 
         # fit the data to the bins
         chunks = []

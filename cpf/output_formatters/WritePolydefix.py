@@ -67,7 +67,7 @@ def WriteOutput(
     #     FitSettings, parms_dict, differential_only=differential_only
     # )
     WriteMultiFit.WriteOutput(
-        setting_class=setting_class, differential_only=False, debug=True
+        setting_class=setting_class, differential_only=False, debug=debug
     )
 
     # FitParameters = dir(FitSettings)
@@ -179,7 +179,7 @@ def WriteOutput(
             overwrite=True,
         )
         text_file = open(out_file, "w")
-        logger.info(" ".join(map(str, [("Writing", out_file)])))
+        logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
 
         # headers. set file version to be 1.
         text_file.write("# Experiment analysis file. to be used with Polydefix\n")

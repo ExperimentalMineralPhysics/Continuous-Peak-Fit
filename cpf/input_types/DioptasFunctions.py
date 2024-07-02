@@ -21,6 +21,7 @@ from cpf.input_types._Masks import _masks
 from cpf import IO_functions
 import cpf.h5_functions as h5_functions
 from cpf.XRD_FitPattern import logger
+import cpf.logger_functions as lg
 
 
 class DioptasDetector:
@@ -176,12 +177,12 @@ class DioptasDetector:
                 #make sure the pixel sizes are correct
                 self.detector.detector.set_config(config)
             
-            if debug:
-                print(self.detector.detector.get_name())
-                print(self.detector.detector.pixel1)
-                print(self.detector.chiArray())
-                print(self.detector.detector.max_shape)
-                print(type(self.detector))
+            # if lg.make_logger_output(level="DEBUG"):
+            #     print(self.detector.detector.get_name())
+            #     print(self.detector.detector.pixel1)
+            #     print(self.detector.chiArray())
+            #     print(self.detector.detector.max_shape)
+            #     print(type(self.detector))
                 
         
    
@@ -262,12 +263,12 @@ class DioptasDetector:
         # Therefore implemented here to be consistent with Dioptas.
         im = np.array(im)[::-1]
 
-        if debug:
-            print("min+max:", np.min(im), np.max(im))
+        #logger.debug(" ".join(map(str, [("min+max:", np.min(im), np.max(im))] )) )
+        #logger.debug(" ".join(map(str, [("min+max:", np.nanmin(im), np.nanmax(im))] )) )
+        if 0:#lg.make_logger_output(level="DEBUG"):
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
-            self.plot_collected(fig_plot=fig, axis_plot=ax)
-            # plt.title(os.path.split(image_name)[1])
+            ax.imshow(im)
             plt.title(IO_functions.title_file_names(image_name=image_name))
             plt.show()
             plt.close()

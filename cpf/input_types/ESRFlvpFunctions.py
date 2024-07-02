@@ -22,6 +22,8 @@ from numpy import pi as pi #used in self.calibration["trans_function"]
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
+from cpf.XRD_FitPattern import logger
+import cpf.logger_functions as lg
 
 
 """
@@ -352,7 +354,7 @@ class ESRFlvpDetector():
         ais = []
         for i in range(frames):
             pos = positions[i]
-            print("position", np.rad2deg(pos))
+
             #these lines are required because they are called by the calibration trans_function.
             rot_x = self.calibration["param"][self.calibration['param_names'].index("rot_x")]
             rot_y = self.calibration["param"][self.calibration['param_names'].index("rot_y")]
@@ -361,7 +363,7 @@ class ESRFlvpDetector():
             poni1 = (self.calibration["param"][self.calibration['param_names'].index("poni1")])
             poni2 = (self.calibration["param"][self.calibration['param_names'].index("poni2")])
             dist = self.calibration["param"][self.calibration['param_names'].index("dist")]
-            
+
             rot1_expr = eval(self.calibration["trans_function"]['rot1_expr']) 
             rot2_expr = eval(self.calibration["trans_function"]['rot2_expr'])
             poni1_expr = eval(self.calibration["trans_function"]['poni1_expr'])
@@ -369,7 +371,7 @@ class ESRFlvpDetector():
             dist_expr = eval(self.calibration["trans_function"]['dist_expr'])
             
             # make pyFAI AzimuthalIntegrator object for each detector position and append.
-            #edit from ESRP code - which edited AzimuthalIntegrator properties and was very slow.
+            # edited from ESRP code - which edited AzimuthalIntegrator properties and is comparatively very slow.
             # makeing a new AzimuthalIntegrator each time is 100s-1000s of times faster. 
             my_ai = AzimuthalIntegrator(detector=self.calibration["detector"], wavelength=self.calibration["wavelength"],
                         dist = dist_expr,
@@ -383,8 +385,9 @@ class ESRFlvpDetector():
         # create the multigeometry detector object.
         self.detector = MultiGeometry(ais, unit="2th_deg", radial_range=(1, 13), azimuth_range=(self.azm_start, self.azm_end)) 
         
-        if debug:
-            print(self.detector)   
+
+        logger.debug(" ".join(map(str, [("Detector is: ", self.detector)] )) )
+        if lg.make_logger_output(level="DEBUG"):            
             
             #plot all the positions of the AzimuthalIntegrators. 
             p_angles = []
@@ -470,7 +473,6 @@ class ESRFlvpDetector():
         #get ordered list of images
         frames, angles = self._get_sorted_files(image_name, debug=debug)     
         
-        print("here)")
         im = np.array([np.flipud(fabio.open(f).data) for f in frames])
         # 13th June 2024 - Note on flipud: the flipud command is included to invert the short axis of the detector intensity. 
         # If I flip the data then the 'spots' in the reconstructed data are spot like, rather than incoherent 
@@ -482,7 +484,6 @@ class ESRFlvpDetector():
         
         if max(angles) - min(angles) >= 45:
             self.azm_blocks = 45
-        print(len(im))
         
         # Convert the input data from integer to float because the lmfit model values
         # inherits integer properties from the data.
@@ -502,17 +503,14 @@ class ESRFlvpDetector():
         # apply mask to the intensity array
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im)
-            print("exit load1")
             return ma.array(im)
         elif mask is not None:
             # apply given mask
             self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
-            print("exit load2")
             return ma.array(im, mask=mask)
         else:
             #apply mask from intensities
             self.intensity = ma.array(im, mask=self.intensity.mask)
-            print("exit load3")
             return ma.array(im)
 
 
@@ -579,9 +577,6 @@ class ESRFlvpDetector():
         # Float32 or float16 take up much less memoary than flost64.
         array_dtype = np.float32
 
-        import time
-        st = time.time()
-
         #get ordered list of images
         frames, detectorangles = self._get_sorted_files(diff_file, debug=debug)  
         detectorangles = np.deg2rad(detectorangles)
@@ -596,7 +591,6 @@ class ESRFlvpDetector():
                 # empty array
                 self.intensity = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
         
-        print(time.time()-st)
                 
         #create emmpty arrays
         self.tth = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
@@ -608,21 +602,20 @@ class ESRFlvpDetector():
             self.x = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
             self.y = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
             self.z = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
-        print(self.tth.shape, self.azm.shape)
+        logger.debug(" ".join(map(str, [("self.tth.shape, self.azm.shape", self.tth.shape, self.azm.shape)] )) )
         
         # fill the arrays
         for i in range(len(self.detector.ais)):
             self.tth[i,:,:] = np.rad2deg(self.detector.ais[i].twoThetaArray())
             self.azm[i,:,:] = np.rad2deg(self.detector.ais[i].chiArray())
-            print("AMZ", np.min(self.azm), np.max(self.azm), self.azm.shape)
             if make_zyx:
                 zyx = self.detector.ais[i].calc_pos_zyx() 
                 self.z[i,:,:] = zyx[0]
                 self.y[i,:,:] = zyx[1] 
                 self.x[i,:,:] = zyx[2] 
 
-        if debug:
-            print(self.detector)   
+        logger.debug(" ".join(map(str, [("Detector is: ", self.detector)] )) )
+        if 0:#lg.make_logger_output(level="DEBUG"):  
             
             #plot all the positions of the AzimuthalIntegrators. 
             p_angles = []
@@ -640,16 +633,8 @@ class ESRFlvpDetector():
             ax.set_xlabel("Rot3, from azimuthal integrators  (°)")
             plt.title("rot3 vs Chi for EXRF lvp Multigeometry")
             
-            # plt.tight_layout()
-
-
-        print(time.time()-st)
-        
         # from sys import getsizeof
-        # print(getsizeof(self.tth))
         
-        
-        print("now here")
         #F IX ME: (June 2024) i dont know that the d-space array is needed. 
         # Check for calls and if this is the only one then remove it
         # self.dspace    = self._get_d_space()
@@ -657,19 +642,10 @@ class ESRFlvpDetector():
         # add masks to arrays
         #FIX ME: should we apply the mask as the arrays are populated rather than here?
         mask_array = self.get_mask(mask, self.intensity)
-        #print("mask_array", mask_array)
         
         self.mask_apply(mask_array, debug=debug)
         #FIX ME: should we apply the mask as the arrays are populated rather than 
         # in a separate function?
-         
-        print(time.time()-st)
-        
-        # print(getsizeof(self.tth))
-        
-        
-        #print(self.tth.dtype, self.azm.dtype, self.dspace.dtype )
-        print("done")
                
         self.azm_start = np.floor(self.azm.min() / self.azm_blocks) * self.azm_blocks
         self.azm_end = np.ceil(self.azm.max() / self.azm_blocks) * self.azm_blocks
@@ -732,9 +708,9 @@ class ESRFlvpDetector():
             all_present = 1
             for par in parameter_settings:
                 if par in required_list:
-                    print("Got: ", par)
+                    logger.info(" ".join(map(str, [("Got: ", par)] )) )
                 else:
-                    print("The settings file requires a parameter called  '", par, "'")
+                    logger.warning(" ".join(map(str, [("The settings file requires a parameter called  '", par, "'")] )) )
                     all_present = 0
             if all_present == 0:
                 sys.exit(

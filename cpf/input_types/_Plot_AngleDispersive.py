@@ -7,6 +7,8 @@ import numpy.ma as ma
 import matplotlib.pyplot as plt
 from matplotlib import gridspec, cm, colors
 from cpf.histograms import histogram2d
+from cpf.XRD_FitPattern import logger
+import cpf.logger_functions as lg
 
 
 class _Plot_AngleDispersive():
@@ -388,7 +390,6 @@ class _Plot_AngleDispersive():
         cb = fig_plot.colorbar(mappable=the_plot, ax=axis_plot, extend=cb_extend, fraction=fraction, location=location)
     
         if np.ndim(plot_i) >2 and plot_i.shape[0]>1:
-            print("why am I her)")
             # adjust the main plot to make room for the sliders
             fig_plot.subplots_adjust(bottom=0.25)
             
@@ -455,9 +456,7 @@ class _Plot_AngleDispersive():
             pass    
         
         if self.intensity.size > 100000000000:# 1000000: # was 50000 until fixed max/min functions 
-            print(
-                " Have patience. The plot(s) will appear but it can take its time to render."
-            )
+            logger.info(" ".join(map(str, [(" Have patience. The plot(s) will appear but it can take its time to render.")])))
             rastered = True
     
         if x_axis == "default":
@@ -530,7 +529,9 @@ class _Plot_AngleDispersive():
             else:
                 cb_extend = "neither"
         if location == None:
-            if plot_y.ndim == 1:
+            if y_lims is None:
+                location = "right"
+            elif plot_y.ndim == 1:
                 x_range = x_lims[1] - x_lims[0]
                 y_range = y_lims[1] - y_lims[0]
                 if x_range >= y_range:
@@ -690,8 +691,10 @@ def raster_plot(
     # FIX ME: for massive data sets (e.g. ESFR) this is still slow. 
     # maybe it should be replaced by datashader or something else that is good for dynamicaly plotting massive data sets. 
     # an alternative is to use GIS image referencing packages. 
-    import time
-    start = time.time()
+    
+    if lg.log_output(level="DEBUG"):
+        import time
+        start = time.time()
     
     
     if resample_shape != None:
@@ -721,8 +724,8 @@ def raster_plot(
     pl = axis_plot.imshow(result, extent=[x_edges[0],x_edges[-1],y_edges[0],y_edges[-1]], aspect="auto", vmin=vmin, vmax=vmax, cmap=colourmap)
     
     #axis_plot.invert_yaxis()
-    
-    end = time.time()
-    print(end - start)
+    if lg.log_output(level="DEBUG"):
+        end = time.time()
+        logger.debug(" ".join(map(str, [("Time to make rastered plot %d" % end - start)] )) )
     
     return pl

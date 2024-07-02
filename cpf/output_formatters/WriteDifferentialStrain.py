@@ -89,8 +89,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
     )
 
     text_file = open(out_file, "w")
-    logger.info(" ".join(("Writing", out_file)))
-
+    logger.info(" ".join(["Writing %s" % out_file]))
     text_file.write(
         "# Summary of fits produced by continuous_peak_fit for input file: %s.\n"
         % setting_class.settings_file  # FitSettings.inputfile
@@ -178,8 +177,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                     overwrite=True,
                 )
                 # logger.info(" ".join(('  Incorporating ' + subfilename)))
-                logger.info(" ".join(("  Incorporating: " + out_name + ", " + IO.peak_string(fit[y]))))
-
+                logger.info(" ".join(["  Incorporating: %s,%s" % (out_name, IO.peak_string(fit[y])) ]))
                 # try reading an lmfit object file.
                 savfilename = IO.make_outfile_name(
                     setting_class.subfit_filename,  
@@ -498,6 +496,6 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
 
                     text_file.write("\n")
         else:
-            logger.info(" ".join((filename, " does not exist on the path")))
+            logger.info(" ".join(("%s does not exist on the path" % filename)))
             
     text_file.close()

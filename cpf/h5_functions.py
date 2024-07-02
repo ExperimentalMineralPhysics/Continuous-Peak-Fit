@@ -67,19 +67,22 @@ def image_key_validate(h5key_list, key_start, key_end, key_step):
     number_indicies = len(h5key_list)
 
     if len(key_start) != (1 | number_indicies):
-        logger.info(" ".join(map(str, [("There are the wrong number of start positions")])))
+        logger.error(" ".join(map(str, [("There are the wrong number of start positions")])))
         fail = +1
 
     if len(key_end) != (1 | number_indicies):
-        logger.info(" ".join(map(str, [("There are the wrong number of end positions")])))
+        logger.error(" ".join(map(str, [("There are the wrong number of end positions")])))
         fail = +1
 
     if len(key_step) != (1 | number_indicies):
-        logger.info(" ".join(map(str, [("There are the wrong number of step lengths")])))
+        logger.error(" ".join(map(str, [("There are the wrong number of step lengths")])))
         fail = +1
 
     if fail != 0:
-        stop
+        err_str = (
+            "The h5 settings do not balance. They need fixing.")        
+        logger.error(" ".join(map(str, [(err_str)])))
+        raise ValueError(err_str)
 
     return fail
 
@@ -137,8 +140,9 @@ def unique_labels(labels, i=3, number_data=None):
                 pass
 
     else:
-        logger.info(" ".join(map(str, [("there are insufficient unique labels")])))
-        stop
+        err_str = "There are insufficient unique labels for the h5 file levels."
+        logger.error(" ".join(map(str, [(err_str)])))
+        raise ValueError(err_str)
 
     return labels
 
@@ -178,7 +182,7 @@ def get_image_keys(
             err_str = (
                 "The key, '%s' does not exist in '%s'"
                 % (key, key_route))
-            logger.info(" ".join(map(str, [(err_str)])))
+            logger.warning(" ".join(map(str, [(err_str)])))
         else:
             number_data = datafile[key].shape[index]
     

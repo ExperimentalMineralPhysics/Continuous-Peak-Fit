@@ -275,9 +275,11 @@ def get_order_from_params(params, comp=None, peak=0):
     elif isinstance(params, (int,)):
         l = 1
     else:
-        logger.info(" ".join(map(str, [(params)])))
-        logger.info(" ".join(map(str, [(type(params))])))
-        raise ValueError("Parameter list is not list or float.")
+        logger.debug(" ".join(map(str, [("params", params)])))
+        logger.debug(" ".join(map(str, [("type(params)", type(params))])))
+        err_str = "Parameter list is not list, float or a dictionary."
+        logger.critical(" ".join(map(str, [(err_str)])))
+        raise ValueError(err_str)
 
     order = get_order_from_coeff(l)
 
@@ -299,9 +301,11 @@ def fourier_order(params):
     elif isinstance(params, (int,)):
         order = 0
     else:
-        logger.info(" ".join(map(str, [(params)])))
-        logger.info(" ".join(map(str, [(type(params))])))
-        raise ValueError("Parameter list is not list or float.")
+        logger.debug(" ".join(map(str, [("params", params)])))
+        logger.debug(" ".join(map(str, [("type(params)", type(params))])))
+        err_str = "Parameter list is not list, float or an integer. I do not know what to do with it."
+        logger.critical(" ".join(map(str, [(err_str)])))
+        raise ValueError(err_str)
     return order
 
 

@@ -71,6 +71,7 @@ from cpf import IO_functions
 import cpf.h5_functions as h5_functions
 import pickle
 from cpf.XRD_FitPattern import logger
+import cpf.logger_functions as lg
 
 
 # plot the data as an image (TRue) or a scatter plot (false).
@@ -279,11 +280,9 @@ class XYDetector:
         if self.calibration["x_dim"] != 0:
             im = im.T
         
-        
-        if debug:
-            print("min+max:", np.min(im), np.max(im))
-            print("min+max:", np.nanmin(im), np.nanmax(im))
-            
+        #logger.debug(" ".join(map(str, [("min+max:", np.min(im), np.max(im))] )) )
+        #logger.debug(" ".join(map(str, [("min+max:", np.nanmin(im), np.nanmax(im))] )) )
+        if lg.make_logger_output(level="DEBUG"):            
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
             ax.imshow(im)

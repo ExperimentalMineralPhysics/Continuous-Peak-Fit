@@ -94,7 +94,7 @@ def WriteOutput(
     # out_file = out_dir + base + '.exp'
 
     text_file = open(out_file, "w")
-    logger.info(" ".join(map(str, [("Writing", out_file)])))
+    logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
 
     # headers. set file version to be 1.
     text_file.write("# Experiment analysis file. to be used with PolydefixED\n")

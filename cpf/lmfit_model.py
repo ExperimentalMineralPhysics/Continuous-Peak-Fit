@@ -27,7 +27,6 @@ import numpy as np
 import sys
 import warnings
 from lmfit import Parameters, Model
-from lmfit.parameter import Parameters
 import cpf.peak_functions as pf
 import cpf.series_functions as sf
 from cpf.XRD_FitPattern import logger
@@ -165,10 +164,9 @@ def params_to_new_params(params, orders=None):
             else:
                 done = 1
     else:
-        print
-        raise ValueError(
-            "Cannot define number of coefficients."
-        )
+        err_str = "Cannot define number of coefficients for peak."
+        logger.critical(" ".join(map(str, [(err_str)])))   
+        raise ValueError(err_str)
         
     peaks = []
     new_str = ""
@@ -547,10 +545,9 @@ def initiate_params(
                 # The real confusion though is len should work for arrays as well...
                 num_coeff = value.size
         else:
-            logger.info(" ".join(map(str, [(value)])))
-            raise ValueError(
-                "Cannot define independent values without a number of coefficients."
-            )
+            err_str = "Cannot define independent values without a number of coefficients."
+            logger.critical(" ".join(map(str, [(value)])))
+            raise ValueError(err_str)
 
     elif trig_orders is None:
         try:
@@ -899,7 +896,7 @@ def coefficient_fit(
     azimuth = np.array(azimuth)
 
     coeff_type = inp_param.eval(param_str + "_tp")
-    f_model = Model(sf.coefficient_expand, independent_vars=["azimuth"], start_end=start_end)
+    f_model = Model(sf.coefficient_expand, independent_vars=["azimuth"], start_end=start_end, comp_str=param_str, coeff_type=coeff_type)
     # logger.info(" ".join(map(str, [('parameter names: {}'.format(f_model.param_names))])))
     # logger.info(" ".join(map(str, [('independent variables: {}'.format(f_model.independent_vars))])))
 
@@ -917,12 +914,13 @@ def coefficient_fit(
         ydata[idx],
         inp_param,
         azimuth=azimuth[idx] * symmetry,
-        coeff_type=coeff_type,
-        start_end=start_end,
+        # coeff_type=coeff_type,
+        # start_end=start_end,
         method=fit_method,
-        sigma=new_errs,
-        comp_str=param_str,
+        weights=new_errs,
+        # comp_str=param_str,
         nan_policy="propagate",
         max_nfev = max_nfev
     )
     return out
+

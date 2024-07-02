@@ -14,6 +14,7 @@ import cpf.series_functions as sf
 import cpf.lmfit_model as lmm
 import cpf.histograms as hist
 from cpf.XRD_FitPattern import logger
+import cpf.logger_functions as lg
 
 
 def get_manual_guesses(settings_as_class, data_as_class, debug=False):
@@ -78,8 +79,10 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
             fit_method="leastsq",
         )
         temp_param = fout.params
-        if debug:
-            temp_param.pretty_print()
+            
+        lg.pretty_print_to_logger(temp_param, level="DEBUG", space=True)
+        # if debug:
+            # temp_param.pretty_print()
         dfour.append(lmm.gather_param_errs_to_list(temp_param, param_str, comp))
     return dfour
 
@@ -177,8 +180,9 @@ def get_chunk_peak_guesses(
     for k in range(len(settings_as_class.subfit_orders["peak"])):
         # FIX ME: altered from locals call as now passed as None - check!
         if dfour:  # If the positions have been pre-guessed extract values from dfour.
-            if debug and k == 0:
-                logger.info(" ".join(map(str, [("dfour in locals \n")])))
+            # if debug and k == 0:
+            if k == 0:  
+                logger.debug(" ".join(map(str, [("dfour in locals")])))
 
             coeff_type = sf.params_get_type(
                 settings_as_class.subfit_orders, "d", peak=k
@@ -321,11 +325,11 @@ def fit_chunks(
             p = "peaks"
         else:
             p = "peak"
-        logger.info(" ".join(map(str, [("\nNo previous fits or selections. Assuming " + str(peeks) + " " + p + " and group fitting in azimuth...\n")])))
+        logger.debug(" ".join(map(str, [("No previous fits or selections. Assuming %i %s and group fitting in azimuth..." % (peeks, p) )])))
         dfour = None
         # FIXME: passed as None now - check functions as expected
     else:
-        logger.info(" ".join(map(str, [("\nUsing manual selections for initial guesses...\n")])))
+        logger.debug(" ".join(map(str, [("Using manual selections for initial guesses...")])))
         # FIXME: Need to check that the num. of peaks for which we have parameters is the same as the
         # number of peaks guessed at.
         # dfour = get_manual_guesses(peeks, orders, bounds, twotheta, debug=None)
@@ -370,9 +374,7 @@ def fit_chunks(
 
     for j in range(len(chunks)):
         # logger.info(" ".join(map(str, [('\nFitting to data chunk ' + str(j + 1) + ' of ' + str(len(chunks)) + '\n')])))
-        if debug:
-            logger.info(" ".join(map(str, [("\n")])))
-        logger.info(" ".join(map(str, [("\rFitting to data chunk %s of %s \r" % (str(j + 1), str(len(chunks))))])))
+        logger.debug(" ".join(map(str, [("Fitting to data chunk %s of %s" % (str(j + 1), str(len(chunks))))])))
 
         # make data class for chunks.
         chunk_data = data_as_class.duplicate()
@@ -488,13 +490,13 @@ def fit_chunks(
                             vary=vary,
                         )
 
-                if debug:
-                    logger.info(" ".join(map(str, [("Initiallised chunk fit; " + str(j) + "/" + str(len(chunks)))])))
-                    params.pretty_print()
-                    logger.info(" ".join(map(str, [("\n")])))
+                logger.debug(" ".join(map(str, [("Initiallised chunk; %i/%i" % (j, len(chunks)) )] )))
+                lg.pretty_print_to_logger(params, level="DEBUG", space=True)
+                # if debug:
+                if lg.make_logger_output(level="DEBUG"):                
                     # keep the original params for plotting afterwards
                     guess = params
-
+                    
                 # Run actual fit
                 fit = lmm.fit_model(
                     chunk_data,  # needs to contain intensity, tth, azi (as chunks), conversion factor
@@ -506,10 +508,10 @@ def fit_chunks(
                 )
                 params = fit.params  # update lmfit parameters
 
-                if debug:
-                    logger.info(" ".join(map(str, [("Final chunk fit; " + str(j) + "/" + str(len(chunks)))])))
-                    params.pretty_print()
-
+                # if debug:
+                logger.debug(" ".join(map(str, [("Fitted chunk; %i/%i" % (j, len(chunks)) )] )))
+                lg.pretty_print_to_logger(params, level="DEBUG", space=True)
+                    
                 # get values from fit and append to arrays for output
                 for i in range(len(background_guess)):
                     out_vals["bg"][i].append(params["bg_c" + str(i) + "_f0"].value)
@@ -528,7 +530,8 @@ def fit_chunks(
                 out_vals["chunks"].append(azichunks[j])
 
                 # plot the fits.
-                if debug:
+                # if debug:
+                if lg.make_logger_output(level="DEBUG"):
                     tth_plot = chunk_data.tth
                     int_plot = chunk_data.intensity
                     azm_plot = chunk_data.azm
@@ -606,7 +609,9 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
         param_str = "bg_c" + str(b)
         comp = "f"
 
-        master_params.pretty_print()
+        
+        lg.pretty_print_to_logger(master_params, level="DEBUG", space=True)
+        # master_params.pretty_print()
         master_params = lmm.un_vary_params(
             master_params, param_str, comp
         )  # set other parameters to not vary
@@ -704,11 +709,13 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
 
             # FIX ME. Check which params should be varying and which should not.
             # Need to incorporate vary and un-vary params as well as partial vary
-    if 1:  # debug:
-        logger.info(" ".join(map(str, [("Parameters after initial Fourier fits")])))
-        master_params.pretty_print()
+    # if 1:  # debug:
+    logger.debug(" ".join(map(str, [("Parameters after initial Fourier fits")])))
+    # master_params.pretty_print()
+    lg.pretty_print_to_logger(master_params, level="DEBUG", space=True)
 
-        # plot output of fourier fits....
+    # plot output of series fits....
+    if lg.make_logger_output(level="DEBUG"): 
         x_lims = start_end
         azi_plot = range(np.int_(x_lims[0]), np.int_(x_lims[1]), 2)
         gmodel = Model(sf.coefficient_expand, independent_vars=["azimuth"])

@@ -455,7 +455,7 @@ class settings:
                     and len(orders[i]["range"]) == 1
                     and len(orders[i]["range"][0]) == 2
                 ):
-                    logger.info(" ".join(map(str, [("  input fix: subpattern " + str(i) + ": range is a now a simple list.")])))
+                    logger.warning(" ".join(map(str, [("  input fix: subpattern " + str(i) + ": range is a now a simple list.")])))
                     self.fit_orders[i]["range"] = self.fit_orders[i]["range"][0]
                 # check if range is valid
                 if (
@@ -495,7 +495,7 @@ class settings:
                 # bascially -- check if it is old nomlencature (*-*) and replace (with *_*)
                 for l in range(len(comp_modifications)):
                     if "background" + "-" + comp_modifications[l] in self.fit_orders[i]:
-                        logger.info(" ".join(map(str, [("  input fix: subpattern %s : background - %s replaced with background_%s" % (str(i), comp_modifications[l], comp_modifications[l]))])))
+                        logger.warning(" ".join(map(str, [("  input fix: subpattern %s: 'background-%s' replaced with 'background_%s'" % (str(i), comp_modifications[l], comp_modifications[l]))])))
                         self.fit_orders[i][
                             "background" + "_" + comp_modifications[l]
                         ] = self.fit_orders[i].pop(
@@ -552,7 +552,7 @@ class settings:
                                 comp_list[k] + "-" + comp_modifications[l]
                                 in self.fit_orders[i]["peak"][j]
                             ):
-                                logger.info(" ".join(map(str, [("  input fix: subpattern %s %s : %s - %s replaced with %s _ %s" 
+                                logger.warning(" ".join(map(str, [("  input fix: subpattern %s %s: '%s-%s' replaced with '%s_%s'" 
                                                                 % (str(i), str(j), comp_list[k], comp_modifications[l], comp_list[k],comp_modifications[l]))])))
                                 self.fit_orders[i]["peak"][j][
                                     comp_list[k] + "_" + comp_modifications[l]
@@ -599,17 +599,15 @@ class settings:
 
         # report missing bits and bobs
         if len(missing) > 0:
-            logger.info(" ".join(map(str, [("\nInput problems that will prevent execution: ")])))
+            logger.error(" ".join(map(str, [("Input problems that will prevent execution: ")])))
             for i in range(len(missing)):
-                logger.info(" ".join(map(str, [(missing[i])])))
-            logger.info(" ".join(map(str, [("\n")])))
-            
+                logger.error(" ".join(map(str, [(missing[i])])))
+            #logger.error(" ".join(map(str, [("\n")])))
+            logger.error(" ".join(map(str, [("The problems listed above will prevent the data fitting and need to be rectified before execution")])))
             if not report:
                 raise ValueError(
                     "The problems listed above will prevent the data fitting."
                 )
-            else:
-                logger.info(" ".join(map(str, [("The problems listed above will prevent the data fitting and need to be rectified before execution")])))
         else:
             logger.info(" ".join(map(str, [("fit_orders appears to be correct")])))
 
@@ -676,7 +674,7 @@ class settings:
                 self.fit_orders[peak_set]["peak"][peak][component + "_fixed"] = [
                     self.fit_orders[peak_set]["peak"][peak][component + "_fixed"]
                 ]
-                logger.info(" ".join(map(str, [("    subpattern %s, peak %s: %s_fixed changed to a list" 
+                logger.warning(" ".join(map(str, [("    subpattern %s, peak %s: %s_fixed changed to a list" 
                                                 % (str(peak_set), str(peak), component))])))
 
             # validate
@@ -783,14 +781,14 @@ class settings:
         # report findings
         incorrect = False
         if missing:
-            logger.info(" ".join(map(str, [("\nMissing Values:")])))
+            logger.error(" ".join(map(str, [("\nMissing Values:")])))
             for i in range(len(missing)):
-                logger.info(" ".join(map(str, [(missing[i])])))
+                logger.error(" ".join(map(str, [(missing[i])])))
             incorrect = True
         if extras:
-            logger.info(" ".join(map(str, [("\nExtra Values:")])))
+            logger.warning(" ".join(map(str, [("\nExtra Values:")])))
             for i in range(len(extras)):
-                logger.info(" ".join(map(str, [(extras[i])])))
+                logger.warning(" ".join(map(str, [(extras[i])])))
             incorrect = True
         if incorrect:
             if not report:
@@ -798,7 +796,7 @@ class settings:
                     "The problems listed above will prevent the data fitting."
                 )
             else:
-                logger.info(" ".join(map(str, [("The problems listed above will prevent the data fitting and need to be rectified before execution")])))
+                logger.error(" ".join(map(str, [("The problems listed above will prevent the data fitting and need to be rectified before execution")])))
         else:
             logger.info(" ".join(map(str, [("fit_bounds appears to be correct")])))
 
@@ -859,10 +857,10 @@ class settings:
                     )
 
         if missing:
-            logger.info(" ".join(map(str, [("\nMissing output settings:")])))
+            logger.warning(" ".join(map(str, [("Missing output settings:")])))
             for i in range(len(missing)):
-                logger.info(" ".join(map(str, [(missing[i])])))
-            logger.info(" ".join(map(str, [("The issues listed above may prevent outputs being written correctly")])))
+                logger.warning(" ".join(map(str, [(missing[i])])))
+            logger.warning(" ".join(map(str, [("The issues listed above may prevent outputs being written correctly")])))
         else:
             logger.info(" ".join(map(str, [("The output settings appear to be in order")])))
 
@@ -989,7 +987,7 @@ class settings:
         None.
 
         """
-        logger.info(" ".join(map(str, [("Caution: save_settings writes a temporary file with no content")])))
+        logger.warning(" ".join(map(str, [("Caution: save_settings writes a temporary file with no content")])))
         
         fnam = os.path.join(filepath, filename)
         with open(fnam, "w") as TempFile:

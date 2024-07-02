@@ -93,7 +93,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                 
 
     text_file = open(out_file, "w")
-    logger.info(" ".join(map(str, [("Writing", out_file)])))
+    logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
 
     text_file.write(
         "# Summary of fits produced by continuous_peak_fit for input file: %s.\n"

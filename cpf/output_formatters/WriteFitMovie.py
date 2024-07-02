@@ -113,6 +113,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
             overwrite=True, 
             additional_text=addd
         )
+        logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
                     
         # this calls all the iamges and adds them as frames to the video.
         # edited after :https://zulko.github.io/moviepy/getting_started/working_with_matplotlib.html?highlight=matplotlib

@@ -936,13 +936,14 @@ class MedDetector:
             normalize = colors.Normalize(vmin=self.azm_start, vmax=self.azm_end)
             c_map = cm.get_cmap(name=colourmap)
             for i in range(len(np.unique(self.azm)) - 1, -1, -1):
-                if 0:  # for debugging
-                    logger.info(" ".join(map(str, [("arrays for plotting")])))
-                    logger.info(" ".join(map(str, [(i, np.unique(self.azm))])))
-                    logger.info(" ".join(map(str, [("x", plot_x[self.azm == np.unique(self.azm)[i]])])))
-                    logger.info(" ".join(map(str, [("y", plot_y[self.azm == np.unique(self.azm)[i]])])))
-                    logger.info(" ".join(map(str, [("c", np.mean(plot_c[self.azm == np.unique(self.azm)[i]]))])))
-                    logger.info(" ".join(map(str, [("mask", not ma.MaskedArray.all(plot_x[self.azm == np.unique(self.azm)[i]]),)])))
+                
+                logger.debug(" ".join(map(str, [("arrays for plotting")])))
+                logger.debug(" ".join(map(str, [(i, np.unique(self.azm))])))
+                logger.debug(" ".join(map(str, [("x", plot_x[self.azm == np.unique(self.azm)[i]])])))
+                logger.debug(" ".join(map(str, [("y", plot_y[self.azm == np.unique(self.azm)[i]])])))
+                logger.debug(" ".join(map(str, [("c", np.mean(plot_c[self.azm == np.unique(self.azm)[i]]))])))
+                logger.debug(" ".join(map(str, [("mask", not ma.MaskedArray.all(plot_x[self.azm == np.unique(self.azm)[i]]),)])))
+                
                 colour = c_map(
                     normalize(np.mean(plot_c[self.azm == np.unique(self.azm)[i]]))
                 )

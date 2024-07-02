@@ -6,11 +6,11 @@ import logging
 
 # Configure the logging module
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.CRITICAL,
     format='%(asctime)s [%(levelname)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
     handlers=[
-        logging.FileHandler('CPF.log', mode='a', encoding=None, delay=False),  # Log to a file
+        # logging.FileHandler('CPF.log', mode='a', encoding=None, delay=False),  # Log to a file
         logging.StreamHandler()  # Log to stdout
     ]
 )
@@ -35,6 +35,8 @@ from cpf.IO_functions import (
     any_terms_null,
     title_file_names,
 )
+
+import cpf.logger_functions as lg
 
 np.set_printoptions(threshold=sys.maxsize)
 # FIX ME: Need to add complexity here.
@@ -65,6 +67,7 @@ output_methods_modules = register_default_formats()
 def initiate(setting_file=None, inputs=None, out_type=None, report=False, **kwargs):
     """
     Run checks on input files, initiate data class and check output options
+
     :param report:
     :param out_type:
     :param initiate_data:
@@ -79,8 +82,51 @@ def initiate(setting_file=None, inputs=None, out_type=None, report=False, **kwar
         raise ValueError(
             "Either the settings file or the parameter dictionary need to be specified."
         )
-    # If no params_dict then initiate. Check all the output functions are present and valid.
 
+    #reinitialise the logger -- with a new file name 
+    if report is not False: #reporting is required and we must have a setting_file.
+        
+        # make sure log file ends *.log. 
+        log_name = make_outfile_name(setting_file, extension=".log", overwrite=True)  
+        
+        # remove all handlers and then add new ones.
+        logging.getLogger().handlers.clear()
+        
+        # (Re)Configure the logging module
+        logging.basicConfig(
+            level="CRITICAL",
+            format='%(asctime)s [%(levelname)s] %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S',
+            handlers=[
+                logging.FileHandler(log_name, mode='a', encoding=None, delay=False),  # Log to a file
+                logging.StreamHandler()  # Log to stdout
+            ],
+            force=True # force the change in handlers
+        )
+    
+    #set logging level.
+    if report is False:
+        # if not defined default to "INFO"
+        level = getattr(logging, "INFO")
+    elif isinstance(report, str):
+        # Get level. Level should be a number
+        #get number from name
+        level = getattr(logging, report.upper())
+    else:
+        pass # level should be a number
+    logger.setLevel(level)
+
+    print(logger)
+    # make a header in the log file so that we know where the processing starts
+    logger.info("")
+    logger.info("=================================================================")
+    logger.info("")
+    logger.info("Starting data proceesing using: %s.py" % setting_file)
+    logger.info("")
+    logger.info("=================================================================")
+    logger.info("")
+
+    # If no params_dict then initiate. Check all the output functions are present and valid.
     settings_for_fit = settings()
     settings_for_fit.populate(settings_file=setting_file, report=report)
 
@@ -98,7 +144,8 @@ def set_range(
     iterations=1,
     # track=False,
     parallel=True,
-    subpattern="all"
+    subpattern="all",
+    report=False,
 ):
     """
     :param setting_file:
@@ -116,7 +163,7 @@ def set_range(
     """
 
     if setting_class is None:
-        settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+        settings_for_fit = initiate(setting_file, inputs=inputs, report=report)
     else:
         settings_for_fit = setting_class
 
@@ -150,7 +197,8 @@ def initial_peak_position(
     iterations=1,
     # track=False,
     parallel=True,
-    subpattern="all"
+    subpattern="all",
+    report=False
 ):
     """
     Calls interactive graph to set the inital peak postion guesses. 
@@ -173,7 +221,7 @@ def initial_peak_position(
     """
 
     if setting_class is None:
-        settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+        settings_for_fit = initiate(setting_file, inputs=inputs, report=report)
     else:
         settings_for_fit = setting_class
 
@@ -304,7 +352,8 @@ def order_search(
     search_over=[0, 20],
     subpattern="all",
     search_peak=0,
-    search_series=["fourier", "spline"]
+    search_series=["fourier", "spline"],
+    report=False
 ):
     """
     :param search_series:
@@ -325,7 +374,7 @@ def order_search(
     """
 
     if setting_class is None:
-        settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+        settings_for_fit = initiate(setting_file, inputs=inputs, report=report)
     else:
         settings_for_fit = setting_class
 
@@ -380,7 +429,8 @@ def write_output(
     det=None,
     use_bounds=False,
     differential_only=False,
-    debug=False
+    debug=False,
+    report=False
 ):
     """
     :param debug:
@@ -396,17 +446,17 @@ def write_output(
     """
 
     if setting_class is None:
-        setting_class = initiate(setting_file, report=True, out_type=out_type)
+        setting_class = initiate(setting_file, report=report, out_type=out_type)
 
     if out_type is not None:
-        logger.info(" ".join(map(str, [("Changing output_type to " + out_type)])))
+        logger.info(" ".join(map(str, [("Output_type was provided as an option; will use %s " % out_type)])))
         setting_class.set_output_types(out_type_list=out_type)
 
     if setting_class.output_types is None:
-        logger.info(" ".join(map(str, [("Thre are no output types. Add 'Output_type' to input file or specify 'out_type' in command.")])))
+        logger.warning(" ".join(map(str, [("Thre are no output types. Add 'Output_type' to input file or specify 'out_type' in command.")])))
     else:
         for mod in setting_class.output_types:
-            logger.info(" ".join(map(str, [("\nWrite output file(s) using", mod)])))
+            logger.info(" ".join(map(str, [("Writing output file(s) using %s" % mod)])))
             wr = output_methods_modules[mod]
             wr.WriteOutput(
                 setting_class=setting_class,
@@ -453,7 +503,7 @@ def execute(
     """
 
     if setting_class is None:
-        settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+        settings_for_fit = initiate(setting_file, inputs=inputs, report=report)
     else:
         settings_for_fit = setting_class
     new_data = settings_for_fit.data_class
@@ -471,7 +521,7 @@ def execute(
     else:
         # data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
         data_to_fill = settings_for_fit.image_list[0]
-    logger.info(" ".join(map(str, [(data_to_fill)])))
+    #logger.info(" ".join(map(str, [(data_to_fill)])))
     new_data.fill_data(
         data_to_fill,
         settings=settings_for_fit,
@@ -483,7 +533,7 @@ def execute(
     # FIXME this should be removable.
 
     # plot calibration file
-    if debug and settings_for_fit.calibration_data is not None:
+    if lg.make_logger_output(level="DEBUG") and settings_for_fit.calibration_data is not None:
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
         new_data.plot_collected(fig_plot=fig, axis_plot=ax)
@@ -507,7 +557,7 @@ def execute(
     for j in range(settings_for_fit.image_number):
 
         # logger.info(" ".join(map(str, [("Process ", settings_for_fit.image_list[j])])))
-        logger.info(" ".join(map(str, [("Process ", title_file_names(image_name=settings_for_fit.image_list[j]))])))
+        logger.info(" ".join(map(str, [("Processing %s" % title_file_names(image_name=settings_for_fit.image_list[j]))])))
 
         # Get diffraction pattern to process.
         new_data.import_image(settings_for_fit.image_list[j], debug=debug)
@@ -522,7 +572,7 @@ def execute(
             pass
 
         # plot input file
-        if debug:
+        if lg.make_logger_output(level="DEBUG"):
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
             ax_o1 = plt.subplot(111)
@@ -539,7 +589,7 @@ def execute(
             and mode == "fit"
         ):
             # Read JSON data from file
-            logger.info(" ".join(map(str, [("Loading previous fit results from %s" % temporary_data_file)])))
+            logger.debug(" ".join(map(str, [("Loading previous fit results from %s" % temporary_data_file)])))
             with open(temporary_data_file) as json_data:
                 previous_fit = json.load(json_data)
                 
@@ -572,42 +622,34 @@ def execute(
             # Track the position of the peak centroid
             # FIXME: This is crude - the range doesn't change width. so can't account for massive change in stress.
             # But does it need to?
-            tth_range = settings_for_fit.subfit_orders["range"]
+            tth_range = np.array(settings_for_fit.subfit_orders["range"])
             if settings_for_fit.fit_track is True and "previous_fit" in locals():
                 clean = any_terms_null(params, val_to_find=None)
                 if clean == 0:
                     # the previous fit has problems so discard it
-                    print(
-                        "Propagated fit has problems so not sensible to track the centre of the fit."
-                    )
+                    logger.info(" ".join(map(str, [("Tracking peak centre but propagated fit has problems. Not sensible to track the centre of the fit for this step.")])))
                     params = []
                 else:
-                    logger.info(" ".join(map(str, [("old subpattern range", tth_range)])))
                     mid = []
                     for k in range(len(params["peak"])):
                         mid.append(params["peak"][k]["d-space"][0])
                         # FIXME: replace with caluculation of mean d-spacing.
 
-                    # Replace this with call through to class structure?
-                    # logger.info(" ".join(map(str, [(mid)])))
                     cent = new_data.conversion(np.mean(mid), reverse=True)
-                    # logger.info(" ".join(map(str, [("cent", cent)])))
-                    # logger.info(" ".join(map(str, [("mean tth_range", np.mean(tth_range))])))
-                    # logger.info(" ".join(map(str, [((tth_range[1] + tth_range[0]) / 2)])))
+                    
                     move_by = cent - np.mean(tth_range)
-                    logger.info(" ".join(map(str, [("move by", move_by)])))
-                    tth_range = tth_range + move_by
-                    # tth_range[0] = tth_range[0] - ((tth_range[1] + tth_range[0]) / 2) + cent
-                    # tth_range[1] = tth_range[1] - ((tth_range[1] + tth_range[0]) / 2) + cent
-                    # logger.info(" ".join(map(str, [("move by:", ((tth_range[1] + tth_range[0]) / 2) - cent)])))
-                    logger.info(" ".join(map(str, [("new subpattern range", tth_range)])))
+                    move_by = move_by[0] #this is needed to turn move_by from array to float
 
-                    # copy new positions back into settings_for_fit
+                    # update tth_range and settings 
+                    tth_range = tth_range + move_by
                     settings_for_fit.fit_orders[i]["range"] = (
                         settings_for_fit.fit_orders[i]["range"] + move_by
                     )
-                    logger.info(" ".join(map(str, [(settings_for_fit.fit_orders[i]["range"])])))
-
+                    
+                    logger.info(" ".join(map(str, [(
+                       f"Move range for fitting. \n Initial range: [{tth_range[0]:4.2f},{tth_range[1]:4.2f}]; will be moved by {move_by:4.2f}; the new range is [{tth_range[0]+move_by:4.2f},{tth_range[1]+move_by:4.2f}]"
+                        )])))
+                    
                     # The PeakPositionSelections are only used if the fits are not being propagated
                     if "PeakPositionSelection" in settings_for_fit.fit_orders[i]:
                         for k in range(
@@ -620,8 +662,6 @@ def execute(
                                     k
                                 ][2]
                                 + move_by
-                                # - ((tth_range[1] + tth_range[0]) / 2)
-                                # + cent
                             )
 
                     # re-get settings for current subpattern
@@ -636,20 +676,13 @@ def execute(
                 or "imin" in settings_for_fit.subfit_orders
             ):
                 sub_data = SpotProcess(sub_data, settings_for_fit)
+                
             if mode == "set-range":
 
                 fig_1 = plt.figure()
                 sub_data.plot_masked(fig_plot=fig_1)
                 plt.suptitle(peak_string(settings_for_fit.subfit_orders) + "; masking")
 
-                # filename = make_outfile_name(
-                #     settings_for_fit.datafile_list[j],
-                #     directory=settings_for_fit.output_directory,
-                #     additional_text="mask",
-                #     orders=settings_for_fit.subfit_orders,
-                #     extension=".png",
-                #     overwrite=True,
-                # )
                 filename = make_outfile_name(
                     settings_for_fit.image_list[j],
                     directory=settings_for_fit.output_directory,
@@ -683,16 +716,12 @@ def execute(
                 plt.show(block=True)
 
                 selection_arr = point_builder.array()
-                # logger.info(" ".join(map(str, [(selection_arr)])))
-                logger.info(" ".join(map(str, [("")])))
-                print(
-                    "Selected points, %s:" % peak_string(settings_for_fit.subfit_orders)
-                )
-                logger.info(" ".join(map(str, [("[")])))
+                
+                # report the points selected.
+                logger.info(" ".join(map(str, [("Selected points for %s peak(s): [" % peak_string(settings_for_fit.subfit_orders))])))
                 for k in range(len(selection_arr)):
                     logger.info(" ".join(map(str, [(json.dumps(selection_arr[k]) + ",")])))
                 logger.info(" ".join(map(str, [("]")])))
-                logger.info(" ".join(map(str, [("")])))
 
             else:
                 if parallel is True:  # setup parallel version
@@ -758,7 +787,6 @@ def execute(
 
             # if propagating the fits write them to a temporary file
             if settings_for_fit.fit_propagate:
-                # print json_string
                 with open(temporary_data_file, "w") as TempFile:
                     # Write a JSON string into the file.
                     json.dump(

@@ -692,7 +692,7 @@ def raster_plot(
     # maybe it should be replaced by datashader or something else that is good for dynamicaly plotting massive data sets. 
     # an alternative is to use GIS image referencing packages. 
     
-    if lg.log_output(level="DEBUG"):
+    if lg.make_logger_output(level="DEBUG"):
         import time
         start = time.time()
     
@@ -724,8 +724,8 @@ def raster_plot(
     pl = axis_plot.imshow(result, extent=[x_edges[0],x_edges[-1],y_edges[0],y_edges[-1]], aspect="auto", vmin=vmin, vmax=vmax, cmap=colourmap)
     
     #axis_plot.invert_yaxis()
-    if lg.log_output(level="DEBUG"):
+    if lg.make_logger_output(level="DEBUG"):
         end = time.time()
-        logger.debug(" ".join(map(str, [("Time to make rastered plot %d" % end - start)] )) )
+        logger.debug(" ".join(map(str, [(f"Time to make rastered plot {end-start}")] )) )
     
     return pl

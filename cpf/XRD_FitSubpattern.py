@@ -765,8 +765,16 @@ def fit_sub_pattern(
     if (save_fit == 1 or view == 1 or lg.make_logger_output("EFFUSIVE")) and step>0:
         logger.effusive(" ".join(map(str, [("Plotting results for fit...")])))
         
-        fig = plt.figure(figsize=(4,8)) # default figure size is [6.4, 4.8]
-        fig = plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=master_params, params_dict=new_params, figure=fig)
+        orientation = "vertical"
+        if orientation == "vertical":
+            fig = plt.figure(figsize=(4,6)) # default figure size is [6.4, 4.8]
+        else:
+            fig = plt.figure() # default figure size is [6.4, 4.8]
+        fig = plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=master_params, 
+                               params_dict=new_params, figure=fig, 
+                               orientation=orientation,
+                               plot_type="scatter", 
+                               )
         title_str = io.peak_string(settings_as_class.subfit_orders) + "\n final fit"
         if "note" in settings_as_class.subfit_orders:
             title_str = title_str + " " + settings_as_class.subfit_orders["note"]
@@ -815,7 +823,8 @@ def fit_sub_pattern(
     return [new_params, fout]
 
 
-def plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=None, params_dict=None, figure=None, debug=False):
+def plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=None, params_dict=None, figure=None, debug=False,
+                     orientation="vertical", plot_type="scatter"):
     """
     Generates the figure for the fitted data. 
     It calls the plot_fitted function of the data_class and returns the figure. 
@@ -908,6 +917,7 @@ def plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=None, params_
         
     # plot the data and the fit
     data_as_class.plot_fitted(
-        fig_plot=figure, model=full_fit_intens, fit_centroid=[azi_plot, fit_centroid]
+        fig_plot=figure, model=full_fit_intens, fit_centroid=[azi_plot, fit_centroid],
+        orientation=orientation, plot_type=plot_type
     )
     return figure

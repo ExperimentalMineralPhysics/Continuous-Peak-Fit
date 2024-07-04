@@ -5,7 +5,7 @@
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
-from matplotlib import gridspec, cm, colors
+from matplotlib import gridspec, cm, colors, tri
 from cpf.histograms import histogram2d
 from cpf.XRD_FitPattern import logger
 import cpf.logger_functions as lg
@@ -197,19 +197,25 @@ class _Plot_AngleDispersive():
             "min": np.min([self.intensity.min(), model.min()]),
         }
     
-        tight=True
+        tight=False
+        raster_plot="surface"
+        up=1
+        across=3
+        location = "bottom"
 
         # make axes
         ax = []
         if tight==True:
-            gs = gridspec.GridSpec(1, 3, wspace=0.0)
+            gs = gridspec.GridSpec(up, across, wspace=0.0, hspace=0.0)
             for i in range(3):
                 ax.append(fig_plot.add_subplot(gs[i]))
-            location = "bottom"
+            # location = "bottom"
         else:
-            for i in range(3):
-                ax.append(fig_plot.add_subplot(1, 3, i+1))
-            location = "right"
+            # if horizontal==False:
+            axs = fig_plot.subplots(nrows=1, ncols=3, sharey=True)
+            ax.append(axs[0])
+            ax.append(axs[1])
+            ax.append(axs[2])
     
         # plot data
         self.plot_calibrated(
@@ -219,7 +225,8 @@ class _Plot_AngleDispersive():
             x_axis="default",
             limits=limits,
             colourmap="magma_r",
-            location=location
+            location=location,
+            rastered = raster_plot
         )
         ax[0].set_title("Data")
         locs, labels = plt.xticks()
@@ -230,9 +237,11 @@ class _Plot_AngleDispersive():
             fig_plot=fig_plot,
             axis_plot=ax[1],
             data=model,
+            y_label=None,
             limits=limits,
             colourmap="magma_r",
-            location=location
+            location=location,
+            rastered = raster_plot
         )
         if fit_centroid is not None:
             for i in range(len(fit_centroid[1])):
@@ -246,9 +255,11 @@ class _Plot_AngleDispersive():
             fig_plot=fig_plot,
             axis_plot=ax[2],
             data=self.intensity - model,
+            y_label=None,
             limits=[0, 100],
             colourmap="residuals-blanaced",
-            location=location
+            location=location,
+            rastered = raster_plot
         )
         if fit_centroid is not None:
             for i in range(len(fit_centroid[1])):
@@ -455,8 +466,8 @@ class _Plot_AngleDispersive():
             # axis exists but figure not refrenced. 
             pass    
         
-        if self.intensity.size > 100000000000:# 1000000: # was 50000 until fixed max/min functions 
-            logger.info(" ".join(map(str, [(" Have patience. The plot(s) will appear but it can take its time to render.")])))
+        if rastered==False and self.intensity.size > 1E6: #100000000000:# 1000000: # was 50000 until fixed max/min functions 
+            logger.moreinfo(" ".join(map(str, [(" Have patience. The plot(s) will appear but it can take its time to render.")])))
             rastered = True
     
         if x_axis == "default":
@@ -560,7 +571,7 @@ class _Plot_AngleDispersive():
         else:
             colourmap = colourmap
 
-        if rastered == False:
+        if rastered == False or rastered == "scatter":
             the_plot = axis_plot.scatter(
                 plot_x,
                 plot_y,
@@ -572,8 +583,20 @@ class _Plot_AngleDispersive():
                 vmax=IMax,
                 #rasterized=rastered,
             )
+        elif rastered == "surf" or rastered == "surface":
+            the_plot = surface_plot(
+                plot_i,
+                plot_x,
+                plot_y,
+                fig_plot=fig_plot,
+                axis_plot = axis_plot,
+                vmin=IMin,
+                vmax=IMax,
+                colourmap=colourmap,
+                pixels_per_bin = point_scale,
+                resample_shape = resample_shape
+            )
         else:
-            # the_plot = self.raster_plot(
             the_plot = raster_plot(
                 plot_i,
                 plot_x,
@@ -596,7 +619,7 @@ class _Plot_AngleDispersive():
         #p2 = axis_plot.get_position().get_points().flatten()        
         #ax_cbar1 = fig_plot.add_axes([p2[0], 0, p2[2]-p2[0], 0.05]) 
     
-        cb = fig_plot.colorbar(mappable=the_plot, ax=axis_plot, extend=cb_extend, location=location, shrink=0.9)
+        cb = fig_plot.colorbar(mappable=the_plot, ax=axis_plot, extend=cb_extend, location=location, shrink=0.9, pad=0.1, aspect=8)
 
 
 
@@ -727,5 +750,98 @@ def raster_plot(
     if lg.make_logger_output(level="DEBUG"):
         end = time.time()
         logger.debug(" ".join(map(str, [(f"Time to make rastered plot {end-start}")] )) )
+    
+    return pl
+
+
+
+    
+def surface_plot(
+    # self,
+    data_plot, x_plot, y_plot,
+    fig_plot=None,
+    axis_plot=None,
+    resample_shape = None,
+    vmin=0,
+    vmax=np.inf,
+    colourmap="jet",
+    pixels_per_bin=3,
+):
+    """
+    Plots the data on an irregular tripcolor gird.
+
+    Parameters
+    ----------
+    data_plot : masked array
+        data to convert into the image to plot. 
+    x_plot : masked array
+        horizontal position of the data points (usually two theta)
+    y_plot : masked array
+        vertical position of the data points (usually azimuth)
+    fig_plot : figure, optional
+        Figure to add plot to. The default is None.
+    axis_plot : axes, optional
+        Axes to add plot to. The default is None.
+    vmin : float, optional
+        minimum of the plotted colour scale. The default is 0.
+    vmax : float, optional
+        minimum of the plotted colour scale. The default is np.inf, in effect the maximum value in data_plot
+    colourmap : string, optional
+        Colourmap for the plot. The default is "jet".
+    pixels_per_bin : float, optional
+        Scaler for the number of bins in the histogram  . The default is 3.
+     : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    pl : axes
+        filled set of axes.
+    """
+    
+    triang = tri.Triangulation(x_plot.flatten(), y_plot.flatten())
+    corners = triang.triangles
+    # FIXME: i might be better to make the triangles from the x,y, points rather than the tth+azm.
+    # when made like this the plots spread the intensity in a broadway. -- the scatter plot looks better. 
+    
+    
+    triang.set_mask(tri.TriAnalyzer(triang).get_flat_tri_mask())
+    mask=np.zeros(len(triang.triangles))
+    for i in range(len(corners)):
+        if any(x_plot.flatten()[corners[i,:]].mask == True):
+            mask[i]=True
+    mask=np.array(mask, dtype="bool")
+    triang.set_mask((triang.mask==True) | (mask==True))
+    
+    if 0:        
+        areas=[]
+        x_range = []
+        y_range = []
+        import proglog
+        progress_bar = proglog.default_bar_logger('bar')  # shorthand to generate a bar logger
+    
+        def PolyArea(x,y):
+            return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
+        
+        #for f in range(setting_class.image_number):
+        for i in progress_bar.iter_bar(iteration=range(len(corners))):
+            if triang.mask[i] == True:
+                pass
+            else:
+                areas.append(PolyArea(x_plot.flatten()[corners][i], y_plot.flatten()[corners][i]))
+                x_range.append( x_plot.flatten()[triang.triangles][i].max() - x_plot.flatten()[triang.triangles][i].min() )
+                y_range.append( y_plot.flatten()[triang.triangles][i].max() - y_plot.flatten()[triang.triangles][i].min() )
+
+        fig, axs = plt.subplots(1,3, sharey=True, tight_layout=True)
+    
+        # We can set the number of bins with the *bins* keyword argument.
+        axs[0].hist(areas, bins=50)#int(len(areas)/40))
+        axs[1].hist(x_range, bins=50)#int(len(areas)/40))
+        axs[2].hist(y_range, bins=50)#int(len(areas)/40))
+    
+        # FIXME: I should filter the triangles on their area or their shape. 
+        # mean_area = np.mean(areas)
+    
+    pl = axis_plot.tripcolor(triang, data_plot.flatten(),cmap=colourmap, vmin=vmin, vmax=vmax)
     
     return pl

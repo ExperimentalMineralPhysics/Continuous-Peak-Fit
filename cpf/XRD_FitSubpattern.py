@@ -765,15 +765,15 @@ def fit_sub_pattern(
     if (save_fit == 1 or view == 1 or lg.make_logger_output("EFFUSIVE")) and step>0:
         logger.effusive(" ".join(map(str, [("Plotting results for fit...")])))
         
-        fig = plt.figure()
+        fig = plt.figure(figsize=(4,8)) # default figure size is [6.4, 4.8]
         fig = plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=master_params, params_dict=new_params, figure=fig)
         title_str = io.peak_string(settings_as_class.subfit_orders) + "\n final fit"
         if "note" in settings_as_class.subfit_orders:
             title_str = title_str + " " + settings_as_class.subfit_orders["note"]
         
-        io.figure_suptitle_space(fig, topmargin=0.4)
+        # io.figure_suptitle_space(fig, topmargin=2)
         plt.suptitle(title_str)
-        #plt.tight_layout()
+        plt.tight_layout()
 
         if view == 1 or lg.make_logger_output("EFFUSIVE"):
             plt.show()

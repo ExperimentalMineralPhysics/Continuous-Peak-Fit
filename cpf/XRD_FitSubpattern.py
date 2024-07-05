@@ -202,8 +202,8 @@ def fit_sub_pattern(
     histogram_type = None, 
     histogram_bins = None,
     cascade=False,
-    threshold_data_intensity = 0,
-    threshold_peak_intensity = 0,
+    min_data_intensity = 1,
+    min_peak_intensity = "0.25*std",
     large_errors = 300
 ):
     """
@@ -335,9 +335,9 @@ def fit_sub_pattern(
             )
             
             #check if the data intensity is above threshold. 
-            if np.max(data_as_class.intensity) <= threshold_data_intensity:
+            if np.max(data_as_class.intensity) <= min_data_intensity:
                 #then there is likely no determinable peak in the data
-                logger.moreinfo(" ".join(map(str, [("Not sufficient intensity in the data to proceed with fitting (I_max < %s)." % threshold_data_intensity)])))
+                logger.moreinfo(" ".join(map(str, [("Not sufficient intensity in the data to proceed with fitting (I_max < %s)." % min_data_intensity)])))
                 #set step to -21 so that it is still negative at the end
                 step = -21 #get to the end and void the fit
                 fout=master_params
@@ -379,32 +379,32 @@ def fit_sub_pattern(
                 ave_intensity = []
                 for k in range(peeks):
                     ave_intensity.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
-                if isinstance(threshold_peak_intensity, str):
+                if isinstance(min_peak_intensity, str):
                     # is the threshold a multiple of the data's variance of standard deviation? 
-                    if threshold_peak_intensity.find("var") != -1:
+                    if min_peak_intensity.find("var") != -1:
                         var = np.var(data_as_class.intensity.flatten())
-                        threshold_peak_intensity = threshold_peak_intensity.strip("var")
-                        threshold_peak_intensity = threshold_peak_intensity.strip("*")
-                        if threshold_peak_intensity == "":
-                            threshold_peak_intensity = 1
-                        threshold_peak_intensity = float(threshold_peak_intensity) * var
+                        min_peak_intensity = min_peak_intensity.strip("var")
+                        min_peak_intensity = min_peak_intensity.strip("*")
+                        if min_peak_intensity == "":
+                            min_peak_intensity = 1
+                        min_peak_intensity = float(min_peak_intensity) * var
                         
-                    elif threshold_peak_intensity.find("std") != -1:
+                    elif min_peak_intensity.find("std") != -1:
                         std = np.std(data_as_class.intensity.flatten())
-                        threshold_peak_intensity = threshold_peak_intensity.strip("std")
-                        threshold_peak_intensity = threshold_peak_intensity.strip("*")
-                        if threshold_peak_intensity == "":
-                            threshold_peak_intensity = 1
-                        threshold_peak_intensity = float(threshold_peak_intensity) * std
+                        min_peak_intensity = min_peak_intensity.strip("std")
+                        min_peak_intensity = min_peak_intensity.strip("*")
+                        if min_peak_intensity == "":
+                            min_peak_intensity = 1
+                        min_peak_intensity = float(min_peak_intensity) * std
     
                     else:
-                        err_str = "The 'threshold_peak_intensity' has to be a number or a multiple of 'var' or 'std'"
+                        err_str = "The 'min_peak_intensity' has to be a number or a multiple of 'var' or 'std'"
                         logger.critical(" ".join(map(str, [(err_str)])))
                         raise ValueError(err_str)
                         
-                if np.max(ave_intensity) <= threshold_peak_intensity:
+                if np.max(ave_intensity) <= min_peak_intensity:
                     #then there is no determinable peak(s) in the data
-                    logger.moreinfo(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting (h_max < %s)." % threshold_peak_intensity)])))
+                    logger.moreinfo(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting (h_max < %s)." % min_peak_intensity)])))
                     #set step to -11 so that it is still negative at the end
                     step = -11 #get to the end and void the fit
                     fout=master_params
@@ -524,30 +524,30 @@ def fit_sub_pattern(
                 ave_intensity = []
                 for k in range(peeks):
                     ave_intensity.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
-                if isinstance(threshold_peak_intensity, str):
+                if isinstance(min_peak_intensity, str):
                     # is the threshold a multiple of the data's variance of standard deviation? 
-                    if threshold_peak_intensity.find("var") != -1:
+                    if min_peak_intensity.find("var") != -1:
                         var = np.var(data_as_class.intensity.flatten())
-                        threshold_peak_intensity = threshold_peak_intensity.strip("var")
-                        threshold_peak_intensity = threshold_peak_intensity.strip("*")
-                        if threshold_peak_intensity == "":
-                            threshold_peak_intensity = 1
-                        threshold_peak_intensity = float(threshold_peak_intensity) * var
+                        min_peak_intensity = min_peak_intensity.strip("var")
+                        min_peak_intensity = min_peak_intensity.strip("*")
+                        if min_peak_intensity == "":
+                            min_peak_intensity = 1
+                        min_peak_intensity = float(min_peak_intensity) * var
                         
-                    elif threshold_peak_intensity.find("std") != -1:
+                    elif min_peak_intensity.find("std") != -1:
                         std = np.std(data_as_class.intensity.flatten())
-                        threshold_peak_intensity = threshold_peak_intensity.strip("std")
-                        threshold_peak_intensity = threshold_peak_intensity.strip("*")
-                        if threshold_peak_intensity == "":
-                            threshold_peak_intensity = 1
-                        threshold_peak_intensity = float(threshold_peak_intensity) * std
+                        min_peak_intensity = min_peak_intensity.strip("std")
+                        min_peak_intensity = min_peak_intensity.strip("*")
+                        if min_peak_intensity == "":
+                            min_peak_intensity = 1
+                        min_peak_intensity = float(min_peak_intensity) * std
     
                     else:
-                        err_str = "The 'threshold_peak_intensity' has to be a number or a multiple of 'var' or 'std'"
+                        err_str = "The 'min_peak_intensity' has to be a number or a multiple of 'var' or 'std'"
                         logger.critical(" ".join(map(str, [(err_str)])))
                         raise ValueError(err_str)
                         
-                if np.max(ave_intensity) <= threshold_peak_intensity:
+                if np.max(ave_intensity) <= min_peak_intensity:
                     #then there is no determinable peak in the data
                     logger.moreinfo(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting.")])))
                     #set step to -101 so that it is still negative at the end

@@ -517,8 +517,6 @@ def execute(
     parallel=True,
     mode="fit",
     report=False,
-    threshold_data_intensity = 0,
-    threshold_peak_intensity = 0,
     fit_method = "leastsq",
 ):
     """
@@ -766,8 +764,8 @@ def execute(
                         "debug": debug,
                         "refine": refine,
                         "iterations": iterations,
-                        "threshold_data_intensity": threshold_data_intensity,
-                        "threshold_peak_intensity": threshold_peak_intensity,
+                        "min_data_intensity": settings_for_fit.fit_min_data_intensity,
+                        "min_peak_intensity": settings_for_fit.fit_min_peak_intensity,
                     }
                     arg = (sub_data, settings_for_fit.duplicate())
                     parallel_pile.append((arg, kwargs))
@@ -781,8 +779,8 @@ def execute(
                         debug=debug,
                         refine=refine,
                         iterations=iterations,
-                        threshold_data_intensity = threshold_data_intensity,
-                        threshold_peak_intensity = threshold_peak_intensity,
+                        min_data_intensity = settings_for_fit.fit_min_data_intensity,
+                        min_peak_intensity = settings_for_fit.fit_min_peak_intensity,
                         
                         fit_method = fit_method
                     )

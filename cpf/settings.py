@@ -119,6 +119,8 @@ class settings:
             "profile": [0, 1],
             "width": ["range/(ndata)", "range/2"],
         }
+        self.fit_min_data_intensity = 0
+        self.fit_min_peak_intensity = "0.25*std"
 
         self.fit_track = False
         self.fit_propagate = True
@@ -320,6 +322,10 @@ class settings:
             self.fit_track = self.settings_from_file.fit_track
         if "fit_propagate" in dir(self.settings_from_file):
             self.fit_propagate = self.settings_from_file.fit_propagate
+        if "fit_min_data_intensity" in dir(self.settings_from_file):
+            self.fit_min_data_intensity = self.settings_from_file.fit_min_data_intensity
+        if "fit_min_peak_intensity" in dir(self.settings_from_file):
+            self.fit_min_peak_intensity = self.settings_from_file.fit_min_peak_intensity
 
         if "AziDataPerBin" in dir(self.settings_from_file):
             self.fit_per_bin = self.settings_from_file.AziDataPerBin

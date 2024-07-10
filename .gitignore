@@ -12,6 +12,7 @@
 *.exp
 *.flt
 *.spt
+*.log
 
 *.gif
 *.mp4

@@ -60,6 +60,7 @@ from cpf.IO_functions import (
     any_terms_null,
     title_file_names,
 )
+from cpf.XRD_FitPattern import logger
 
 # from findpeaks import findpeaks
 
@@ -190,8 +191,7 @@ def execute(
 
     # Process the diffraction patterns #
     for j in range(settings_for_fit.image_number):
-
-        print("Process ", title_file_names(image_name=settings_for_fit.image_list[j]))
+        logger.info(" ".join(map(str, [("Process ", settings_for_fit.datafile_list[j])])))
         # Get diffraction pattern to process.
         new_data.import_image(settings_for_fit.image_list[j], debug=debug)
 
@@ -220,7 +220,7 @@ def execute(
             and settings_for_fit.fit_propagate is True
         ):  # and mode == "fit":
             # Read JSON data from file
-            print("Loading previous fit results from %s" % temporary_data_file)
+            logger.info(" ".join(map(str, [("Loading previous fit results from %s" % temporary_data_file)])))
             with open(temporary_data_file) as json_data:
                 previous_fit = json.load(json_data)
 
@@ -252,35 +252,33 @@ def execute(
                 clean = any_terms_null(params, val_to_find=None)
                 if clean == 0:
                     # the previous fit has problems so discard it
-                    print(
-                        "Propagated fit has problems so not sesible to track the centre of the fit."
-                    )
+                    logger.info(" ".join(map(str, [("Propagated fit has problems so not sesible to track the centre of the fit.")])))
                 else:
-                    print("old subpattern range", tth_range)
+                    logger.info(" ".join(map(str, [("old subpattern range", tth_range)])))
                     mid = []
                     for k in range(len(params["peak"])):
                         mid.append(params["peak"][k]["d-space"][0])
                         # FIXME: replace with caluculation of mean d-spacing.
 
                     # Replace this with call through to class structure?
-                    # print(mid)
+                    # logger.info(" ".join(map(str, [(mid)])))
                     cent = new_data.conversion(np.mean(mid), reverse=True)
-                    # print("cent", cent)
-                    # print("mean tth_range", np.mean(tth_range))
-                    # print((tth_range[1] + tth_range[0]) / 2)
+                    # logger.info(" ".join(map(str, [("cent", cent)])))
+                    # logger.info(" ".join(map(str, [("mean tth_range", np.mean(tth_range))])))
+                    # logger.info(" ".join(map(str, [((tth_range[1] + tth_range[0]) / 2)])))
                     move_by = cent - np.mean(tth_range)
-                    print("move by", move_by)
+                    logger.info(" ".join(map(str, [("move by", move_by)])))
                     tth_range = tth_range + move_by
                     # tth_range[0] = tth_range[0] - ((tth_range[1] + tth_range[0]) / 2) + cent
                     # tth_range[1] = tth_range[1] - ((tth_range[1] + tth_range[0]) / 2) + cent
-                    # print("move by:", ((tth_range[1] + tth_range[0]) / 2) - cent)
-                    print("new subpattern range", tth_range)
+                    # logger.info(" ".join(map(str, [("move by:", ((tth_range[1] + tth_range[0]) / 2) - cent)])))
+                    logger.info(" ".join(map(str, [("new subpattern range", tth_range)])))
 
                     # copy new positions back into settings_for_fit
                     settings_for_fit.fit_orders[i]["range"] = (
                         settings_for_fit.fit_orders[i]["range"] + move_by
                     )
-                    print(settings_for_fit.fit_orders[i]["range"])
+                    logger.info(" ".join(map(str, [(settings_for_fit.fit_orders[i]["range"])])))
 
                     # The PeakPositionSelections are only used if the fits are not being propagated
                     if "PeakPositionSelection" in settings_for_fit.fit_orders[i]:
@@ -1183,20 +1181,20 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
         
     for h in range(n_diff_files):
         
-        #print(FitParameters)
-        #print(diff_files)
+        #logger.info(" ".join(map(str, [(FitParameters)])))
+        #logger.info(" ".join(map(str, [(diff_files)])))
         
         #FitSettings_tmp = FitSettings
         FitSettings_tmp = FitSettings
         FitSettings_tmp.datafile_Files = [FitSettings_files[h]]
         #FitSettings_tmp.datafile_Files[0] = diff_files[h]
         
-        #print(FitSettings_tmp.datafile_Files)
-        #print(FitSettings_tmp)
-        #print(FitParameters)
+        #logger.info(" ".join(map(str, [(FitSettings_tmp.datafile_Files)])))
+        #logger.info(" ".join(map(str, [(FitSettings_tmp)])))
+        #logger.info(" ".join(map(str, [(FitParameters)])))
     
         outfname = IO.make_outfile_name(diff_files[h], directory=FitSettings_tmp.Output_directory, extension='csv', additional_text='peaks')
-        print(outfname)
+        logger.info(" ".join(map(str, [(outfname)])))
     
         if not os.path.exists(outfname):
             #This currently gets all the peaks in the image, not just those in the regios of interest
@@ -1232,19 +1230,19 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
             #fp.plot_persistence()
             
             fp.results['persistence']
-            print(fp.results['persistence'])
-            print(type(fp.results['persistence']))
+            logger.info(" ".join(map(str, [(fp.results['persistence'])])))
+            logger.info(" ".join(map(str, [(type(fp.results['persistence']))])))
             
             peaks = fp.results
-            #print(type(peaks))
-            #print(peaks)
-            #print(type(peaks))
+            #logger.info(" ".join(map(str, [(type(peaks))])))
+            #logger.info(" ".join(map(str, [(peaks)])))
+            #logger.info(" ".join(map(str, [(type(peaks))])))
             
             fp.results['persistence'].to_csv(outfname)
         else:
             
             peaks=pd.read_csv(outfname)
-            #print(fp)
+            #logger.info(" ".join(map(str, [(fp)])))
             #peaks = fp.results
             if h==0:
                 #This currently gets all the peaks in the image, not just those in the regios of interest
@@ -1305,8 +1303,8 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
             
             # visible.append(num_vis_pix/num_pix)
         num_peaks_all.append(num_peaks)
-        #print(num_peaks)
-        #print(visible)
+        #logger.info(" ".join(map(str, [(num_peaks)])))
+        #logger.info(" ".join(map(str, [(visible)])))
      
     #get file times
     modified_time = []
@@ -1315,12 +1313,12 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
     modified_time = np.array(modified_time)
     modified_time = (modified_time - modified_time[0])/60
     num_peaks_all=np.array(num_peaks_all)
-    print(num_peaks_all)
-    print(modified_time)
+    logger.info(" ".join(map(str, [(num_peaks_all)])))
+    logger.info(" ".join(map(str, [(modified_time)])))
     if 1:
         fig,ax = plt.subplots()
         for i in range(len(FitSettings.fit_orders)):
-            print(num_peaks_all[:,i])
+            logger.info(" ".join(map(str, [(num_peaks_all[:,i])])))
             plt.plot(modified_time, num_peaks_all[:,i], '.-', label=IO.peak_string(FitSettings.fit_orders[i]))
             
         plt.xlabel(r'Time (min)')
@@ -1364,7 +1362,7 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
         
         # fp.results['persistence']
         
-        # print(fp.results)
+        # logger.info(" ".join(map(str, [(fp.results)])))
           
     
     
@@ -1405,7 +1403,7 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
         
         fp.results['persistence']
         
-        print(fp.results)
+        logger.info(" ".join(map(str, [(fp.results)])))
         
     stop
                 

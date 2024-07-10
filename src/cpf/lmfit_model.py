@@ -27,9 +27,9 @@ import numpy as np
 import sys
 import warnings
 from lmfit import Parameters, Model
-from lmfit.parameter import Parameters
 import cpf.peak_functions as pf
 import cpf.series_functions as sf
+from cpf.XRD_FitPattern import logger
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -164,10 +164,9 @@ def params_to_new_params(params, orders=None):
             else:
                 done = 1
     else:
-        print
-        raise ValueError(
-            "Cannot define number of coefficients."
-        )
+        err_str = "Cannot define number of coefficients for peak."
+        logger.critical(" ".join(map(str, [(err_str)])))   
+        raise ValueError(err_str)
         
     peaks = []
     new_str = ""
@@ -290,7 +289,7 @@ def gather_param_errs_to_list(
     str_keys = [
         key for key, val in inp_param.items() if new_str in key and "tp" not in key
     ]
-    # print('yes', new_str, str_keys)
+    # logger.info(" ".join(map(str, [('yes', new_str, str_keys)])))
     for i in range(len(str_keys)):
         param_list.append(inp_param[new_str + str(i)].value)
         err_list.append(inp_param[new_str + str(i)].stderr)
@@ -546,10 +545,9 @@ def initiate_params(
                 # The real confusion though is len should work for arrays as well...
                 num_coeff = value.size
         else:
-            print(value)
-            raise ValueError(
-                "Cannot define independent values without a number of coefficients."
-            )
+            err_str = "Cannot define independent values without a number of coefficients."
+            logger.critical(" ".join(map(str, [(value)])))
+            raise ValueError(err_str)
 
     elif trig_orders is None:
         try:
@@ -787,7 +785,7 @@ def peaks_model(
     # Elapsed time for fitting
     # t_end = time.time()
     # t_elapsed = t_end - t_start
-    # print(t_elapsed)
+    # logger.info(" ".join(map(str, [(t_elapsed)])))
 
     return intensity
 
@@ -898,9 +896,9 @@ def coefficient_fit(
     azimuth = np.array(azimuth)
 
     coeff_type = inp_param.eval(param_str + "_tp")
-    f_model = Model(sf.coefficient_expand, independent_vars=["azimuth"], start_end=start_end)
-    # print('parameter names: {}'.format(f_model.param_names))
-    # print('independent variables: {}'.format(f_model.independent_vars))
+    f_model = Model(sf.coefficient_expand, independent_vars=["azimuth"], start_end=start_end, comp_str=param_str, coeff_type=coeff_type)
+    # logger.info(" ".join(map(str, [('parameter names: {}'.format(f_model.param_names))])))
+    # logger.info(" ".join(map(str, [('independent variables: {}'.format(f_model.independent_vars))])))
 
     # Attempt to mitigate failure of fit with weights containing 'None' values
     # Replace with nan and alter dtype from object to float64
@@ -916,12 +914,13 @@ def coefficient_fit(
         ydata[idx],
         inp_param,
         azimuth=azimuth[idx] * symmetry,
-        coeff_type=coeff_type,
-        start_end=start_end,
+        # coeff_type=coeff_type,
+        # start_end=start_end,
         method=fit_method,
-        sigma=new_errs,
-        comp_str=param_str,
+        weights=new_errs,
+        # comp_str=param_str,
         nan_policy="propagate",
         max_nfev = max_nfev
     )
     return out
+

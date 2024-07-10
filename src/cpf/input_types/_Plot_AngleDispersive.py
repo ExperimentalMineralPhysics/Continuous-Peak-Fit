@@ -5,8 +5,10 @@
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
-from matplotlib import gridspec, cm, colors
+from matplotlib import gridspec, cm, colors, tri
 from cpf.histograms import histogram2d
+from cpf.XRD_FitPattern import logger
+import cpf.logger_functions as lg
 
 
 class _Plot_AngleDispersive():
@@ -181,7 +183,7 @@ class _Plot_AngleDispersive():
           
     
     
-    def plot_fitted(self, fig_plot=None, model=None, fit_centroid=None):
+    def plot_fitted(self, fig_plot=None, model=None, fit_centroid=None, plot_type="surface", orientation="horizontal"):
         """
         add data to axes.
         :param ax:
@@ -195,31 +197,46 @@ class _Plot_AngleDispersive():
             "min": np.min([self.intensity.min(), model.min()]),
         }
     
-        tight=True
-
+        tight=False
+        
+        if orientation=="horizontal":
+            up = 3
+            across =1
+            # location = "right"
+            tight=True
+            loc = "left"
+        else:
+            up = 1
+            across = 3
+            # location = "right"
+            loc="center"
         # make axes
         ax = []
         if tight==True:
-            gs = gridspec.GridSpec(1, 3, wspace=0.0)
+            gs = gridspec.GridSpec(up, across, wspace=0.0, hspace=0.0)
             for i in range(3):
                 ax.append(fig_plot.add_subplot(gs[i]))
-            location = "bottom"
         else:
-            for i in range(3):
-                ax.append(fig_plot.add_subplot(1, 3, i+1))
-            location = "right"
+            axs = fig_plot.subplots(nrows=up, ncols=across, sharey=True, sharex=True)
+            ax.append(axs[0])
+            ax.append(axs[1])
+            ax.append(axs[2])
     
         # plot data
         self.plot_calibrated(
             fig_plot=fig_plot,
             axis_plot=ax[0],
             show="intensity",
-            x_axis="default",
             limits=limits,
             colourmap="magma_r",
-            location=location
+            # location=location,
+            rastered = plot_type,
+            orientation=orientation
         )
-        ax[0].set_title("Data")
+        if orientation == "horizontal":
+            ax[0].set_title("Data",loc=loc, y=0.75)
+        else:
+            ax[0].set_title("Data")
         locs, labels = plt.xticks()
         # plt.setp(labels, rotation=90)
         
@@ -228,14 +245,23 @@ class _Plot_AngleDispersive():
             fig_plot=fig_plot,
             axis_plot=ax[1],
             data=model,
+            y_label=None,
             limits=limits,
             colourmap="magma_r",
-            location=location
+            # location=location,
+            rastered = plot_type,
+            orientation=orientation
         )
         if fit_centroid is not None:
             for i in range(len(fit_centroid[1])):
-                ax[1].plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
-        ax[1].set_title("Model")
+                if orientation =="horizontal":
+                    ax[1].plot(fit_centroid[0], fit_centroid[1][i], "k--", linewidth=0.5)
+                else:
+                    ax[1].plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
+        if orientation == "horizontal":
+            ax[1].set_title("Model",loc=loc, y=0.75)
+        else:
+            ax[1].set_title("Model")
         locs, labels = plt.xticks()
         # plt.setp(labels, rotation=90)
         
@@ -244,37 +270,63 @@ class _Plot_AngleDispersive():
             fig_plot=fig_plot,
             axis_plot=ax[2],
             data=self.intensity - model,
+            y_label=None,
             limits=[0, 100],
             colourmap="residuals-blanaced",
-            location=location
+            # location=location,
+            rastered = plot_type,
+            orientation=orientation
         )
         if fit_centroid is not None:
             for i in range(len(fit_centroid[1])):
-                ax[2].plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
-        ax[2].set_title("Residuals")
+                if orientation =="horizontal":
+                    ax[1].plot(fit_centroid[0], fit_centroid[1][i], "k--", linewidth=0.5)
+                else:
+                    ax[1].plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
+        if orientation == "horizontal":
+            ax[2].set_title("Residuals",loc=loc, y=0.75)
+        else:
+            ax[2].set_title("Residuals")
         locs, labels = plt.xticks()
         # plt.setp(labels, rotation=90)
     
         # organise the axes and labelling.
         if tight==True:
-            bottom0, top0 = ax[0].get_ylim()
-            bottom1, top1 = ax[1].get_ylim()
-            bottom2, top2 = ax[2].get_ylim()
-            top_max = np.max([top0, top1, top2])
-            bottom_min = np.min([bottom0, bottom1, bottom2])
-            ax[0].set_ylim(top=top_max, bottom=bottom_min)
-            ax[1].set_ylim(top=top_max, bottom=bottom_min)
-            ax[2].set_ylim(top=top_max, bottom=bottom_min)
-            ax[1].set(yticklabels=[])
-            ax[2].set(yticklabels=[])
-            ax[1].set(ylabel=None)
-            ax[2].set(ylabel=None)
-            ax[0].yaxis.set_ticks_position('both')
-            ax[1].yaxis.set_ticks_position('both')
-            ax[2].yaxis.set_ticks_position('both')
-            ax[0].xaxis.set_ticks_position('both')
-            ax[1].xaxis.set_ticks_position('both')
-            ax[2].xaxis.set_ticks_position('both')
+            if orientation == "horizontal":
+                bottom0, top0 = ax[0].get_ylim()
+                bottom1, top1 = ax[1].get_ylim()
+                bottom2, top2 = ax[2].get_ylim()
+                top_max = np.max([top0, top1, top2])
+                bottom_min = np.min([bottom0, bottom1, bottom2])
+                ax[0].set(xticklabels=[])
+                ax[1].set(xticklabels=[])
+                if len(ax)>1:
+                    ax[0].set_title(ax[0].get_title(), y=.8)
+                    ax[1].set_title(ax[1].get_title(), y=.7)
+                    ax[2].set_title(ax[2].get_title(), y=.9)
+                # fig_plot.rcParams['axes.titley'] = 1.0    # y is in axes-relative coordinates.
+                # fig_plot.rcParams['axes.titlepad'] = -14  # pad is in points...
+                ax[2].set_xlabel("Azimuth ($^\circ$)")
+            else:
+                        
+                bottom0, top0 = ax[0].get_ylim()
+                bottom1, top1 = ax[1].get_ylim()
+                bottom2, top2 = ax[2].get_ylim()
+                top_max = np.max([top0, top1, top2])
+                bottom_min = np.min([bottom0, bottom1, bottom2])
+                # ax[0].set_ylim(top=top_max, bottom=bottom_min)
+                # ax[1].set_ylim(top=top_max, bottom=bottom_min)
+                # ax[2].set_ylim(top=top_max, bottom=bottom_min)
+                ax[1].set(yticklabels=[])
+                ax[2].set(yticklabels=[])
+                ax[1].set(ylabel=None)
+                ax[2].set(ylabel=None)
+                ax[0].yaxis.set_ticks_position('both')
+                ax[1].yaxis.set_ticks_position('both')
+                ax[2].yaxis.set_ticks_position('both')
+                ax[0].xaxis.set_ticks_position('both')
+                ax[1].xaxis.set_ticks_position('both')
+                ax[2].xaxis.set_ticks_position('both')
    
         # tidy layout
         plt.tight_layout()
@@ -388,7 +440,6 @@ class _Plot_AngleDispersive():
         cb = fig_plot.colorbar(mappable=the_plot, ax=axis_plot, extend=cb_extend, fraction=fraction, location=location)
     
         if np.ndim(plot_i) >2 and plot_i.shape[0]>1:
-            print("why am I her)")
             # adjust the main plot to make room for the sliders
             fig_plot.subplots_adjust(bottom=0.25)
             
@@ -433,7 +484,8 @@ class _Plot_AngleDispersive():
         rastered=False,
         point_scale=2,
         resample_shape = None,
-        location = None
+        location = None,
+        orientation = "vertical"
     ):
         """
         add data to axes.
@@ -442,6 +494,10 @@ class _Plot_AngleDispersive():
         :return:
         """
      
+        
+        y_ticks = None
+        x_ticks = None
+            
         if axis_plot==None and fig_plot == None:
             #make a figure
             fig_plot, axis_plot = plt.subplots()
@@ -454,25 +510,25 @@ class _Plot_AngleDispersive():
             # axis exists but figure not refrenced. 
             pass    
         
-        if self.intensity.size > 100000000000:# 1000000: # was 50000 until fixed max/min functions 
-            print(
-                " Have patience. The plot(s) will appear but it can take its time to render."
-            )
+        if rastered==False and self.intensity.size > 1E6: #100000000000:# 1000000: # was 50000 until fixed max/min functions 
+            logger.moreinfo(" ".join(map(str, [(" Have patience. The plot(s) will appear but it can take its time to render.")])))
             rastered = True
     
-        if x_axis == "default":
+        if x_axis == "azimuth":
+            plot_x = self.azm
+            x_lims = [self.azm_start, self.azm_end]
+        else: # if x_axis is "default" or "tth"
             plot_x = self.tth
-        else:
-            plot_x = self.tth
-        plot_y = self.azm
-    
+        # plot_y = self.azm
+        label_x = x_label
+        
         if y_axis == "intensity":
             # plot y rather than azimuth on the y axis
             plot_y = self.intensity
             # organise colour scale as azimuth
             plot_i = self.azm
             label_y = "Intensity (a.u.)"
-            y_ticks = False
+            y_ticks=False
         else:  # if y_axis is "default" or "azimuth"
             plot_y = self.azm
             plot_i = self.intensity
@@ -480,7 +536,7 @@ class _Plot_AngleDispersive():
             if y_lims == None:
                 y_lims = [self.azm_start, self.azm_end]
                 # y_lims = [self.azm.min(), self.azm.max()]
-            axis_plot.set_ylim(y_lims)
+            # axis_plot.set_ylim(y_lims)
             # y_ticks = list(range(int(y_lims[0]),int(y_lims[1]+1),45))
     
             y_ticks = self.dispersion_ticks()
@@ -499,6 +555,9 @@ class _Plot_AngleDispersive():
             colourmap = "Greys"
         else:  # if show == "intensity"
             plot_i = plot_i
+    
+        # set axis limits
+        x_lims = [plot_x.min(), plot_x.max()]
     
         # set colour bar and colour maps.
         if colourmap == "Greys":
@@ -527,7 +586,18 @@ class _Plot_AngleDispersive():
             else:
                 cb_extend = "neither"
         if location == None:
-            if plot_i.shape[-1] > plot_i.shape[-2]:
+            if y_lims is None:
+                location = "right"
+            elif plot_y.ndim == 1:
+                x_range = x_lims[1] - x_lims[0]
+                y_range = y_lims[1] - y_lims[0]
+                if x_range >= y_range:
+                    location = "bottom"
+                    fraction = 0.046
+                else:
+                    location = "right"
+                    fraction = 0.15
+            elif plot_i.squeeze().shape[-1] > plot_i.squeeze().shape[-2]:
                 location = "bottom"
                 fraction = 0.046
             else:
@@ -537,8 +607,7 @@ class _Plot_AngleDispersive():
             location=="right"
         else:
             pass
-    
-    
+        
         # set colour map
         if colourmap == "residuals-blanaced":
             # colourmap = self.residuals_colour_scheme(
@@ -547,15 +616,19 @@ class _Plot_AngleDispersive():
             )
         else:
             colourmap = colourmap
-    			
-        # set axis limits
-        x_lims = [plot_x.min(), plot_x.max()]
-        # print(x_lims)
-        axis_plot.set_xlim(x_lims)
-        if y_ticks:
-            axis_plot.set_yticks(y_ticks)
-    
-        if rastered == False:
+
+        #if horizontal swap everything around. 
+        if orientation.lower() == "horizontal":
+            plot_y, plot_x = plot_x, plot_y
+            x_lims, y_lims = y_lims, x_lims
+            label_x, label_y = label_y, label_x
+            
+            
+            location = "right"
+        else:
+            location = "bottom"
+
+        if rastered == False or rastered == "scatter":
             the_plot = axis_plot.scatter(
                 plot_x,
                 plot_y,
@@ -567,8 +640,20 @@ class _Plot_AngleDispersive():
                 vmax=IMax,
                 #rasterized=rastered,
             )
+        elif rastered == "surf" or rastered == "surface":
+            the_plot = surface_plot(
+                plot_i,
+                plot_x,
+                plot_y,
+                fig_plot=fig_plot,
+                axis_plot = axis_plot,
+                vmin=IMin,
+                vmax=IMax,
+                colourmap=colourmap,
+                pixels_per_bin = point_scale,
+                resample_shape = resample_shape
+            )
         else:
-            # the_plot = self.raster_plot(
             the_plot = raster_plot(
                 plot_i,
                 plot_x,
@@ -581,13 +666,24 @@ class _Plot_AngleDispersive():
                 pixels_per_bin = point_scale,
                 resample_shape = resample_shape
             )
-        axis_plot.set_xlabel(x_label)
+            
+        axis_plot.set_xlabel(label_x)
         axis_plot.set_ylabel(label_y)
     
+        axis_plot.set_xlim(x_lims)
+        axis_plot.set_ylim(y_lims)
+        
+        if y_axis!="intensity":
+            if orientation=="horizontal":
+                axis_plot.set_xticks(y_ticks)
+            else:
+                axis_plot.set_yticks(y_ticks)
+       
+            
         #p2 = axis_plot.get_position().get_points().flatten()        
         #ax_cbar1 = fig_plot.add_axes([p2[0], 0, p2[2]-p2[0], 0.05]) 
     
-        cb = fig_plot.colorbar(mappable=the_plot, ax=axis_plot, extend=cb_extend, location=location, shrink=0.9)
+        cb = fig_plot.colorbar(mappable=the_plot, ax=axis_plot, extend=cb_extend, location=location, shrink=0.9)#, pad=0.1, aspect=8)
 
 
 
@@ -682,8 +778,10 @@ def raster_plot(
     # FIX ME: for massive data sets (e.g. ESFR) this is still slow. 
     # maybe it should be replaced by datashader or something else that is good for dynamicaly plotting massive data sets. 
     # an alternative is to use GIS image referencing packages. 
-    import time
-    start = time.time()
+    
+    if lg.make_logger_output(level="DEBUG"):
+        import time
+        start = time.time()
     
     
     if resample_shape != None:
@@ -713,8 +811,101 @@ def raster_plot(
     pl = axis_plot.imshow(result, extent=[x_edges[0],x_edges[-1],y_edges[0],y_edges[-1]], aspect="auto", vmin=vmin, vmax=vmax, cmap=colourmap)
     
     #axis_plot.invert_yaxis()
+    if lg.make_logger_output(level="DEBUG"):
+        end = time.time()
+        logger.debug(" ".join(map(str, [(f"Time to make rastered plot {end-start}")] )) )
     
-    end = time.time()
-    print(end - start)
+    return pl
+
+
+
+    
+def surface_plot(
+    # self,
+    data_plot, x_plot, y_plot,
+    fig_plot=None,
+    axis_plot=None,
+    resample_shape = None,
+    vmin=0,
+    vmax=np.inf,
+    colourmap="jet",
+    pixels_per_bin=3,
+):
+    """
+    Plots the data on an irregular tripcolor gird.
+
+    Parameters
+    ----------
+    data_plot : masked array
+        data to convert into the image to plot. 
+    x_plot : masked array
+        horizontal position of the data points (usually two theta)
+    y_plot : masked array
+        vertical position of the data points (usually azimuth)
+    fig_plot : figure, optional
+        Figure to add plot to. The default is None.
+    axis_plot : axes, optional
+        Axes to add plot to. The default is None.
+    vmin : float, optional
+        minimum of the plotted colour scale. The default is 0.
+    vmax : float, optional
+        minimum of the plotted colour scale. The default is np.inf, in effect the maximum value in data_plot
+    colourmap : string, optional
+        Colourmap for the plot. The default is "jet".
+    pixels_per_bin : float, optional
+        Scaler for the number of bins in the histogram  . The default is 3.
+     : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    pl : axes
+        filled set of axes.
+    """
+    
+    triang = tri.Triangulation(x_plot.flatten(), y_plot.flatten())
+    corners = triang.triangles
+    # FIXME: i might be better to make the triangles from the x,y, points rather than the tth+azm.
+    # when made like this the plots spread the intensity in a broadway. -- the scatter plot looks better. 
+    
+    
+    triang.set_mask(tri.TriAnalyzer(triang).get_flat_tri_mask())
+    mask=np.zeros(len(triang.triangles))
+    for i in range(len(corners)):
+        if any(x_plot.flatten()[corners[i,:]].mask == True):
+            mask[i]=True
+    mask=np.array(mask, dtype="bool")
+    triang.set_mask((triang.mask==True) | (mask==True))
+    
+    if 0:        
+        areas=[]
+        x_range = []
+        y_range = []
+        import proglog
+        progress_bar = proglog.default_bar_logger('bar')  # shorthand to generate a bar logger
+    
+        def PolyArea(x,y):
+            return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
+        
+        #for f in range(setting_class.image_number):
+        for i in progress_bar.iter_bar(iteration=range(len(corners))):
+            if triang.mask[i] == True:
+                pass
+            else:
+                areas.append(PolyArea(x_plot.flatten()[corners][i], y_plot.flatten()[corners][i]))
+                x_range.append( x_plot.flatten()[triang.triangles][i].max() - x_plot.flatten()[triang.triangles][i].min() )
+                y_range.append( y_plot.flatten()[triang.triangles][i].max() - y_plot.flatten()[triang.triangles][i].min() )
+
+        fig, axs = plt.subplots(1,3, sharey=True, tight_layout=True)
+    
+        # We can set the number of bins with the *bins* keyword argument.
+        axs[0].hist(areas, bins=50)#int(len(areas)/40))
+        axs[1].hist(x_range, bins=50)#int(len(areas)/40))
+        axs[2].hist(y_range, bins=50)#int(len(areas)/40))
+    
+        # FIXME: I should filter the triangles on their area or their shape. 
+        # mean_area = np.mean(areas)
+    
+    pl = axis_plot.tripcolor(triang, data_plot.flatten(),cmap=colourmap, vmin=vmin, vmax=vmax)
     
     return pl

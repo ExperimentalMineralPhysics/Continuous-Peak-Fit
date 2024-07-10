@@ -16,6 +16,7 @@ from matplotlib import cm, colors, gridspec
 from cpf.input_types import Med, med_detectors
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
+from cpf.XRD_FitPattern import logger
 
 
 
@@ -466,9 +467,9 @@ class MedDetector:
             all_present = 1
             for par in parameter_settings:
                 if par in required_list:
-                    print("Got: ", par)
+                    logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    print("The settings file requires a parameter called  '", par, "'")
+                    logger.info(" ".join(map(str, [("The settings file requires a parameter called  '", par, "'")])))
                     all_present = 0
             if all_present == 0:
                 sys.exit(
@@ -559,9 +560,6 @@ class MedDetector:
         else:
             e_in = np.array([[0, e_in]], dtype=object)
 
-        # print('E_in',E_in, 'calib,', calib)
-        # print('type E_in', type(E_in))
-        # print(E_in[:,1])
         # Convert Energy (keV) to wavelength (Angstroms)
         # E = hc/lambda;  h = 4.135667662(25)×10−15 eV s; c = 299792458 m/s
         wavelength = 4.135667662e-15 * (299792458 * 1e10) / (e_in[:, 1] * 1000)
@@ -603,7 +601,6 @@ class MedDetector:
             dspc_out = np.array(dspc_out)
 
         return dspc_out
-
 
 
     def bins(self, orders_class, **kwargs):
@@ -936,18 +933,7 @@ class MedDetector:
             normalize = colors.Normalize(vmin=self.azm_start, vmax=self.azm_end)
             c_map = cm.get_cmap(name=colourmap)
             for i in range(len(np.unique(self.azm)) - 1, -1, -1):
-                if debug:
-                    print("arrays for plotting")
-                    print(i, np.unique(self.azm))
-                    print("x", plot_x[self.azm == np.unique(self.azm)[i]])
-                    print("y", plot_y[self.azm == np.unique(self.azm)[i]])
-                    print("c", np.mean(plot_c[self.azm == np.unique(self.azm)[i]]))
-                    print(
-                        "mask",
-                        not ma.MaskedArray.all(
-                            plot_x[self.azm == np.unique(self.azm)[i]]
-                        ),
-                    )
+                
                 colour = c_map(
                     normalize(np.mean(plot_c[self.azm == np.unique(self.azm)[i]]))
                 )

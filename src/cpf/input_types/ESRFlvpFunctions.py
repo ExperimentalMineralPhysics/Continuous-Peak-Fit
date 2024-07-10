@@ -22,6 +22,8 @@ from numpy import pi as pi #used in self.calibration["trans_function"]
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
+from cpf.XRD_FitPattern import logger
+import cpf.logger_functions as lg
 
 
 """
@@ -173,8 +175,8 @@ class ESRFlvpDetector():
         self.DispersionType = "AngleDispersive"
         self.continuous_azm = True
 
-        self.azm_blocks = 2.5
-        # default blocks are 2.5 degrees incase using only a single detector position
+        self.azm_blocks = 2
+        # default blocks are 2 degrees incase using only a single detector position
         # if the detector is being spun then the blocks are changed to a larger value.
         
         self.calibration = None
@@ -348,15 +350,11 @@ class ESRFlvpDetector():
         positions = np.deg2rad(positions)
         frames = int(len(imgs_))
 
-        # make pyFAI AzimuthalIntegrator object for single detector.
-        ai = AzimuthalIntegrator(detector=self.calibration["detector"], wavelength=self.calibration["wavelength"])
-        
         # make list of AzimuthalIntegrator objects for all detector postions
         ais = []
-        ai.reset()
         for i in range(frames):
             pos = positions[i]
-            print("position", np.rad2deg(pos))
+
             #these lines are required because they are called by the calibration trans_function.
             rot_x = self.calibration["param"][self.calibration['param_names'].index("rot_x")]
             rot_y = self.calibration["param"][self.calibration['param_names'].index("rot_y")]
@@ -365,28 +363,31 @@ class ESRFlvpDetector():
             poni1 = (self.calibration["param"][self.calibration['param_names'].index("poni1")])
             poni2 = (self.calibration["param"][self.calibration['param_names'].index("poni2")])
             dist = self.calibration["param"][self.calibration['param_names'].index("dist")]
-            
+
             rot1_expr = eval(self.calibration["trans_function"]['rot1_expr']) 
             rot2_expr = eval(self.calibration["trans_function"]['rot2_expr'])
             poni1_expr = eval(self.calibration["trans_function"]['poni1_expr'])
             poni2_expr = eval(self.calibration["trans_function"]['poni2_expr'])
             dist_expr = eval(self.calibration["trans_function"]['dist_expr'])
             
-            my_ai = copy.copy(ai)
-            my_ai.dist = dist_expr
-            my_ai.poni1 = poni1_expr
-            my_ai.poni2 = poni2_expr
-            my_ai.rot1 = rot1_expr
-            my_ai.rot2 = rot2_expr
-            my_ai.rot3 = pos 
-           
+            # make pyFAI AzimuthalIntegrator object for each detector position and append.
+            # edited from ESRP code - which edited AzimuthalIntegrator properties and is comparatively very slow.
+            # makeing a new AzimuthalIntegrator each time is 100s-1000s of times faster. 
+            my_ai = AzimuthalIntegrator(detector=self.calibration["detector"], wavelength=self.calibration["wavelength"],
+                        dist = dist_expr,
+                        poni1 = poni1_expr,
+                        poni2 = poni2_expr,
+                        rot1 = rot1_expr,
+                        rot2 = rot2_expr,
+                        rot3 = pos)
             ais.append(my_ai)    
-        
+            
         # create the multigeometry detector object.
         self.detector = MultiGeometry(ais, unit="2th_deg", radial_range=(1, 13), azimuth_range=(self.azm_start, self.azm_end)) 
         
-        if debug:
-            print(self.detector)   
+
+        logger.moreinfo(" ".join(map(str, [("Detector is: ", self.detector)] )) )
+        if lg.make_logger_output(level="DEBUG"):            
             
             #plot all the positions of the AzimuthalIntegrators. 
             p_angles = []
@@ -472,7 +473,6 @@ class ESRFlvpDetector():
         #get ordered list of images
         frames, angles = self._get_sorted_files(image_name, debug=debug)     
         
-        print("here)")
         im = np.array([np.flipud(fabio.open(f).data) for f in frames])
         # 13th June 2024 - Note on flipud: the flipud command is included to invert the short axis of the detector intensity. 
         # If I flip the data then the 'spots' in the reconstructed data are spot like, rather than incoherent 
@@ -484,7 +484,6 @@ class ESRFlvpDetector():
         
         if max(angles) - min(angles) >= 45:
             self.azm_blocks = 45
-        print(len(im))
         
         # Convert the input data from integer to float because the lmfit model values
         # inherits integer properties from the data.
@@ -504,17 +503,14 @@ class ESRFlvpDetector():
         # apply mask to the intensity array
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im)
-            print("exit load1")
             return ma.array(im)
         elif mask is not None:
             # apply given mask
             self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
-            print("exit load2")
             return ma.array(im, mask=mask)
         else:
             #apply mask from intensities
             self.intensity = ma.array(im, mask=self.intensity.mask)
-            print("exit load3")
             return ma.array(im)
 
 
@@ -569,8 +565,8 @@ class ESRFlvpDetector():
         else:
             raise ValueError("No diffraction file or settings have been given.")
         
-        if mask==None:
-            if settings.calibration_mask:# in settings.items():
+        if mask==None and settings is not None:
+            if settings.calibration_mask is not None:# in settings.items():
                 mask = settings.calibration_mask
         
         if self.detector == None:
@@ -580,9 +576,6 @@ class ESRFlvpDetector():
         # Fabio defaults to float64 if nothing is set.
         # Float32 or float16 take up much less memoary than flost64.
         array_dtype = np.float32
-
-        import time
-        st = time.time()
 
         #get ordered list of images
         frames, detectorangles = self._get_sorted_files(diff_file, debug=debug)  
@@ -598,7 +591,6 @@ class ESRFlvpDetector():
                 # empty array
                 self.intensity = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
         
-        print(time.time()-st)
                 
         #create emmpty arrays
         self.tth = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
@@ -610,26 +602,39 @@ class ESRFlvpDetector():
             self.x = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
             self.y = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
             self.z = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
-        print(self.tth.shape, self.azm.shape)
+        logger.debug(" ".join(map(str, [("self.tth.shape, self.azm.shape", self.tth.shape, self.azm.shape)] )) )
         
         # fill the arrays
         for i in range(len(self.detector.ais)):
             self.tth[i,:,:] = np.rad2deg(self.detector.ais[i].twoThetaArray())
             self.azm[i,:,:] = np.rad2deg(self.detector.ais[i].chiArray())
-            print("AMZ", np.min(self.azm), np.max(self.azm), self.azm.shape)
             if make_zyx:
                 zyx = self.detector.ais[i].calc_pos_zyx() 
                 self.z[i,:,:] = zyx[0]
                 self.y[i,:,:] = zyx[1] 
                 self.x[i,:,:] = zyx[2] 
 
-        print(time.time()-st)
+        logger.debug(" ".join(map(str, [("Detector is: ", self.detector)] )) )
+        if lg.make_logger_output(level="DEBUG"):  
+            
+            #plot all the positions of the AzimuthalIntegrators. 
+            p_angles = []
+            p_Chi = []
         
+            fig,ax = plt.subplots(1, figsize=(9,9))
+            
+            frames = int(len(self.detector.ais))
+            
+            p_angles = np.array([np.rad2deg(self.detector.ais[frame].rot3) for frame in range(frames)])
+            p_Chi   = np.array(np.rad2deg([np.mean(self.detector.ais[frame].chiArray()) for frame in range(frames)]))
+                
+            ax.plot(p_angles, p_Chi, marker='.', ls='--')
+            ax.set_ylabel("Mean ChiArray from azimuthal integrators (°)")
+            ax.set_xlabel("Rot3, from azimuthal integrators  (°)")
+            plt.title("rot3 vs Chi for EXRF lvp Multigeometry")
+            
         # from sys import getsizeof
-        # print(getsizeof(self.tth))
         
-        
-        print("now here")
         #F IX ME: (June 2024) i dont know that the d-space array is needed. 
         # Check for calls and if this is the only one then remove it
         # self.dspace    = self._get_d_space()
@@ -637,25 +642,15 @@ class ESRFlvpDetector():
         # add masks to arrays
         #FIX ME: should we apply the mask as the arrays are populated rather than here?
         mask_array = self.get_mask(mask, self.intensity)
-        #print("mask_array", mask_array)
         
         self.mask_apply(mask_array, debug=debug)
         #FIX ME: should we apply the mask as the arrays are populated rather than 
         # in a separate function?
-         
-        print(time.time()-st)
-        
-        # print(getsizeof(self.tth))
-        
-        
-        #print(self.tth.dtype, self.azm.dtype, self.dspace.dtype )
-        print("done")
                
-        # FIX ME: change data to match azm_Start and azm_end. not the otherway round??
-        self.azm_start = np.around(self.azm.min() / self.azm_blocks) * self.azm_blocks
-        self.azm_end = np.around(self.azm.max() / self.azm_blocks) * self.azm_blocks
-
-  
+        self.azm_start = np.floor(self.azm.min() / self.azm_blocks) * self.azm_blocks
+        self.azm_end = np.ceil(self.azm.max() / self.azm_blocks) * self.azm_blocks
+        
+        
   
         
     def get_requirements(self, parameter_settings=None):
@@ -713,9 +708,9 @@ class ESRFlvpDetector():
             all_present = 1
             for par in parameter_settings:
                 if par in required_list:
-                    print("Got: ", par)
+                    logger.info(" ".join(map(str, [("Got: ", par)] )) )
                 else:
-                    print("The settings file requires a parameter called  '", par, "'")
+                    logger.warning(" ".join(map(str, [("The settings file requires a parameter called  '", par, "'")] )) )
                     all_present = 0
             if all_present == 0:
                 sys.exit(

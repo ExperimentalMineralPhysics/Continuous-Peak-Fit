@@ -40,6 +40,7 @@ import cpf.settings as settings
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
+from cpf.XRD_FitPattern import logger
 
 def image_adjust(data, image_process):
     """

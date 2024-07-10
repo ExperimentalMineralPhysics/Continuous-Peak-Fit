@@ -8,6 +8,7 @@ import numpy as np
 import json
 import cpf.IO_functions as IO
 import cpf.series_functions as sf
+from cpf.XRD_FitPattern import logger
 
 
 def Requirements():
@@ -93,10 +94,10 @@ def WriteOutput(
         # create output file name from passed name
         base = setting_class.subfit_filename
         if base is None:
-            print("No base filename, using input filename instead.")
+            logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
             base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
         # if not base:
-        #     print("No base filename, using input filename instead.")
+        #     logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
         #     base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
         if differential_only is not False:
             base = base + "_DiffOnly"
@@ -117,10 +118,10 @@ def WriteOutput(
 
         # base, ext = os.path.splitext(os.path.split(diff_files[z])[1])
         # if not base:
-        #     print("No base filename, using input filename instead.")
+        #     logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
         #     base =  os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
 
-        print("Writing:", out_file)
+        logger.info(" ".join(map(str, [("Writing: %s" % out_file)])))
 
         text_file = open(out_file, "w")
 

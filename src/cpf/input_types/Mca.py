@@ -26,6 +26,7 @@ Modifications:
 import numpy as Numeric
 import copy
 import math
+from cpf.XRD_FitPattern import logger
 
 # FIX ME: DMF Need to rationalise this code and keep what's needed.
 # FIX ME: where do we stand on licensing? has this been published?
@@ -1657,11 +1658,11 @@ def read_ascii_file(file):
                             rois[d][i].label = str.strip(labels[d])
                     break
             else:
-                print("Unknown tag = " + tag + " in file: " + file + ".")
+                logger.info(" ".join(map(str, [("Unknown tag = " + tag + " in file: " + file + ".")])))
 
     # Make sure DATA array is defined, else this was not a valid data file
     if data == None:
-        print("Not a valid data file: " + file + ".")
+        logger.info(" ".join(map(str, [("Not a valid data file: " + file + ".")])))
     fp.close()
     # Built dictionary to return
     r = {}

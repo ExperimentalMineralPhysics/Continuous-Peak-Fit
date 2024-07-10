@@ -11,6 +11,7 @@ import cpf.IO_functions as IO
 from cpf.XRD_FitSubpattern import plot_FitAndModel
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
 from cpf.BrightSpots import SpotProcess
+from cpf.XRD_FitPattern import logger
 
 
 def Requirements():
@@ -76,10 +77,10 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     #make the base file name
     base = setting_class.datafile_basename
     if base is None or len(base) == 0:
-        print("No base filename, trying ending without extension instead.")
+        logger.info(" ".join(map(str, [("No base filename, trying ending without extension instead.")])))
         base = setting_class.datafile_ending
     if base is None:
-        print("No base filename, using input filename instead.")
+        logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
         
     # make the data class.     
@@ -112,6 +113,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
             overwrite=True, 
             additional_text=addd
         )
+        logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
                     
         # this calls all the iamges and adds them as frames to the video.
         # edited after :https://zulko.github.io/moviepy/getting_started/working_with_matplotlib.html?highlight=matplotlib
@@ -121,7 +123,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
             # t scales between 0 and 1. 
             # to call each of the images in turn t has to be scaled back 
             # into the number of images (here 'y'). And it has to be an integer. 
-            #print(t, int(t*fps), y[int(t*fps)])
+            #logger.info(" ".join(map(str, [(t, int(t*fps), y[int(t*fps)])])))
                         
             # Get diffraction pattern to process.
             data_class.import_image(setting_class.image_list[y[int(t*fps)]], debug=debug)

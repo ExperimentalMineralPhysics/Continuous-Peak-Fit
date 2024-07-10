@@ -33,6 +33,7 @@ from . import Cosmics
 from . import BrightSpots
 from . import Cascade
 from . import data_preprocess
+from . import logger_functions
 
 from . import input_types
 from . import output_formatters

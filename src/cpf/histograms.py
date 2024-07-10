@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-__all__ = ["integrate1d"]
+__all__ = ["histogram1d"]
 
 
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
 import pyFAI.engines.histogram_engine as he
+from cpf.XRD_FitPattern import logger
 
 
 def histogram1d(tth,
@@ -84,9 +85,6 @@ def histogram1d(tth,
         dspc     = []
         
         for i in range(np.int(bin_n)):
-            #print(i)
-            #print(np.round(order.size/np.round(mean_per_bin)*i), np.round(order.size/np.round(mean_per_bin)*(i+1)), np.round(order.size/np.round(mean_per_bin)*(i+1))-np.round(order.size/np.round(mean_per_bin)*(i)))
-            
             data_start = int(np.round(order.size/np.round(bin_n)*i))
             data_end   = int(np.round(order.size/np.round(bin_n)*(i+1)))
             

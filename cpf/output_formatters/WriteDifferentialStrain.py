@@ -10,9 +10,9 @@ import json
 from lmfit.model import load_modelresult
 import cpf.lmfit_model as lmm
 
-# import cpf.XRD_FitPattern as XRD_FP
-# from cpf.IO_functions import ReplaceNullTerms, FileList, lmfit_fix_int_data_type
 import cpf.IO_functions as IO
+import cpf.output_formatters.convert_fit_to_crystallographic as cfc
+from cpf.XRD_FitPattern import logger
 
 
 def Requirements():
@@ -22,20 +22,20 @@ def Requirements():
         #'apparently none!
     ]
     OptionalParams = [
-        #'apparently none!
+        "SampleGeometry" # changes the strain tensor calucaltion from 2d to 3d. This determines how the cetroid and differnetial strain of the dpsaice are extracted from the fourier series. 
+        "SampleDeformation" # changes calculation between 'compression' and 'extension'.  
     ]
 
     return RequiredParams, OptionalParams
 
 
-# def WriteOutput(FitSettings, parms_dict, debug=True, **kwargs):
 def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
     """
 
     writes some of the fitted coeficients to a table. With a focus on the differential strain coefficents
     Parameters
     ----------
-    FitSettings : TYPE
+    setting_class : TYPE
         DESCRIPTION.
     parms_dict : TYPE
         DESCRIPTION.
@@ -50,6 +50,13 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
 
     """
 
+    # version 1.1 has elasped time and reduced chi squared added to the output table.
+    # version 1.2 has corrected the orientation calculation. The reported angle is now that of the maximum compression 
+    # version 2  accounts for 2d and 3d experimntal gemoetries, compression and extension. The crystallographic values are now calculated in a different file/function. 
+    f_version = 2
+    
+
+
     if setting_class is None and setting_file is None:
         raise ValueError(
             "Either the settings file or the setting class need to be specified."
@@ -59,57 +66,38 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
 
         setting_class = initiate(setting_file)
 
-    # writes some of the fitted coeficients to a table. With a focus on the differential strain coefficents
+    # Parse optional parameters
+    SampleGeometry = "3D".lower()
+    if "SampleGeometry" in setting_class.output_settings:
+        SampleGeometry = setting_class.output_settings["SampleGeometry"].lower()
+    SampleDeformation = "compression".lower()
+    if "SampleDeformation" in setting_class.output_settings:
+            SampleDeformation = setting_class.output_settings["SampleDeformation"].lower()
 
-    # FitParameters = dir(FitSettings)
-
-    # Parse the required inputs.
-    # base_file_name = FitSettings.datafile_Basename
-
-    # diffraction patterns
-    # diff_files, n_diff_files = IO.file_list(FitParameters, FitSettings)
-    # if 'Output_directory' in FitParameters:
-    #     out_dir = FitSettings.Output_directory
-    # else:
-    #     out_dir = './'
-
-    # # create output file name from passed name
-    # path, filename = os.path.split(base_file_name)
-    # base, ext = os.path.splitext(filename)
-    # if not base:
-    #     print("No base filename, using input filename instead.")
-    #     base =  os.path.splitext(FitSettings.inputfile)[0]
-
-    # if base[-1:] == '_': #if the base file name ends in an '_' remove it.
-    #     base = base[0:-1]
-
-    # out_file = out_dir + base + '.dat'
-
-    # base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
     base = setting_class.datafile_basename
 
     # if not base:
     if base is None or len(base) == 0:
-        print("No base filename, trying ending without extension instead.")
+        logger.info(" ".join(("No base filename, trying ending without extension instead.")))
         base = setting_class.datafile_ending
 
     if base is None:
-        print("No base filename, using input filename instead.")
+        logger.info(" ".join(("No base filename, using input filename instead.")))
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
     out_file = IO.make_outfile_name(
         base, directory=setting_class.output_directory, extension=".dat", overwrite=True, additional_text=setting_class.file_label
     )
 
     text_file = open(out_file, "w")
-    print("Writing", out_file)
-
+    logger.info(" ".join(["Writing %s" % out_file]))
     text_file.write(
         "# Summary of fits produced by continuous_peak_fit for input file: %s.\n"
         % setting_class.settings_file  # FitSettings.inputfile
     )
-    text_file.write("# For more information: http://www.github.com/me/something\n")
-    text_file.write("# File version: %i \n" % 1.1)
-    # version 1.1 has elasped time and reduced chi squared added to the output table.
+    text_file.write(f"# Sample Geometry = {SampleGeometry}; Sample Deformation = {SampleDeformation}\n")
+    text_file.write("# \n")
+    text_file.write("# For more information: https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit\n")
+    text_file.write("# File version: %i \n" % f_version)
     text_file.write("# \n")
 
     # write header
@@ -119,8 +107,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
     width_hkl = 15
     text_file.write(("# {0:<" + str(width_fnam - 2) + "}").format("Data File" + ","))
     text_file.write(("{0:<" + str(width_hkl) + "}").format("Peak" + ","))
-    text_file.write(("{0:>" + str(width_col) + "}").format("d0" + ","))
-    text_file.write(("{0:>" + str(width_col) + "}").format("d0_err" + ","))
+    text_file.write(("{0:>" + str(width_col) + "}").format("d_mean" + ","))
+    text_file.write(("{0:>" + str(width_col) + "}").format("d_mean_err" + ","))
     text_file.write(("{0:>" + str(width_col) + "}").format("d2cos" + ","))
     text_file.write(("{0:>" + str(width_col) + "}").format("d2cos_err" + ","))
     text_file.write(("{0:>" + str(width_col) + "}").format("d2sin" + ","))
@@ -159,14 +147,12 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
         )
     text_file.write("\n")
 
-    for z in range(setting_class.image_number):  # n_diff_files):
-
+    all_fits = []
+    for z in range(setting_class.image_number):  
         setting_class.set_subpattern(z, 0)
 
-        # filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
-        # filename = filename+'.json'
         filename = IO.make_outfile_name(
-            setting_class.subfit_filename,  # diff_files[z],
+            setting_class.subfit_filename,
             directory=setting_class.output_directory,
             extension=".json",
             overwrite=True,
@@ -179,47 +165,23 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
 
             fit = IO.replace_null_terms(fit)
 
+            all_fits.append(fit) 
+
+            #calculate the required parameters. 
             num_subpatterns = len(fit)
             for y in range(num_subpatterns):
 
-                # setting_class.set_subpattern(z,y)
-                # try:
-                #     #orders = FitSettings.fit_orders[y]
-                #     orders = setting_class.subfit_orders
-                # except:
-                #     orders = []
-
-                # subfilename = os.path.splitext(os.path.basename(diff_files[z]))[0] + '_'
-
-                # for x in range(len(fit[y]['peak'])):
-                #     if 'phase' in fit[y]['peak'][x]:
-                #         subfilename = subfilename + fit[y]['peak'][x]['phase']
-                #     elif 'phase' in orders['peak'][x]:
-                #         subfilename = subfilename + orders['peak'][x]['phase']
-                #     else:
-                #         subfilename = subfilename + "Peak"
-                #     if 'hkl' in fit[y]['peak'][x]:
-                #         subfilename = subfilename + str(fit[y]['peak'][x]['hkl'])
-                #     elif 'hkl' in orders['peak'][x]:
-                #         subfilename = subfilename + orders['peak'][x]['hkl']
-                #     else:
-                #         subfilename = subfilename + x
-
-                #     if x < len(fit[y]['peak']) - 1 and len(fit[y]['peak']) > 1:
-                #         subfilename = subfilename + '_'
-
                 out_name = IO.make_outfile_name(
-                    setting_class.subfit_filename,  # diff_files[z],
+                    setting_class.subfit_filename,
                     directory="",
                     overwrite=True,
                 )
-
-                # print('  Incorporating ' + subfilename)
-                print("  Incorporating: " + out_name + ", " + IO.peak_string(fit[y]))
-
+                # logger.info(" ".join(('  Incorporating ' + subfilename)))
+                logger.info(" ".join(["  Incorporating: %s,%s" % (out_name, IO.peak_string(fit[y])) ]))
+                # try reading an lmfit object file.
                 savfilename = IO.make_outfile_name(
-                    setting_class.subfit_filename,  # diff_files[z],
-                    directory=setting_class.output_directory,  # directory=FitSettings.Output_directory,
+                    setting_class.subfit_filename,  
+                    directory=setting_class.output_directory,  
                     orders=fit[y],
                     extension=".sav",
                     overwrite=True,
@@ -237,26 +199,21 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                             )
                         except:
                             # raise FileNotFoundError
-                            print(
-                                "    Can't open file with the correlation coefficients in..."
-                            )
+                            logger.info(" ".join(map(str, [("    Can't open file with the correlation coefficients in...")])))
                     # FIX ME: this will only work for one peak. Needs fixing if more then one peak in subpattern
                     try:
                         corr = gmodel.params["peak_0_d3"].correl["peak_0_d4"]
                     except:
                         corr = np.nan
-                    # ci, trace = lmfit.conf_interval(mini, gmodel, sigmas=[1, 2], trace=True)
-                    # lmfit.printfuncs.report_ci(ci)
 
-                else:
-                    # print('  No file ' + subfilename)
+                elif "correlation_coeffs" in fit[y]: # try reading correlation coefficient from fit file.
+                    try:
+                        corr_all = json.loads(fit[0]["correlation_coeffs"])
+                        corr = corr_all["peak_0_d3"]["peak_0_d4"]
+                    except:
+                        corr = np.nan
+                else: #no correlation coefficient. 
                     corr = np.nan
-
-                # get parameters to write to output file.
-                # file name
-                # out_name = os.path.splitext(os.path.basename(diff_files[z]))[0]
-                # out_name = IO.make_outfile_name(diff_files[z], directory='', overwrite=True)
-                # print(out_name)
 
                 width_fnam = np.max((width_fnam, len(out_name)))
 
@@ -265,110 +222,45 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                     out_peak = []
 
                     if fit[y]["peak"][x]["d-space_type"] != "fourier":
-                        raise ValueError(
-                            "This output type is not setup to process non-Fourier peak centroids."
-                        )
+                        raise ValueError("This output type is not setup to process non-Fourier peak centroids.")
 
                     # peak
-                    # if 'phase' in fit[y]['peak'][x]:
-                    #     out_peak = fit[y]['peak'][x]['phase']
-                    # elif 'phase' in orders['peak'][x]:
-                    #     out_peak = orders['peak'][x]['phase']
-                    # else:
-                    #     out_peak = out_peak + "Peak"
-                    # if 'hkl' in fit[y]['peak'][x]:
-                    #     out_peak = out_peak + ' (' + str(fit[y]['peak'][x]['hkl']) + ')'
-                    # elif 'hkl' in orders['peak'][x]:
-                    #     out_peak = out_peak + orders['peak'][x]['hkl']
-                    # else:
-                    #     out_peak = out_peak + ' ' + str(x)
-                    # print('old', out_peak)
                     out_peak = IO.peak_string(fit[y], peak=[x])
-                    # print('new', out_peak)
-
                     width_hkl = np.max((width_hkl, len(out_peak)))
 
-                    # d0
-                    out_d0 = fit[y]["peak"][x]["d-space"][0]
-                    out_d0err = fit[y]["peak"][x]["d-space_err"][0]
-                    if out_d0err is None:  # catch  'null' as an error
-                        out_d0err = np.nan
-
-                    # differential coefficients, errors and covarience
+                    #%%% get converted values. 
+                    crystallographic_values = cfc.fourier_to_crystallographic(fit, SampleGeometry=SampleGeometry, SampleDeformation=SampleDeformation,  subpattern=y, peak=x)
+                    
                     try:
+                        #centroid
+                        out_d0 = crystallographic_values["dp"] 
+                        out_d0err = crystallographic_values["dp_err"]
+
+                        #differential components
                         out_dcos2 = fit[y]["peak"][x]["d-space"][3]
                         out_dsin2 = fit[y]["peak"][x]["d-space"][4]
                         out_dcos2err = fit[y]["peak"][x]["d-space_err"][3]
                         out_dsin2err = fit[y]["peak"][x]["d-space_err"][4]
-                        # differential strain
-                        # a.cos(2t) + b.sin(2t) = (a^2+b^2)^(1/2) . cos(2t - atan(b/a))
-                        # out_dd  = (a^2+b^2)^(1/2)
-                        out_dd = (
-                            fit[y]["peak"][x]["d-space"][3] ** 2
-                            + fit[y]["peak"][x]["d-space"][4] ** 2
-                        ) ** (1 / 2)
-                        # out_dderr= [(2.a.da.)^2 + (2.b.db)^2]^(1/2)]^(1/2)
-                        out_dderr = (
-                            (
-                                2
-                                * fit[y]["peak"][x]["d-space"][3]
-                                * fit[y]["peak"][x]["d-space_err"][3]
-                            )
-                            ** 2
-                            + (
-                                2
-                                * fit[y]["peak"][x]["d-space"][4]
-                                * fit[y]["peak"][x]["d-space_err"][4]
-                            )
-                            ** 2
-                        ) ** (1 / 4)
+                        
+                        out_dd = crystallographic_values["differential"]
+                        out_dderr = crystallographic_values["differential_err"]
+                        out_ang = crystallographic_values["orientation"] 
+                        out_angerr = crystallographic_values["orientation_err"]
+                        
+                        out_dcorr = corr  # gmodel.params['peak_0_d3'].correl['peak_0_d4']
 
-                        # angle
-                        # out_ang  = atan(b/a)
-                        out_ang = np.arctan(
-                            fit[y]["peak"][x]["d-space"][4]
-                            / fit[y]["peak"][x]["d-space"][3]
-                        )
-                        # d (atan(c))/dc = 1/(c^2+1). c = b/a. dc = c.((da/a)^2 + (db/b)^2)^(1/2)
-                        # out_angerr = dc.
-                        out_angerr = (
-                            1
-                            / (
-                                (
-                                    fit[y]["peak"][x]["d-space"][4]
-                                    / fit[y]["peak"][x]["d-space"][3]
-                                )
-                                ** 2
-                                + 1
-                            )
-                            * (
-                                np.abs(out_ang)
-                                * (
-                                    (
-                                        fit[y]["peak"][x]["d-space_err"][3]
-                                        / fit[y]["peak"][x]["d-space"][3]
-                                    )
-                                    ** 2
-                                    + (
-                                        fit[y]["peak"][x]["d-space_err"][4]
-                                        / fit[y]["peak"][x]["d-space"][4]
-                                    )
-                                    ** 2
-                                )
-                                ** (1 / 2)
-                            )
-                        )
-                        # correction to make angle correct (otherwise out by pi)
-                        if fit[y]["peak"][x]["d-space"][3] < 0:
-                            out_ang = out_ang + np.pi
-                        # force angles to be between -pi and pi
-                        if out_ang > np.pi / 2:
-                            out_ang = out_ang - np.pi
-                        elif out_ang < -np.pi / 2:
-                            out_ang = out_ang + np.pi
-                        # convert angles to degrees.
-                        out_ang = np.rad2deg(out_ang)
-                        out_angerr = np.rad2deg(out_angerr)
+                        # differential max
+                        out_dmax = crystallographic_values["d_max"]
+                        out_dmaxerr = crystallographic_values["d_max_err"]
+                        # differential min
+                        out_dmin = crystallographic_values["d_min"]
+                        out_dminerr = crystallographic_values["d_min_err"]
+                        
+                        
+                        # centre position (not used)
+                        # FIX ME: This is not correct at the time of writing. See function called above.  
+                        out_x0 = crystallographic_values["x0"]
+                        out_y0 = crystallographic_values["y0"]
                     except:
                         out_dcos2 = np.nan
                         out_dsin2 = np.nan
@@ -379,17 +271,6 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                         out_ang = np.nan
                         out_angerr = np.nan
 
-                    out_dcorr = corr  # gmodel.params['peak_0_d3'].correl['peak_0_d4']
-
-                    # differential max
-                    out_dmax = (
-                        out_dd * np.cos(2 * np.pi / 4 - np.deg2rad(out_ang)) + out_d0
-                    )
-                    # differential min
-                    out_dmin = (
-                        out_dd * np.cos(2 * 3 * np.pi / 4 - np.deg2rad(out_ang))
-                        + out_d0
-                    )
 
                     # height mean
                     if fit[y]["peak"][x]["height_type"] == "fourier":
@@ -441,8 +322,10 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                         out_p0 = np.nan
                     if out_p0err is None:  # catch  'null' as an error
                         out_p0err = np.nan
+                        
 
-                    # write numbers to file
+                    #%% write numbers to file
+                    
                     text_file.write(
                         ("{0:<" + str(width_fnam) + "}").format(out_name + ",")
                     )
@@ -613,6 +496,6 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
 
                     text_file.write("\n")
         else:
-            print(filename, " does not exist on the path")
+            logger.info(" ".join(("%s does not exist on the path" % filename)))
             
     text_file.close()

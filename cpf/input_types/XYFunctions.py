@@ -48,29 +48,36 @@ Currently only linear cnversions have been implemented. An example:
 
 __all__ = ["XYDetector"]
 
-import os
+
 import sys
+import re
+import os
+import pickle
 from copy import deepcopy
-from matplotlib import image
-#import h5py
-import cpf.h5_functions as h5_functions
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
+import matplotlib.pyplot as plt
+from matplotlib import image
 #import pyFAI
-#from PIL import Image
-from matplotlib import gridspec
+from PIL import Image
+# from matplotlib import gridspec
 #from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 #from pyFAI.io import ponifile
-from matplotlib import cm, colors
+# from matplotlib import cm, colors
+from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
+from cpf.input_types._Masks import _masks
 from cpf import IO_functions
+import cpf.h5_functions as h5_functions
 import pickle
+from cpf.XRD_FitPattern import logger
+import cpf.logger_functions as lg
 
 
 # plot the data as an image (TRue) or a scatter plot (false).
 # FIXME: the plot as image (im_show) does not work. The fitted data has to be reshaped 
 # into an image.
-plot_as_image = False
+plot_as_image = True
 
 
 class XYDetector:
@@ -85,21 +92,29 @@ class XYDetector:
         self.calibration = None
         self.detector = None
 
+        self.intensity = None
+        self.tth = None
+        self.azm = None
+        # self.dspace = None
         self.x = None
         self.y = None
         self.azm_start = None
         self.azm_end   = None
         self.tth_start = None
         self.tth_end   = None
-        self.intensity = None
-        self.tth = None
-        self.azm = None
-        self.dspace = None
-        self.continuous_azm = True
+        # Single image plate detector so contonuous data.
+        self.DispersionType = "EnergyDispersive"
+        self.continuous_azm = False
+
+        self.azm_blocks = 45 # SAH: June 2024. I am not sure what this does in this class. 
+        
+        self.calibration = None
+        self.conversion_constant = None
+        self.detector = None
         
         #set the start and end limits for the data
-        self.start = 0
-        self.end   = np.inf
+        #self.start = 0
+        #self.end   = np.inf
 
         if settings_class:
             self.get_calibration(settings=settings_class)
@@ -117,44 +132,284 @@ class XYDetector:
 
 
 
-    def fill_data(
-        self, diff_file, settings=None, debug=None
-    ):  # , calibration_mask=None):
-        """
-        :param settings: -- now a class.
-        :param diff_file:
-        :param debug:
-        :param calibration_mask: -- now removed because calibration mask file is contained in settings class
-        """
+    def get_calibration(self, file_name=None, settings=None):
+       """
+       Opens the file with the calibration data in it and updates 
+       XYDetector.calibration and 
+       XYDetector.conversion_constant
+       
+       Either file_name or settings should be set. 
+       
+       Parameters
+       ----------
+       file_name : string, optional
+           Filename of the calibration file. In this case a *.poni file.
+           The default is None.
+       settings : settings class, optional
+           cpf settings class containing the calibration file name.
+           The default is None.
 
-        # self.detector = self.detector_check(calibration_data, detector)
-        #        print(settings.Calib_param)
-        self.get_calibration(settings=settings)
-        self.get_detector(diff_file, settings)
-        
-        self.intensity = self.get_masked_calibration(
-            diff_file, debug, calibration_mask=settings.calibration_mask
-        )
-        self.tth = self.get_two_theta(mask=self.intensity.mask)
-        self.azm = self.get_azimuth(mask=self.intensity.mask)
-        self.dspace = self.get_d_space(mask=self.intensity.mask)
-        if self.azm_start is None:
-            self.azm_start = np.min(self.azm)
-        if self.azm_end is None:
-            self.azm_end   = np.max(self.azm)
+       Returns
+       -------
+       None.
 
+       """ 
+       #make empty calibration
+       self.calibration = {
+                   #"x_dim":   0, 
+                   #"x":       [0,1], 
+                   #"x_start": None, # begining of the 'tth' axis
+                   #"x_end":   None, # end of the 'tth' axis
+                   #"y":       [0,1], 
+                   #"y_start": None, # begining of the 'azimith' axis
+                   #"y_end":   None, # end of the 'azimith' axis
+                   #"conversion_constant": 1,
+                   #"max_shape": [0,0]
+                   }
+
+       # parms_file is file
+       if settings != None:
+           temp_calib = settings.calibration_parameters
+       else:
+           parms_file = file_name
+           with open(parms_file, 'wb') as f:
+               temp_calib = pickle.dump("calibration", f)
+
+       #pass temp_calib into the calibration
+       for key, val in temp_calib.items():
+           self.calibration[key] = val
+       
+       if "conversion_constant" in self.calibration:
+           self.conversion_constant = self.calibration["conversion_constant"]
+       else: 
+           self.conversion_constant = None
+       # self.azm_start = self.calibration["y_start"]
+       # self.azm_end = self.calibration["y_end"]
+       
+       
         
-    def get_detector(self, diff_file=None, settings=None):
+    def get_detector(self, settings=None, calibration_file=None, diffraction_data=None, debug=False):
         """
         :param diff_file:
         :param settings:
         """
 
-        # the detector has nothing to contain for a single x, y image with no conversions. 
-        # but it might be referenced by other bits and bobs so has to exist as something. 
-        self.detector = None
+        if self.calibration == None:
+            self.get_calibration(settings=settings, file_name=calibration_file, debug=debug)
+            
+        if diffraction_data is None and  settings is not None:
+            if settings.calibration_data is None:
+                diffraction_data = settings.subfit_filename
+            else:
+                diffraction_data = settings.calibration_data
+
+        self.detector = OrthogonalDetector(calibration=self.calibration, diffraction_data=diffraction_data, debug=debug)
+
+       
 
 
+    # @staticmethod
+    def import_image(self, image_name=None, settings=None, mask=None, dtype=None, debug=False):
+        """
+        Import the data image into the intensity array.        
+        Apply new mask to the data (if given) otherwise use previous mask
+    
+        Parameters
+        ----------
+        image_name : string, optional
+            Name of the image set to import. Either this or settings are required.
+        settings : settings class, optional
+            Cpf setting class that constins the image set to import. 
+            Either this or imagename is required.
+        mask : array, optional
+            Mask array to apply to data. The default is None.
+        dtype : string, optional
+            Data type string, to force the data type and bit depth. The default is None.
+        debug : boolian, optional
+            True/Flase to display debuging information. The default is False.
+    
+        Raises
+        ------
+        ValueError
+            If there is no image_name of the settings.subpattern is not set.
+    
+        Returns
+        -------
+        Im : masked array
+            Masked image intensity array.
+    
+        """
+        #check inputs
+        if image_name == None and settings.subpattern == None:
+            raise ValueError("Settings are given but no subpattern is set.")
+
+        if self.detector == None:
+            self.get_detector(settings)
+
+        if image_name == None:
+            #load the data for the chosen subpattern.
+            image_name = settings.subfit_filename
+            
+            
+        if isinstance(image_name, list):
+            # then it is a h5 type file
+            im = h5_functions.get_images(image_name)
+        elif os.path.splitext(image_name)[1] == ".txt" or os.path.splitext(image_name)[1] == ".csv":
+            # load csvs or txt file as an image. 
+            im = csv_to_image(image_name)
+        else:
+            im = image.imread(image_name)
+            im = im.data
+
+        # Convert the input data from integer to float because the lmfit model values
+        # inherits integer properties from the data.
+        #
+        # Allow option for the data type to be set.
+        if dtype==None:
+            if self.intensity is None and np.size(self.intensity) > 2:
+                # self.intensity has been set before. Inherit the dtype.
+                dtype = self.intensity.dtype  
+            elif "int" in im[0].dtype.name:
+                #the type is either int or uint - convert to float
+                # using same bit precision 
+                precision = re.findall("\d+", im[0].dtype.name)[0]
+                dtype = np.dtype("float"+precision)
+        im = ma.array(im, dtype=dtype)
+        
+        
+        if self.calibration["x_dim"] != 0:
+            im = im.T
+        
+        if lg.make_logger_output(level="DEBUG"):            
+            fig = plt.figure()
+            ax = fig.add_subplot(1, 1, 1)
+            ax.imshow(im)
+            plt.title(IO_functions.title_file_names(image_name=image_name))
+            plt.show()
+            plt.close()
+        
+        """
+        # FIXME: this was a smoothing filter imported to sort an LLNL data set. 
+        # ideally it would be set in a separate image_preprocess file along with the mask 
+        # and cosmic preproseccing of the images. 
+        # The input file would then contain a preparation function something like this: 
+        # data_prepare = {"smooth": {"Gaussian": 2},
+        #                "mask": Calib_mask,
+        #                "order": {"smooth", "mask"}}
+        # end FIXME
+        from skimage import filters
+        # smooth_mean = ndi.correlate(bright_square, mean_kernel)
+        sigma = 2
+        # smooth = filters.gaussian(bright_square, sigma)
+        im = filters.gaussian(im, sigma)
+        """
+
+        # apply mask to the intensity array
+        if mask == None and ma.is_masked(self.intensity) == False:
+            self.intensity = ma.array(im)
+            return ma.array(im)
+        elif mask is not None:
+            # apply given mask
+            self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
+            return ma.array(im, mask=mask)
+        else:
+            #apply mask from intensities
+            self.intensity = ma.array(im, mask=self.intensity.mask)
+            return ma.array(im)
+        
+        """
+        if mask == None and ma.is_masked(self.intensity) == False:
+            self.intensity = ma.array(im)
+            return ma.array(im)
+        elif mask is not None:
+            self.intensity = ma.array(im, mask=mask)
+            return ma.array(im, mask=mask)
+        else:
+            self.intensity = ma.array(im, mask=self.intensity.mask)
+            return ma.array(im)
+
+        if mask is not None:
+            return ma.array(im, mask=mask)
+        else:
+            return ma.array(im)       
+       """
+       
+       
+       
+    def fill_data(
+        self, diff_file=None, settings=None, mask=None, make_zyx=False, 
+        debug=False
+    ):
+        """
+        Initiates the data arrays. 
+        Creates the intensity, horizontal (two theta for diffraction), 
+        vertical (azimuth for diffraction) and converted (d-spacing for 
+        diffraction) arrays from the Detector and the data.
+        
+        If data is provided this makes the intensity array otherwise 
+        the intensity array is filled with zeros.
+
+        It must be called after setting the detector but before import_data.
+        
+        Parameters
+        ----------
+        diff_file : string, optional
+            Filename of the diffraction data files to import.
+        settings : settings class, optional
+            cpf settings class containing the calibration file name.
+            The default is None.
+        mask : string or dirctionarry, optional
+            Filename or dictionary of instructions to make data mask. 
+            The default is None.
+        make_zyx : boolian, optional
+            Switch to make x,y,z arrays for the pixels. These arrats are not
+            used by default. They exist incase ever needed. 
+            The default is False.
+        debug : True/False, optional
+            Additional output, used for debugging.
+            The default is False.
+
+        Returns
+        -------
+        None.
+        """
+
+        #check inputs
+        if diff_file != None:
+            pass
+        elif settings != None: # and diff_file == None
+            #load the data for the chosen subpattern.
+            if settings.subfit_filename != None:
+                diff_file = settings.subfit_filename
+            else:
+                raise ValueError("Settings are given but no subpattern is set.")
+        else:
+            raise ValueError("No diffreaction file or settings have been given.")
+            
+        if mask==None:
+            if settings.calibration_mask:# in settings.items():
+                mask = settings.calibration_mask
+        
+        if self.detector == None:
+            self.get_detector(settings=settings)        
+        
+        #get the intensities (without mask)
+        self.intensity = self.import_image(diff_file)
+                    
+        self.tth = ma.array(self.detector.get_horizontal())
+        self.azm = ma.array(self.detector.get_vertical())
+                
+        # self.dspace = self._get_d_space()
+
+        #get and apply mask
+        mask_array = self.get_mask(mask, self.intensity)
+        self.mask_apply(mask_array, debug=debug)
+        
+        self.azm_start = np.around(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        self.azm_end = np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+
+        
+        
     @staticmethod
     def detector_check(calibration_data, settings=None):
         """
@@ -181,27 +436,6 @@ class XYDetector:
         return detector
 
 
-    def get_masked_calibration(self, calibration_data, debug, calibration_mask=None):
-        """
-        load calibration data/image -- to get intensities for mask
-        :param calibration_data:
-        :param debug:
-        :param calibration_mask:
-        :return:
-        """
-
-        im = self.import_image(calibration_data)
-        
-        intens = ma.array(im.data)
-        # create mask from mask file if present. If not make all values valid
-        if calibration_mask:
-            intens = self.get_mask(calibration_mask, intens)
-        else:
-            im_mask = np.zeros_like(intens)
-            intens = ma.array(intens, mask=im_mask)
-        return intens
-
-
     def get_requirements(self, parameter_settings=None):
         """
         Get the parameters required for this detector
@@ -215,9 +449,9 @@ class XYDetector:
             all_present = 1
             for par in parameter_settings:
                 if par in required_list:
-                    print("Got: ", par)
+                    logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    print("The settings file requires a parameter called  '", par, "'")
+                    logger.info(" ".join(map(str, [("The settings file requires a parameter called  '", par, "'")])))
                     all_present = 0
             if all_present == 0:
                 sys.exit(
@@ -225,862 +459,240 @@ class XYDetector:
                     "are all present."
                 )
         return required_list
-
-    # @staticmethod
-    def import_image(self, image_name, mask=None, debug=False):
-        """
-        Import the data image
-        :param mask:
-        :param image_name: Name of file
-        :param debug: extra output for debugging - plot
-        :return: intensity array
-        """
-        if isinstance(image_name, list):
-            # then it is a h5 type file
-            im = h5_functions.get_images(image_name)
-        elif os.path.splitext(image_name)[1] == ".txt" or os.path.splitext(image_name)[1] == ".csv":
-            # then it is a text file, assume there are less than 20 header rows. 
-            # assume the we do not know the delimiters.
-            done = 0
-            n = 0
-            while done == 0:
-                if os.path.splitext(image_name)[1] == ".csv":
-                    import csv
-                    im = []
-                    with open(image_name, 'r', encoding='utf-8-sig') as f:
-                        reader = csv.reader(f)
-                        for row in reader:
-                            for i in range(len(row)):
-                                if row[i] == "":
-                                    row[i] = np.nan
-                                else:
-                                    row[i] = float(row[i])
-                                #row[row == ""] = 0 
-                            im.append(row)
-                            
-                    im = np.array(im)
-                    done = 1
-                else:
-                    try:
-                        im = np.loadtxt(image_name, skiprows=n)
-                        done = 1
-                    except:
-                        done = 0
-                        n += 1
-                        if n>20:
-                            # issue an error
-                            err_str = "There seems to be more than 20 header rows in the data file. Is this correct?"
-                            raise ValueError(err_str)
-        else:
-            im = image.imread(image_name)
-            im = im.data
-
-        im = ma.array(im, dtype="f")
         
-        if 0:#debug:
-            print("min+max:", np.min(im), np.max(im))
-            print("min+max:", np.nanmin(im), np.nanmax(im))
-            
-            fig = plt.figure()
-            ax = fig.add_subplot(1, 1, 1)
-            ax.imshow(im)
-            plt.title(IO_functions.title_file_names(image_name=image_name))
-            plt.show()
-            plt.close()
         
-        """
-        # FIXME: this was a smoothing filter imported to sort an LLNL data set. 
-        # ideally it would be set in a separate image_preprocess file along with the mask 
-        # and cosmic preproseccing of the images. 
-        # The input file would then contain a preparation function something like this: 
-        # data_prepare = {"smooth": {"Gaussian": 2},
-        #                "mask": Calib_mask,
-        #                "order": {"smooth", "mask"}}
-        # end FIXME
-        from skimage import filters
-        # smooth_mean = ndi.correlate(bright_square, mean_kernel)
-        sigma = 2
-        # smooth = filters.gaussian(bright_square, sigma)
-        im = filters.gaussian(im, sigma)
-        """
-
-        if mask == None and ma.is_masked(self.intensity) == False:
-            self.intensity = ma.array(im)
-            return ma.array(im)
-        elif mask is not None:
-            self.intensity = ma.array(im, mask=mask)
-            return ma.array(im, mask=mask)
-        else:
-            self.intensity = ma.array(im, mask=self.intensity.mask)
-            return ma.array(im)
-
-        if mask is not None:
-            return ma.array(im, mask=mask)
-        else:
-            return ma.array(im)
-
-    def conversion(self, tth_in, azm=None, reverse=False):
-        """
-        Convert between two theta and d-spacing. 
-        This is not used for XY detector class.
-        So Value in = value out
-        :param tth_in:
-        :param reverse:
-        :param azm:
-        :return:
-        """
-
-        return tth_in
-
-    def get_mask(self, msk_file, im_ints):
-        """
-        Dioptas mask is compressed Tiff image.
-        Save and load functions within Dioptas are: load_mask and save_mask in dioptas/model/MaskModel.py
-        :param msk_file:
-        :param im_ints:
-        :return:
-        """
-        from PIL import Image, ImageDraw
-        if isinstance(msk_file, dict):
-                        
-            im_mask = np.zeros(self.intensity.shape, 'bool')
-            if "polygon" in msk_file:
-                polygons = msk_file['polygon']
-                for i in polygons:
-                    img = Image.new('L', self.intensity.shape, 0)
-                    ImageDraw.Draw(img).polygon(i, outline=1, fill=1)
-                    im_mask = im_mask +ma.array(img)
-            if "threshold" in msk_file:
-                threshold = msk_file['threshold']
-                im_mask = np.asarray(im_mask) | ma.masked_outside(self.intensity,threshold[0],threshold[1]).mask
-            #mask invalid values
-            mask2 = ma.masked_invalid(self.intensity).mask
-            #combine masks
-            im_mask = np.asarray(im_mask) | np.asarray(mask2)
-            im_ints = ma.array(im_ints, mask=im_mask)
-            
-        else:
-            #the mask is an image.
-            im_mask = np.array(Image.open(msk_file))
-            im_ints = ma.array(im_ints, mask=im_mask)    
-            im_ints = ma.masked_less(im_ints, 0)
         
-        self.original_mask = im_mask
-        return im_ints
+def csv_to_image(image_name):
+    # then it is a text file, assume there are less than 20 header rows. 
+    # assume the we do not know the delimiters.
+    done = 0
+    n = 0
+    while done == 0:
+        if os.path.splitext(image_name)[1] == ".csv":
+            import csv
+            im = []
+            with open(image_name, 'r', encoding='utf-8-sig') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    for i in range(len(row)):
+                        if row[i] == "":
+                            row[i] = np.nan
+                        else:
+                            row[i] = float(row[i])
+                        #row[row == ""] = 0 
+                    im.append(row)
+                    
+            im = np.array(im)
+            done = 1
+        else:
+            try:
+                im = np.loadtxt(image_name, skiprows=n)
+                done = 1
+            except:
+                done = 0
+                n += 1
+                if n>20:
+                    # issue an error
+                    err_str = "There seems to be more than 20 header rows in the data file. Is this correct?"
+                    raise ValueError(err_str)
+    return im
 
-    def f(x=None, m=0, c=1):
-        print(type(x), type(m), type(c))
-        return (x * m) + c
+
+# add common function. 
+XYDetector._get_d_space = _AngleDispersive_common._get_d_space
+XYDetector.conversion   = _AngleDispersive_common.conversion
+XYDetector.bins         = _AngleDispersive_common.bins
+XYDetector.set_limits   = _AngleDispersive_common.set_limits
+XYDetector.test_azims   = _AngleDispersive_common.test_azims
+
+#add masking functions to detetor class.
+XYDetector.get_mask     = _masks.get_mask
+XYDetector.set_mask     = _masks.set_mask
+XYDetector.mask_apply   = _masks.mask_apply
+XYDetector.mask_restore = _masks.mask_restore
+XYDetector.mask_remove  = _masks.mask_remove
+
+#these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
+#Each of these methods remains here because they are called by higher-level functions: 
+XYDetector.plot_masked      = _Plot_AngleDispersive.plot_masked
+XYDetector.plot_fitted      = _Plot_AngleDispersive.plot_fitted
+XYDetector.plot_collected   = _Plot_AngleDispersive.plot_collected
+XYDetector.plot_calibrated  = _Plot_AngleDispersive.plot_calibrated
+#this function is added because it requires access to self:
+XYDetector.dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks        
+        
+        
+        
+        
+        
+        
+class OrthogonalDetector():
     
-    def get_calibration(self, file_name=None, settings=None):
-        """
-        Parse inputs file, create type specific inputs
-        :rtype: object
-        :param file_nam:
-        :return:
-        """
-        #make empty calibration
-        self.calibration = {
-                    "x_dim":   0, 
-                    "x":       [0,1], 
-                    "x_start": None, # begining of the 'tth' axis
-                    "x_end":   None, # end of the 'tth' axis
-                    "y":       [0,1], 
-                    "y_start": None, # begining of the 'azimith' axis
-                    "y_end":   None, # end of the 'azimith' axis
-                    "conversion_constant": 1
-                    }
-
-        # parms_file is file
-        if settings != None:
-            calib_temp = settings.calibration_parameters
-        else:
-            parms_file = file_name
-            with open(parms_file, 'wb') as f:
-                calib_temp = pickle.dump("calibration", f)
-
-        #pass calib_temp into the calibration
-        for key, val in calib_temp.items():
-            self.calibration[key] = val
-            
-        # if parms_file != None and isinstance(parms_file, dict):
-        #     # here parms_file is not a file name but a dictionary of parameters.
-        #     calib_temp = parms_file
-        # else:
-        #     # parms_file is file
-        #     if settings != None:
-        #         parms_file = settings.calibration_parameters
-        #     else:
-        #         parms_file = file_name
-                
-        #     with open(parms_file, 'wb') as out_file:
-        #         calib_temp = pickle.dump(parameters, out_file)
-
-
-        # Currently no conversion from X,Y to aximuth and two theta (or whatever the units are)
-        #pf = ponifile.PoniFile()
-        #pf.read_from_file(parms_file)
-
-        #self.calibration = pf
-        #self.conversion_constant = pf.wavelength * 1e10
-
-        # if parms_file != None and isinstance(parms_file, dict):
-        #     # here parms_file is not a file name but a dictionary of parameters.
-        #     calib_temp = parms_file
-        #     if "x_dim" in calib_temp:
-        #         self
-            
-            
-            
-        # elif parms_file != None and parms_file != "":
-            
-        #     with open(parms_file, 'wb') as out_file:
-        #         self.calibration = pickle.dump(parameters, out_file)
-        # else:
-        #     # default empty calibration
-        #     self.calibration = {"x_dim": 0, "x": [0,1], "y":[0,1], "y_start":0, "y_end":1}
+    def __init__(self, calibration=None, diffraction_data=None, mask=None, max_shape=None, debug=False):
         
-        self.conversion_constant = self.calibration["conversion_constant"]
-        self.azm_start = self.calibration["y_start"]
-        self.azm_end = self.calibration["y_end"]
+        self.calibration = calibration
+        self.max_shape = max_shape
         
-
-    def bins(self, orders_class, cascade=False):
-        """
-        Determine bins to use in initial fitting.
-        Assign each data to a chunk corresponding to its azimuth value
-        Returns array with indices for each bin and array of bin centroids
-        :param orders_class:
-        :return chunks:
-        :return bin_mean_azi:
-        """
-
-        # determine how to divide the data into bins and how many.
-        if cascade:
-            bt = orders_class.cascade_bin_type
-            if bt == 1:
-                b_num = orders_class.cascade_number_bins
-            else:
-                b_num = orders_class.cascade_per_bin
-        else:
-            bt = orders_class.fit_bin_type
-            if bt == 1:
-                b_num = orders_class.fit_number_bins
-            else:
-                b_num = orders_class.fit_per_bin
-
-        
-        # make the bins
-        if bt == 0:
-            # split the data into bins with an approximately constant number of data.
-            # uses b_num to determine bin size
-            num_bins = int(np.round(len(self.azm[self.azm.mask == False]) / b_num))
-            bin_boundaries = self.equalObs(
-                np.sort(self.azm[self.azm.mask == False]), num_bins
-            )
-        elif bt == 1:
-            # split the data into a fixed number of bins
-            # uses b_num to determine bin size
-            lims = np.array(
-                [
-                    np.min(self.azm[self.azm.mask == False]),
-                    np.max(self.azm[self.azm.mask == False] + 0.01),
-                ]
-            )
-            lims = [self.azm_start, self.azm_end]
-            bin_boundaries = np.linspace(lims[0], lims[1], num=b_num + 1)
-
-        else:
-            # issue an error
-            err_str = "The bin type is not recognised. Check input file."
-            raise ValueError(err_str)
-
-        if 0:  # for debugging
-            print(bin_boundaries)
-            # print(np.sort(bin_boundaries))
-            # create histogram with equal-frequency bins
-            n, bins, patches = plt.hist(
-                self.azm[self.azm.mask == False], bin_boundaries, edgecolor="black"
-            )
-            plt.show()
-            # display bin boundaries and frequency per bin
-            print("bins and occupancy", bins, n)
-            print("expected number of data per bin", orders_class.cascade_per_bin)
-            print("total data", np.sum(n))
+        if calibration:
+            self.load_calibration(calibration=calibration, diffraction_data=diffraction_data)
             
-        # fit the data to the bins
-        chunks = []
-        bin_mean_azi = []
-        temp_azimuth = self.azm.flatten()
-        for i in range(len(bin_boundaries) - 1):
-            start = bin_boundaries[i]
-            end = bin_boundaries[i + 1]
-            azi_chunk = np.where((temp_azimuth > start) & (temp_azimuth <= end))
-            chunks.append(azi_chunk)
-            bin_mean_azi.append(np.mean(temp_azimuth[azi_chunk]))
-
-        return chunks, bin_mean_azi
-
-    def equalObs(self, x, nbin):
+            
+            
+    def load_calibration(self, calibration=None, diffraction_data=None):
         """
-        get equally populated bins for data set.
-        copied from: https://www.statology.org/equal-frequency-binning-python/ on 26th May 2022.
+        Populates the calibration
 
         Parameters
         ----------
-        x : TYPE
-            data to disperse.
-        nbin : TYPE
-            number of bins.
+        calibration : dictionary, οπτιοναλ
+            Dictionary containing the calibration parameters for the detector.
+            Otherwise returns a blank detector
+
+        Raises
+        ------
+        ValueError
+            Unrecognised key in the dictionary.
 
         Returns
         -------
-        TYPE
-            DESCRIPTION.
+        None.
 
         """
-        nlen = len(x)
-        x = np.sort(x)
-        return np.interp(np.linspace(0, nlen, nbin + 1), np.arange(nlen), np.sort(x))
+        
+        self.calibration = {}
+        
+        self.calibration["x_dim"] = 0
+        self.calibration["x"] = None
+        self.calibration["x_start"] = np.nan
+        self.calibration["x_end"] = np.nan
+        self.calibration["x_scale"] = "linear"
+        self.calibration["y"] = None
+        self.calibration["y_start"] = np.nan
+        self.calibration["y_end"] = np.nan
+        self.calibration["y_scale"] = "linear"
+        self.calibration["rotation"] = 0 # in degrees
+        
+        self.calibration["x_unit"] = "degrees"
+        self.calibration["x_label"] = "two theta"
+        self.calibration["y_unit"] = "degrees"
+        self.calibration["y_label"] = "azimuth"
+        
+        self.calibration["conversion_constant"] = 1
+        
+        # fill in the calibration if it exists. 
+        if calibration:
+            for key, value in calibration.items():
+                if key == "max_shape":
+                    pass
+                elif key in list(self.calibration.keys()):
+                    self.calibration[key] = value
+                else:
+                    error_str = "Key '" + key + "' in not recognised as a calibration parameter"
+                    raise ValueError(error_str)
+                    
+        if "max_shape" in list(self.calibration.keys()):
+            self.max_shape = self.calibration["max_shape"]
+        elif diffraction_data:
+            if (os.path.splitext(diffraction_data)[1] == ".txt" or 
+                os.path.splitext(diffraction_data)[1] == ".csv"):
+                self.max_shape = csv_to_image(diffraction_data).shape
+            else:
+                with Image.open(diffraction_data) as img:
+                    self.max_shape = img.size
+        if self.calibration["x_dim"]!=0:
+            self.max_shape = np.flip(self.max_shape)
+                   
+        # either "x" or x_start and x_end are allowed. Fill in the other values. 
+        if self.calibration["x"] == None:
+            self.calibration["x"] = (self.calibration["x_start"], (self.calibration["x_end"]-self.calibration["x_start"])/(self.max_shape[self.calibration["x_dim"]]-1))
+        if self.calibration["x_start"] == np.nan:
+            self.calibration["x_start"] = self.calibration["x"][0]
+            self.calibration["x_end"]   = self.calibration["x"][0] + self.calibration["x"][1] * (self.max_shape[self.calibration["x_dim"]]-1)
+        # ditto for y. 
+        if self.calibration["x_dim"]==0:
+            y_dim = 1
+        else:
+            y_dim = 0
+        if self.calibration["y"] == None:
+            self.calibration["y"] = (self.calibration["y_start"], (self.calibration["y_end"]-self.calibration["y_start"])/(self.max_shape[y_dim]-1))
+        if self.calibration["y_start"] == np.nan:
+            self.calibration["y_start"] = self.calibration["y"][0]
+            self.calibration["y_end"]   = self.calibration["y"][0] + self.calibration["y"][1] * (self.max_shape[y_dim]-1)  
 
-    def test_azims(self, steps = 1000):
+
+        self.calibration_check
+        
+        
+        
+    def calibration_check(self):
+        # FIXME (SAH, June 2024) This should have a validation proess in here.  
+        pass
+        
+        
+   
+    def get_xy(self):
         """
-        Returns equally spaced set of aximuths within possible range.
-
-        Parameters
-        ----------
-        steps : Int, optional
-            DESCRIPTION. The default is 1000.
+        Gets the x (i.e. uncalibrated) pixel positions for the data. 
 
         Returns
         -------
         array
-            list of possible azimuths.
+            DESCRIPTION.
+        array
+            DESCRIPTION.
+        """
+        
+        if self.calibration["x_dim"] ==1:
+            nx, ny = self.max_shape
+        else:
+            nx, ny = self.max_shape
+            
+        if self.calibration["x_scale"] == "linear":
+            x = np.linspace(0, nx-1, nx)
+        else:
+            x = np.logspace(0, nx-1, nx)
+        if self.calibration["y_scale"] == "linear":
+            y = np.linspace(0, ny-1, ny)
+        else:
+            y = np.logspace(0, ny-1, ny)
+        x_array, y_array = np.meshgrid(y,x)
+        
+        if self.calibration["rotation"] != 0:
+            c, s = np.cos(self.calibration["rotation"]), np.sin(self.calibration["rotation"])
+            R = np.array(((c, -s), (s, c)))
+            
+            tmp = np.vstack((x_array,x_array)) 
+            tmp = R @ tmp
+            x_array = np.reshape(tmp[:,0], x_array.shape)
+            y_array = np.reshape(tmp[:,1], y_array.shape)
+            
+        return x_array, y_array
 
+
+
+    def get_horizontal(self):
         """
-        return np.linspace(self.azm_start,self.azm_end, steps+1)
-    
-    def get_xy(self, mask=None):
-        """
-        Gets the twotheta (i.e. calibrated) values of the data. 
+        Gets the horizontal (i.e. 'x') values of the data. 
         :param mask:
         :return:
         """
+        x_array, _ = self.get_xy()
+        calibrated_x = np.ones(x_array.shape)*self.calibration["x"][0]
+        for i in range(len(self.calibration["x"])-1):
+            calibrated_x += x_array * self.calibration["x"][i+1] * (i+1)
+            
+        return calibrated_x
 
-        nx, ny = self.intensity.shape
-        x = np.linspace(0, nx-1, nx)
-        y = np.linspace(0, ny-1, ny)
-        xv, yv = np.meshgrid(y,x)
 
-        if self.calibration["x_dim"]==0:
-            return xv, yv
-        else:
-            return yv, xv
-        
 
-    def get_two_theta(self, mask=None):
+    def get_vertical(self, mask=None):
         """
-        Gets the twotheta (i.e. calibrated) values of the data. 
+        Gets the vertical (i.e. 'y') values of the data. 
         :param mask:
         :return:
         """
-
-        nx, ny = self.intensity.shape
-        x = np.linspace(0, nx-1, nx)
-        y = np.linspace(0, ny-1, ny)
-        xv, yv = np.meshgrid(y,x)
-
-        if self.calibration["x_dim"]==0:
-            return ma.array(xv, mask=mask) * self.calibration["x"][1] + self.calibration["x"][0]
-        else:
-            return ma.array(yv, mask=mask) * self.calibration["x"][1] + self.calibration["x"][0]
-
-
-    def get_azimuth(self, mask=None):
-        """
-        Give azimuth value for detector x,y position; calibration info in data
-        :param mask:
-        :return:
-        """
-        
-        nx, ny = self.intensity.shape
-        x = np.linspace(0, nx-1, nx)
-        y = np.linspace(0, ny-1, ny)
-        xv, yv = np.meshgrid(y,x)
-
-        if self.calibration["x_dim"]==0:
-            return ma.array(yv, mask=mask) * self.calibration["y"][1] + self.calibration["y"][0]
-        else:
-            return ma.array(xv, mask=mask) * self.calibration["y"][1] + self.calibration["y"][0]
-
-
-
-    def get_d_space(self, mask=None):
-        """
-        Give d-spacing value for detector x,y position; calibration info in data
-        Get as twotheta and then convert into d-spacing
-        :param mask:
-        :return:
-        """
-        
-        return self.get_two_theta(mask=mask)
-
-    def set_limits(self, range_bounds=[-np.inf, np.inf]):
-        """
-        Set limits to data in two theta
-        :param range_bounds:
-        :param i_max:
-        :param i_min:
-        :return:
-        """
-        if plot_as_image:            
-            local_mask = ma.masked_where(
-                (self.tth <= range_bounds[0]) | (self.tth >= range_bounds[1]), self.intensity
-            ).mask
-            total_mask = np.ma.mask_or(local_mask , self.intensity.mask)
-            
-            self.intensity.mask = total_mask
-            self.tth.mask = total_mask
-            self.azm.mask = total_mask
-            self.dspace.mask = total_mask
-        else:
-            local_mask = np.where(
-                (self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1])
-            )
-            self.intensity = self.intensity[local_mask]
-            self.tth = self.tth[local_mask]
-            self.azm = self.azm[local_mask]
-            self.dspace = self.dspace[local_mask]
-            
-
-    def set_mask(
-        self, range_bounds=[-np.inf, np.inf], i_max=np.inf, i_min=-np.inf, mask=None
-    ):
-        """
-        Set limits to data
-        :param range_bounds:
-        :param i_max:
-        :param i_min:
-        :return:
-        """
-        
-        if plot_as_image:
-            local_mask = np.where(
-                (self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1])
-            )
-            self.intensity = self.intensity[local_mask]
-            self.tth = self.tth[local_mask]
-            self.azm = self.azm[local_mask]
-            self.dspace = self.dspace[local_mask]
-        else:
-            local_mask = ma.getmask(
-                ma.masked_outside(self.tth, range_bounds[0], range_bounds[1])
-            )
-            local_mask2 = ma.getmask(ma.masked_outside(self.intensity, i_min, i_max))
-            combined_mask = np.ma.mask_or(ma.getmask(self.intensity), local_mask)
-            combined_mask = np.ma.mask_or(combined_mask, local_mask2)
-            NoneType = type(None)
-            if not isinstance(mask, NoneType):  # or mask.all() != None:
-                combined_mask = np.ma.mask_or(combined_mask, mask)
-            self.intensity.mask = combined_mask
-            self.tth.mask = combined_mask
-            self.azm.mask = combined_mask
-            self.dspace.mask = combined_mask
-
-    def mask_restore(self):
-        """
-        Restores the loaded mask.
-        If the image data is still the same size as the original.
-        """
-
-        print("Restore original mask.")
-        self.intensity.mask = self.original_mask
-        self.tth.mask = self.original_mask
-        self.azm.mask = self.original_mask
-        self.dspace.mask = self.original_mask
-
-    def dispersion_ticks(self, disp_ticks=None, unique=10):
-        """
-        Returns the labels for the dispersion axis/colour bars.
-
-        :param disp_ticks: -- unused for maintained for compatibility with MED functions
-        :param unique:
-        :return new_tick_positions:
-        """
-        if len(np.unique(self.azm)) >= unique:
-            disp_lims = np.array(
-                [self.azm_start, self.azm_end]
-            )
-            if disp_lims[1]-disp_lims[0] == 360:
-                disp_lims = np.around(disp_lims / 180) * 180
-                disp_ticks = list(range(int(disp_lims[0]), int(disp_lims[1] + 1), 45))
-
-        return disp_ticks
-
-    def plot_masked(self, fig_plot=None):
-        """
-        Plot all the information needed to mask the data well.
-        :param fig:
-        :return:
-        """
-
-        x_plots = 3
-        y_plots = 2
-        spec = gridspec.GridSpec(
-            ncols=x_plots,
-            nrows=y_plots,
-            width_ratios=[1, 1, 1],
-            wspace=0.5,
-            hspace=0.5,
-            height_ratios=[2, 1],
-        )
-
-        ax1 = fig_plot.add_subplot(spec[0])
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax1,
-            show="unmasked_intensity",
-            x_axis="default",
-            limits=[0, 100],
-        )
-        ax1.set_title("All Data")
-        ax2 = fig_plot.add_subplot(spec[1])
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax2,
-            show="mask",
-            x_axis="default",
-            limits=[0, 100],
-        )
-        ax2.set_title("Mask")
-        ax3 = fig_plot.add_subplot(spec[2])
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax3,
-            show="intensity",
-            x_axis="default",
-            limits=[0, 100],
-        )
-        ax3.set_title("Masked Data")
-
-        ax4 = fig_plot.add_subplot(spec[3])
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax4,
-            show="unmasked_intensity",
-            x_axis="default",
-            y_axis="intensity",
-            limits=[0, 100],
-        )
-
-        ax5 = fig_plot.add_subplot(spec[4])
-        # plot cdf of the intensities.
-        # sort the data in ascending order
-        x1 = np.sort(self.intensity.data)
-        x2 = np.sort(self.intensity)
-
-        # get the cdf values of y
-        y1 = np.arange(np.size(x1)) / float(np.size(x1))
-        y2 = np.arange(np.size(x2)) / float(ma.count(x2))
-
-        # ax1 = fig_1.add_subplot(1, 1, 1)
-        ax5.plot(
-            x1,
-            y1,
-        )
-        ax5.plot(
-            x2,
-            y2,
-        )
-        ax5.set_title("CDF of the intensities")
-
-        ax6 = fig_plot.add_subplot(spec[5])
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax6,
-            show="intensity",
-            x_axis="default",
-            y_axis="intensity",
-            limits=[0, 100],
-        )
-
-    def plot_fitted(self, fig_plot=None, model=None, fit_centroid=None):
-        """
-        add data to axes.
-        :param ax:
-        :param show:
-        :return:
-        """
-
-        # match max and min of colour scales
-        limits = {
-            "max": np.max([np.max(self.intensity), np.max(model)]),
-            "min": np.min([np.min(self.intensity), np.min(model)]),
-        }
-
-        # plot data
-        ax1 = fig_plot.add_subplot(1, 3, 1)
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax1,
-            show="intensity",
-            x_axis="default",
-            limits=limits,
-            colourmap="magma_r",
-        )
-        ax1.set_title("Data")
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
-        # plot model
-        ax2 = fig_plot.add_subplot(1, 3, 2)
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax2,
-            data=model,
-            limits=limits,
-            colourmap="magma_r",
-        )
-        if fit_centroid is not None:
-            for i in range(len(fit_centroid[1])):
-                plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
-        ax2.set_title("Model")
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
-
-        # plot residuals
-        ax3 = fig_plot.add_subplot(1, 3, 3)
-        self.plot_calibrated(
-            fig_plot=fig_plot,
-            axis_plot=ax3,
-            data=self.intensity - model,
-            limits=[0, 100],
-            colourmap="residuals-blanaced",
-        )
-        if fit_centroid is not None:
-            for i in range(len(fit_centroid[1])):
-                plt.plot(fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5)
-        ax3.set_title("Residuals")
-        locs, labels = plt.xticks()
-        plt.setp(labels, rotation=90)
-
-        # tidy layout
-        plt.tight_layout()
-
-    @staticmethod
-    def residuals_colour_scheme(maximum_value, minimum_value, **kwargs):
-        # @staticmethod is needed or get an error saying:
-        # "TypeError: residuals_colour_scheme() takes 2 positional arguments but 3 were given"
-
-        # create custom colormap for residuals
-        # ---------------
-        # Need: a colour map that is white at 0 and the colours are equally scaled on each side. So it will match the intensity in black and white. Also one this is truncated so dont have lots of unused colour bar.
-        # This can't be done using DivergingNorm(vcenter=0) or CenteredNorm(vcenter=0) so make new colourmap.
-        #
-        # create a colour map that truncates seismic so balanced around 0.
-        # It is not perfect because the 0 point insn't necessarily perfectly white but it is close enough (I think).
-        n_entries = 256
-        all_colours = cm.seismic(np.arange(n_entries))
-
-        if np.abs(maximum_value) > np.abs(minimum_value):
-            n_cut = np.int(
-                (
-                    (2 * maximum_value - (maximum_value - np.abs(minimum_value)))
-                    / (2 * maximum_value)
-                )
-                * n_entries
-            )
-            keep = n_entries - n_cut
-            all_colours = all_colours[keep:]
-        else:
-            n_cut = np.int(
-                (
-                    (
-                        2 * np.abs(minimum_value)
-                        - (maximum_value - np.abs(minimum_value))
-                    )
-                    / (2 * np.abs(minimum_value))
-                )
-                * n_entries
-            )
-            keep = n_entries - n_cut
-            all_colours = all_colours[:keep]
-        all_colours = colors.ListedColormap(
-            all_colours, name="myColorMap", N=all_colours.shape[0]
-        )
-
-        return all_colours
-
-    def plot_collected(
-        self, fig_plot=None, axis_plot=None, show="intensity", limits=[0, 99.9]
-    ):
-        """
-        add data to axes.
-        :param ax:
-        :param show:
-        :return:
-        """
-        IMax = np.nanpercentile(self.intensity.compressed(), limits[1])
-        IMin = np.nanpercentile(self.intensity.compressed(), limits[0])
-        
-        if limits[0] > 0 and limits[1] < 100:
-            cb_extend = "both"
-        elif limits[1] < 100:
-            cb_extend = "max"
-        elif limits[0] > 0:
-            cb_extend = "min"
-        else:
-            cb_extend = "neither"
-
-        the_plot = axis_plot.imshow(
-            self.intensity, vmin=IMin, vmax=IMax, cmap=plt.cm.jet
-        )
-        axis_plot.set_xlabel("x")
-        axis_plot.set_ylabel("y")
-        axis_plot.invert_yaxis()
-
-        fig_plot.colorbar(mappable=the_plot, extend=cb_extend)
-
-    def plot_calibrated(
-        self,
-        fig_plot=None,
-        axis_plot=None,
-        show="intensity",
-        x_axis="default",
-        y_axis="default",
-        data=None,
-        limits=[0, 99.9],
-        colourmap="jet",
-        rastered=False,
-        point_scale=3,
-    ):
-        """
-        add data to axes.
-        :param ax:
-        :param show:
-        :return:
-        """
-
-        if self.intensity.size > 50000:
-            print(
-                " Have patience. The plot(s) will appear but it can take its time to render."
-            )
-            rastered = True
-            # print(type(axis_plot))
-            # axis_plot = raster_axes.RasterAxes(axes=axis_plot)
-            # print(type(axis_plot))
-
-        if x_axis == "default":
-            plot_x = self.tth
-        else:
-            plot_x = self.tth
-        plot_y = self.azm
-
-        if y_axis == "intensity":
-            # plot y rather than azimuth on the y axis
-            plot_y = self.intensity
-            # organise colour scale as azimuth
-            plot_i = self.azm
-            label_y = "Intensity (a.u.)"
-            y_ticks = False
-        else:  # if y_axis is "default" or "azimuth"
-            plot_y = self.azm
-            plot_i = self.intensity
-            label_y = self.calibration["y_label"]
-
-            y_lims = [self.azm_start, self.azm_end]
-            y_ticks = list(range(int(y_lims[0]),int(y_lims[1]+1),45))
-            
-            y_ticks = False
-            if y_lims[1]-y_lims[0] == 360:
-                y_ticks = list(range(int(y_lims[0]), int(y_lims[1] + 1), 45))
-
-
-        # organise the data to plot
-        if data is not None:
-            plot_i = data
-        elif show == "unmasked_intensity":
-            plot_x = plot_x.data
-            plot_y = plot_y.data
-            plot_i = plot_i.data
-        elif show == "mask":
-            plot_x = plot_x.data
-            plot_y = plot_y.data
-            plot_i = np.array(ma.getmaskarray(self.intensity), dtype="uint8") + 1
-            colourmap = "Greys"
-        else:  # if show == "intensity"
-            plot_i = plot_i
-
-        # set colour map
-        if colourmap == "residuals-blanaced":
-            colourmap = self.residuals_colour_scheme(
-                np.max(plot_i.flatten()), np.min(plot_i.flatten())
-            )
-        else:
-            colourmap = colourmap
-
-        # set colour bar and colour maps.
-        if colourmap == "Greys":
-            IMax = 2.01
-            IMin = 0
-            cb_extend = "neither"
-        elif isinstance(limits, dict):
-            IMax = limits["max"]
-            IMin = limits["min"]
-            cb_extend = "neither"
-        else:
-            if limits[1] == 100:
-                IMax = np.nanmax(plot_i)
-            else:
-                IMax = np.nanpercentile(plot_i.compressed(), limits[1])
-            if limits[0] == 0:
-                IMin = np.nanmin(plot_i)
-            else:
-                IMin = np.nanpercentile(plot_i.compressed(), limits[0])
-            if limits[0] > 0 and limits[1] < 100:
-                cb_extend = "both"
-            elif limits[1] < 100:
-                cb_extend = "max"
-            elif limits[0] > 0:
-                cb_extend = "min"
-            else:
-                cb_extend = "neither"
-
-        # set axis limits
-        x_lims = [np.min(plot_x.flatten()), np.max(plot_x.flatten())]
- 
-
-        if plot_as_image:
-            #code to plot data as images
-            #N.B. doesnt work because the fitted data needs to be reshaped.
-            
-            the_plot = axis_plot.imshow(plot_i, 
-                                        cmap=colourmap,
-                                        vmin=IMin,
-                                        vmax=IMax,
-                                        origin="lower",
-                                        extent=[x_lims[0], x_lims[1], self.azm_start, self.azm_end],
-                                        aspect = (x_lims[1]-x_lims[0])/ (self.azm_end-self.azm_start)#left, right, bottom, top)
-                                        )
-        else:
-            # plot as a scatter plot
-            the_plot = axis_plot.scatter(
-                plot_x,
-                plot_y,
-                s=5,
-                c=plot_i,
-                edgecolors="none",
-                cmap=colourmap,
-                vmin=IMin,
-                vmax=IMax,
-                rasterized=rastered,
-            )
-            if "y_lims" in locals():
-                axis_plot.set_ylim(y_lims)
-            axis_plot.set_xlim(x_lims)
-            if y_ticks:
-                axis_plot.set_yticks(y_ticks)
-            
-        axis_plot.set_xlabel(self.calibration["x_label"])
-        axis_plot.set_ylabel(label_y)
-
-        fig_plot.colorbar(mappable=the_plot, extend=cb_extend)
+        _, y_array = self.get_xy()
+        calibrated_y = np.ones(y_array.shape)*self.calibration["y"][0]
+        for i in range(len(self.calibration["y"])-1):
+            calibrated_y += y_array * self.calibration["y"][i+1] * (i+1)
+        return calibrated_y

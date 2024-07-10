@@ -29,6 +29,7 @@ import warnings
 from lmfit import Parameters, Model
 import cpf.peak_functions as pf
 import cpf.series_functions as sf
+from cpf.XRD_FitPattern import logger
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -55,7 +56,7 @@ def parse_bounds(bounds, data_as_class, ndat=None, n_peaks=1, param=None):
             "width": ["range/(ndata)", "range/2/npeaks"],
         }
     if ndat is None:
-        ndat = np.size(data_as_class.dspace)
+        ndat = np.size(data_as_class.intensity)
 
     choice_list = ["d-space", "height", "width", "profile", "background"]
     if param is not None:
@@ -66,8 +67,8 @@ def parse_bounds(bounds, data_as_class, ndat=None, n_peaks=1, param=None):
             vals = data_as_class.intensity
         elif par == "width":
             vals = data_as_class.tth
-        else:
-            vals = data_as_class.dspace
+        else: #par == "d-space"
+            vals = data_as_class.tth
 
         b = bounds[par]
         b = [str(w).replace("inf", "np.inf") for w in b]
@@ -77,6 +78,9 @@ def parse_bounds(bounds, data_as_class, ndat=None, n_peaks=1, param=None):
         b = [w.replace("min", str(np.min(vals))) for w in b]
         b = [w.replace("npeaks", str(n_peaks)) for w in b]
         b = [eval(w) for w in b]
+        if par == "d-space":
+            #use conversion rather than storing d-spacing array
+            b = list(data_as_class.conversion(np.array(b)))
         limits[par] = b
 
     return limits
@@ -133,10 +137,39 @@ def params_to_new_params(params, orders=None):
     :return:
     """
 
-    num_peaks = len(orders["peak"])
-    num_bg = len(orders["background"])
-
+    # get number of peaks and size of background from input data.
+    num_peaks = 0
+    num_bg = 0
+    if isinstance(orders, dict):
+        num_peaks = len(orders["peak"])
+        num_bg = len(orders["background"])
+    elif orders == None and isinstance(params, Parameters):
+        var_names = list(params.keys())
+        done = 0
+        num_peaks=0
+        while done != 1:
+            if len([match for match in var_names if "peak_"+str(num_peaks) in match]) > 0:
+                num_peaks += 1
+            elif num_peaks >= 50:
+                done = 1
+            else:
+                done = 1
+        done = 0
+        num_bg=0
+        while done == 0:
+            if len([match for match in var_names if "bg_c"+str(num_bg) in match]) > 0:
+                num_bg += 1
+            elif num_bg >= 50:
+                done = 1
+            else:
+                done = 1
+    else:
+        err_str = "Cannot define number of coefficients for peak."
+        logger.critical(" ".join(map(str, [(err_str)])))   
+        raise ValueError(err_str)
+        
     peaks = []
+    new_str = ""
     for i in range(num_peaks):
         new_str = "peak_" + str(i) + "_d"
         d_space = gather_param_errs_to_list(params, new_str)
@@ -152,9 +185,9 @@ def params_to_new_params(params, orders=None):
         p_tp = sf.get_series_type(params, new_str)
 
         tmp_peaks = {}
-        if "phase" in orders["peak"][i]:
+        if isinstance("phase", dict) and "phase" in orders["peak"][i]:
             tmp_peaks["phase"] = orders["peak"][i]["phase"]
-        if "hkl" in orders["peak"][i]:
+        if isinstance("phase", dict) and "hkl" in orders["peak"][i]:
             tmp_peaks["hkl"] = orders["peak"][i]["hkl"]
         tmp_peaks["d-space"] = d_space[0]
         tmp_peaks["d-space_err"] = d_space[1]
@@ -168,7 +201,7 @@ def params_to_new_params(params, orders=None):
         tmp_peaks["profile"] = p_space[0]
         tmp_peaks["profile_err"] = p_space[1]
         tmp_peaks["profile_type"] = sf.coefficient_type_as_string(p_tp)
-        if "symmetry" in orders["peak"][i]:
+        if isinstance("phase", dict) and "symmetry" in orders["peak"][i]:
             tmp_peaks["symmetry"] = orders["peak"][i]["symmetry"]
 
         peaks.append(tmp_peaks)
@@ -176,6 +209,7 @@ def params_to_new_params(params, orders=None):
     # Get background parameters
     bg_space = []
     bg_space_err = []
+    new_str = ""
     for b in range(num_bg):
         new_str = "bg_c" + str(b) + "_f"
         bg_spc = gather_param_errs_to_list(params, new_str)
@@ -191,6 +225,9 @@ def params_to_new_params(params, orders=None):
     }
 
     return new_params
+
+
+
 
 
 # def flatten(li):
@@ -252,7 +289,7 @@ def gather_param_errs_to_list(
     str_keys = [
         key for key, val in inp_param.items() if new_str in key and "tp" not in key
     ]
-    # print('yes', new_str, str_keys)
+    # logger.info(" ".join(map(str, [('yes', new_str, str_keys)])))
     for i in range(len(str_keys)):
         param_list.append(inp_param[new_str + str(i)].value)
         err_list.append(inp_param[new_str + str(i)].stderr)
@@ -277,7 +314,6 @@ def gather_params_to_list(inp_param, param_str, comp=None):
         new_str = param_str
     param_list = []
     str_keys = [key for key, val in inp_param.items() if new_str in key]
-    # print('yes', new_str, str_keys)
     for i in range(len(str_keys)):
         param_list.append(inp_param[new_str + str(i)].value)
     return param_list
@@ -468,6 +504,14 @@ def initiate_params(
     if limits:
         new_min = np.min(limits)
         new_max = np.max(limits)
+        if np.isclose(new_min, new_max, rtol=1e-05, atol=1e-08):
+            pcent_diff = 0.005
+            if new_min == 0 or new_max == 0:
+                new_min = 0
+                new_max = pcent_diff
+            else:
+                new_min *= (1-pcent_diff)
+                new_max *= (1+pcent_diff)
         half_range = (new_max - new_min) / 2
     else:
         new_min = -np.inf
@@ -501,10 +545,9 @@ def initiate_params(
                 # The real confusion though is len should work for arrays as well...
                 num_coeff = value.size
         else:
-            print(value)
-            raise ValueError(
-                "Cannot define independent values without a number of coefficients."
-            )
+            err_str = "Cannot define independent values without a number of coefficients."
+            logger.critical(" ".join(map(str, [(value)])))
+            raise ValueError(err_str)
 
     elif trig_orders is None:
         try:
@@ -742,7 +785,7 @@ def peaks_model(
     # Elapsed time for fitting
     # t_end = time.time()
     # t_elapsed = t_end - t_start
-    # print(t_elapsed)
+    # logger.info(" ".join(map(str, [(t_elapsed)])))
 
     return intensity
 
@@ -754,7 +797,7 @@ def fit_model(
     start_end=[0, 360],
     fit_method="leastsq",
     weights=None,
-    max_n_fev=None,
+    max_n_fev=400,
 ):
     """Initiate model of intensities at twotheta and azi given input parameters and fit
     :param max_n_fev:
@@ -816,6 +859,7 @@ def coefficient_fit(
     symmetry=1,
     fit_method="leastsq",
     start_end = [0,360],
+    max_nfev = 400
 ):
     """Fit the Fourier expansion to number of required terms
     :param ydata: Component data array to fit float
@@ -852,9 +896,9 @@ def coefficient_fit(
     azimuth = np.array(azimuth)
 
     coeff_type = inp_param.eval(param_str + "_tp")
-    f_model = Model(sf.coefficient_expand, independent_vars=["azimuth"], start_end=start_end)
-    # print('parameter names: {}'.format(f_model.param_names))
-    # print('independent variables: {}'.format(f_model.independent_vars))
+    f_model = Model(sf.coefficient_expand, independent_vars=["azimuth"], start_end=start_end, comp_str=param_str, coeff_type=coeff_type)
+    # logger.info(" ".join(map(str, [('parameter names: {}'.format(f_model.param_names))])))
+    # logger.info(" ".join(map(str, [('independent variables: {}'.format(f_model.independent_vars))])))
 
     # Attempt to mitigate failure of fit with weights containing 'None' values
     # Replace with nan and alter dtype from object to float64
@@ -870,11 +914,13 @@ def coefficient_fit(
         ydata[idx],
         inp_param,
         azimuth=azimuth[idx] * symmetry,
-        coeff_type=coeff_type,
-        start_end=start_end,
+        # coeff_type=coeff_type,
+        # start_end=start_end,
         method=fit_method,
-        sigma=new_errs,
-        comp_str=param_str,
+        weights=new_errs,
+        # comp_str=param_str,
         nan_policy="propagate",
+        max_nfev = max_nfev
     )
     return out
+

@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import os
 import cpf.IO_functions as IO
 import cpf.XRD_FitPattern as fp
+from cpf.XRD_FitPattern import logger
 
 # copied from internet somewhere August 2022
 def allkeys(obj):
@@ -66,19 +67,22 @@ def image_key_validate(h5key_list, key_start, key_end, key_step):
     number_indicies = len(h5key_list)
 
     if len(key_start) != (1 | number_indicies):
-        print("There are the wrong number of start positions")
+        logger.error(" ".join(map(str, [("There are the wrong number of start positions")])))
         fail = +1
 
     if len(key_end) != (1 | number_indicies):
-        print("There are the wrong number of end positions")
+        logger.error(" ".join(map(str, [("There are the wrong number of end positions")])))
         fail = +1
 
     if len(key_step) != (1 | number_indicies):
-        print("There are the wrong number of step lengths")
+        logger.error(" ".join(map(str, [("There are the wrong number of step lengths")])))
         fail = +1
 
     if fail != 0:
-        stop
+        err_str = (
+            "The h5 settings do not balance. They need fixing.")        
+        logger.error(" ".join(map(str, [(err_str)])))
+        raise ValueError(err_str)
 
     return fail
 
@@ -100,44 +104,31 @@ def unique_labels(labels, i=3, number_data=None):
     Labels rounded
 
     """
-
-    # print(type(labels[0]))
-    # print(labels)
-
     number_labels = np.size(labels)
     number_unique = len(np.unique(labels))
 
-    # print(number_labels, number_unique, number_data)
     if number_labels == number_unique and (
         number_data == number_labels or number_labels == 1
     ):
-
         done = 0
-
         while done == 0:
-
-            # print(i)
 
             try:  # catch the unique labels not being numbers
                 labels_rounded = np.round(labels, i)
-
                 if len(np.unique(labels_rounded)) == number_labels:
                     done = 1
-
                     labels = np.round(labels, i + 1)
                     labels = np.array(labels)
-
                 else:
                     i += 1
-                # print('pants')
             except:
                 done = 1
-                # print('ohdear')
                 pass
 
     else:
-        print("there are insufficient unique labels")
-        stop
+        err_str = "There are insufficient unique labels for the h5 file levels."
+        logger.error(" ".join(map(str, [(err_str)])))
+        raise ValueError(err_str)
 
     return labels
 
@@ -164,10 +155,6 @@ def get_image_keys(
     keys = []
     sep1 = "_"
     sep2 = "="
-    # ...
-    # print('called again')
-    # print(h5key_list)
-
     if len(h5key_list) == 1:
         # we are at the end of the list and need to find out how many values are here, or what the values are
         key = key_route + "/" + h5key_list[0]
@@ -177,7 +164,7 @@ def get_image_keys(
             err_str = (
                 "The key, '%s' does not exist in '%s'"
                 % (key, key_route))
-            print(err_str)
+            logger.warning(" ".join(map(str, [(err_str)])))
         else:
             number_data = datafile[key].shape[index]
     
@@ -223,7 +210,6 @@ def get_image_keys(
                     key_step=1,
                     index=index,
                 )
-                #print('new key_strings', key_strings_new)
                 out = []
     
                 if number_data != len(key_strings_new):
@@ -248,7 +234,6 @@ def get_image_keys(
 
         # make current key
         key_str = key_str + "/" + h5key_list[0]
-        # print(key_str)
         
         #make list of key labels
         key_strings = get_image_key_strings(
@@ -265,14 +250,9 @@ def get_image_keys(
         # make list of values
         if isinstance(h5key_names[0], str) and len(h5key_names[0]) == 0:
             key_lst = list(datafile[h5key_list[0]].keys())
-            #key_strings = list(range(len(key_lst)))
-            # print('1)', len(key_str))
         else:
             key_lst = list(datafile[h5key_list[0]].keys())
-            #key_strings = key_lst
-        #     print('2)')
-        
-        # print(key_strings)
+            
         # cut to what we want ot iterate over
         # if we are using all the data make sure we run to the end.
         if key_start[0] < 0:
@@ -291,19 +271,13 @@ def get_image_keys(
         else:
             key_end[0] += 1    
         # populate the list
-        #print('start loop', [*range(key_start[0], key_end[0], key_step[0])])
-        # for i in range(len(key_lst)):
         for i in [*range(key_start[0], key_end[0], key_step[0])]:
-            # print(key_lst[i])
-            # print(h5key_list[1:])
-
             # use the index to pass either the index of the array or the upper level group index
             if bottom_level == "label":
                 if index == 0:
                     index = str(key_lst[i])
                 else:
                     index = key_lst[i]
-            # print('index', index, key_lst[i])
 
             keys.extend(
                 get_image_keys(
@@ -319,8 +293,6 @@ def get_image_keys(
                     key_str=str(key_strings[i]),
                 )
             )
-
-            # print(keys)
 
     return keys
 
@@ -377,35 +349,29 @@ def get_image_key_strings(
     number_data_tmp1 = []
     number_data_tmp = []
     for i in range(len(key_names)):
-        # print(key_names[i])
         if isinstance(datafile[key_route + "/" + key_names[i]], h5py.Group) and key_names[i]=="/":
-            print(i, "/")
+            logger.debug(" ".join(map(str, [(i, "/")])))
             number_data_tmp.append(len(list(datafile[key_route + "/" + key_names[i]].keys())))
             
         elif isinstance(datafile[key_route + "/" + key_names[i]], h5py.Group) and key_names[i]=="":
             
             try:
-                # print(key_measure)
                 if key_measure == "/":
                     number_data_tmp.append(len(list(datafile[key_route + "/" + key_names[i]].keys())))
                 else:
                     
                     attr=(datafile[key_route + "/" + key_measure])
-                    # print(attr)
                     tmp = datafile.get(key_route + "/" + key_measure)
-                    #print(tmp.shape)
                     number_data_tmp.append(tmp.shape[index])
                 
             except:
-                print(i, "value")
+                logger.debug(" ".join(map(str, [(i, "value")])))
                 number_data_tmp.append(0)
 
         else:
-            # print("wrong place")
             number_data_tmp.append(datafile[key_route + "/" + key_names[i]].size)
             
-    number_data = np.max(number_data_tmp)
-    # print('number_data', number_data)    
+    number_data = np.max(number_data_tmp)  
     
     if isinstance(key_names, str):
          key_names = [key_names]
@@ -421,7 +387,6 @@ def get_image_key_strings(
             # if so to 1 count the indicies we add 1 to the prewvious line. 
             #the counting over the arrays needs to be done in get_image_keys
             labels_temp = unique_labels(labels_temp, number_data=number_data)
-            # print(labels_temp)
         elif key_names[i] == "/":
             # if "/" then list names of subgroups
             labels_temp = list(datafile[key_route + "/" + key_names[i]].keys())
@@ -432,18 +397,13 @@ def get_image_key_strings(
                 labels_temp = datafile[key_route + "/" + key_names[i]][()]
             except:
                 #catch incase 1 iterable index is the length of the data and the other is only 1.
-                #number_data = datafile[key_route + "/" + key_names[i]].shape
                 labels_temp = datafile[key_route + "/" + key_names[i]][()]
-            #if not isinstance(labels_temp, list):
-            #    labels_temp = [labels_temp]
-            # print("lbls_tmp",labels_temp, type(labels_temp), labels_temp.size)
             labels_temp = unique_labels(
                 labels_temp, number_data=labels_temp.size
             )
         labels.append(labels_temp)
         
     # if we are using all the data make sure we run to the end.
-    # print('keyend',key_end)
     if key_end == -1:
         key_end = number_data-1
     # else:
@@ -464,7 +424,6 @@ def get_image_key_strings(
     for i in [*range(key_start, key_end+1, key_step)]:
         lbl_str = ""
         for j in range(len(labels)):
-            #print(i, j, "'",key_names[0],"'")
             if (
                 isinstance(key_names[j], str)
                 and len(key_names[j]) == 0
@@ -482,6 +441,8 @@ def get_image_key_strings(
                     lbl_str = lbl_str + str(labels[j])
                 else:
                     lbl_str = lbl_str + str(labels[j][i])
+            elif labels[j].size == 1:
+                lbl_str = lbl_str + sep2 + str(labels[j])
             else:
                 if np.size(labels[j]) == 1:
                     # if labels are a single item they can come wrapped in lists. 
@@ -563,7 +524,6 @@ def get_images(
         datakey = image_list[n][1][0]
         data_position_in_key = image_list[n][1][1]
         data_tmp = np.array(datafile[datakey][data_position_in_key])
-        # print('size of data (',str(i),'): ', data_tmp.shape)
 
         if len(image_num) == 1:
             data = data_tmp
@@ -574,7 +534,6 @@ def get_images(
                 data = np.expand_dims(data, axis=axis)
             else:
                 data = np.append(data, np.expand_dims(data_tmp, axis=axis), axis=axis)
-            # print('size of data (',str(i),'): ', data.shape)
 
     return data
 
@@ -682,134 +641,5 @@ def save_images(
             extension=export_type,
         )
 
-        # print(im_data.shape)
         cv2.imwrite(fnam, im_data[0, :, :])
-        print("Writing:", fnam)
-
-
-if __name__ == "__main__":
-
-    """
-    Yunhui says they use two data keys for position.
-    Namely:
-    data_key='/27.1/instrument/positioners/dz1' # this entry contains the positions of the detector or sample or somepart to be used as a label.
-    data_key='/17.1/instrument/positioners/dy' # Yunsui said this one also but all the values are 0 -- so maybe not.
-
-    I am going to use:
-    '/' -- the name of it
-    'instrument/positioners/dz1' -- the values inside it.
-
-    Thw structure of a h5 file is flexible and Yunhui's case has two indicies to iterate over.
-    therefore I am going to make the itertion possible over any number of indicies. By calling a loop rather than assuming how many levels are needed.
-
-    The output files will need to be named according to:
-        - their positions in the loop
-        - an index name or
-        - another index.
-    and will need to be named for the number of indicices iterated over.
-    Or a single value that is taken for all indicies.
-
-    We will need to check that all the names are unique.
-
-    It might also not be required to process all the data. Therfore we need a:
-        - start, end and step for the indicies, or
-        - a list of values to process.
-    We can copy the normal file pattern.
-    But the values have to be a list the same length as the indicies.
-
-
-
-    """
-    x = 1
-    y = 2
-
-    if x == 0:
-        # IN004
-        fname = "/Volumes/External/DATA_other_people/UCLengineers_YunhuiChen/data3_ID31/IN004/IN004_0001/IN004_0001.h5"
-        # fname = '/Volumes/External/DATA_other_people/UCLengineers_YunhuiChen/data3_ID31/IN004/IN004_0001/scan0025/p3_0000.h5'
-        # outname = './IN004_0001/scan0025/p3_0000'
-        # data_key = "/entry_0000/measurement/data"
-    elif x == 1:
-        # RR006
-        fname = "/Volumes/External/DATA_other_people/UCLengineers_YunhuiChen/data3_ID31/RR006/RR006_0001/RR006_0001.h5"
-        # fname = '/Volumes/External/DATA_other_people/UCLengineers_YunhuiChen/data3_ID31/RR006/RR006_0001/scan0007/p3_0000.h5'
-        # outname = './RR006_0001/scan0007/p3_0000'
-        # data_key = "/entry_0000/measurement/data"
-
-        # h5_key_list  = ['/', 'measurement/p3']
-        # if 1: #iterate
-        #     h5_key_names = ['/', 'instrument/positioners/dy']
-        #     h5_key_names = ['/', ['instrument/positioners/dz1','instrument/positioners/dy']]
-        #     h5_key_start = [0, 0]
-        #     k5_hey_end   = [-1,-1]
-        #     h5_key_step  = [1,-1]
-        #     h5_data      = 'iterate' # the other options would be "sum". "iterate" only applies to the bottom level.
-        # else: #sum
-        #     h5_key_names = ['/', 'title']
-        #     h5_key_start = [0, 0]
-        #     k5_hey_end   = [-1,-1]
-        #     h5_key_step  = [1,-1]
-        #     h5_data      = 'sum' # the other options would be "sum". "iterate" only applies to the bottom level.
-
-    elif x == 2:
-        # trip_005
-        fname = "/Volumes/External/DATA_other_people/UCLengineers_YunhuiChen/data3_ID31/trip005/trip005_0001/trip005_0001.h5"
-        # fname = '/Volumes/External/DATA_other_people/UCLengineers_YunhuiChen/data3_ID31/trip005/trip005_0001/scan0048/p3_0000.h5'
-        # outname = './trip005/trip005_0001/scan0048/p3_0000'
-        # data_key = "/entry_0000/measurement/data"
-    elif x == 3:
-        datafile_directory = "/Volumes/External/DATA_other_people/UCLengineers_YunhuiChen/data3_ID31/trip005/trip005_0001/"
-        datafile_Basename = "trip005_0001"
-        datafile_Ending = ".h5"
-        # datafile_StartNum  = 1
-        # datafile_EndNum    = 10
-        datafile_NumDigit = 0
-        datafile_h5 = True
-        y = 2
-    elif x == 4:
-        datafile_directory = "./"
-        datafile_Basename = "BCC1_2GPa_10s_001_"
-        datafile_Ending = ".tif"
-        datafile_StartNum = 1
-        datafile_EndNum = 10
-        datafile_NumDigit = 5
-        datafile_h5 = False
-
-    else:
-        print("no data")
-        stop
-
-    h5_key_list = ["/", "measurement/p3"]
-    if y == 1:  # iterate
-        h5_key_names = ["/", "instrument/positioners/dy"]
-        h5_key_names = [
-            "/",
-            ["instrument/positioners/dz1", "instrument/positioners/dy"],
-        ]
-        h5_key_start = [0, 0]
-        k5_hey_end = [-1, -1]
-        h5_key_step = [1, -1]
-        h5_data = "iterate"  # the other options would be "sum". "iterate" only applies to the bottom level.
-    else:  # sum
-        h5_key_names = ["/", "title"]
-        h5_key_start = [0, 0]
-        k5_hey_end = [-1, -1]
-        h5_key_step = [1, -1]
-        h5_data = "sum"  # the other options would be "sum". "iterate" only applies to the bottom level.
-
-    datafile = h5py.File(fname, "a")
-
-    # my_list = get_image_keys(datafile, h5_key_list, key_start=h5_key_start, key_end=k5_hey_end, key_step=h5_key_step, bottom_level=h5_data)
-    # print(my_list)
-
-    my_labels = get_image_keys(
-        datafile,
-        h5_key_list,
-        h5_key_names,
-        key_start=h5_key_start,
-        key_end=k5_hey_end,
-        key_step=h5_key_step,
-        bottom_level=h5_data,
-    )
-
-    print(my_labels)
+        logger.moreinfo(" ".join(map(str, [("Writing:", fnam)])))

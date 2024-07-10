@@ -10,6 +10,7 @@ Modifications:
 """
 from cpf.input_types import Mca
 import numpy as Numeric
+from cpf.XRD_FitPattern import logger
 
 # FIX ME: DMF Need to rationalise this code and keep what's needed.
 # FIX ME: where do we stand on licensing? has this been published?
@@ -342,7 +343,7 @@ class Med(Mca.Mca):
         for i in range(self.n_detectors):
             data[i, :] = self.mcas[i].get_data()
         if align != 0:
-            print("This option has been removed")
+            logger.info(" ".join(map(str, [("This option has been removed")])))
             stop
         #         ref_energy = self.mcas[0].get_energy()
         #         for i in range(self.n_detectors):

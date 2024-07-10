@@ -27,6 +27,13 @@ It needs to do a few things.
 
 """
 
+"""
+#another algorithm that could be tried is:
+https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_blob.html
+https://scikit-image.org/docs/stable/api/skimage.feature.html#skimage.feature.blob_log
+"""
+
+
 __all__ = ["initiate", "set_range", "execute"]
 
 
@@ -35,7 +42,7 @@ import numpy as np
 # import numpy.ma as ma
 import matplotlib.pyplot as plt
 import matplotlib.colors as colours
-import cpf.XRD_FitPattern as XRDFit
+import cpf.XRD_FitPattern as XRD_FitPattern
 import cpf.IO_functions as IO
 import os.path
 import proglog
@@ -44,7 +51,7 @@ import proglog
 import json
 from cpf.settings import settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
-from cpf.Cosmics import image_preprocess as cosmicsimage_preprocess
+from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
 from cpf.BrightSpots import SpotProcess
 from cpf.IO_functions import (
     json_numpy_serializer,
@@ -53,6 +60,7 @@ from cpf.IO_functions import (
     any_terms_null,
     title_file_names,
 )
+from cpf.XRD_FitPattern import logger
 
 # from findpeaks import findpeaks
 
@@ -67,7 +75,7 @@ import re
 from scipy.signal import find_peaks
 
 
-def initiate(setting_file=None, inputs=None, out_type=None, report=False, **kwargs):
+def initiate(*args, **kwargs):
     """
     Run checks on input files, initiate data class and check output options
     :param report:
@@ -79,28 +87,13 @@ def initiate(setting_file=None, inputs=None, out_type=None, report=False, **kwar
     :return fit_settings:
     """
 
-    # Fail gracefully
-    if setting_file is None:
-        raise ValueError(
-            "Either the settings file or the parameter dictionary need to be specified."
-        )
-    # If no params_dict then initiate. Check all the output functions are present and valid.
-
-    settings_for_fit = settings()
-    settings_for_fit.populate(settings_file=setting_file, report=report)
-
+    # pass everything through to XRD_FitPattern.initiate
+    settings_for_fit = XRD_FitPattern.initiate(*args, **kwargs)
+    
     return settings_for_fit
 
 
-def set_range(
-    setting_file=None,
-    inputs=None,
-    debug=False,
-    save_all=False,
-    parallel=True,
-    subpattern="all",
-    **kwargs
-):
+def set_range(*args, **kwargs):
     """
     :param setting_file:
     :param inputs:
@@ -116,25 +109,9 @@ def set_range(
     :return:
     """
 
-    settings_for_fit = initiate(
-        setting_file, inputs=inputs, report=True, mode="cascade"
-    )
-
-    # search over the first file only
-    # restrict file list to first file
-    settings_for_fit.set_data_files(keep=0)
-
-    # restrict to sub-patterns listed
-    settings_for_fit.set_subpatterns(subpatterns=subpattern)
-
-    execute(
-        setting_class=settings_for_fit,
-        debug=debug,
-        save_all=save_all,
-        parallel=parallel,
-        mode="set-range",
-        report=True,
-    )
+    # pass everything through to XRD_FitPattern.set_range
+    XRD_FitPattern.set_range(*args, **kwargs)
+    
 
 
 def execute(
@@ -214,8 +191,7 @@ def execute(
 
     # Process the diffraction patterns #
     for j in range(settings_for_fit.image_number):
-
-        print("Process ", title_file_names(image_name=settings_for_fit.image_list[j]))
+        logger.info(" ".join(map(str, [("Process ", settings_for_fit.datafile_list[j])])))
         # Get diffraction pattern to process.
         new_data.import_image(settings_for_fit.image_list[j], debug=debug)
 
@@ -234,7 +210,7 @@ def execute(
             ax = fig.add_subplot(1, 1, 1)
             ax_o1 = plt.subplot(111)
             new_data.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity")
-            plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
+            plt.title(title_file_names(image_name=settings_for_fit.image_list[j]))
             plt.show()
             plt.close()
 
@@ -244,7 +220,7 @@ def execute(
             and settings_for_fit.fit_propagate is True
         ):  # and mode == "fit":
             # Read JSON data from file
-            print("Loading previous fit results from %s" % temporary_data_file)
+            logger.info(" ".join(map(str, [("Loading previous fit results from %s" % temporary_data_file)])))
             with open(temporary_data_file) as json_data:
                 previous_fit = json.load(json_data)
 
@@ -276,35 +252,33 @@ def execute(
                 clean = any_terms_null(params, val_to_find=None)
                 if clean == 0:
                     # the previous fit has problems so discard it
-                    print(
-                        "Propagated fit has problems so not sesible to track the centre of the fit."
-                    )
+                    logger.info(" ".join(map(str, [("Propagated fit has problems so not sesible to track the centre of the fit.")])))
                 else:
-                    print("old subpattern range", tth_range)
+                    logger.info(" ".join(map(str, [("old subpattern range", tth_range)])))
                     mid = []
                     for k in range(len(params["peak"])):
                         mid.append(params["peak"][k]["d-space"][0])
                         # FIXME: replace with caluculation of mean d-spacing.
 
                     # Replace this with call through to class structure?
-                    # print(mid)
+                    # logger.info(" ".join(map(str, [(mid)])))
                     cent = new_data.conversion(np.mean(mid), reverse=True)
-                    # print("cent", cent)
-                    # print("mean tth_range", np.mean(tth_range))
-                    # print((tth_range[1] + tth_range[0]) / 2)
+                    # logger.info(" ".join(map(str, [("cent", cent)])))
+                    # logger.info(" ".join(map(str, [("mean tth_range", np.mean(tth_range))])))
+                    # logger.info(" ".join(map(str, [((tth_range[1] + tth_range[0]) / 2)])))
                     move_by = cent - np.mean(tth_range)
-                    print("move by", move_by)
+                    logger.info(" ".join(map(str, [("move by", move_by)])))
                     tth_range = tth_range + move_by
                     # tth_range[0] = tth_range[0] - ((tth_range[1] + tth_range[0]) / 2) + cent
                     # tth_range[1] = tth_range[1] - ((tth_range[1] + tth_range[0]) / 2) + cent
-                    # print("move by:", ((tth_range[1] + tth_range[0]) / 2) - cent)
-                    print("new subpattern range", tth_range)
+                    # logger.info(" ".join(map(str, [("move by:", ((tth_range[1] + tth_range[0]) / 2) - cent)])))
+                    logger.info(" ".join(map(str, [("new subpattern range", tth_range)])))
 
                     # copy new positions back into settings_for_fit
                     settings_for_fit.fit_orders[i]["range"] = (
                         settings_for_fit.fit_orders[i]["range"] + move_by
                     )
-                    print(settings_for_fit.fit_orders[i]["range"])
+                    logger.info(" ".join(map(str, [(settings_for_fit.fit_orders[i]["range"])])))
 
                     # The PeakPositionSelections are only used if the fits are not being propagated
                     if "PeakPositionSelection" in settings_for_fit.fit_orders[i]:
@@ -364,8 +338,8 @@ def execute(
                     save_fit=save_figs,
                     debug=debug,
                     mode=mode,
-                    # cascade=True,
-                    # cascade_heights=cascade_heights,
+                    histogram_type = settings_for_fit.cascade_histogram_type,
+                    histogram_bins = settings_for_fit.cascade_histogram_bins,
                 )
                 all_fitted_chunks.append(tmp[0])
                 all_chunk_positions.append(tmp[1])
@@ -378,7 +352,7 @@ def execute(
             additional_text="chunks",
             # orders=settings_for_fit.subfit_orders,
             extension=".json",
-            overwrite=False,
+            overwrite=True,
         )
         with open(filename, "w") as TempFile:
             # Write a JSON string into the file.
@@ -517,6 +491,7 @@ def plot_cascade_chunks(
     plot_type = "timeseries",
     subpattern="all",
     scale="linear",
+    azi_range = "all",
     vmax=np.inf,
     vmin=0,
     **kwargs
@@ -545,7 +520,7 @@ def plot_cascade_chunks(
     # get file times
     modified_time_s = []
     for i in range(setting_class.image_number):
-        modified_time_s.append(os.path.getmtime(setting_class.image_list[i][0]))
+        modified_time_s.append(os.path.getmtime(setting_class.image_list[i]))
     modified_time_s = np.array(modified_time_s)
     modified_time_s = modified_time_s - modified_time_s[0]
     y_label_str = r"Time (s)"
@@ -566,8 +541,6 @@ def plot_cascade_chunks(
         inputs=setting_class, debug=debug, report=report, subpattern=subpattern
     )
     min_all, max_all = get_chunks_range(all_data, series="h")
-    
-
         
     for j in range(num_plots):
         # loop over the number of sets of peaks fit for (i.e. len(setting_class.fit_orders))
@@ -591,7 +564,7 @@ def plot_cascade_chunks(
         if scale == "sqrt":
             norm = colours.PowerNorm(gamma=0.5)
         elif scale == "log":
-            norm = colours.LogNorm(vmin = vmin, vmax=vmax)
+            norm = colours.LogNorm(vmin=vmin)
         elif scale == "linear":
             norm = None
         for k in range(len(setting_class.subfit_orders["peak"])):
@@ -609,13 +582,14 @@ def plot_cascade_chunks(
                             all_data[i][j]["chunks"],
                             modified_time_s[i]
                             * np.ones(np.shape(all_data[i][j]["chunks"])),
-                            s=1,
+                            s=.05,
                             c=(all_data[i][j]["h"][k]),
-                            vmax= vmax,
-                            vmin= vmin,
+                            #vmax= vmax,
+                            #vmin= vmin,
                             cmap="YlOrBr",
                             norm=norm
                         )
+                    
                     # determine the label for the figure -- if there is data in the other peaks then just label as single peak otherwise it is all the peaks
                     pk = k
                     for l in range(len(setting_class.subfit_orders["peak"])):
@@ -626,8 +600,14 @@ def plot_cascade_chunks(
                     plt.title(ttlstr)
                     plt.xlabel(r"Azimuth (deg)")
                     plt.ylabel(y_label_str)
+                    
+                    if azi_range == "all":
+                        azi_range = [np.min(all_data[i][j]["chunks"]),np.max(all_data[i][j]["chunks"])]
+                    x_ticks = setting_class.data_class.dispersion_ticks(disp_lims = azi_range)
+                    ax.set_xticks(x_ticks)
+                    
                     cb = plt.colorbar(extend=cb_extend)
-                    cb.set_label(r"Log$_{10}$(Intensity)")
+                    # cb.set_label(r"Log$_{10}$(Intensity)")
                     cb.set_label(r"Intensity")
                     plt.show()
                     # save the figure
@@ -724,7 +704,7 @@ def peak_count(
     inputs=None,
     debug=False,
     report=False,
-    prominence=1,
+    prominence=15,
     subpattern="all",
     **kwargs
 ):
@@ -891,6 +871,269 @@ def plot_peak_count(
     fig.savefig(filename, transparent=True)
 
 
+
+
+
+
+"""
+ths is probably a better way of finding peaks using ImageD111
+Copied from ImageD11/test/peaksearchtiftest/scriptedpeaksearch.py 
+https://github.com/FABLE-3DXRD/ImageD11/blob/194d2fda453ee3e259e67651c3fcc1442dc3014b/test/peaksearchtiftest/scriptedpeaksearch.py
+24th March 2023
+"""
+#import fabio, numpy as np
+from ImageD11.labelimage import labelimage
+from ImageD11.peaksearcher import peaksearch
+from ImageD11.blobcorrector import correctorclass, perfect
+from ImageD11.columnfile import columnfile
+import glob
+import fabio
+import numpy.ma as ma
+
+def execute2(
+    setting_file=None,
+    setting_class=None,
+    inputs=None,
+    debug=False,
+    save_all=False,
+    parallel=True,
+    subpattern="all",
+    mode="cascade",
+    report=False,
+    threshold = [1,10,100,1000,10000],
+    **kwargs
+):
+    """
+    :param fit_parameters:
+    :param fit_settings:
+    :param setting_file:
+    :param parallel:
+    :param report:
+    :param mode:
+    :param track:
+    :param propagate:
+    :param save_all:
+    :param inputs:
+    :param debug:
+    :param refine:
+    :param iterations:
+    :return:
+    """
+
+    if setting_class is None:
+        settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+    else:
+        settings_for_fit = setting_class
+    new_data = settings_for_fit.data_class
+
+    if settings_for_fit.calibration_data:
+        data_to_fill = os.path.abspath(settings_for_fit.calibration_data)
+    else:
+        data_to_fill = os.path.abspath(settings_for_fit.image_list[0])
+
+    new_data.fill_data(
+        data_to_fill,
+        settings=settings_for_fit,
+        debug=debug,
+    )
+
+    # plot calibration file
+    if debug and settings_for_fit.calibration_data is not None:
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        new_data.plot_collected(fig_plot=fig, axis_plot=ax)
+        plt.title("Calibration data")
+        plt.show()
+        plt.close()
+
+    if not isinstance(threshold, list):
+        threshold = [threshold]
+
+
+    # if parallel processing start the pool
+    # if parallel is True:
+    #     p = mp.Pool(processes=mp.cpu_count())
+    # p = mp.Pool()
+
+    # restrict to sub-patterns listed
+    settings_for_fit.set_subpatterns(subpatterns=subpattern)
+
+    # Process the diffraction patterns #
+    for j in range(settings_for_fit.datafile_number):
+
+        print("Process ", settings_for_fit.datafile_list[j])
+        # Get diffraction pattern to process.
+        new_data.import_image(settings_for_fit.datafile_list[j], debug=debug)
+
+        if settings_for_fit.datafile_preprocess is not None:
+            # needed because image preprocessing adds to the mask and is different for each image.
+            new_data.mask_restore()
+            if "cosmics" in settings_for_fit.datafile_preprocess:
+                new_data = cosmicsimage_preprocess(new_data, settings_for_fit)
+        else:
+            # nothing is done here.
+            pass
+
+        # plot input file
+        if debug:
+            fig = plt.figure()
+            ax = fig.add_subplot(1, 1, 1)
+            ax_o1 = plt.subplot(111)
+            new_data.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity")
+            plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
+            plt.show()
+            plt.close()
+
+        # give somes minimal options
+        corrector  = perfect() # no spatial disortion
+        dims = new_data.intensity.shape
+        label_ims  = { t : labelimage( shape=dims,
+                                       fileout=make_outfile_name(settings_for_fit.datafile_list[j], directory=settings_for_fit.output_directory)+"_t%d.flt"%( t ),
+                                       sptfile=make_outfile_name(settings_for_fit.datafile_list[j], directory=settings_for_fit.output_directory)+"_t%d.spt"%( t ),
+                                       spatial=corrector )
+                       for t in threshold }
+
+        #for filename, omega in lines:
+            
+        #open image with Fabio, required by peaksearch.
+        # can't do this as a data class function because it cant pickle a Fabio instance. 
+        frame = fabio.open(settings_for_fit.datafile_list[j])
+        frame.data = new_data.intensity
+        print(type(frame.data))
+
+        frame.header['Omega'] = 0
+        frame.data = frame.data.astype( np.float32 )
+        print(type(frame.data))
+        # corrections like dark/flat/normalise would be added here
+        peaksearch( os.path.basename(settings_for_fit.datafile_list[j]), frame, corrector, threshold, label_ims )
+        stop
+        for t in threshold:
+            label_ims[t].finalise()
+            
+
+
+    #if debug:
+        
+
+def load_flts(
+    setting_file=None,
+    setting_class=None,
+    inputs = None,
+    **kwargs
+    ):
+    """
+    loads flt files for the selected subpattern.
+    Makes an array of the peaks, where x,y are the centres and i is the size of the peak.
+    Adds this array to the data class.
+    
+    Parameters
+    ----------
+    setting_file : TYPE, optional
+        DESCRIPTION. The default is None.
+    setting_class : TYPE, optional
+        DESCRIPTION. The default is None.
+
+    Returns
+    -------
+    None.
+
+    """   
+    
+    if setting_class is None:
+        settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+    else:
+        settings_for_fit = setting_class
+    
+    # if nothing has been set assume the first pattern
+    if settings_for_fit.subfit_filename==None:
+        settings_for_fit.set_subpattern(0,0)
+    
+    
+    #find all the *.flt files for this image    
+    fnam = make_outfile_name(settings_for_fit.subfit_filename, directory=settings_for_fit.output_directory)    
+    fnams = glob.glob(fnam+"*.flt")
+        
+    obj = []
+    #obj = columnfile()
+    for i in range(len(fnams)):
+        
+        obj.append(columnfile(fnams[i]))
+        
+        plt.scatter(-obj[i].dety, obj[i].detz,1,c=(obj[i].sum_intensity))
+        plt.colorbar()
+        plt.title(fnams[i])
+        plt.show()
+        
+        plt.scatter((obj[i].Number_of_pixels),(obj[i].sum_intensity))
+        plt.title(fnams[i])
+        plt.show()
+        
+    return obj
+
+    
+def make_im_from_flts(
+    setting_file=None,
+    setting_class=None,
+    data_class = None,
+    inputs = None,
+    debug=False,
+    **kwargs):
+    
+    if setting_class is None:
+        settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+    else:
+        settings_for_fit = setting_class
+    
+    # if nothing has been set assume the first pattern
+    if settings_for_fit.subfit_filename==None:
+        settings_for_fit.set_subpattern(0,0)
+        
+    if data_class == None:
+        data_class = settings_for_fit.data_class
+        data_class.fill_data(settings_for_fit.subfit_filename,
+                             settings=settings_for_fit)
+        
+    peaks_im = ma.zeros(data_class.intensity.shape)
+    
+    
+    pks = load_flts(setting_file=setting_file,setting_class=settings_for_fit,data_class=data_class)
+    
+    for i in range(len(pks)):
+        
+        x = -pks[i].dety
+        y = pks[i].detz
+        z = pks[i].sum_intensity
+        
+        for j in range(len(x)):    
+            peaks_im[int(y[j]), int(x[j])] = z[j]
+            
+    #peaks_im = peaks_im(mask=data_class.intensity.mask)
+    peaks_im = ma.masked_where(ma.getmask(data_class.intensity), peaks_im)
+
+    if debug:
+        fig = plt.figure()
+        plt.imshow(peaks_im, vmax=30)
+        plt.colorbar()
+        plt.show()
+          
+        fig = plt.figure()
+        plt.imshow(np.log10(data_class.intensity))
+        plt.colorbar()
+        plt.show()
+        
+        fig = plt.figure()
+        plt.scatter(data_class.tth, data_class.azm, s=.1,c=peaks_im, vmax=30)
+        plt.colorbar()
+        plt.show()
+    
+    #print(pks[0].get_bigarray)
+    #print(dir(pks[0]))  
+    
+    data_class.peaks_image = peaks_im
+    
+    return data_class
+    
+
 """
 # ============================
 # NOTES:
@@ -938,20 +1181,20 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
         
     for h in range(n_diff_files):
         
-        #print(FitParameters)
-        #print(diff_files)
+        #logger.info(" ".join(map(str, [(FitParameters)])))
+        #logger.info(" ".join(map(str, [(diff_files)])))
         
         #FitSettings_tmp = FitSettings
         FitSettings_tmp = FitSettings
         FitSettings_tmp.datafile_Files = [FitSettings_files[h]]
         #FitSettings_tmp.datafile_Files[0] = diff_files[h]
         
-        #print(FitSettings_tmp.datafile_Files)
-        #print(FitSettings_tmp)
-        #print(FitParameters)
+        #logger.info(" ".join(map(str, [(FitSettings_tmp.datafile_Files)])))
+        #logger.info(" ".join(map(str, [(FitSettings_tmp)])))
+        #logger.info(" ".join(map(str, [(FitParameters)])))
     
         outfname = IO.make_outfile_name(diff_files[h], directory=FitSettings_tmp.Output_directory, extension='csv', additional_text='peaks')
-        print(outfname)
+        logger.info(" ".join(map(str, [(outfname)])))
     
         if not os.path.exists(outfname):
             #This currently gets all the peaks in the image, not just those in the regios of interest
@@ -987,19 +1230,19 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
             #fp.plot_persistence()
             
             fp.results['persistence']
-            print(fp.results['persistence'])
-            print(type(fp.results['persistence']))
+            logger.info(" ".join(map(str, [(fp.results['persistence'])])))
+            logger.info(" ".join(map(str, [(type(fp.results['persistence']))])))
             
             peaks = fp.results
-            #print(type(peaks))
-            #print(peaks)
-            #print(type(peaks))
+            #logger.info(" ".join(map(str, [(type(peaks))])))
+            #logger.info(" ".join(map(str, [(peaks)])))
+            #logger.info(" ".join(map(str, [(type(peaks))])))
             
             fp.results['persistence'].to_csv(outfname)
         else:
             
             peaks=pd.read_csv(outfname)
-            #print(fp)
+            #logger.info(" ".join(map(str, [(fp)])))
             #peaks = fp.results
             if h==0:
                 #This currently gets all the peaks in the image, not just those in the regios of interest
@@ -1060,8 +1303,8 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
             
             # visible.append(num_vis_pix/num_pix)
         num_peaks_all.append(num_peaks)
-        #print(num_peaks)
-        #print(visible)
+        #logger.info(" ".join(map(str, [(num_peaks)])))
+        #logger.info(" ".join(map(str, [(visible)])))
      
     #get file times
     modified_time = []
@@ -1070,12 +1313,12 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
     modified_time = np.array(modified_time)
     modified_time = (modified_time - modified_time[0])/60
     num_peaks_all=np.array(num_peaks_all)
-    print(num_peaks_all)
-    print(modified_time)
+    logger.info(" ".join(map(str, [(num_peaks_all)])))
+    logger.info(" ".join(map(str, [(modified_time)])))
     if 1:
         fig,ax = plt.subplots()
         for i in range(len(FitSettings.fit_orders)):
-            print(num_peaks_all[:,i])
+            logger.info(" ".join(map(str, [(num_peaks_all[:,i])])))
             plt.plot(modified_time, num_peaks_all[:,i], '.-', label=IO.peak_string(FitSettings.fit_orders[i]))
             
         plt.xlabel(r'Time (min)')
@@ -1119,7 +1362,7 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
         
         # fp.results['persistence']
         
-        # print(fp.results)
+        # logger.info(" ".join(map(str, [(fp.results)])))
           
     
     
@@ -1160,7 +1403,7 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
         
         fp.results['persistence']
         
-        print(fp.results)
+        logger.info(" ".join(map(str, [(fp.results)])))
         
     stop
                 

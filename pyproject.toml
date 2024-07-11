@@ -54,9 +54,6 @@ dev = [
 ]
 [project.urls]
 Repository = "https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit"
-[project.scripts]
-"cpf.fit_pattern" = "cpf.cli.CPF_XRD_FitPattern:run"
-"cpf.generate_inputs" = "cpf.cli.CPF_generate_inputs:run"
 
 [tool.setuptools.packages.find]
 where = ["src"]

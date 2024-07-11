@@ -51,6 +51,7 @@ dev = [
   "bump2version", # For version control
   "ipykernel", # For Jupyter Notebook interactive development
   "pre-commit", # For running code checks with
+  "pytest", # For running unit tests on code
 ]
 [project.urls]
 Repository = "https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit"

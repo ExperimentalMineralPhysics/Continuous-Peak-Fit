@@ -588,8 +588,10 @@ def execute(
         except AssertionError:
             pass
 
-    # Process the diffraction patterns #
-    for j in range(settings_for_fit.image_number):
+    # Process the diffraction patterns
+    # for j in range(settings_for_fit.image_number):
+    progress = proglog.default_bar_logger('bar')  # shorthand to generate a bar logger
+    for j in progress.iter_bar(iteration=range(settings_for_fit.image_number)):
 
         logger.info(" ".join(map(str, [("Processing %s" % title_file_names(image_name=settings_for_fit.image_list[j]))])))
 

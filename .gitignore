@@ -1,12 +1,14 @@
 
 *.pyx
 *.pyc
+*.egg-info
+*.ipynb
 
-*.json 
-*.png 
-*.sav 
-*.dat 
-*.fit 
+*.json
+*.png
+*.sav
+*.dat
+*.fit
 *.exp
 *.flt
 *.spt

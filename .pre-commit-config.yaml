@@ -1,0 +1,49 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-added-large-files
+        name: Checking for added large files
+        exclude: ^Example*/ # Exclude examples folders
+        # fail_fast: True
+      - id: check-case-conflict
+        name: Checking for name case conflicts
+      - id: check-merge-conflict
+        name: Checking for merge conflicts
+      - id: check-ast
+        name: Verifying Python file syntax
+      - id: check-json
+        name: Verifying JSON file syntax
+      - id: check-yaml
+        name: Verifying YAML file syntax
+        args: [--allow-multiple-documents]
+      - id: check-toml
+        name: Verifying TOML file syntax
+
+  # Format the pyproject.toml file
+  - repo: https://github.com/tox-dev/pyproject-fmt
+    rev: 1.7.0 # Released 2024-01-22
+    hooks:
+      - id: pyproject-fmt
+        name: Formatting the pyproject.toml file
+        additional_dependencies: ["tox>=4.9"]
+
+  # Use Prettier to format other non-Python file types
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0 # Released 2023-11-13 | Latest stable version
+    hooks:
+      - id: prettier
+        name: Formatting other file types using Prettier
+        # types_or: [css, html, json, yaml]
+
+  # Use Ruff for both linting and formatting (one-stop replacement for Black)
+  # - repo: https://github.com/astral-sh/ruff-pre-commit
+  #   rev: v0.4.10 # Released 2024-06-20 | Latest version
+  #   hooks:
+  #     - id: ruff
+  #       name: Run the Ruff linter for Python
+  #       types: [python]
+
+  #     - id: ruff-format
+  #       name: Run the Ruff formatter for Python
+  #       types: [python]

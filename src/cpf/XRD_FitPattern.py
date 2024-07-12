@@ -59,7 +59,8 @@ import os
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-import pathos.multiprocessing as mp
+import pathos.pools as mp
+from pathos.multiprocessing import cpu_count
 from cpf import output_formatters
 from cpf.settings import settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
@@ -73,6 +74,7 @@ from cpf.IO_functions import (
     title_file_names,
 )
 
+import proglog
 import cpf.logger_functions as lg
 
 np.set_printoptions(threshold=sys.maxsize)
@@ -577,7 +579,7 @@ def execute(
     # if parallel processing start the pool
     if parallel is True:
         # p = mp.Pool(processes=mp.cpu_count())
-        p = mp.ProcessPool(nodes=mp.cpu_count())
+        p = mp.ParallelPool(nodes=cpu_count())
         # p = mp.Pool()
 
         # Since we may have already closed the pool, try to restart it
@@ -586,8 +588,10 @@ def execute(
         except AssertionError:
             pass
 
-    # Process the diffraction patterns #
-    for j in range(settings_for_fit.image_number):
+    # Process the diffraction patterns
+    # for j in range(settings_for_fit.image_number):
+    progress = proglog.default_bar_logger('bar')  # shorthand to generate a bar logger
+    for j in progress.iter_bar(iteration=range(settings_for_fit.image_number)):
 
         logger.info(" ".join(map(str, [("Processing %s" % title_file_names(image_name=settings_for_fit.image_list[j]))])))
 

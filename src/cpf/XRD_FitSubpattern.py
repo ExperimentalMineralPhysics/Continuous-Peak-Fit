@@ -383,16 +383,14 @@ def fit_sub_pattern(
                     # is the threshold a multiple of the data's variance of standard deviation? 
                     if min_peak_intensity.find("var") != -1:
                         var = np.var(data_as_class.intensity.flatten())
-                        min_peak_intensity = min_peak_intensity.strip("var")
-                        min_peak_intensity = min_peak_intensity.strip("*")
+                        min_peak_intensity = min_peak_intensity.strip("var").strip("*")
                         if min_peak_intensity == "":
                             min_peak_intensity = 1
                         min_peak_intensity = float(min_peak_intensity) * var
                         
                     elif min_peak_intensity.find("std") != -1:
                         std = np.std(data_as_class.intensity.flatten())
-                        min_peak_intensity = min_peak_intensity.strip("std")
-                        min_peak_intensity = min_peak_intensity.strip("*")
+                        min_peak_intensity = min_peak_intensity.strip("std").strip("*")
                         if min_peak_intensity == "":
                             min_peak_intensity = 1
                         min_peak_intensity = float(min_peak_intensity) * std
@@ -528,16 +526,14 @@ def fit_sub_pattern(
                     # is the threshold a multiple of the data's variance of standard deviation? 
                     if min_peak_intensity.find("var") != -1:
                         var = np.var(data_as_class.intensity.flatten())
-                        min_peak_intensity = min_peak_intensity.strip("var")
-                        min_peak_intensity = min_peak_intensity.strip("*")
+                        min_peak_intensity = min_peak_intensity.strip("var").strip("*")
                         if min_peak_intensity == "":
                             min_peak_intensity = 1
                         min_peak_intensity = float(min_peak_intensity) * var
                         
                     elif min_peak_intensity.find("std") != -1:
                         std = np.std(data_as_class.intensity.flatten())
-                        min_peak_intensity = min_peak_intensity.strip("std")
-                        min_peak_intensity = min_peak_intensity.strip("*")
+                        min_peak_intensity = min_peak_intensity.strip("std").strip("*")
                         if min_peak_intensity == "":
                             min_peak_intensity = 1
                         min_peak_intensity = float(min_peak_intensity) * std
@@ -907,14 +903,17 @@ def plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=None, params_
     for i in range(peeks):
         param = params_dict["peak"][i]["d-space"]
         param_type = params_dict["peak"][i]["d-space_type"]
-        fit_centroid.append(
-            data_as_class.conversion(
-                sf.coefficient_expand(azi_plot, param=param, coeff_type=param_type),
-                azi_plot,
-                reverse=1,
+        if not None in param:
+            fit_centroid.append(
+                data_as_class.conversion(
+                    sf.coefficient_expand(azi_plot, param=param, coeff_type=param_type),
+                    azi_plot,
+                    reverse=1,
+                )
             )
-        )
-        
+        else:
+            fit_centroid.append(np.zeros(azi_plot.shape))
+
     # plot the data and the fit
     data_as_class.plot_fitted(
         fig_plot=figure, model=full_fit_intens, fit_centroid=[azi_plot, fit_centroid],

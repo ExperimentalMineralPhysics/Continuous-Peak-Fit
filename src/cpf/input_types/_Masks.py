@@ -234,9 +234,9 @@ class _masks():
         local_mask = np.where(
             (self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1]) &
             (self.azm >= azm_bounds[0])   & (self.azm <= azm_bounds[1]),
-            True, False
+            False, True
         )
-        
+
         #ma.masked_outside(self.tth,(limits[0]),(limits[1])).mask
         local_mask2 = ma.masked_outside(self.intensity, intensity_bounds[0], intensity_bounds[1]).mask
         
@@ -249,8 +249,7 @@ class _masks():
             combined_mask = np.ma.mask_or(combined_mask, mask)
             
         #apply mask to all arrays
-        self.mask_apply(mask)
-        
+        self.mask_apply(combined_mask)
         
     
     def mask_apply(self, mask, debug=False):

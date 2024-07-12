@@ -4,7 +4,7 @@
 import hdf5plugin  # have to import it to read the files. not sure why
 import h5py
 import numpy as np
-import cv2
+import cv2 #opencv-python
 import matplotlib.pyplot as plt
 import os
 import cpf.IO_functions as IO

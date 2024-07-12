@@ -466,7 +466,7 @@ def spline_expand(
 
         fout = spl(azimuth)
 
-    return fout
+    return np.squeeze(fout)
 
 
 # fourier expansion function

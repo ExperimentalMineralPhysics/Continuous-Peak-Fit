@@ -506,22 +506,23 @@ def fourier_expand(azimuth, inp_param=None, comp_str=None, start_end=[0, 360], *
     else:
         fout[:] = inp_param[0]
     # essentially d_0, h_0 or w_0
+
+    azm_tmp = np.deg2rad((azimuth - start_end[0]) / (start_end[-1] - start_end[0]) * 360)
     if not isinstance(inp_param, np.float64) and np.size(inp_param) > 1:
         for i in range(1, int((len(inp_param) - 1) / 2) + 1):
             # len(param)-1 should never be odd because of initial a_0 parameter
-            try:
-                # try/except is a ctch for expanding a fourier series that has failed and has nones as coefficient values.
-                # azm_tmp stretches the azimuths between the max and min of start_end. In XRD cases this should have no effect
-                #but is added for consistency with the spline functions 
-                azm_tmp = (azimuth-start_end[0])/(start_end[-1]-start_end[0])*360
-                fout = (
-                    fout
-                    + inp_param[(2 * i) - 1] * np.sin(np.deg2rad(azm_tmp) * i)
-                    + inp_param[2 * i] * np.cos(np.deg2rad(azm_tmp) * i)
-                )  # single col array
-            except:
-                pass
-    return fout
+            #try:
+            # try/except is a ctch for expanding a fourier series that has failed and has nones as coefficient values.
+            # azm_tmp stretches the azimuths between the max and min of start_end. In XRD cases this should have no effect
+            #but is added for consistency with the spline functions
+            fout = (
+                fout
+                + inp_param[(2 * i) - 1] * np.sin((azm_tmp) * i)
+                + inp_param[2 * i] * np.cos((azm_tmp) * i)
+            )  # single col array
+            #except:
+            #    pass
+    return np.squeeze(fout)
 
 
 # fourier expansion function

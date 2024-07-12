@@ -340,7 +340,9 @@ class DioptasDetector:
         # FIXME: (June 2024) because of how self.detector is instanciated the 
         # shape might not be correct (or recognised). Hence the check here and 
         # inclusion of the shape in the array getting.
-        if self.intensity.shape != self.detector.detector.max_shape:
+
+        if tuple(self.intensity.shape) != tuple(self.detector.detector.max_shape):
+            # cast both shapes to tuples to prevent list != tuple error.
             raise ValueError("The pixel size of the data and the detector are not the same")
             
         self.tth = ma.array(np.rad2deg(self.detector.twoThetaArray(self.detector.detector.max_shape)))
@@ -355,7 +357,7 @@ class DioptasDetector:
         #get and apply mask
         mask_array = self.get_mask(mask, self.intensity)
         self.mask_apply(mask_array, debug=debug)
-        
+
         self.azm_start = np.around(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
         self.azm_end = np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
 

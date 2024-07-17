@@ -185,9 +185,9 @@ def params_to_new_params(params, orders=None):
         p_tp = sf.get_series_type(params, new_str)
 
         tmp_peaks = {}
-        if isinstance("phase", dict) and "phase" in orders["peak"][i]:
+        if "phase" in orders["peak"][i]:
             tmp_peaks["phase"] = orders["peak"][i]["phase"]
-        if isinstance("phase", dict) and "hkl" in orders["peak"][i]:
+        if "hkl" in orders["peak"][i]:
             tmp_peaks["hkl"] = orders["peak"][i]["hkl"]
         tmp_peaks["d-space"] = d_space[0]
         tmp_peaks["d-space_err"] = d_space[1]
@@ -201,7 +201,7 @@ def params_to_new_params(params, orders=None):
         tmp_peaks["profile"] = p_space[0]
         tmp_peaks["profile_err"] = p_space[1]
         tmp_peaks["profile_type"] = sf.coefficient_type_as_string(p_tp)
-        if isinstance("phase", dict) and "symmetry" in orders["peak"][i]:
+        if "symmetry" in orders["peak"][i]:
             tmp_peaks["symmetry"] = orders["peak"][i]["symmetry"]
 
         peaks.append(tmp_peaks)

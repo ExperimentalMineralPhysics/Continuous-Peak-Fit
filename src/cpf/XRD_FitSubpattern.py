@@ -651,7 +651,7 @@ def fit_sub_pattern(
                 step.append(step[-1] - 9)
                 if any(x == step[-1] for x in [23, 28]):
                     iterations = np.max((iterations, 3))
-            else:
+            else: #step is 24
                 err_str = "The value of step here should not be achievable. Oops. \n The data is not fitting. Discard."
                 logger.critical(" ".join(map(str, [(err_str)])))
                 step.append(step[-1] - 200)

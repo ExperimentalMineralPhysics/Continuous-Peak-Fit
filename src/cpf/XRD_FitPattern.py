@@ -46,6 +46,7 @@ setattr(logging, levelName2.lower(), logToRoot)
 logger = logging.getLogger(__name__)
 
 # logging levels and what they need to record
+# NOTSET   0   Writes everything.!!!!
 # DEBUG   10   Detailed information, typically of interest only when diagnosing problems. 	
 # INFO    20   Confirmation that things are working as expected. 	 
 #              Usually at this level the logging output is so low level that it’s not useful to users who are not familiar with the software’s internals.

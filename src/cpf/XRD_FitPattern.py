@@ -2,7 +2,32 @@
 
 __all__ = ["execute", "write_output"]
 
+import json
 import logging
+import os
+import sys
+
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pathos.pools as mp
+import proglog
+from pathos.multiprocessing import cpu_count
+
+import cpf.logger_functions as lg
+from cpf import output_formatters
+from cpf.BrightSpots import SpotProcess
+from cpf.IO_functions import (
+    any_terms_null,
+    json_numpy_serializer,
+    make_outfile_name,
+    peak_string,
+    title_file_names,
+)
+from cpf.XRD_FitSubpattern import fit_sub_pattern
+from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
+from cpf.settings import settings
 
 # Configure the logging module
 logging.basicConfig(
@@ -45,37 +70,24 @@ setattr(logging, levelName2.lower(), logToRoot)
 # Create a logger instance
 logger = logging.getLogger(__name__)
 
-# logging levels and what they need to record
-# DEBUG   10   Detailed information, typically of interest only when diagnosing problems. 	
-# INFO    20   Confirmation that things are working as expected. 	 
-#              Usually at this level the logging output is so low level that it’s not useful to users who are not familiar with the software’s internals.
-# WARNING 30   An indication that something unexpected happened, or indicative of some problem in the near future (e.g. ‘disk space low’). The software is still working as expected.
-#ERROR    40 	Due to a more serious problem, the software has not been able to perform some function. 	 
-#CRITICAL 50 	A serious error, indicating that the program itself may be unable to continue running.
+"""
+Logging levels and what they need to record
+DEBUG       10  Detailed information, typically of interest only when diagnosing
+                problems.
+INFO        20  Confirmation that things are working as expected.
+                Usually at this level the logging output is so low level that
+                it’s not useful to users who are not familiar with the
+                software’s internals.
+WARNING     30  An indication that something unexpected happened, or indicative of
+                some problem in the near future (e.g. ‘disk space low’). The
+                software is still working as expected.
+ERROR       40 	Due to a more serious problem, the software has not been able to
+                perform some function.
+CRITICAL    50 	A serious error, indicating that the program itself may be unable
+                to continue running.
 
+"""
 
-import json
-import os
-import sys
-import matplotlib.pyplot as plt
-import numpy as np
-import pathos.pools as mp
-from pathos.multiprocessing import cpu_count
-from cpf import output_formatters
-from cpf.settings import settings
-from cpf.XRD_FitSubpattern import fit_sub_pattern
-from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
-from cpf.BrightSpots import SpotProcess
-from cpf.IO_functions import (
-    json_numpy_serializer,
-    make_outfile_name,
-    peak_string,
-    any_terms_null,
-    title_file_names,
-)
-
-import proglog
-import cpf.logger_functions as lg
 
 np.set_printoptions(threshold=sys.maxsize)
 # FIX ME: Need to add complexity here.
@@ -103,7 +115,12 @@ def register_default_formats() -> object:
 output_methods_modules = register_default_formats()
 
 
-def initiate(setting_file=None, inputs=None, out_type=None, report=False, **kwargs):
+def initiate(
+    setting_file: str | Path = None,
+    inputs=None,
+    out_type=None,
+    report=False,
+    **kwargs):
     """
     Run checks on input files, initiate data class and check output options
 
@@ -121,16 +138,22 @@ def initiate(setting_file=None, inputs=None, out_type=None, report=False, **kwar
         raise ValueError(
             "Either the settings file or the parameter dictionary need to be specified."
         )
+    # Convert to Path object
+    if isinstance(setting_file, str):
+        try:
+            setting_file = Path(setting_file)
+        except Exception as error:
+            raise error
 
-    #reinitialise the logger -- with a new file name 
+    #reinitialise the logger -- with a new file name
     if report is not False: #reporting is required and we must have a setting_file.
-        
-        # make sure log file ends *.log. 
-        log_name = make_outfile_name(setting_file, extension=".log", overwrite=True)  
-        
+
+        # make sure log file ends *.log.
+        log_name = make_outfile_name(setting_file, extension=".log", overwrite=True)
+
         # remove all handlers and then add new ones.
         logging.getLogger().handlers.clear()
-        
+
         # (Re)Configure the logging module
         logging.basicConfig(
             level="CRITICAL",
@@ -142,7 +165,7 @@ def initiate(setting_file=None, inputs=None, out_type=None, report=False, **kwar
             ],
             force=True # force the change in handlers
         )
-    
+
     #set logging level.
     if report is False:
         # if not defined default to "INFO"
@@ -239,11 +262,11 @@ def initial_peak_position(
     report=False
 ):
     """
-    Calls interactive graph to set the inital peak postion guesses. 
-    
-    The event handler code is copied from: 
+    Calls interactive graph to set the inital peak postion guesses.
+
+    The event handler code is copied from:
     https://matplotlib.org/stable/users/event_handling.html for how to make work
-    
+
     :param setting_file:
     :param inputs:
     :param debug:
@@ -433,7 +456,7 @@ def order_search(
         search_peak=search_peak,
         search_series=search_series,
     )
-    
+
     settings_for_fit.file_label = "search="+search_parameter+"_subpattern="+str(subpattern)+"_peak="+str(search_peak)
 
     execute(
@@ -628,8 +651,8 @@ def execute(
             logger.moreinfo(" ".join(map(str, [("Loading previous fit results from %s" % temporary_data_file)])))
             with open(temporary_data_file) as json_data:
                 previous_fit = json.load(json_data)
-                
-                # if the previous_fit is not the same size as fit_orders the inout file must have been changed. 
+
+                # if the previous_fit is not the same size as fit_orders the inout file must have been changed.
                 # so discard the previous fit and start again.
                 if len(previous_fit) != len(settings_for_fit.fit_orders):
                     del previous_fit
@@ -672,20 +695,20 @@ def execute(
                         # FIXME: replace with caluculation of mean d-spacing.
 
                     cent = new_data.conversion(np.mean(mid), reverse=True)
-                    
+
                     move_by = cent - np.mean(tth_range)
                     move_by = move_by[0] #this is needed to turn move_by from array to float
 
-                    # update tth_range and settings 
+                    # update tth_range and settings
                     tth_range = tth_range + move_by
                     settings_for_fit.fit_orders[i]["range"] = (
                         settings_for_fit.fit_orders[i]["range"] + move_by
                     )
-                    
+
                     logger.moreinfo(" ".join(map(str, [(
                        f"Move range for fitting. \n Initial range: [{tth_range[0]:4.2f},{tth_range[1]:4.2f}]; will be moved by {move_by:4.2f}; the new range is [{tth_range[0]+move_by:4.2f},{tth_range[1]+move_by:4.2f}]"
                         )])))
-                    
+
                     # The PeakPositionSelections are only used if the fits are not being propagated
                     if "PeakPositionSelection" in settings_for_fit.fit_orders[i]:
                         for k in range(
@@ -712,7 +735,7 @@ def execute(
                 or "imin" in settings_for_fit.subfit_orders
             ):
                 sub_data = SpotProcess(sub_data, settings_for_fit)
-                
+
             if mode == "set-range":
 
                 fig_1 = plt.figure()
@@ -752,7 +775,7 @@ def execute(
                 plt.show(block=True)
 
                 selection_arr = point_builder.array()
-                
+
                 # report the points selected.
                 # set to critical to ensure that they are printed -- because HAS to be done.
                 logger.critical(" ".join(map(str, [("Selected points for %s peak(s): [" % peak_string(settings_for_fit.subfit_orders))])))
@@ -785,7 +808,7 @@ def execute(
                         iterations=iterations,
                         min_data_intensity = settings_for_fit.fit_min_data_intensity,
                         min_peak_intensity = settings_for_fit.fit_min_peak_intensity,
-                        
+
                         fit_method = fit_method
                     )
                     fitted_param.append(tmp[0])
@@ -804,7 +827,7 @@ def execute(
                 additional_text = settings_for_fit.file_label
             else:
                 additional_text = None
-                
+
             filename = make_outfile_name(
                 settings_for_fit.subfit_filename,
                 directory=settings_for_fit.output_directory,

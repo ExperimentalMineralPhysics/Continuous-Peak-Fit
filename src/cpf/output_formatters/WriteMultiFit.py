@@ -8,7 +8,8 @@ import numpy as np
 import json
 import cpf.IO_functions as IO
 import cpf.series_functions as sf
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 
 def Requirements():

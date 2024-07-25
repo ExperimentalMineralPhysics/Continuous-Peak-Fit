@@ -17,7 +17,8 @@ import matplotlib.pyplot as plt
 import matplotlib.path as mlp
 import sys
 from scipy.optimize import curve_fit
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 np.set_printoptions(threshold=sys.maxsize)
 

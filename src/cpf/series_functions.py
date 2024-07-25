@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Functions describing the fourier or spline series used as parameter sets for the 
+Functions describing the fourier or spline series used as parameter sets for the
 peak shape and background properties.
 """
 
@@ -25,7 +25,8 @@ import numpy as np
 import numpy.ma as ma
 from scipy.interpolate import make_interp_spline, CubicSpline
 import cpf.peak_functions as pf
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 
 def coefficient_types():
@@ -158,17 +159,17 @@ def get_series_mean(param, param_str, comp=None):
     :param comp: component to add to base string to select parameters
     :return: weighted mean of parameters
     """
-    
+
     # if comp is not None:
     #     new_str = param_str + "_" + comp
     # else:
     #     new_str = param_str
-    
-    # FIX ME: here we need to be able to discard the outliers. 
+
+    # FIX ME: here we need to be able to discard the outliers.
     # We should use the medaian and the mean deviation from the median...
-    
+
     if get_series_type(param, param_str, comp=comp)==0:
-        #if it is a Fourier series just get the first value. 
+        #if it is a Fourier series just get the first value.
         mean = (param[param_str+"_"+comp+"0"].value)
     else:
         # get a mean of all the coefficients
@@ -183,9 +184,9 @@ def get_series_mean(param, param_str, comp=None):
                 # now we have run out of coefficients. So get the mean and then leave the loop.
                 mean = np.mean(mean_tmp)
                 done = 1
-    
+
     return mean
-    
+
 
 def params_get_type(orders, comp, peak=0):
     """

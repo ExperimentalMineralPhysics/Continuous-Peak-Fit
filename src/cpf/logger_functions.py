@@ -3,26 +3,85 @@
 
 
 import logging
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
 
 # =============================================================================
 # Logger levels
 # =============================================================================
 
 # logging levels and what they record
-# DEBUG   10   Detailed information, typically of interest only when diagnosing problems. 	
-# INFO    20   Confirmation that things are working as expected. 	 
+# DEBUG   10   Detailed information, typically of interest only when diagnosing problems.
+# INFO    20   Confirmation that things are working as expected.
 #              Usually at this level the logging output is so low level that it’s not useful to users who are not familiar with the software’s internals.
 # WARNING 30   An indication that something unexpected happened, or indicative of some problem in the near future (e.g. ‘disk space low’). The software is still working as expected.
-#ERROR    40 	Due to a more serious problem, the software has not been able to perform some function. 	 
+#ERROR    40 	Due to a more serious problem, the software has not been able to perform some function.
 #CRITICAL 50 	A serious error, indicating that the program itself may be unable to continue running.
 
+
+# Configure the logging module
+logging.basicConfig(
+    level=logging.CRITICAL,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        # logging.FileHandler('CPF.log', mode='a', encoding=None, delay=False),  # Log to a file
+        logging.StreamHandler()  # Log to stdout
+    ]
+)
+#add custom logging levels.
+levelNum = 17
+levelName = "MOREINFO"
+def logForMI(self, message, *args, **kwargs):
+        if self.isEnabledFor(levelNum):
+            self._log(levelNum, message, args, **kwargs)
+def logToRoot(message, *args, **kwargs):
+    logging.log(levelNum, message, *args, **kwargs)
+
+logging.addLevelName(levelNum, levelName)
+setattr(logging, levelName, levelNum)
+setattr(logging.getLoggerClass(), levelName.lower(), logForMI)
+setattr(logging, levelName.lower(), logToRoot)
+
+
+levelName2 = "EFFUSIVE"
+levelNum2 = 13
+def logForE(self, message, *args, **kwargs):
+        if self.isEnabledFor(levelNum2):
+            self._log(levelNum2, message, args, **kwargs)
+def logToRoot(message, *args, **kwargs):
+    logging.log(levelNum2, message, *args, **kwargs)
+
+logging.addLevelName(levelNum2, levelName2)
+setattr(logging, levelName2, levelNum2)
+setattr(logging.getLoggerClass(), levelName2.lower(), logForE)
+setattr(logging, levelName2.lower(), logToRoot)
+
+# Create a logger instance
+logger = logging.getLogger(__name__)
+
+"""
+Logging levels and what they need to record
+DEBUG       10  Detailed information, typically of interest only when diagnosing
+                problems.
+INFO        20  Confirmation that things are working as expected.
+                Usually at this level the logging output is so low level that
+                it’s not useful to users who are not familiar with the
+                software’s internals.
+WARNING     30  An indication that something unexpected happened, or indicative of
+                some problem in the near future (e.g. ‘disk space low’). The
+                software is still working as expected.
+ERROR       40 	Due to a more serious problem, the software has not been able to
+                perform some function.
+CRITICAL    50 	A serious error, indicating that the program itself may be unable
+                to continue running.
+
+"""
 
 
 def make_logger_output(level="DEBUG"):
     """
     Returns true/flase if logger is above or below 'level'
-    
+
     Parameters
     ----------
     level : string, optional
@@ -33,13 +92,12 @@ def make_logger_output(level="DEBUG"):
     bool.
 
     """
-    return logger.getEffectiveLevel() <= logger_level(level = level)     
-     
-    
+    return logger.getEffectiveLevel() <= logger_level(level = level)
+
 
 def logger_level(level = "DEBUG"):
     """
-    Get numberical value for logging level. 
+    Get numberical value for logging level.
 
     Parameters
     ----------
@@ -53,7 +111,6 @@ def logger_level(level = "DEBUG"):
 
     """
     return getattr(logging, level)
-
 
 
 def log_pretty_print(lmtif_obj, oneline=False, colwidth=8, precision=4, fmt='g',
@@ -81,15 +138,15 @@ def log_pretty_print(lmtif_obj, oneline=False, colwidth=8, precision=4, fmt='g',
     Returns
     --------
     output : list
-        List of lines of text normally returned to stdout. 
+        List of lines of text normally returned to stdout.
 
     """
-    
+
     """
     pretty_print.
     https://github.com/lmfit/lmfit-py/blob/master/lmfit/parameter.py#L295
-    
-    License:     
+
+    License:
     BSD-3
 
     Copyright 2022 Matthew Newville, The University of Chicago
@@ -99,21 +156,21 @@ def log_pretty_print(lmtif_obj, oneline=False, colwidth=8, precision=4, fmt='g',
                    Antonino Ingargiola, University of California, Los Angeles
                    Daniel B. Allen, Johns Hopkins University
                    Michal Rawlik, Eidgenossische Technische Hochschule, Zurich
-    
+
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
-    
+
       1. Redistributions of source code must retain the above copyright notice,
       this list of conditions and the following disclaimer.
-    
+
       2. Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    
+
       3. Neither the name of the copyright holder nor the names of its
       contributors may be used to endorse or promote products derived from this
       software without specific prior written permission.
-    
+
     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
     AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
     IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -126,7 +183,7 @@ def log_pretty_print(lmtif_obj, oneline=False, colwidth=8, precision=4, fmt='g',
     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
     """
-    
+
     output = []
     if oneline:
         output.append(lmtif_obj.pretty_repr(oneline=oneline))
@@ -156,12 +213,11 @@ def log_pretty_print(lmtif_obj, oneline=False, colwidth=8, precision=4, fmt='g',
     output.append("")
 
     return output
-        
 
 
 def pretty_print_to_logger(lmtif_obj, space=True, level="DEBUG", **kwargs):
     """
-    Wrapper for lmtif_obj.pretty_print() replacement that writes the 
+    Wrapper for lmtif_obj.pretty_print() replacement that writes the
     pretty_print() output to the python logger.
 
     Parameters
@@ -176,7 +232,7 @@ def pretty_print_to_logger(lmtif_obj, space=True, level="DEBUG", **kwargs):
         Kwargs for pretty_print.
 
     """
-    text = log_pretty_print(lmtif_obj, kwargs)    
+    text = log_pretty_print(lmtif_obj, kwargs)
     if space ==True:
         logger.log(getattr(logging, level.upper()), " ".join(map(str, [("")])))
     for i in range(len(text)):

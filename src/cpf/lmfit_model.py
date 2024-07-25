@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Functions using lmfit to make a semi-bounded fitting model. 
+Functions using lmfit to make a semi-bounded fitting model.
 """
 
 __all__ = [
@@ -29,7 +29,8 @@ import warnings
 from lmfit import Parameters, Model
 import cpf.peak_functions as pf
 import cpf.series_functions as sf
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -165,9 +166,9 @@ def params_to_new_params(params, orders=None):
                 done = 1
     else:
         err_str = "Cannot define number of coefficients for peak."
-        logger.critical(" ".join(map(str, [(err_str)])))   
+        logger.critical(" ".join(map(str, [(err_str)])))
         raise ValueError(err_str)
-        
+
     peaks = []
     new_str = ""
     for i in range(num_peaks):
@@ -923,4 +924,3 @@ def coefficient_fit(
         max_nfev = max_nfev
     )
     return out
-

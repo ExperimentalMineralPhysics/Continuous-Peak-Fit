@@ -3,7 +3,8 @@
 import sys
 from PIL import Image
 from PIL.ExifTags import TAGS
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 Im = sys.argv[1]
 

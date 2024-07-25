@@ -5,7 +5,8 @@
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 import cpf.logger_functions as lg
 
 
@@ -14,13 +15,13 @@ class _AngleDispersive_common():
     Common attributes and methods for the angle dispersive diffraction classes.
     They are in here to save replicating code.
 
-    If the methods required by a class are different then they are included within the 
-    class Functions file. 
+    If the methods required by a class are different then they are included within the
+    class Functions file.
 
-    This class cannot be imported as a stand alone class. Instead the methods 
+    This class cannot be imported as a stand alone class. Instead the methods
     contained within it are created as methods in the angle dispersive diffraction
-    classes (e.g. DioptasDetector and ESRFlvpDetector).    
-    """    
+    classes (e.g. DioptasDetector and ESRFlvpDetector).
+    """
 
     def __init__(self, detector_class=None):
         """
@@ -48,9 +49,9 @@ class _AngleDispersive_common():
             return ma.array(
                 self.conversion(self.tth, reverse=False)
             )
-  
-        
-        
+
+
+
     def conversion(self, tth_in, azm=None, reverse=False):
         """
         Convert two theta values into d-spacing.
@@ -60,16 +61,16 @@ class _AngleDispersive_common():
         :param azm:
         :return:
         """
-        
+
         if isinstance(tth_in, list):
             tth_in = np.array(tth_in)
             a = True
         else:
             a=False
-            
+
         #wavelength = self.calibration.wavelength * 1e10
         wavelength = self.conversion_constant
-        
+
         if self.conversion_constant == None:
             dspc_out = tth_in
         elif not reverse:
@@ -79,12 +80,12 @@ class _AngleDispersive_common():
             # convert d-spacing to tth.
             # N.B. this is the reverse function so that labels tth and d_spacing are not correct.
             dspc_out = 2 * np.degrees(np.arcsin(wavelength / 2 / tth_in))
-            
+
         if a==True:
             dspc_out = list(dspc_out)
         return dspc_out
-    
-    
+
+
 
     def bins(self, orders_class, cascade=False):
         """
@@ -135,7 +136,7 @@ class _AngleDispersive_common():
             err_str = "The bin type is not recognised. Check input file."
             raise ValueError(err_str)
 
-        if 0:#lg.make_logger_output(level="DEBUG"):            
+        if 0:#lg.make_logger_output(level="DEBUG"):
             # create histogram with equal-frequency bins
             n, bins, patches = plt.hist(
                 self.azm[self.azm.mask == False], bin_boundaries, edgecolor="black"
@@ -166,7 +167,7 @@ class _AngleDispersive_common():
     def set_limits(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
         """
         Cut the data to only data within range_bounds (two theta) and azi_bounds (azimuth).
-        
+
         N.B. This is not a masking function. it removes all the data outside of the range.
         Data inside the range that is masked remains.
 
@@ -183,9 +184,9 @@ class _AngleDispersive_common():
 
         """
         local_mask = np.where(
-            (self.tth >= range_bounds[0]) & 
+            (self.tth >= range_bounds[0]) &
             (self.tth <= range_bounds[1]) &
-            (self.azm >= azi_bounds[0]) & 
+            (self.azm >= azi_bounds[0]) &
             (self.azm <= azi_bounds[1])
         )
         self.intensity = self.intensity[local_mask]
@@ -193,22 +194,22 @@ class _AngleDispersive_common():
         self.azm = self.azm[local_mask]
         if "dspace" in dir(self):
             self.dspace = self.dspace[local_mask]
-        
-        if "x" in dir(self): 
+
+        if "x" in dir(self):
             if self.x is not None:
                 self.x = self.x[local_mask]
-        if "y" in dir(self): 
+        if "y" in dir(self):
             if self.y is not None:
                 self.y = self.y[local_mask]
-        if "z" in dir(self): 
+        if "z" in dir(self):
             if self.z is not None:
                 self.z = self.z[local_mask]
-            
+
         # self.azm_end = np.max(self.azm)
         # self.azm_start = np.min(self.azm)
-        
-        
-        
+
+
+
 
     def test_azims(self, steps = 360):
         """
@@ -225,7 +226,7 @@ class _AngleDispersive_common():
             list of possible azimuths.
 
         """
-        
+
         return np.linspace(self.azm_start,self.azm_end, steps+1)
 
 
@@ -252,4 +253,3 @@ def equalObs(x, nbin):
     nlen = len(x)
     x = np.sort(x)
     return np.interp(np.linspace(0, nlen, nbin + 1), np.arange(nlen), np.sort(x))
-

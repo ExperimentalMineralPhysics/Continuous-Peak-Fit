@@ -8,7 +8,8 @@ from itertools import product
 # import cpf.XRD_FitPattern as XRD_FP
 import cpf.IO_functions as IO
 import cpf.peak_functions as pf
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 
 def Requirements():
@@ -49,7 +50,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     elif "coefs_vals_write" in setting_class.output_settings:
         coefs_vals_write = setting_class.output_settings["coefs_vals_write"]
     else:
-        coefs_vals_write = "all"    
+        coefs_vals_write = "all"
 
 
     #make filename for output
@@ -90,7 +91,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                         max_coef[ind][v] = np.max(
                             [max_coef[ind][v], 2*setting_class.fit_orders[y][ind][v]+1]
                         )
-                
+
 
     text_file = open(out_file, "w")
     logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
@@ -108,9 +109,9 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     dp = col_width - 7
     text_file.write(("# {0:<" + str(col_width + 5) + "}").format("Data File" + ","))
     text_file.write(("{0:<" + str(col_width) + "}").format("Peak" + ","))
-    
+
     #parmeter header list
-    
+
     for w in range(len(max_coef)):
         ind = coefs_vals_write[1][w]
         if ind != "background" and ind != "symmetry":
@@ -127,7 +128,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
             )
         else:
             for u in range(len(setting_class.fit_orders[y][ind])):
-                
+
                 for v in range(max_coef[ind][u]):
                         text_file.write(
                             ("{0:>" + str(col_width) + "}").format(ind + str(u) + "_" + str(v) + ",")
@@ -141,7 +142,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
 
 
 
-    # read all the data. 
+    # read all the data.
     fits=[]
     for z in range(setting_class.image_number):
         setting_class.set_subpattern(z, 0)
@@ -156,7 +157,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
         # Read JSON data from file
         with open(filename) as json_data:
             fits.append(json.load(json_data))
-    
+
     #make lists of the parameters to iterate over
     images = list(range(setting_class.image_number))
     subpatterns = list(range(num_subpatterns))
@@ -165,32 +166,32 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
         max_peaks = np.max([max_peaks, len(setting_class.fit_orders[i]["peak"])])
     lists = images, subpatterns, list(range(max_peaks))
     lists = np.array(list(product(*lists)))
-    
+
     #sort lists
     if ordering_of_output == "peak":
         lists=lists[np.lexsort((lists[:, 2], ))]
         lists=lists[np.lexsort((lists[:, 1], ))]
     else:
         lists=lists[np.lexsort((lists[:, 0], ))]
-    
+
     #print the data.
     for z in range(len(lists)):
-    
+
         setting_class.set_subpattern(lists[z,0],lists[z,1])
         data_to_write = fits[lists[z,0]][lists[z,1]]
-        
-        
+
+
         if len(data_to_write["peak"]) > lists[z,2]:
-            
+
             out_name = IO.make_outfile_name(
                 setting_class.subfit_filename,
                 directory="",
                 extension=".json",
                 overwrite=True,
             )
-            
+
             out_peak = []
-    
+
             # peak
             if "phase" in setting_class.fit_orders[lists[z,1]]["peak"][lists[z,2]]:
                 out_peak = setting_class.fit_orders[lists[z,1]]["peak"][lists[z,2]]["phase"]
@@ -206,19 +207,19 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                 ("{0:<" + str(col_width + 7) + "}").format(out_name + ",")
             )
             text_file.write(("{0:<" + str(col_width) + "}").format(out_peak + ","))
-            
-            
-        
+
+
+
             for w in range(len(coefs_vals_write[1])):
                 ind = coefs_vals_write[1][w]
                 ind_err = ind+"_err"
-                
-                if ind != "background" and ind != "symmetry":   
+
+                if ind != "background" and ind != "symmetry":
                     for v in range(len(data_to_write["peak"][lists[z,2]][ind])):
                         if data_to_write["peak"][lists[z,2]][ind][v] is None:  # catch  'null' as an error
                             data_to_write["peak"][lists[z,2]][ind][v] = np.nan
                         if data_to_write["peak"][lists[z,2]][ind_err][v] is None:  # catch  'null' as an error
-                            data_to_write["peak"][lists[z,2]][ind_err][v] = np.nan   
+                            data_to_write["peak"][lists[z,2]][ind_err][v] = np.nan
                         text_file.write(
                             ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
                                 data_to_write["peak"][lists[z,2]][ind][v]
@@ -232,8 +233,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                             )
                         except:
                             text_file.write(("{0:<" + str(col_width) + "}").format("None" + ","))
-                            
-                                
+
+
                 elif ind == "symmetry":
                     if data_to_write["peak"][lists[z,2]][ind] is None:  # catch  'null' as an error
                         data_to_write["peak"][lists[z,2]][ind] = np.nan
@@ -248,8 +249,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                             if data_to_write[ind][u][v] is None:  # catch  'null' as an error
                                 data_to_write[ind][u][v] = np.nan
                             if data_to_write[ind_err][u][v] is None:  # catch  'null' as an error
-                                data_to_write[ind_err][u][v] = np.nan   
-                            
+                                data_to_write[ind_err][u][v] = np.nan
+
                             text_file.write(
                                 ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
                                     data_to_write[ind][u][v]
@@ -260,7 +261,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                                     data_to_write[ind_err][u][v]
                                 )
                             )
-        
-        
+
+
             text_file.write("\n")
     text_file.close()

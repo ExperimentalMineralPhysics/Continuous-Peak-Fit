@@ -4,7 +4,7 @@ and a number of support classes.
 
 Author:
    Mark Rivers
-   
+
 Created:
    Sept. 16, 2002.  Based on my earlier IDL code.
 
@@ -26,7 +26,8 @@ Modifications:
 import numpy as Numeric
 import copy
 import math
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 # FIX ME: DMF Need to rationalise this code and keep what's needed.
 # FIX ME: where do we stand on licensing? has this been published?

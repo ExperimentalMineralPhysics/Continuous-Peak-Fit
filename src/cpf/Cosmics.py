@@ -17,7 +17,7 @@ I pimped this a bit to suit my needs :
     This feature is mainly for pretty-image production. It is optional, requires one more parameter (a CCD saturation
     level in ADU), and uses some
     nicely robust morphology operations and object extraction.
-    
+
     - Scipy image analysis allows to "label" the actual cosmic ray hits (i.e. group the pixels into local islands).
     A bit special, but I use this in the scope of visualizing a PSF construction.
 But otherwise the core is really a 1-to-1 implementation of L.A.Cosmic, and uses the same parameters.
@@ -51,7 +51,8 @@ import numpy as np
 import math
 import scipy.signal as signal
 import scipy.ndimage as ndimage
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 
 # We define the laplacian kernel to be used
@@ -607,17 +608,17 @@ class cosmicsimage:
         """
         if verbose == None:
             verbose = self.verbose
-        
+
         if verbose :
             print "Finding holes ..."
         m3 = ndimage.filters.median_filter(self.cleanarray, size=3, mode='mirror')
         h = (m3 - self.cleanarray).clip(min=0.0)
-        
+
         tofits("h.fits", h)
         sys.exit()
-        
+
         # The holes are the peaks in this image that are not stars
-    
+
         #holes = h > 300
         """
         """
@@ -625,20 +626,20 @@ class cosmicsimage:
         conved = -signal.convolve2d(subsam, laplkernel, mode="same", boundary="symm")
         cliped = conved.clip(min=0.0)
         lplus = rebin2x2(conved)
-        
+
         tofits("lplus.fits", lplus)
-        
+
         m5 = ndimage.filters.median_filter(self.cleanarray, size=5, mode='mirror')
         m5clipped = m5.clip(min=0.00001)
         noise = (1.0/self.gain) * np.sqrt(self.gain*m5clipped + self.readnoise*self.readnoise)
- 
+
         s = lplus / (2.0 * noise) # the 2.0 is from the 2x2 subsampling
         # This s is called sigmap in the original lacosmic.cl
-        
+
         # We remove the large structures (s prime) :
         sp = s - ndimage.filters.median_filter(s, size=5, mode='mirror')
-        
-        holes = sp > self.sigclip   
+
+        holes = sp > self.sigclip
         """
         """
         # We have to kick out pixels on saturated stars :
@@ -646,10 +647,10 @@ class cosmicsimage:
             if verbose:
                 print "Masking saturated stars ..."
             holes = np.logical_and(np.logical_not(self.satstars), holes)
-        
+
         if verbose:
             print "%i hole pixels found" % np.sum(holes)
-        
+
         # We update the mask with the holes we have found :
         self.mask = np.logical_or(self.mask, holes)
         """
@@ -713,7 +714,7 @@ def subsample(a):  # this is more a generic function then a method ...
     # Ouuwww this is slow ...
     outarray = np.zeros((a.shape[0]*2, a.shape[1]*2), dtype=np.float64)
     for i in range(a.shape[0]):
-        for j in range(a.shape[1]): 
+        for j in range(a.shape[1]):
             outarray[2*i,2*j] = a[i,j]
             outarray[2*i+1,2*j] = a[i,j]
             outarray[2*i,2*j+1] = a[i,j]
@@ -761,4 +762,3 @@ def rebin2x2(a):
         raise RuntimeError("I want even image shapes !")
 
     return rebin(a, inshape / 2)
-

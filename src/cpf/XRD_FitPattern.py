@@ -61,7 +61,7 @@ def initiate(
     setting_file: str | Path = None,
     inputs=None,
     out_type=None,
-    report=False,
+    report: bool = False,
     **kwargs):
     """
     Run checks on input files, initiate data class and check output options
@@ -137,18 +137,18 @@ def initiate(
 
 
 def set_range(
-    setting_file=None,
+    setting_file: str | Path = None,
     setting_class=None,
     inputs=None,
-    debug=False,
-    refine=True,
-    save_all=False,
-    # propagate=True,
-    iterations=1,
-    # track=False,
-    parallel=True,
-    subpattern="all",
-    report=False,
+    debug: bool = False,
+    refine: bool = True,
+    save_all: bool = False,
+    # propagate: bool = True,
+    iterations: int = 1,
+    # track: bool = False,
+    parallel: bool = True,
+    subpattern: str = "all",
+    report: bool = False,
 ):
     """
     :param setting_file:

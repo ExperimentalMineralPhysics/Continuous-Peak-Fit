@@ -8,6 +8,7 @@ import os
 import sys
 
 from pathlib import Path
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -58,7 +59,7 @@ output_methods_modules = register_default_formats()
 
 
 def initiate(
-    setting_file: str | Path = None,
+    setting_file: Optional[str | Path] = None,
     inputs=None,
     out_type=None,
     report: bool = False,
@@ -138,7 +139,7 @@ def initiate(
 
 def set_range(
     setting_file: str | Path = None,
-    setting_class=None,
+    setting_class: Optional[settings] = None,
     inputs=None,
     debug: bool = False,
     refine: bool = True,
@@ -166,9 +167,9 @@ def set_range(
     """
 
     if setting_class is None:
-        settings_for_fit = initiate(setting_file, inputs=inputs, report=report)
+        settings_for_fit: settings = initiate(setting_file, inputs=inputs, report=report)
     else:
-        settings_for_fit = setting_class
+        settings_for_fit: settings = setting_class
 
     # search over the first file only
     # restrict file list to first file
@@ -190,18 +191,18 @@ def set_range(
 
 
 def initial_peak_position(
-    setting_file=None,
-    setting_class=None,
+    setting_file: Optional[str | Path] = None,
+    setting_class: Optional[settings] = None,
     inputs=None,
-    debug=False,
-    refine=True,
-    save_all=False,
-    # propagate=True,
-    iterations=1,
-    # track=False,
-    parallel=True,
-    subpattern="all",
-    report=False
+    debug: bool = False,
+    refine: bool = True,
+    save_all: bool = False,
+    # propagate: bool = True,
+    iterations: int = 1,
+    # track: bool = False,
+    parallel: bool = True,
+    subpattern: str = "all",
+    report: bool = False,
 ):
     """
     Calls interactive graph to set the inital peak postion guesses.
@@ -224,9 +225,9 @@ def initial_peak_position(
     """
 
     if setting_class is None:
-        settings_for_fit = initiate(setting_file, inputs=inputs, report=report)
+        settings_for_fit: settings = initiate(setting_file, inputs=inputs, report=report)
     else:
-        settings_for_fit = setting_class
+        settings_for_fit: settings = setting_class
 
     # search over the first file only
     settings_for_fit.set_data_files(keep=0)
@@ -341,22 +342,22 @@ class PointBuilder:
 
 
 def order_search(
-    setting_file=None,
-    setting_class= None,
+    setting_file: Optional[str | Path] = None,
+    setting_class: Optional[settings] = None,
     inputs=None,
-    debug=False,
-    refine=True,
-    save_all=False,
-    # propagate=True,
-    iterations=1,
-    # track=False,
-    parallel=True,
-    search_parameter="height",
-    search_over=[0, 20],
-    subpattern="all",
-    search_peak=0,
-    search_series=["fourier", "spline"],
-    report=False
+    debug: bool = False,
+    refine: bool = True,
+    save_all: bool = False,
+    # propagate: bool = True,
+    iterations: int = 1,
+    # track: bool = False,
+    parallel: bool = True,
+    search_parameter: str = "height",
+    search_over: list[int, int] = [0, 20],
+    subpattern: str = "all",
+    search_peak: int = 0,
+    search_series: list[str, str] = ["fourier", "spline"],
+    report: bool = False
 ):
     """
     :param search_series:
@@ -377,9 +378,9 @@ def order_search(
     """
 
     if setting_class is None:
-        settings_for_fit = initiate(setting_file, inputs=inputs, report=report)
+        settings_for_fit: settings = initiate(setting_file, inputs=inputs, report=report)
     else:
-        settings_for_fit = setting_class
+        settings_for_fit: settings = setting_class
 
     # force it to write the required output type.
     settings_for_fit.set_output_types(out_type_list="DifferentialStrain")
@@ -423,17 +424,17 @@ def order_search(
 
 
 def write_output(
-    setting_file=None,
-    setting_class=None,
+    setting_file: Optional[str | Path] = None,
+    setting_class: Optional[settings] = None,
     # fit_settings=None,
     # fit_parameters=None,
     parms_dict=None,
     out_type=None,
     det=None,
-    use_bounds=False,
-    differential_only=False,
-    debug=False,
-    report=False
+    use_bounds: bool = False,
+    differential_only: bool = False,
+    debug: bool = False,
+    report: bool = False,
 ):
     """
     :param debug:
@@ -449,7 +450,7 @@ def write_output(
     """
 
     if setting_class is None:
-        setting_class = initiate(setting_file, report=report, out_type=out_type)
+        setting_class: settings = initiate(setting_file, report=report, out_type=out_type)
 
     if out_type is not None:
         logger.moreinfo(" ".join(map(str, [("Output_type was provided as an option; will use %s " % out_type)])))
@@ -470,21 +471,21 @@ def write_output(
 
 
 def execute(
-    setting_file=None,
+    setting_file: Optional[str | Path] = None,
     setting_class=None,
     # fit_settings=None,
     # fit_parameters=None,
     inputs=None,
-    debug=False,
-    refine=True,
-    save_all=False,
-    # propagate=True, #moved this option to settings file
-    iterations=1,
-    # track=False,  #moved this option to settings file
-    parallel=True,
-    mode="fit",
-    report=False,
-    fit_method = "leastsq",
+    debug: bool = False,
+    refine: bool = True,
+    save_all: bool = False,
+    # propagate: bool = True, #moved this option to settings file
+    iterations: int = 1,
+    # track: bool = False,  #moved this option to settings file
+    parallel: bool = True,
+    mode: str = "fit",
+    report: bool = False,
+    fit_method: str = "leastsq",
 ):
     """
     :param fit_parameters:
@@ -518,10 +519,11 @@ def execute(
     )
 
     if settings_for_fit.calibration_data:
-        data_to_fill = os.path.abspath(settings_for_fit.calibration_data)
+        data_to_fill = Path(settings_for_fit.calibration_data).resolve()
     else:
         # data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
         data_to_fill = settings_for_fit.image_list[0]
+
     new_data.fill_data(
         data_to_fill,
         settings=settings_for_fit,

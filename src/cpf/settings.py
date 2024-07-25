@@ -8,6 +8,7 @@ import logging
 import os
 from copy import copy, deepcopy
 from pathlib import Path
+from typing import Optional
 
 import importlib.util
 import numpy as np
@@ -60,11 +61,11 @@ class settings:
 
     def __init__(
         self,
-        settings_file=None,
+        settings_file: Optional[str | Path] = None,
         out_type=None,
-        report=False,
-        debug=False,
-        mode="fit",
+        report: bool = False,
+        debug: bool = False,
+        mode: str = "fit",
     ):
         """
         Initialise the cpf settings class.
@@ -94,10 +95,10 @@ class settings:
 
         """
 
-        self.datafile_list = None
-        self.datafile_number = 0
-        self.image_list = None
-        self.image_number = 0
+        self.datafile_list: Optional[list[str | Path]] = None
+        self.datafile_number: int = 0
+        self.image_list: Optional[list[str | Path]]= None
+        self.image_number: int = 0
         self.datafile_directory = Path(".")
 
         self.datafile_preprocess = None

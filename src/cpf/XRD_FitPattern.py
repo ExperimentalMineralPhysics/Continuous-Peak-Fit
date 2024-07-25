@@ -18,6 +18,7 @@ from pathos.multiprocessing import cpu_count
 import cpf.logger_functions as lg
 from cpf import output_formatters
 from cpf.BrightSpots import SpotProcess
+from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
 from cpf.IO_functions import (
     any_terms_null,
     json_numpy_serializer,
@@ -25,68 +26,9 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.XRD_FitSubpattern import fit_sub_pattern
-from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
+from cpf.logger_functions import logger
 from cpf.settings import settings
-
-# Configure the logging module
-logging.basicConfig(
-    level=logging.CRITICAL,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    handlers=[
-        # logging.FileHandler('CPF.log', mode='a', encoding=None, delay=False),  # Log to a file
-        logging.StreamHandler()  # Log to stdout
-    ]
-)
-#add custom logging levels.
-levelNum = 17
-levelName = "MOREINFO"
-def logForMI(self, message, *args, **kwargs):
-        if self.isEnabledFor(levelNum):
-            self._log(levelNum, message, args, **kwargs)
-def logToRoot(message, *args, **kwargs):
-    logging.log(levelNum, message, *args, **kwargs)
-
-logging.addLevelName(levelNum, levelName)
-setattr(logging, levelName, levelNum)
-setattr(logging.getLoggerClass(), levelName.lower(), logForMI)
-setattr(logging, levelName.lower(), logToRoot)
-
-
-levelName2 = "EFFUSIVE"
-levelNum2 = 13
-def logForE(self, message, *args, **kwargs):
-        if self.isEnabledFor(levelNum2):
-            self._log(levelNum2, message, args, **kwargs)
-def logToRoot(message, *args, **kwargs):
-    logging.log(levelNum2, message, *args, **kwargs)
-
-logging.addLevelName(levelNum2, levelName2)
-setattr(logging, levelName2, levelNum2)
-setattr(logging.getLoggerClass(), levelName2.lower(), logForE)
-setattr(logging, levelName2.lower(), logToRoot)
-
-# Create a logger instance
-logger = logging.getLogger(__name__)
-
-"""
-Logging levels and what they need to record
-DEBUG       10  Detailed information, typically of interest only when diagnosing
-                problems.
-INFO        20  Confirmation that things are working as expected.
-                Usually at this level the logging output is so low level that
-                it’s not useful to users who are not familiar with the
-                software’s internals.
-WARNING     30  An indication that something unexpected happened, or indicative of
-                some problem in the near future (e.g. ‘disk space low’). The
-                software is still working as expected.
-ERROR       40 	Due to a more serious problem, the software has not been able to
-                perform some function.
-CRITICAL    50 	A serious error, indicating that the program itself may be unable
-                to continue running.
-
-"""
+from cpf.XRD_FitSubpattern import fit_sub_pattern
 
 
 np.set_printoptions(threshold=sys.maxsize)

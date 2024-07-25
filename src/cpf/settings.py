@@ -4,6 +4,7 @@
 __all__ = ["settings", "get_output_options", "detector_factory"]
 
 import json
+import logging
 import os
 from copy import copy, deepcopy
 from pathlib import Path
@@ -18,7 +19,8 @@ from cpf.IO_functions import (
     image_list,
     json_numpy_serializer,
 )  # , get_output_options, detector_factory, register_default_formats
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger  # Results in circular import error
 from cpf.series_functions import (
     coefficient_type_as_number,
     coefficient_type_as_string,
@@ -28,13 +30,12 @@ from cpf.series_functions import (
 
 # import logging
 # # Configure the logging module
-# logging.basicConfig(
-#     level=logging.INFO,
+# logger.basicConfig(
+#     level=logger.INFO,
 #     format='%(asctime)s [%(levelname)s] %(message)s',
 #     datefmt='%Y-%m-%d %H:%M:%S'
 # )
-
-
+logger = logging.getLogger("cpf.settings")  # Basic logger to avoid errors for now
 
 class settings:
     """Settings class definitions.
@@ -97,7 +98,7 @@ class settings:
         self.datafile_number = 0
         self.image_list = None
         self.image_number = 0
-        self.datafile_directory = "."
+        self.datafile_directory = Path(".")
 
         self.datafile_preprocess = None
 
@@ -254,12 +255,21 @@ class settings:
 
         # add data directory and data files
         self.datafile_directory = self.settings_from_file.datafile_directory
+        if isinstance(self.datafile_directory, str):  # Convert to Path object
+            self.datafile_directory = Path(self.datafile_directory)
+
         (
             self.datafile_list,
             self.datafile_number,
             self.image_list,
             self.image_number,
         ) = image_list(dir(self.settings_from_file), self.settings_from_file)
+        # Convert datafile list entries to Path objects, if they exist
+        if len(self.datafile_list) > 0:
+            try:
+                self.datafile_list = [Path(file) for file in self.datafile_list if isinstance(file, str)]
+            except Exception as error:
+                raise error
 
         # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
         if "datafile_Basename" in dir(self.settings_from_file):
@@ -271,6 +281,8 @@ class settings:
         # change if listed among the inputs
         if "Output_directory" in dir(self.settings_from_file):
             self.output_directory = self.settings_from_file.Output_directory
+            if isinstance(self.output_directory, str):
+                self.output_directory = Path(self.output_directory)
 
         # Load the detector class here to access relevant functions and check required parameters are present
         if "Calib_type" in dir(self.settings_from_file):
@@ -291,7 +303,7 @@ class settings:
         self.data_class = detector_factory(fit_settings=self)
 
         if "Image_prepare" in dir(self.settings_from_file):
-            logging.warning(
+            logger.warning(
                 "'Image_prepare' is depreciated nomenclature. Has been replased by 'image_preprocess'"
             )
             self.settings_from_file.image_preprocess = (
@@ -434,11 +446,11 @@ class settings:
         """
         if directory.exists() is False:
             raise FileNotFoundError(
-                "The directory " + directory + " is not found but is required."
+                f"The directory {directory.name!r} is not found but is required."
             )
         else:
             if write == True:
-                logger.info(" ".join(map(str, [(directory + " exists.")])))
+                logger.info(" ".join(map(str, [(f"{directory.name!r} exists.")])))
 
     def validate_datafiles(self):
         """

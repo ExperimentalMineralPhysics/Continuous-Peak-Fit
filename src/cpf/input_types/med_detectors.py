@@ -5,11 +5,12 @@ __all__ = ["W2010_10element"]
 
 
 """
-This file contains a list of the default energy dispersive detectors that continuous peak fit recognises. 
+This file contains a list of the default energy dispersive detectors that continuous peak fit recognises.
 
-New detectors can either be added to this list or added via a csv file. For details see ... 
+New detectors can either be added to this list or added via a csv file. For details see ...
 """
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 
 def W2010_10element():

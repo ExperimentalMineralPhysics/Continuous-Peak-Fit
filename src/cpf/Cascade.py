@@ -6,24 +6,24 @@ Created on Tue Dec 14 14:16:58 2021
 @author: simon
 
 
-This files makes the cascade plots of azimuthal intensity vis time. 
+This files makes the cascade plots of azimuthal intensity vis time.
 It needs to do a few things.
 
 1. Call XRD_FitPattern to make the azimual distribution files.
-    a. by fitting a peak to the data 
+    a. by fitting a peak to the data
     b. max
     c. mean of the 90th+ percentiles.
-    
-    To be consistent with the philosophy of the code, the bins for the aximuths should be determined by a combination of width and the number of data contained. By keeping the number of data constant we will have more points at large two theta than at small two theta. 
-    - this will need a switch in the input file somewhere. (Azibins needs another call e.g. AziNum?) 
+
+    To be consistent with the philosophy of the code, the bins for the aximuths should be determined by a combination of width and the number of data contained. By keeping the number of data constant we will have more points at large two theta than at small two theta.
+    - this will need a switch in the input file somewhere. (Azibins needs another call e.g. AziNum?)
 
 2. Plot the outputs as a cascade plot.
 
-3. Determine the number of peaks in each steip and plot n vs. time. 
+3. Determine the number of peaks in each steip and plot n vs. time.
     Peaks need to be determinable by:
         a. above or below average (e.g. He 2000)
         b. peak finding algorithm (various)
-        
+
 
 """
 
@@ -60,7 +60,8 @@ from cpf.IO_functions import (
     any_terms_null,
     title_file_names,
 )
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 # from findpeaks import findpeaks
 
@@ -89,7 +90,7 @@ def initiate(*args, **kwargs):
 
     # pass everything through to XRD_FitPattern.initiate
     settings_for_fit = XRD_FitPattern.initiate(*args, **kwargs)
-    
+
     return settings_for_fit
 
 
@@ -111,7 +112,7 @@ def set_range(*args, **kwargs):
 
     # pass everything through to XRD_FitPattern.set_range
     XRD_FitPattern.set_range(*args, **kwargs)
-    
+
 
 
 def execute(
@@ -167,7 +168,7 @@ def execute(
         settings=settings_for_fit,
         debug=debug,
     )
-    
+
     # Get calibration parameter file
     parms_dict = new_data.calibration
     # FIXME this should be removable.
@@ -440,7 +441,7 @@ def read_saved_chunks(
 
     all_azis = []
     all_fits = []
-    
+
     print("Reading chunk files")
     logger = proglog.default_bar_logger('bar')  # shorthand to generate a bar logger
 
@@ -465,12 +466,12 @@ def read_saved_chunks(
     return all_azis, all_fits
 
 def get_chunks_range(chunks, series="h"):
-    
-    
+
+
     #make length of g
     min_all = np.inf*np.ones(len(chunks[0]))
     max_all = -np.inf*np.ones(len(chunks[0]))
-    
+
     for e in range(len(chunks)):
         for g in range(len(chunks[e])):
             for i in range(len(chunks[e][g][series])):
@@ -478,9 +479,9 @@ def get_chunks_range(chunks, series="h"):
                 v_max = np.max(chunks[e][g][series][i])
                 min_all[g] = np.min([min_all[g], v_min])
                 max_all[g] = np.max([max_all[g], v_max])
-        
+
     return min_all, max_all
-    
+
 
 def plot_cascade_chunks(
     setting_file=None,
@@ -541,7 +542,7 @@ def plot_cascade_chunks(
         inputs=setting_class, debug=debug, report=report, subpattern=subpattern
     )
     min_all, max_all = get_chunks_range(all_data, series="h")
-        
+
     for j in range(num_plots):
         # loop over the number of sets of peaks fit for (i.e. len(setting_class.fit_orders))
 
@@ -568,8 +569,8 @@ def plot_cascade_chunks(
         elif scale == "linear":
             norm = None
         for k in range(len(setting_class.subfit_orders["peak"])):
-            
-            
+
+
             if plot_type == "timeseries":
                 # loop over the number of peaks in each fit_orders
                 print("Making cascade plot for "+ IO.peak_string(setting_class.fit_orders[j], peak=k))
@@ -589,7 +590,7 @@ def plot_cascade_chunks(
                             cmap="YlOrBr",
                             norm=norm
                         )
-                    
+
                     # determine the label for the figure -- if there is data in the other peaks then just label as single peak otherwise it is all the peaks
                     pk = k
                     for l in range(len(setting_class.subfit_orders["peak"])):
@@ -600,12 +601,12 @@ def plot_cascade_chunks(
                     plt.title(ttlstr)
                     plt.xlabel(r"Azimuth (deg)")
                     plt.ylabel(y_label_str)
-                    
+
                     if azi_range == "all":
                         azi_range = [np.min(all_data[i][j]["chunks"]),np.max(all_data[i][j]["chunks"])]
                     x_ticks = setting_class.data_class.dispersion_ticks(disp_lims = azi_range)
                     ax.set_xticks(x_ticks)
-                    
+
                     cb = plt.colorbar(extend=cb_extend)
                     # cb.set_label(r"Log$_{10}$(Intensity)")
                     cb.set_label(r"Intensity")
@@ -624,15 +625,15 @@ def plot_cascade_chunks(
                 print("\n")
 
             elif plot_type == "map":
-                
+
                 leng = 500
-                
+
                 pass
             elif plot_type == "map_video":
                 pass
             elif plot_type == "data_cube":
-                
-                #plot data cube. 
+
+                #plot data cube.
                 # interactive 3D graph. (i.e. not spyder inline)
                 # x, z are position in space
                 # y is azimuth
@@ -652,7 +653,7 @@ def plot_cascade_chunks(
                         z = modified_time_s[i] * np.ones(np.shape(all_data[i][j]["chunks"]))[points_plot]
                         z_label = y_label_str
                         y = all_data[i][j]["h"][k][points_plot]
-                        y_label = 
+                        y_label =
                         plt.scatter3(
                             x, y, z,
                             s=1,
@@ -690,7 +691,7 @@ def plot_cascade_chunks(
                 print("\n")
                 """
                 pass
-            
+
             elif plot_type == "data_cube_video":
                 pass
             else:
@@ -877,7 +878,7 @@ def plot_peak_count(
 
 """
 ths is probably a better way of finding peaks using ImageD111
-Copied from ImageD11/test/peaksearchtiftest/scriptedpeaksearch.py 
+Copied from ImageD11/test/peaksearchtiftest/scriptedpeaksearch.py
 https://github.com/FABLE-3DXRD/ImageD11/blob/194d2fda453ee3e259e67651c3fcc1442dc3014b/test/peaksearchtiftest/scriptedpeaksearch.py
 24th March 2023
 """
@@ -994,9 +995,9 @@ def execute2(
                        for t in threshold }
 
         #for filename, omega in lines:
-            
+
         #open image with Fabio, required by peaksearch.
-        # can't do this as a data class function because it cant pickle a Fabio instance. 
+        # can't do this as a data class function because it cant pickle a Fabio instance.
         frame = fabio.open(settings_for_fit.datafile_list[j])
         frame.data = new_data.intensity
         print(type(frame.data))
@@ -1009,11 +1010,11 @@ def execute2(
         stop
         for t in threshold:
             label_ims[t].finalise()
-            
+
 
 
     #if debug:
-        
+
 
 def load_flts(
     setting_file=None,
@@ -1025,7 +1026,7 @@ def load_flts(
     loads flt files for the selected subpattern.
     Makes an array of the peaks, where x,y are the centres and i is the size of the peak.
     Adds this array to the data class.
-    
+
     Parameters
     ----------
     setting_file : TYPE, optional
@@ -1037,40 +1038,40 @@ def load_flts(
     -------
     None.
 
-    """   
-    
+    """
+
     if setting_class is None:
         settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
     else:
         settings_for_fit = setting_class
-    
+
     # if nothing has been set assume the first pattern
     if settings_for_fit.subfit_filename==None:
         settings_for_fit.set_subpattern(0,0)
-    
-    
-    #find all the *.flt files for this image    
-    fnam = make_outfile_name(settings_for_fit.subfit_filename, directory=settings_for_fit.output_directory)    
+
+
+    #find all the *.flt files for this image
+    fnam = make_outfile_name(settings_for_fit.subfit_filename, directory=settings_for_fit.output_directory)
     fnams = glob.glob(fnam+"*.flt")
-        
+
     obj = []
     #obj = columnfile()
     for i in range(len(fnams)):
-        
+
         obj.append(columnfile(fnams[i]))
-        
+
         plt.scatter(-obj[i].dety, obj[i].detz,1,c=(obj[i].sum_intensity))
         plt.colorbar()
         plt.title(fnams[i])
         plt.show()
-        
+
         plt.scatter((obj[i].Number_of_pixels),(obj[i].sum_intensity))
         plt.title(fnams[i])
         plt.show()
-        
+
     return obj
 
-    
+
 def make_im_from_flts(
     setting_file=None,
     setting_class=None,
@@ -1078,35 +1079,35 @@ def make_im_from_flts(
     inputs = None,
     debug=False,
     **kwargs):
-    
+
     if setting_class is None:
         settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
     else:
         settings_for_fit = setting_class
-    
+
     # if nothing has been set assume the first pattern
     if settings_for_fit.subfit_filename==None:
         settings_for_fit.set_subpattern(0,0)
-        
+
     if data_class == None:
         data_class = settings_for_fit.data_class
         data_class.fill_data(settings_for_fit.subfit_filename,
                              settings=settings_for_fit)
-        
+
     peaks_im = ma.zeros(data_class.intensity.shape)
-    
-    
+
+
     pks = load_flts(setting_file=setting_file,setting_class=settings_for_fit,data_class=data_class)
-    
+
     for i in range(len(pks)):
-        
+
         x = -pks[i].dety
         y = pks[i].detz
         z = pks[i].sum_intensity
-        
-        for j in range(len(x)):    
+
+        for j in range(len(x)):
             peaks_im[int(y[j]), int(x[j])] = z[j]
-            
+
     #peaks_im = peaks_im(mask=data_class.intensity.mask)
     peaks_im = ma.masked_where(ma.getmask(data_class.intensity), peaks_im)
 
@@ -1115,49 +1116,49 @@ def make_im_from_flts(
         plt.imshow(peaks_im, vmax=30)
         plt.colorbar()
         plt.show()
-          
+
         fig = plt.figure()
         plt.imshow(np.log10(data_class.intensity))
         plt.colorbar()
         plt.show()
-        
+
         fig = plt.figure()
         plt.scatter(data_class.tth, data_class.azm, s=.1,c=peaks_im, vmax=30)
         plt.colorbar()
         plt.show()
-    
+
     #print(pks[0].get_bigarray)
-    #print(dir(pks[0]))  
-    
+    #print(dir(pks[0]))
+
     data_class.peaks_image = peaks_im
-    
+
     return data_class
-    
+
 
 """
 # ============================
 # NOTES:
-# These are a set of functions that attempted to find the spots in the raw data and count them. 
+# These are a set of functions that attempted to find the spots in the raw data and count them.
 # They were either very slow or didn't work.
-# They are here to remind me to implement them at some time in the future because they are a 'better' way of making the measurements. 
-# ============================            
+# They are here to remind me to implement them at some time in the future because they are a 'better' way of making the measurements.
+# ============================
 
 def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1,
             track=False, parallel=True, subpattern='all', **kwargs):
-    
-    
+
+
     FitSettings, FitParameters, new_data = XRDFit.initiate(settings_file, inputs=inputs, report=True)
-    
+
     # Get list of diffraction patterns #
     diff_files, n_diff_files = IO.FileList(FitParameters, FitSettings)
-    
+
     #get file times
     modified_time = []
     for i in range(n_diff_files):
         modified_time.append(os.path.getmtime(diff_files[i]))
     modified_time = np.array(modified_time)
     modified_time = (modified_time - modified_time[0])/60
-    
+
     # restrict to subpatterns listed
     if subpattern=='all':
         subpats = list(range(0, len(FitSettings.fit_orders)))
@@ -1165,102 +1166,102 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
         subpats = subpattern
     else:
         subpats = [int(x) for x in str(subpattern)]
-        
+
     # make new order search list
     orders_tmp = []
     for i in range(len(subpats)):
         j = subpats[i]
         orders_tmp.append(FitSettings.fit_orders[j])
-           
+
     FitSettings.fit_orders = orders_tmp
-    
-    
+
+
     FitSettings_files = copy.deepcopy(FitSettings.datafile_Files)
     num_peaks_all = []
     visible = []
-        
+
     for h in range(n_diff_files):
-        
+
         #logger.info(" ".join(map(str, [(FitParameters)])))
         #logger.info(" ".join(map(str, [(diff_files)])))
-        
+
         #FitSettings_tmp = FitSettings
         FitSettings_tmp = FitSettings
         FitSettings_tmp.datafile_Files = [FitSettings_files[h]]
         #FitSettings_tmp.datafile_Files[0] = diff_files[h]
-        
+
         #logger.info(" ".join(map(str, [(FitSettings_tmp.datafile_Files)])))
         #logger.info(" ".join(map(str, [(FitSettings_tmp)])))
         #logger.info(" ".join(map(str, [(FitParameters)])))
-    
+
         outfname = IO.make_outfile_name(diff_files[h], directory=FitSettings_tmp.Output_directory, extension='csv', additional_text='peaks')
         logger.info(" ".join(map(str, [(outfname)])))
-    
+
         if not os.path.exists(outfname):
             #This currently gets all the peaks in the image, not just those in the regios of interest
-            intens, twotheta, azimu = XRDFit.execute(FitSettings=FitSettings_tmp, FitParameters=FitParameters, inputs=new_data, 
+            intens, twotheta, azimu = XRDFit.execute(FitSettings=FitSettings_tmp, FitParameters=FitParameters, inputs=new_data,
                     debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
                     parallel=parallel,
                     mode='ReturnImage', report=True)
-            
+
             # initialize with default parameters. The "denoise" parameter can be of use in your case
             # import 2D example dataset
-            
+
             plt.imshow(twotheta)
             plt.colorbar()
-            
+
             plt.imshow(np.array(twotheta))
-            plt.colorbar()    
-            
+            plt.colorbar()
+
             img = ma.array(intens)#, mask=False)
             plt.imshow(img)
             # #stop
-        
+
             img.filled(0)
             img = ma.array(img, mask = None)
             plt.imshow(img)
-            
+
             fp = findpeaks(limit=1, whitelist=['peak'], scale=False, togray=False, denoise=None)
             # #stop
-            
+
             # make the fit
             fp.fit(img)
             # Make plot
             #fp.plot()
             #fp.plot_persistence()
-            
+
             fp.results['persistence']
             logger.info(" ".join(map(str, [(fp.results['persistence'])])))
             logger.info(" ".join(map(str, [(type(fp.results['persistence']))])))
-            
+
             peaks = fp.results
             #logger.info(" ".join(map(str, [(type(peaks))])))
             #logger.info(" ".join(map(str, [(peaks)])))
             #logger.info(" ".join(map(str, [(type(peaks))])))
-            
+
             fp.results['persistence'].to_csv(outfname)
         else:
-            
+
             peaks=pd.read_csv(outfname)
             #logger.info(" ".join(map(str, [(fp)])))
             #peaks = fp.results
             if h==0:
                 #This currently gets all the peaks in the image, not just those in the regios of interest
-                intens, twotheta, azimu = XRDFit.execute(FitSettings=FitSettings_tmp, FitParameters=FitParameters, inputs=new_data, 
+                intens, twotheta, azimu = XRDFit.execute(FitSettings=FitSettings_tmp, FitParameters=FitParameters, inputs=new_data,
                     debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
                     parallel=parallel,
                     mode='ReturnImage', report=True)
-            
+
         # get peaks in each diffraction peak window
 
         num_peaks = []
         for i in range(len(FitSettings.fit_orders)):
-            
+
             tthRange = FitSettings.fit_orders[i]['range'][0]
-    
+
             msk = ma.masked_outside(twotheta, tthRange[0], tthRange[1])
-            
-            
+
+
             # find and list all peaks in unmasked area.
             #FIXME: how does this interact with the region specific masks?
             pks=[]
@@ -1271,17 +1272,17 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
                     if ((twotheta[y][x] > tthRange[0]) & (twotheta[y][x] < tthRange[1]) & (twotheta.mask[y][x] == False)):
                         pks.append(peaks.loc[j])
             num_peaks.append(len(pks))
-            
+
             #approximate fraction of ring that is masked.
             #number of pixels in two theta range
             num_pix = ((np.array(twotheta) > tthRange[0]) & (np.array(twotheta) < tthRange[1])).sum()
-    
+
             #number of unmasked pixles in two theta range
             num_vis_pix = ((tthRange[0] < twotheta) & (twotheta < tthRange[1])).sum()
-            
-            
+
+
             visible.append(num_vis_pix/num_pix)
-            
+
             # # find and list all peaks in unmasked area.
             # #FIXME: how does this interact with the region specific masks?
             # peaks = []
@@ -1292,20 +1293,20 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
             #         if ((twotheta[y][x] > tthRange[0]) & (twotheta[y][x] < tthRange[1]) & (twotheta.mask[y][x] == False)):
             #             peaks.append(fp.results['persistence'].loc[j])
             # num_peaks.append(len(peaks))
-            
+
             # #approximate fraction of ring that is masked.
             # #number of pixels in two theta range
             # num_pix = ((np.array(twotheta) > tthRange[0]) & (np.array(twotheta) < tthRange[1])).sum()
-    
+
             # #number of unmasked pixles in two theta range
             # num_vis_pix = ((tthRange[0] < twotheta) & (twotheta < tthRange[1])).sum()
-            
-            
+
+
             # visible.append(num_vis_pix/num_pix)
         num_peaks_all.append(num_peaks)
         #logger.info(" ".join(map(str, [(num_peaks)])))
         #logger.info(" ".join(map(str, [(visible)])))
-     
+
     #get file times
     modified_time = []
     for i in range(n_diff_files):
@@ -1320,131 +1321,131 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
         for i in range(len(FitSettings.fit_orders)):
             logger.info(" ".join(map(str, [(num_peaks_all[:,i])])))
             plt.plot(modified_time, num_peaks_all[:,i], '.-', label=IO.peak_string(FitSettings.fit_orders[i]))
-            
+
         plt.xlabel(r'Time (min)')
         plt.ylabel(r'Intensity Maxima Count')
         plt.legend()
         plt.show()
-            
-        fig.savefig('IntensityMaximaTime2.png')  
-        fig.savefig('IntensityMaximaTime2.pdf')      
-        fig.savefig('IntensityMaximaTime2.eps')    
-        
-    #plt.scatter([*range(len(num_peaks_all))], num_peaks_all)    
+
+        fig.savefig('IntensityMaximaTime2.png')
+        fig.savefig('IntensityMaximaTime2.pdf')
+        fig.savefig('IntensityMaximaTime2.eps')
+
+    #plt.scatter([*range(len(num_peaks_all))], num_peaks_all)
     #plt.scatter
     stop
-        
+
         # #fraction that is unmasked (as approximation for how much of ring is visible.)
-        
+
         # tthRange = FitSettings.fit_orders[i]['range'][0]
 
         # msk = ma.masked_outside(twotheta, tthRange[0], tthRange[1])
 
         # img = ma.array(intens, mask=msk.mask)
-    
+
         # plt.imshow(img)
         # #stop
-    
+
         # img.filled(0)
         # img = ma.array(img, mask = None)
         # plt.imshow(img)
-        
+
         # fp = findpeaks(limit=2, whitelist=['peak'])
         # #stop
-        
+
         # # make the fit
         # fp.fit(img)
         # # Make plot
-        
+
         # fp.plot()
-        
+
         # fp.plot_persistence()
-        
+
         # fp.results['persistence']
-        
+
         # logger.info(" ".join(map(str, [(fp.results)])))
-          
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
     stop
-    
-    
-    
+
+
+
     for i in range(len(FitSettings.fit_orders)):
-        
-        
+
+
         tthRange = FitSettings.fit_orders[i]['range'][0]
 
         msk = ma.masked_outside(twotheta, tthRange[0], tthRange[1])
 
         img = ma.array(intens, mask=msk.mask)
-    
+
         plt.imshow(img)
         #stop
-    
+
         img.filled(0)
         img = ma.array(img, mask = None)
         plt.imshow(img)
-        
+
         fp = findpeaks(limit=2, whitelist=['peak'])
         #stop
-        
+
         # make the fit
         fp.fit(img)
         # Make plot
-        
-        fp.plot()
-        
-        fp.plot_persistence()
-        
-        fp.results['persistence']
-        
-        logger.info(" ".join(map(str, [(fp.results)])))
-        
-    stop
-                
 
-   
-    
-    
-        
+        fp.plot()
+
+        fp.plot_persistence()
+
+        fp.results['persistence']
+
+        logger.info(" ".join(map(str, [(fp.results)])))
+
+    stop
+
+
+
+
+
+
     if 1:
         fig,ax = plt.subplots()
-        
+
         for i in range(len(FitSettings.fit_orders)):
             plt.plot(modified_time, peak_count[:][i], '.-', label=IO.peak_string(FitSettings.fit_orders[i]))
-            
+
         plt.xlabel(r'Time (min)')
         plt.ylabel(r'Intensity Maxima Count')
         plt.legend()
         plt.show()
-            
-        fig.savefig('IntensityMaximaTime.png')  
-        fig.savefig('IntensityMaximaTime.pdf')      
-        fig.savefig('IntensityMaximaTime.eps')    
-            
-        
+
+        fig.savefig('IntensityMaximaTime.png')
+        fig.savefig('IntensityMaximaTime.pdf')
+        fig.savefig('IntensityMaximaTime.eps')
+
+
 
 def WatershedCount(settings_file=None, inputs=None, debug=False, refine=True, save_all=False, propagate=True, iterations=1,
             track=False, parallel=True, subpattern='all', **kwargs):
-    
-    
+
+
     FitSettings, FitParameters, new_data = XRDFit.initiate(settings_file, inputs=inputs, report=True)
-    
+
     # Get list of diffraction patterns #
     diff_files, n_diff_files = IO.FileList(FitParameters, FitSettings)
-    
+
     #get file times
     modified_time = []
     for i in range(n_diff_files):
         modified_time.append(os.path.getmtime(diff_files[i]))
     modified_time = np.array(modified_time)
     modified_time = (modified_time - modified_time[0])/60
-    
+
     # restrict to subpatterns listed
     if subpattern=='all':
         subpats = list(range(0, len(FitSettings.fit_orders)))
@@ -1452,58 +1453,58 @@ def WatershedCount(settings_file=None, inputs=None, debug=False, refine=True, sa
         subpats = subpattern
     else:
         subpats = [int(x) for x in str(subpattern)]
-        
+
     # make new order search list
     orders_tmp = []
     for i in range(len(subpats)):
         j = subpats[i]
         orders_tmp.append(FitSettings.fit_orders[j])
-           
+
     FitSettings.fit_orders = orders_tmp
-    
-    
+
+
     FitSettings_files = copy.deepcopy(FitSettings.datafile_Files)
     num_peaks_all = []
     visible = []
-        
+
     for h in range(n_diff_files):
-        
+
         #This currently gets all the peaks in the image, not just those in the regios of interest
-        intens, twotheta, azimu = XRDFit.execute(FitSettings=FitSettings_tmp, FitParameters=FitParameters, inputs=new_data, 
+        intens, twotheta, azimu = XRDFit.execute(FitSettings=FitSettings_tmp, FitParameters=FitParameters, inputs=new_data,
                 debug=debug, refine=refine, save_all=save_all, propagate=propagate, iterations=iterations,
                 parallel=parallel,
-                mode='ReturnImage', report=True)     
-        
+                mode='ReturnImage', report=True)
+
         im = img_as_float(intens)
-        
+
         # image_max is the dilation of im with a 20*20 structuring element
         # It is used within peak_local_max function
         image_max = ndi.maximum_filter(im, size=20, mode='constant')
-        
+
         # Comparison between image_max and im to find the coordinates of local maxima
         coordinates = peak_local_max(im, min_distance=20)
-        
+
         # display results
         fig, axes = plt.subplots(1, 3, figsize=(8, 3), sharex=True, sharey=True)
         ax = axes.ravel()
         ax[0].imshow(im, cmap=plt.cm.gray)
         ax[0].axis('off')
         ax[0].set_title('Original')
-        
+
         ax[1].imshow(image_max, cmap=plt.cm.gray)
         ax[1].axis('off')
         ax[1].set_title('Maximum filter')
-        
+
         ax[2].imshow(im, cmap=plt.cm.gray)
         ax[2].autoscale(False)
         ax[2].plot(coordinates[:, 1], coordinates[:, 0], 'r.')
         ax[2].axis('off')
         ax[2].set_title('Peak local max')
-        
+
         fig.tight_layout()
-        
+
         plt.show()
-        
+
 
 
 

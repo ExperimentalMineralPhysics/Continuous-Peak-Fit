@@ -9,7 +9,8 @@ import numpy as np
 import cpf.output_formatters.WriteMultiFit as WriteMultiFit
 import json
 import cpf.IO_functions as IO
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 # import re
 # import datetime

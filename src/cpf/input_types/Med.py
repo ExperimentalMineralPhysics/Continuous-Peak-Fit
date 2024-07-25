@@ -4,13 +4,14 @@ Support for Multi-Element Detectors (Med).
 Author:        Mark Rivers
 Created:       Sept. 18, 2002.  Based on earlier IDL code.
 Modifications:
-    Edited by SAH (June 2019) to suit analysis code. 
+    Edited by SAH (June 2019) to suit analysis code.
     Stripped out parts that are not required:
-        - spline function and option to align the called data. 
+        - spline function and option to align the called data.
 """
 from cpf.input_types import Mca
 import numpy as Numeric
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 # FIX ME: DMF Need to rationalise this code and keep what's needed.
 # FIX ME: where do we stand on licensing? has this been published?

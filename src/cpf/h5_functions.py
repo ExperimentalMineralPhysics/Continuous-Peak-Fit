@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 import os
 import cpf.IO_functions as IO
 import cpf.XRD_FitPattern as fp
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 # copied from internet somewhere August 2022
 def allkeys(obj):
@@ -80,7 +81,7 @@ def image_key_validate(h5key_list, key_start, key_end, key_step):
 
     if fail != 0:
         err_str = (
-            "The h5 settings do not balance. They need fixing.")        
+            "The h5 settings do not balance. They need fixing.")
         logger.error(" ".join(map(str, [(err_str)])))
         raise ValueError(err_str)
 
@@ -158,7 +159,7 @@ def get_image_keys(
     if len(h5key_list) == 1:
         # we are at the end of the list and need to find out how many values are here, or what the values are
         key = key_route + "/" + h5key_list[0]
-        
+
         # make sure the key exists
         if not key in datafile.keys():
             err_str = (
@@ -167,12 +168,12 @@ def get_image_keys(
             logger.warning(" ".join(map(str, [(err_str)])))
         else:
             number_data = datafile[key].shape[index]
-    
+
             if key_start[0] < 0:
                 key_start[0] = number_data + key_start[0]
             if key_end[0] < 0:
                 key_end[0] = number_data + key_end[0]
-    
+
             # if the order is reverse switch the values
             # FIXME: this only works for the input as set needs to be updatedto work for all logics.
             # FIXME: Should use cpf.IO_functions/file_list work for this.
@@ -182,28 +183,28 @@ def get_image_keys(
                 #key_start[0] -= 1
             else:
                 key_end[0] += 1
-                   
+
             if bottom_level == "sum":
-    
+
                 index_values = list([*range(key_start[0], key_end[0], key_step[0])])
-    
+
                 # get the labels.
                 # FIXME: this doesnt work if the last enty in the h5key_names list is blank.
                 # FIXME: Should use a function to cover all options and combine with iterate call.
                 labels = key_route + datafile[key_route + "/" + h5key_names[0]][()]
                 # FIXME! this is the line to use if the last entry in the list in empty
                 # labels = str(key_str)
-    
+
                 return [[key, index_values, labels]]
-    
+
             elif bottom_level == "iterate":
                 # iterate over the size of the array in the h5 group.
-    
+
                 #make list of key labels
                 key_strings_new = get_image_key_strings(
-                    datafile, 
-                    key_route=key_route, 
-                    key_names=h5key_names[0], 
+                    datafile,
+                    key_route=key_route,
+                    key_names=h5key_names[0],
                     key_measure=h5key_list[0],
                     key_start=0,
                     key_end=-1,
@@ -211,21 +212,21 @@ def get_image_keys(
                     index=index,
                 )
                 out = []
-    
+
                 if number_data != len(key_strings_new):
                     err_str = (
                         "The number of data (%i) does not match the number of keys (%i). "
                         "It is not possible to continue until this error is corrected."
                         % (number_data, len(key_strings_new)))
                     raise ValueError(err_str)
-    
+
                 #get the labels:
                 lbl_temp=[]
                 for i in [*range(key_start[0], key_end[0], key_step[0])]:
                     lbl_temp.append([key, i, key_str + sep1+key_strings_new[i]])
-    
+
                 return lbl_temp
-                
+
             else:
                 err_str = "This h5 process is not recognised."
                 raise ValueError(err_str)
@@ -234,32 +235,32 @@ def get_image_keys(
 
         # make current key
         key_str = key_str + "/" + h5key_list[0]
-        
+
         #make list of key labels
         key_strings = get_image_key_strings(
-            datafile, 
-            key_route=key_str, 
-            key_names=h5key_names[0], 
+            datafile,
+            key_route=key_str,
+            key_names=h5key_names[0],
             key_measure=h5key_list[0],
             key_start=0,
             key_end=-1,
             key_step=1,
             index=0,
         )
-        
+
         # make list of values
         if isinstance(h5key_names[0], str) and len(h5key_names[0]) == 0:
             key_lst = list(datafile[h5key_list[0]].keys())
         else:
             key_lst = list(datafile[h5key_list[0]].keys())
-            
+
         # cut to what we want ot iterate over
         # if we are using all the data make sure we run to the end.
         if key_start[0] < 0:
             key_start[0] = len(key_lst) + key_start[0]
         if key_end[0] < 0:
             key_end[0] = len(key_lst) + key_end[0]
-            
+
         # if we are looking for more images than there are cut the list
         # key_end[0] = np.min(number_data, key_end[0])
 
@@ -269,7 +270,7 @@ def get_image_keys(
             key_end[0] -= 1
             #key_start[0] -= 1
         else:
-            key_end[0] += 1    
+            key_end[0] += 1
         # populate the list
         for i in [*range(key_start[0], key_end[0], key_step[0])]:
             # use the index to pass either the index of the array or the upper level group index
@@ -300,7 +301,7 @@ def get_image_keys(
 
 
 def get_image_key_strings(
-    datafile, 
+    datafile,
     key_route="",
     key_names=[""],
     key_measure=[""],
@@ -314,7 +315,7 @@ def get_image_key_strings(
 ):
     """
     Makes the key labels for use in the filenames and so forth.
-    Trasposes the key_names into strings, numberical values or reads from other groups depending on the content. 
+    Trasposes the key_names into strings, numberical values or reads from other groups depending on the content.
     The key names is a list of lists or strings.
     There are three different actions depending on the string:
     '' - empty string -- adds the numberical position of the key as a label
@@ -343,7 +344,7 @@ def get_image_key_strings(
         List of labels for the images in the data group.
 
     """
-        
+
     if not isinstance(key_names, list):
         key_names = [key_names]
     number_data_tmp1 = []
@@ -352,39 +353,39 @@ def get_image_key_strings(
         if isinstance(datafile[key_route + "/" + key_names[i]], h5py.Group) and key_names[i]=="/":
             logger.debug(" ".join(map(str, [(i, "/")])))
             number_data_tmp.append(len(list(datafile[key_route + "/" + key_names[i]].keys())))
-            
+
         elif isinstance(datafile[key_route + "/" + key_names[i]], h5py.Group) and key_names[i]=="":
-            
+
             try:
                 if key_measure == "/":
                     number_data_tmp.append(len(list(datafile[key_route + "/" + key_names[i]].keys())))
                 else:
-                    
+
                     attr=(datafile[key_route + "/" + key_measure])
                     tmp = datafile.get(key_route + "/" + key_measure)
                     number_data_tmp.append(tmp.shape[index])
-                
+
             except:
                 logger.debug(" ".join(map(str, [(i, "value")])))
                 number_data_tmp.append(0)
 
         else:
             number_data_tmp.append(datafile[key_route + "/" + key_names[i]].size)
-            
-    number_data = np.max(number_data_tmp)  
-    
+
+    number_data = np.max(number_data_tmp)
+
     if isinstance(key_names, str):
          key_names = [key_names]
-    
+
     #get the labels
     labels = []
     for i in range(len(key_names)):
-        
+
         if key_names[i] == "":
             #if empty then list numbers.
             labels_temp = np.array(range(number_data))
             #FIXME: We are zero counting the images and the indecies. It might be better to 1 count them.
-            # if so to 1 count the indicies we add 1 to the prewvious line. 
+            # if so to 1 count the indicies we add 1 to the prewvious line.
             #the counting over the arrays needs to be done in get_image_keys
             labels_temp = unique_labels(labels_temp, number_data=number_data)
         elif key_names[i] == "/":
@@ -402,7 +403,7 @@ def get_image_key_strings(
                 labels_temp, number_data=labels_temp.size
             )
         labels.append(labels_temp)
-        
+
     # if we are using all the data make sure we run to the end.
     if key_end == -1:
         key_end = number_data-1
@@ -445,7 +446,7 @@ def get_image_key_strings(
                 lbl_str = lbl_str + sep2 + str(labels[j])
             else:
                 if np.size(labels[j]) == 1:
-                    # if labels are a single item they can come wrapped in lists. 
+                    # if labels are a single item they can come wrapped in lists.
                     # not sure why but this is here to capture it.
                     labels = [item for items in labels for item in items]
 
@@ -462,7 +463,7 @@ def get_image_key_strings(
         lbl_str=IO.licit_filename(lbl_str)
 
         out.append(lbl_str)
-        
+
     return out
 
 

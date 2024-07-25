@@ -11,7 +11,8 @@ import re
 import cpf.h5_functions as h5_functions
 import cpf.peak_functions as pf
 from copy import deepcopy
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 import logging
 
 # Needed for JSON to save fitted parameters.
@@ -273,7 +274,7 @@ def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", clean=None):
     if obj_to_inspect == val_to_find:
         clean = 0
         logger.moreinfo(" ".join(map(str, [(f"Value {val_to_find} found at {index_path}")])))
-        # could be verbose if verbose logger. 
+        # could be verbose if verbose logger.
 
     return clean
 
@@ -315,8 +316,8 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
     """
     This function accepts a nested dictionary and list as argument
     and iterates over all values of nested dictionaries and lists.
-    If any of the error values are more than scale times the fitted value it 
-    flags the errors as huge 
+    If any of the error values are more than scale times the fitted value it
+    flags the errors as huge
     :param obj_to_inspect:
     :param large_errors:
     :param clean:
@@ -326,31 +327,31 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
         clean = 1
     for k in range(len(obj_to_inspect["background"])):
         for j in range(len(obj_to_inspect["background"][k])):
-            if (obj_to_inspect["background"][k][j] != 0 and 
-                obj_to_inspect["background"][k][j] != None and 
-                obj_to_inspect["background_err"][k][j] != 0 and 
-                obj_to_inspect["background_err"][k][j] != None and 
+            if (obj_to_inspect["background"][k][j] != 0 and
+                obj_to_inspect["background"][k][j] != None and
+                obj_to_inspect["background_err"][k][j] != 0 and
+                obj_to_inspect["background_err"][k][j] != None and
                 obj_to_inspect["background_err"][k][j]/obj_to_inspect["background"][k][j] >= large_errors):
                 clean = 0
                 err_rat = obj_to_inspect["background_err"][k][j] / obj_to_inspect["background"][k][j]
                 logger.moreinfo(" ".join(map(str, [(f"Huge errors found in background {k}, {j}: value= {obj_to_inspect['background'][k][j]: 3.2e}; error={obj_to_inspect['background_err'][k][j]: 3.2e}; fractional error = {err_rat: 5.1f}")])))
-        
+
     comp_list, comp_names = pf.peak_components(include_profile=True)
     for k in range(len(obj_to_inspect["peak"])):
         for cp in range(len(comp_list)):
             comp = comp_names[cp]
             for j in range(len(obj_to_inspect["peak"][k][comp])):
-                if (obj_to_inspect["peak"][k][comp][j] != 0 and 
-                    obj_to_inspect["peak"][k][comp][j] != None and 
-                    obj_to_inspect["peak"][k][comp+"_err"][j] != 0 and 
-                    obj_to_inspect["peak"][k][comp+"_err"][j] != None and 
+                if (obj_to_inspect["peak"][k][comp][j] != 0 and
+                    obj_to_inspect["peak"][k][comp][j] != None and
+                    obj_to_inspect["peak"][k][comp+"_err"][j] != 0 and
+                    obj_to_inspect["peak"][k][comp+"_err"][j] != None and
                     obj_to_inspect["peak"][k][comp+"_err"][j]/obj_to_inspect["peak"][k][comp][j] >= large_errors):
                     clean = 0
                     err_rat = obj_to_inspect["peak"][k][comp+"_err"][j]/obj_to_inspect["peak"][k][comp][j]
                     logger.moreinfo(" ".join(map(str, [(f"Huge error found in peak {k}, {comp} {j}: value= {obj_to_inspect['peak'][k][comp][j]: 3.2e}; error={obj_to_inspect['peak'][k][comp+'_err'][j]: 3.2e}; fractional error = {err_rat: 5.1f}")])))
     return clean
 
-        
+
 def peak_string(orders, fname=False, peak="all"):
     """
     :param orders: list of peak orders which should include peak names/hkls
@@ -656,10 +657,10 @@ def licit_filename(fname, replacement="=="):
 
 
 def figure_suptitle_space(figure, topmargin=1):
-    """ increase figure size to make topmargin (in inches) space for 
+    """ increase figure size to make topmargin (in inches) space for
         titles, without changing the axes sizes.
         after: https://stackoverflow.com/questions/55767312/how-to-position-suptitle#55768955
-		
+
 		Acutally now does this by compresssing the axes away from the top of the figure.
         """
 

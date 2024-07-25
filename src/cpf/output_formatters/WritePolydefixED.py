@@ -11,7 +11,8 @@ import cpf.IO_functions as IO
 import json
 import re
 import datetime
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 def Requirements():
     # List non-universally required parameters for writing this output type.

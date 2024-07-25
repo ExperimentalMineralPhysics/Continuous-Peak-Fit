@@ -12,7 +12,8 @@ import cpf.lmfit_model as lmm
 
 import cpf.IO_functions as IO
 import cpf.output_formatters.convert_fit_to_crystallographic as cfc
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 
 def Requirements():
@@ -22,8 +23,8 @@ def Requirements():
         #'apparently none!
     ]
     OptionalParams = [
-        "SampleGeometry" # changes the strain tensor calucaltion from 2d to 3d. This determines how the cetroid and differnetial strain of the dpsaice are extracted from the fourier series. 
-        "SampleDeformation" # changes calculation between 'compression' and 'extension'.  
+        "SampleGeometry" # changes the strain tensor calucaltion from 2d to 3d. This determines how the cetroid and differnetial strain of the dpsaice are extracted from the fourier series.
+        "SampleDeformation" # changes calculation between 'compression' and 'extension'.
     ]
 
     return RequiredParams, OptionalParams
@@ -51,10 +52,10 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
     """
 
     # version 1.1 has elasped time and reduced chi squared added to the output table.
-    # version 1.2 has corrected the orientation calculation. The reported angle is now that of the maximum compression 
-    # version 2  accounts for 2d and 3d experimntal gemoetries, compression and extension. The crystallographic values are now calculated in a different file/function. 
+    # version 1.2 has corrected the orientation calculation. The reported angle is now that of the maximum compression
+    # version 2  accounts for 2d and 3d experimntal gemoetries, compression and extension. The crystallographic values are now calculated in a different file/function.
     f_version = 2
-    
+
 
 
     if setting_class is None and setting_file is None:
@@ -148,7 +149,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
     text_file.write("\n")
 
     all_fits = []
-    for z in range(setting_class.image_number):  
+    for z in range(setting_class.image_number):
         setting_class.set_subpattern(z, 0)
 
         filename = IO.make_outfile_name(
@@ -165,9 +166,9 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
 
             fit = IO.replace_null_terms(fit)
 
-            all_fits.append(fit) 
+            all_fits.append(fit)
 
-            #calculate the required parameters. 
+            #calculate the required parameters.
             num_subpatterns = len(fit)
             for y in range(num_subpatterns):
 
@@ -180,8 +181,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                 logger.info(" ".join(["  Incorporating: %s,%s" % (out_name, IO.peak_string(fit[y])) ]))
                 # try reading an lmfit object file.
                 savfilename = IO.make_outfile_name(
-                    setting_class.subfit_filename,  
-                    directory=setting_class.output_directory,  
+                    setting_class.subfit_filename,
+                    directory=setting_class.output_directory,
                     orders=fit[y],
                     extension=".sav",
                     overwrite=True,
@@ -212,7 +213,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                         corr = corr_all["peak_0_d3"]["peak_0_d4"]
                     except:
                         corr = np.nan
-                else: #no correlation coefficient. 
+                else: #no correlation coefficient.
                     corr = np.nan
 
                 width_fnam = np.max((width_fnam, len(out_name)))
@@ -228,12 +229,12 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                     out_peak = IO.peak_string(fit[y], peak=[x])
                     width_hkl = np.max((width_hkl, len(out_peak)))
 
-                    #%%% get converted values. 
+                    #%%% get converted values.
                     crystallographic_values = cfc.fourier_to_crystallographic(fit, SampleGeometry=SampleGeometry, SampleDeformation=SampleDeformation,  subpattern=y, peak=x)
-                    
+
                     try:
                         #centroid
-                        out_d0 = crystallographic_values["dp"] 
+                        out_d0 = crystallographic_values["dp"]
                         out_d0err = crystallographic_values["dp_err"]
 
                         #differential components
@@ -241,12 +242,12 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                         out_dsin2 = fit[y]["peak"][x]["d-space"][4]
                         out_dcos2err = fit[y]["peak"][x]["d-space_err"][3]
                         out_dsin2err = fit[y]["peak"][x]["d-space_err"][4]
-                        
+
                         out_dd = crystallographic_values["differential"]
                         out_dderr = crystallographic_values["differential_err"]
-                        out_ang = crystallographic_values["orientation"] 
+                        out_ang = crystallographic_values["orientation"]
                         out_angerr = crystallographic_values["orientation_err"]
-                        
+
                         out_dcorr = corr  # gmodel.params['peak_0_d3'].correl['peak_0_d4']
 
                         # differential max
@@ -255,10 +256,10 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                         # differential min
                         out_dmin = crystallographic_values["d_min"]
                         out_dminerr = crystallographic_values["d_min_err"]
-                        
-                        
+
+
                         # centre position (not used)
-                        # FIX ME: This is not correct at the time of writing. See function called above.  
+                        # FIX ME: This is not correct at the time of writing. See function called above.
                         out_x0 = crystallographic_values["x0"]
                         out_y0 = crystallographic_values["y0"]
                     except:
@@ -322,10 +323,10 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                         out_p0 = np.nan
                     if out_p0err is None:  # catch  'null' as an error
                         out_p0err = np.nan
-                        
+
 
                     #%% write numbers to file
-                    
+
                     text_file.write(
                         ("{0:<" + str(width_fnam) + "}").format(out_name + ",")
                     )
@@ -497,5 +498,5 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                     text_file.write("\n")
         else:
             logger.info(" ".join(("%s does not exist on the path" % filename)))
-            
+
     text_file.close()

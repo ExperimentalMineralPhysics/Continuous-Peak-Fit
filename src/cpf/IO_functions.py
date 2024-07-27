@@ -12,9 +12,6 @@ from copy import deepcopy
 
 import numpy as np
 
-import cpf.h5_functions as h5_functions
-import cpf.peak_functions as pf
-
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
 
@@ -91,6 +88,9 @@ def image_list(fit_parameters, fit_settings):
     None.
 
     """
+
+    # Local import to avoid circular errors
+    import cpf.h5_functions as h5_functions
 
     # make the file list
     diff_files, n_diff_files = file_list(fit_parameters, fit_settings)
@@ -333,6 +333,10 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
     :param clean:
     :return:
     """
+
+    # Local import to avoid circular import errors
+    import cpf.peak_functions as pf
+
     if clean is None:
         clean = 1
     for k in range(len(obj_to_inspect["background"])):

@@ -5,15 +5,19 @@ Created on Tue Jul  6 05:44:13 2021
 @author: simon
 """
 
-import numpy as np
+import logging
 import os
 import re
+from copy import deepcopy
+
+import numpy as np
+
 import cpf.h5_functions as h5_functions
 import cpf.peak_functions as pf
-from copy import deepcopy
+
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
-import logging
+
 
 # Needed for JSON to save fitted parameters.
 # Copied from https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array#24375113
@@ -94,7 +98,6 @@ def image_list(fit_parameters, fit_settings):
     # iterate for h5 files.
     image_list = []
     if "h5_key_list" in fit_parameters:
-
         # FIX ME: all this code should be moved to settings and validation.
         h5_key_list = fit_settings.h5_key_list
 
@@ -170,7 +173,7 @@ def file_list(fit_parameters, fit_settings):
             step = 1
         else:
             step = -1
-    else: # it must be a single file with no numberical compoent.
+    else:  # it must be a single file with no numberical compoent.
         step = None
 
     if "datafile_NumDigit" not in fit_parameters:
@@ -192,7 +195,8 @@ def file_list(fit_parameters, fit_settings):
     elif "datafile_Files" not in fit_parameters:
         n_diff_files = int(
             np.round(
-                (fit_settings.datafile_EndNum - fit_settings.datafile_StartNum) / np.abs(step)
+                (fit_settings.datafile_EndNum - fit_settings.datafile_StartNum)
+                / np.abs(step)
                 + 1
             )
         )
@@ -221,7 +225,7 @@ def file_list(fit_parameters, fit_settings):
         for j in range(n_diff_files):
             # Make list of diffraction pattern names and no. of pattern
             if step < 0:
-                n = str(fit_settings.datafile_Files[j * step -1]).zfill(
+                n = str(fit_settings.datafile_Files[j * step - 1]).zfill(
                     fit_settings.datafile_NumDigit
                 )
             else:
@@ -273,13 +277,17 @@ def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", clean=None):
 
     if obj_to_inspect == val_to_find:
         clean = 0
-        logger.moreinfo(" ".join(map(str, [(f"Value {val_to_find} found at {index_path}")])))
+        logger.moreinfo(
+            " ".join(map(str, [(f"Value {val_to_find} found at {index_path}")]))
+        )
         # could be verbose if verbose logger.
 
     return clean
 
 
-def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", clean=None, replace_with=0):
+def replace_null_terms(
+    obj_to_inspect, val_to_find=None, index_path="", clean=None, replace_with=0
+):
     """
     This function accepts a nested dictionary and list as argument
     and iterates over all values of nested dictionaries and lists.
@@ -307,7 +315,9 @@ def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", clean=No
 
     if obj_to_inspect == val_to_find:
         obj_to_inspect = replace_with
-        logger.moreinfo(" ".join(map(str, [(f"Value {val_to_find} found at {index_path}")])))
+        logger.moreinfo(
+            " ".join(map(str, [(f"Value {val_to_find} found at {index_path}")]))
+        )
 
     return obj_to_inspect
 
@@ -327,28 +337,64 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
         clean = 1
     for k in range(len(obj_to_inspect["background"])):
         for j in range(len(obj_to_inspect["background"][k])):
-            if (obj_to_inspect["background"][k][j] != 0 and
-                obj_to_inspect["background"][k][j] != None and
-                obj_to_inspect["background_err"][k][j] != 0 and
-                obj_to_inspect["background_err"][k][j] != None and
-                obj_to_inspect["background_err"][k][j]/obj_to_inspect["background"][k][j] >= large_errors):
+            if (
+                obj_to_inspect["background"][k][j] != 0
+                and obj_to_inspect["background"][k][j] != None
+                and obj_to_inspect["background_err"][k][j] != 0
+                and obj_to_inspect["background_err"][k][j] != None
+                and obj_to_inspect["background_err"][k][j]
+                / obj_to_inspect["background"][k][j]
+                >= large_errors
+            ):
                 clean = 0
-                err_rat = obj_to_inspect["background_err"][k][j] / obj_to_inspect["background"][k][j]
-                logger.moreinfo(" ".join(map(str, [(f"Huge errors found in background {k}, {j}: value= {obj_to_inspect['background'][k][j]: 3.2e}; error={obj_to_inspect['background_err'][k][j]: 3.2e}; fractional error = {err_rat: 5.1f}")])))
+                err_rat = (
+                    obj_to_inspect["background_err"][k][j]
+                    / obj_to_inspect["background"][k][j]
+                )
+                logger.moreinfo(
+                    " ".join(
+                        map(
+                            str,
+                            [
+                                (
+                                    f"Huge errors found in background {k}, {j}: value= {obj_to_inspect['background'][k][j]: 3.2e}; error={obj_to_inspect['background_err'][k][j]: 3.2e}; fractional error = {err_rat: 5.1f}"
+                                )
+                            ],
+                        )
+                    )
+                )
 
     comp_list, comp_names = pf.peak_components(include_profile=True)
     for k in range(len(obj_to_inspect["peak"])):
         for cp in range(len(comp_list)):
             comp = comp_names[cp]
             for j in range(len(obj_to_inspect["peak"][k][comp])):
-                if (obj_to_inspect["peak"][k][comp][j] != 0 and
-                    obj_to_inspect["peak"][k][comp][j] != None and
-                    obj_to_inspect["peak"][k][comp+"_err"][j] != 0 and
-                    obj_to_inspect["peak"][k][comp+"_err"][j] != None and
-                    obj_to_inspect["peak"][k][comp+"_err"][j]/obj_to_inspect["peak"][k][comp][j] >= large_errors):
+                if (
+                    obj_to_inspect["peak"][k][comp][j] != 0
+                    and obj_to_inspect["peak"][k][comp][j] != None
+                    and obj_to_inspect["peak"][k][comp + "_err"][j] != 0
+                    and obj_to_inspect["peak"][k][comp + "_err"][j] != None
+                    and obj_to_inspect["peak"][k][comp + "_err"][j]
+                    / obj_to_inspect["peak"][k][comp][j]
+                    >= large_errors
+                ):
                     clean = 0
-                    err_rat = obj_to_inspect["peak"][k][comp+"_err"][j]/obj_to_inspect["peak"][k][comp][j]
-                    logger.moreinfo(" ".join(map(str, [(f"Huge error found in peak {k}, {comp} {j}: value= {obj_to_inspect['peak'][k][comp][j]: 3.2e}; error={obj_to_inspect['peak'][k][comp+'_err'][j]: 3.2e}; fractional error = {err_rat: 5.1f}")])))
+                    err_rat = (
+                        obj_to_inspect["peak"][k][comp + "_err"][j]
+                        / obj_to_inspect["peak"][k][comp][j]
+                    )
+                    logger.moreinfo(
+                        " ".join(
+                            map(
+                                str,
+                                [
+                                    (
+                                        f"Huge error found in peak {k}, {comp} {j}: value= {obj_to_inspect['peak'][k][comp][j]: 3.2e}; error={obj_to_inspect['peak'][k][comp+'_err'][j]: 3.2e}; fractional error = {err_rat: 5.1f}"
+                                    )
+                                ],
+                            )
+                        )
+                    )
     return clean
 
 
@@ -504,7 +550,6 @@ def peak_phase(orders, peak="all"):
 
 
 def title_file_names(settings_for_fit=None, num=0, image_name=None, string=True):
-
     if string == True:
         joint = ";  "
     else:
@@ -654,25 +699,23 @@ def licit_filename(fname, replacement="=="):
     return fname
 
 
-
-
 def figure_suptitle_space(figure, topmargin=1):
-    """ increase figure size to make topmargin (in inches) space for
-        titles, without changing the axes sizes.
-        after: https://stackoverflow.com/questions/55767312/how-to-position-suptitle#55768955
+    """increase figure size to make topmargin (in inches) space for
+    titles, without changing the axes sizes.
+    after: https://stackoverflow.com/questions/55767312/how-to-position-suptitle#55768955
 
-		Acutally now does this by compresssing the axes away from the top of the figure.
-        """
+            Acutally now does this by compresssing the axes away from the top of the figure.
+    """
 
     axes = figure.axes
     pos = []
     for i in range(len(axes)):
         pos.append(axes[i].get_position().bounds)
     w, h = figure.get_size_inches()
-    figh = h - topmargin #- (1-s.y1)*h
+    figh = h - topmargin  # - (1-s.y1)*h
     for i in range(len(axes)):
         al = pos[i][0]
-        ab = pos[i][1]/h*figh
+        ab = pos[i][1] / h * figh
         aw = pos[i][2]
-        ah = pos[i][3]/h*figh
-        axes[i].set_position((al,ab,aw,ah))
+        ah = pos[i][3] / h * figh
+        axes[i].set_position((al, ab, aw, ah))

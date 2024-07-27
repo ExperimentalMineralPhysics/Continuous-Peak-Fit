@@ -2,15 +2,17 @@
 # -*- coding: utf-8 -*-
 
 
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
-import matplotlib.pyplot as plt
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+
 import cpf.logger_functions as lg
 
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
-class _AngleDispersive_common():
+
+class _AngleDispersive_common:
     """
     Common attributes and methods for the angle dispersive diffraction classes.
     They are in here to save replicating code.
@@ -29,8 +31,6 @@ class _AngleDispersive_common():
         """
         self = detector_class
 
-
-
     def _get_d_space(self, mask=None):
         """
         Give d-spacing value for detector x,y position; calibration info in data
@@ -38,7 +38,7 @@ class _AngleDispersive_common():
         :param mask:
         :return:
         """
-        #FIX ME: i dont know that this method is needed. It could be wrapped into
+        # FIX ME: i dont know that this method is needed. It could be wrapped into
         # fill_data. Check for calls and if this is the only one then remove it
         if mask is not None:
             return ma.array(
@@ -46,11 +46,7 @@ class _AngleDispersive_common():
                 mask=mask,
             )
         else:
-            return ma.array(
-                self.conversion(self.tth, reverse=False)
-            )
-
-
+            return ma.array(self.conversion(self.tth, reverse=False))
 
     def conversion(self, tth_in, azm=None, reverse=False):
         """
@@ -66,9 +62,9 @@ class _AngleDispersive_common():
             tth_in = np.array(tth_in)
             a = True
         else:
-            a=False
+            a = False
 
-        #wavelength = self.calibration.wavelength * 1e10
+        # wavelength = self.calibration.wavelength * 1e10
         wavelength = self.conversion_constant
 
         if self.conversion_constant == None:
@@ -81,11 +77,9 @@ class _AngleDispersive_common():
             # N.B. this is the reverse function so that labels tth and d_spacing are not correct.
             dspc_out = 2 * np.degrees(np.arcsin(wavelength / 2 / tth_in))
 
-        if a==True:
+        if a == True:
             dspc_out = list(dspc_out)
         return dspc_out
-
-
 
     def bins(self, orders_class, cascade=False):
         """
@@ -136,7 +130,7 @@ class _AngleDispersive_common():
             err_str = "The bin type is not recognised. Check input file."
             raise ValueError(err_str)
 
-        if 0:#lg.make_logger_output(level="DEBUG"):
+        if 0:  # lg.make_logger_output(level="DEBUG"):
             # create histogram with equal-frequency bins
             n, bins, patches = plt.hist(
                 self.azm[self.azm.mask == False], bin_boundaries, edgecolor="black"
@@ -146,7 +140,14 @@ class _AngleDispersive_common():
             logger.debug(" ".join(map(str, [("total data", np.sum(n))])))
         # display bin boundaries and frequency per bin
         logger.debug(" ".join(map(str, [("bin boundaries:", bin_boundaries)])))
-        logger.debug(" ".join(map(str, [("expected number of data per bin", orders_class.cascade_per_bin)])))
+        logger.debug(
+            " ".join(
+                map(
+                    str,
+                    [("expected number of data per bin", orders_class.cascade_per_bin)],
+                )
+            )
+        )
 
         # fit the data to the bins
         chunks = []
@@ -160,9 +161,6 @@ class _AngleDispersive_common():
             bin_mean_azi.append(np.mean(temp_azimuth[azi_chunk]))
 
         return chunks, bin_mean_azi
-
-
-
 
     def set_limits(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
         """
@@ -184,10 +182,10 @@ class _AngleDispersive_common():
 
         """
         local_mask = np.where(
-            (self.tth >= range_bounds[0]) &
-            (self.tth <= range_bounds[1]) &
-            (self.azm >= azi_bounds[0]) &
-            (self.azm <= azi_bounds[1])
+            (self.tth >= range_bounds[0])
+            & (self.tth <= range_bounds[1])
+            & (self.azm >= azi_bounds[0])
+            & (self.azm <= azi_bounds[1])
         )
         self.intensity = self.intensity[local_mask]
         self.tth = self.tth[local_mask]
@@ -208,10 +206,7 @@ class _AngleDispersive_common():
         # self.azm_end = np.max(self.azm)
         # self.azm_start = np.min(self.azm)
 
-
-
-
-    def test_azims(self, steps = 360):
+    def test_azims(self, steps=360):
         """
         Returns equally spaced set of aximuths within possible range.
 
@@ -227,9 +222,7 @@ class _AngleDispersive_common():
 
         """
 
-        return np.linspace(self.azm_start,self.azm_end, steps+1)
-
-
+        return np.linspace(self.azm_start, self.azm_end, steps + 1)
 
 
 def equalObs(x, nbin):

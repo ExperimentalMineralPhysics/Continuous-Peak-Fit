@@ -3,6 +3,7 @@
 
 
 import logging
+
 # from cpf.XRD_FitPattern import logger
 
 # =============================================================================
@@ -14,28 +15,33 @@ import logging
 # INFO    20   Confirmation that things are working as expected.
 #              Usually at this level the logging output is so low level that it’s not useful to users who are not familiar with the software’s internals.
 # WARNING 30   An indication that something unexpected happened, or indicative of some problem in the near future (e.g. ‘disk space low’). The software is still working as expected.
-#ERROR    40 	Due to a more serious problem, the software has not been able to perform some function.
-#CRITICAL 50 	A serious error, indicating that the program itself may be unable to continue running.
+# ERROR    40 	Due to a more serious problem, the software has not been able to perform some function.
+# CRITICAL 50 	A serious error, indicating that the program itself may be unable to continue running.
 
 
 # Configure the logging module
 logging.basicConfig(
     level=logging.CRITICAL,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[
         # logging.FileHandler('CPF.log', mode='a', encoding=None, delay=False),  # Log to a file
         logging.StreamHandler()  # Log to stdout
-    ]
+    ],
 )
-#add custom logging levels.
+# add custom logging levels.
 levelNum = 17
 levelName = "MOREINFO"
+
+
 def logForMI(self, message, *args, **kwargs):
-        if self.isEnabledFor(levelNum):
-            self._log(levelNum, message, args, **kwargs)
+    if self.isEnabledFor(levelNum):
+        self._log(levelNum, message, args, **kwargs)
+
+
 def logToRoot(message, *args, **kwargs):
     logging.log(levelNum, message, *args, **kwargs)
+
 
 logging.addLevelName(levelNum, levelName)
 setattr(logging, levelName, levelNum)
@@ -45,11 +51,16 @@ setattr(logging, levelName.lower(), logToRoot)
 
 levelName2 = "EFFUSIVE"
 levelNum2 = 13
+
+
 def logForE(self, message, *args, **kwargs):
-        if self.isEnabledFor(levelNum2):
-            self._log(levelNum2, message, args, **kwargs)
+    if self.isEnabledFor(levelNum2):
+        self._log(levelNum2, message, args, **kwargs)
+
+
 def logToRoot(message, *args, **kwargs):
     logging.log(levelNum2, message, *args, **kwargs)
+
 
 logging.addLevelName(levelNum2, levelName2)
 setattr(logging, levelName2, levelNum2)
@@ -92,10 +103,10 @@ def make_logger_output(level="DEBUG"):
     bool.
 
     """
-    return logger.getEffectiveLevel() <= logger_level(level = level)
+    return logger.getEffectiveLevel() <= logger_level(level=level)
 
 
-def logger_level(level = "DEBUG"):
+def logger_level(level="DEBUG"):
     """
     Get numberical value for logging level.
 
@@ -113,9 +124,14 @@ def logger_level(level = "DEBUG"):
     return getattr(logging, level)
 
 
-def log_pretty_print(lmtif_obj, oneline=False, colwidth=8, precision=4, fmt='g',
-                 columns=['value', 'min', 'max', 'stderr', 'vary', 'expr',
-                          'brute_step']):
+def log_pretty_print(
+    lmtif_obj,
+    oneline=False,
+    colwidth=8,
+    precision=4,
+    fmt="g",
+    columns=["value", "min", "max", "stderr", "vary", "expr", "brute_step"],
+):
     """Pretty-print of parameters data.
     Edited after lmfit parmaeters pretty_print to return text as list.
 
@@ -190,26 +206,33 @@ def log_pretty_print(lmtif_obj, oneline=False, colwidth=8, precision=4, fmt='g',
         return output
 
     name_len = max(len(s) for s in lmtif_obj)
-    allcols = ['name'] + columns
-    title = '{:{name_len}} ' + len(columns) * ' {:>{n}}'
+    allcols = ["name"] + columns
+    title = "{:{name_len}} " + len(columns) * " {:>{n}}"
     output.append(title.format(*allcols, name_len=name_len, n=colwidth).title())
-    numstyle = '{%s:>{n}.{p}{f}}'  # format for numeric columns
-    otherstyles = dict(name='{name:<{name_len}} ', stderr='{stderr!s:>{n}}',
-                       vary='{vary!s:>{n}}', expr='{expr!s:>{n}}',
-                       brute_step='{brute_step!s:>{n}}')
-    line = ' '.join(otherstyles.get(k, numstyle % k) for k in allcols)
+    numstyle = "{%s:>{n}.{p}{f}}"  # format for numeric columns
+    otherstyles = dict(
+        name="{name:<{name_len}} ",
+        stderr="{stderr!s:>{n}}",
+        vary="{vary!s:>{n}}",
+        expr="{expr!s:>{n}}",
+        brute_step="{brute_step!s:>{n}}",
+    )
+    line = " ".join(otherstyles.get(k, numstyle % k) for k in allcols)
     for name, values in sorted(lmtif_obj.items()):
         pvalues = {k: getattr(values, k) for k in columns}
-        pvalues['name'] = name
+        pvalues["name"] = name
         # stderr is a special case: it is either numeric or None (i.e. str)
-        if 'stderr' in columns and pvalues['stderr'] is not None:
-            pvalues['stderr'] = (numstyle % '').format(
-                pvalues['stderr'], n=colwidth, p=precision, f=fmt)
-        elif 'brute_step' in columns and pvalues['brute_step'] is not None:
-            pvalues['brute_step'] = (numstyle % '').format(
-                pvalues['brute_step'], n=colwidth, p=precision, f=fmt)
-        output.append(line.format(name_len=name_len, n=colwidth, p=precision,
-                          f=fmt, **pvalues))
+        if "stderr" in columns and pvalues["stderr"] is not None:
+            pvalues["stderr"] = (numstyle % "").format(
+                pvalues["stderr"], n=colwidth, p=precision, f=fmt
+            )
+        elif "brute_step" in columns and pvalues["brute_step"] is not None:
+            pvalues["brute_step"] = (numstyle % "").format(
+                pvalues["brute_step"], n=colwidth, p=precision, f=fmt
+            )
+        output.append(
+            line.format(name_len=name_len, n=colwidth, p=precision, f=fmt, **pvalues)
+        )
     output.append("")
 
     return output
@@ -233,11 +256,11 @@ def pretty_print_to_logger(lmtif_obj, space=True, level="DEBUG", **kwargs):
 
     """
     text = log_pretty_print(lmtif_obj, kwargs)
-    if space ==True:
+    if space == True:
         logger.log(getattr(logging, level.upper()), " ".join(map(str, [("")])))
     for i in range(len(text)):
         logger.log(getattr(logging, level.upper()), " ".join(map(str, [text[i]])))
         # equivalent to logger.LEVEL(msg)
         # getattr(logging, level) converts level to a number
-    if space ==True:
+    if space == True:
         logger.log(getattr(logging, level.upper()), " ".join(map(str, [("")])))

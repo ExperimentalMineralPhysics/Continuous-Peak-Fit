@@ -34,14 +34,17 @@ Possible:
 Simon A. Hunt, 2023 - 2024
 """
 
-from skimage import filters, morphology, restoration
-from cpf.Cosmics import cosmicsimage
-import cpf.settings as settings
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import scipy as sp
+from skimage import filters, morphology, restoration
+
+import cpf.settings as settings
+from cpf.Cosmics import cosmicsimage
+
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
+
 
 def image_adjust(data, image_process):
     """
@@ -94,7 +97,6 @@ def image_adjust(data, image_process):
         err_str = f"The data cleaning only works on image plate data. This data is {data.DispersionType}"
         raise ValueError(err_str)
 
-
     if isinstance(image_process, dict):
         if "order" in image_process:
             processes = image_process["order"]
@@ -107,9 +109,9 @@ def image_adjust(data, image_process):
 
     for i in range(len(processes)):
         if isinstance(image_process, dict) and processes[i] in image_process:
-            options =  image_process[processes[i]]
+            options = image_process[processes[i]]
         else:
-            options=None
+            options = None
 
         if processes[i].lower() == "cosmics":
             data = remove_cosmics(data, options=options)
@@ -124,7 +126,6 @@ def image_adjust(data, image_process):
             raise ValueError(err_str)
 
     return data
-
 
 
 def remove_cosmics(data, options=None, settings_for_fit=None):
@@ -147,7 +148,7 @@ def remove_cosmics(data, options=None, settings_for_fit=None):
 
     # set defaults
     gain = 2.2
-    sigclip = 3.0 # 3 is dioptas default
+    sigclip = 3.0  # 3 is dioptas default
     objlim = 3.0  # 3 is dioptas default
     sigfrac = 0.3
     params = {"gain": gain, "sigclip": sigclip, "objlim": objlim, "sigfrac": sigfrac}
@@ -171,7 +172,7 @@ def remove_cosmics(data, options=None, settings_for_fit=None):
         if "sigfrac" in settings_for_fit.data_prepare["cosmics"]:
             params["sigfrac"] = settings_for_fit.data_prepare["cosmics"]["sigfrac"]
         # FIX ME: use argparse or someway of passing any argument into cosmics.
-    else: # options == None and settings_for_fit==None:
+    else:  # options == None and settings_for_fit==None:
         pass
 
     test = cosmicsimage(
@@ -182,16 +183,12 @@ def remove_cosmics(data, options=None, settings_for_fit=None):
     for i in range(num):
         test.lacosmiciteration(True)
         test.clean()
-        msk = np.logical_or(
-            data.intensity.mask, np.array(test.mask, dtype="bool")
-        )
+        msk = np.logical_or(data.intensity.mask, np.array(test.mask, dtype="bool"))
 
     # apply mask
     data.set_mask(mask=msk)
 
     return data
-
-
 
 
 def smooth_image(data, options=None, settings_for_fit=None):
@@ -215,7 +212,7 @@ def smooth_image(data, options=None, settings_for_fit=None):
         if "smooth" in options.keys():
             prep = options
         else:
-            prep={}
+            prep = {}
             prep["smooth"] = options
     elif isinstance(settings_for_fit, settings.settings):
         prep = settings_for_fit.data_prepare
@@ -226,33 +223,37 @@ def smooth_image(data, options=None, settings_for_fit=None):
 
     dt = data.intensity
 
-    if prep['smooth']['filter'].lower() == "median":
-        med_filt = morphology.disk(prep['smooth']['kernel'])
-        #dt = filters.median(dt, med_filt)
+    if prep["smooth"]["filter"].lower() == "median":
+        med_filt = morphology.disk(prep["smooth"]["kernel"])
+        # dt = filters.median(dt, med_filt)
         dt = sp.ndimage.median_filter(dt, footprint=med_filt)
-    elif prep['smooth']['filter'].lower() == "gaussian":
-        sigma = prep['smooth']['kernel']
+    elif prep["smooth"]["filter"].lower() == "gaussian":
+        sigma = prep["smooth"]["kernel"]
         dt = filters.gaussian(data.intensity, sigma)
-    elif isinstance(prep['smooth']['filter'], str):#.lower() == "nanmedian":
-        if "nan" in prep['smooth']['filter']:
-            dt.data[dt.mask==True] = np.nan
-        if not "kernel" in prep['smooth']:
-            prep['smooth']['kernel'] = 5
+    elif isinstance(prep["smooth"]["filter"], str):  # .lower() == "nanmedian":
+        if "nan" in prep["smooth"]["filter"]:
+            dt.data[dt.mask == True] = np.nan
+        if not "kernel" in prep["smooth"]:
+            prep["smooth"]["kernel"] = 5
         try:
-            dt = sp.ndimage.generic_filter(dt, getattr(np, prep['smooth']['filter']), [prep['smooth']['kernel'],prep['smooth']['kernel']])
+            dt = sp.ndimage.generic_filter(
+                dt,
+                getattr(np, prep["smooth"]["filter"]),
+                [prep["smooth"]["kernel"], prep["smooth"]["kernel"]],
+            )
         except:
             err_str = (
-                 "'" +prep['smooth']['filter'] + "' is not a numpy function that can be used as a smoothing function."
-             )
+                "'"
+                + prep["smooth"]["filter"]
+                + "' is not a numpy function that can be used as a smoothing function."
+            )
             raise ValueError(err_str)
 
         # if "nan" in prep['smooth']['filter']:
         #     dt.data[dt.mask==True] = np.nan
         #     print(dt.data[0])
     else:
-        err_str = (
-             "Unknown image smoothing type."
-         )
+        err_str = "Unknown image smoothing type."
         raise ValueError(err_str)
 
     # copy data back into data class
@@ -261,8 +262,6 @@ def smooth_image(data, options=None, settings_for_fit=None):
     data.intensity = dt
 
     return data
-
-
 
 
 def rolling_ball_background(data, options=None, settings_for_fit=None):
@@ -292,7 +291,7 @@ def rolling_ball_background(data, options=None, settings_for_fit=None):
         if "background" in options.keys():
             prep = options
         else:
-            prep={}
+            prep = {}
             prep["background"] = options
     elif isinstance(settings_for_fit, settings.settings):
         prep = settings_for_fit.data_prepare
@@ -315,40 +314,39 @@ def rolling_ball_background(data, options=None, settings_for_fit=None):
         data = smooth_image(data, prep["smooth"])
 
     dt = data.intensity
-    dt.data[dt.mask==True] = np.max(dt)
-    #FIX ME: the removal here is a metian for no good reason. I am trying to make sure the maksed areas do not bleed back into the iamge proper
+    dt.data[dt.mask == True] = np.max(dt)
+    # FIX ME: the removal here is a metian for no good reason. I am trying to make sure the maksed areas do not bleed back into the iamge proper
     # I do not know if it is necessary though.
 
-    def plot_result(image, background, sigma=None ):
+    def plot_result(image, background, sigma=None):
         fig, ax = plt.subplots(nrows=1, ncols=3)
 
-        a = ax[0].imshow(image, cmap='jet')
-        ax[0].set_title('Original image')
-        ax[0].axis('off')
-        #plt.colorbar(a,cax=ax[0])
-        #ax[1].colorbar()
-        fig.colorbar(a, ax=ax[0], orientation='horizontal')
+        a = ax[0].imshow(image, cmap="jet")
+        ax[0].set_title("Original image")
+        ax[0].axis("off")
+        # plt.colorbar(a,cax=ax[0])
+        # ax[1].colorbar()
+        fig.colorbar(a, ax=ax[0], orientation="horizontal")
 
-        b=ax[1].imshow(background, cmap='jet')
-        ax[1].set_title(r'Background, radius=%i' % sigma)
-        ax[1].axis('off')
-        #plt.colorbar(b,cax=ax[1])
-        #ax[1].colorbar()
-        fig.colorbar(b, ax=ax[1], orientation='horizontal')
+        b = ax[1].imshow(background, cmap="jet")
+        ax[1].set_title(r"Background, radius=%i" % sigma)
+        ax[1].axis("off")
+        # plt.colorbar(b,cax=ax[1])
+        # ax[1].colorbar()
+        fig.colorbar(b, ax=ax[1], orientation="horizontal")
 
-        c=ax[2].imshow(image - background, cmap='jet')
-        ax[2].set_title('Result')
-        ax[2].axis('off')
-        #plt.colorbar(c,cax=ax[2])
-        #fig.colorbar#add_colorbar(a)
+        c = ax[2].imshow(image - background, cmap="jet")
+        ax[2].set_title("Result")
+        ax[2].axis("off")
+        # plt.colorbar(c,cax=ax[2])
+        # fig.colorbar#add_colorbar(a)
 
-        fig.colorbar(c, ax=ax[2], orientation='horizontal')
+        fig.colorbar(c, ax=ax[2], orientation="horizontal")
         fig.tight_layout()
 
+    background = restoration.rolling_ball(dt, radius=prep["background"]["kernel"])
 
-    background = restoration.rolling_ball(dt, radius=prep['background']['kernel'])
-
-    plot_result(original_data.intensity, background, prep['background']['kernel'])
+    plot_result(original_data.intensity, background, prep["background"]["kernel"])
     plt.show()
 
     no_bg = original_data.intensity - background
@@ -359,7 +357,6 @@ def rolling_ball_background(data, options=None, settings_for_fit=None):
     data.intensity = no_bg
 
     return data
-
 
 
 def scale_by_background(data, options=None, settings_for_fit=None):
@@ -390,20 +387,22 @@ def scale_by_background(data, options=None, settings_for_fit=None):
         if "background" in options.keys():
             prep = options
         else:
-            prep={}
+            prep = {}
             prep["background"] = options
     elif isinstance(settings_for_fit, settings.settings):
         prep = settings_for_fit.data_prepare
     elif isinstance(settings_for_fit, dict):
         prep = settings_for_fit
     else:
-        prep = {"background": {"kernel": 200, "smooth": {"filter": "median", "kernel": 5}}}
+        prep = {
+            "background": {"kernel": 200, "smooth": {"filter": "median", "kernel": 5}}
+        }
 
     original_data = data.duplicate()
 
     background = rolling_ball_background(data, prep)
 
-    no_bg = original_data.intensity / (original_data.intensity-background.intensity)
+    no_bg = original_data.intensity / (original_data.intensity - background.intensity)
 
     # copy data back into data class
     msk = no_bg.mask

@@ -3,6 +3,7 @@
 
 __all__ = ["settings", "get_output_options", "detector_factory"]
 
+import importlib.util
 import json
 import logging
 import os
@@ -10,7 +11,6 @@ from copy import copy, deepcopy
 from pathlib import Path
 from typing import Optional
 
-import importlib.util
 import numpy as np
 
 import cpf.input_types as input_types
@@ -19,7 +19,9 @@ from cpf.IO_functions import (
     file_list,
     image_list,
     json_numpy_serializer,
-)  # , get_output_options, detector_factory, register_default_formats
+)
+
+# , get_output_options, detector_factory, register_default_formats
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger  # Results in circular import error
 from cpf.series_functions import (
@@ -37,6 +39,7 @@ from cpf.series_functions import (
 #     datefmt='%Y-%m-%d %H:%M:%S'
 # )
 logger = logging.getLogger("cpf.settings")  # Basic logger to avoid errors for now
+
 
 class settings:
     """Settings class definitions.
@@ -97,7 +100,7 @@ class settings:
 
         self.datafile_list: Optional[list[str | Path]] = None
         self.datafile_number: int = 0
-        self.image_list: Optional[list[str | Path]]= None
+        self.image_list: Optional[list[str | Path]] = None
         self.image_number: int = 0
         self.datafile_directory = Path(".")
 
@@ -134,9 +137,9 @@ class settings:
         self.fit_track = False
         self.fit_propagate = True
 
-        self.cascade_bin_type = 0      # set default type - number data per bin
-        self.cascade_per_bin = 50      # set default value
-        self.cascade_number_bins = 900 # set default value
+        self.cascade_bin_type = 0  # set default type - number data per bin
+        self.cascade_per_bin = 50  # set default value
+        self.cascade_number_bins = 900  # set default value
         self.cascade_track = False
         self.cascade_histogram_type = "data"
         self.cascade_histogram_bins = None
@@ -170,7 +173,6 @@ class settings:
         # self.mode="fit",
         # self.report=False,
 
-
     def duplicate(self):
         """
         Makes a copy of an settings instance. But make deep copies of the sub_fit settings.
@@ -182,7 +184,6 @@ class settings:
         new.subfit_order_position = deepcopy(self.subfit_order_position)
         new.subfit_orders = deepcopy(self.subfit_orders)
         return new
-
 
     def populate(
         self,
@@ -231,13 +232,11 @@ class settings:
         if not out_type is None:
             self.set_output_types(out_type_list=out_type)
 
-
     def reset(self):
         """
         set the values in the settings class back to those in the settings file.
         """
         self.populate()
-
 
     def read_settings_file(self):
         """
@@ -268,7 +267,9 @@ class settings:
         # Convert datafile list entries to Path objects, if they exist
         if len(self.datafile_list) > 0:
             try:
-                self.datafile_list = [Path(file) for file in self.datafile_list if isinstance(file, str)]
+                self.datafile_list = [
+                    Path(file) for file in self.datafile_list if isinstance(file, str)
+                ]
             except Exception as error:
                 raise error
 
@@ -276,9 +277,9 @@ class settings:
         if "datafile_Basename" in dir(self.settings_from_file):
             self.datafile_basename = self.settings_from_file.datafile_Basename
         if "datafile_Ending" in dir(self.settings_from_file):
-            self.datafile_ending  = self.settings_from_file.datafile_Ending
+            self.datafile_ending = self.settings_from_file.datafile_Ending
 
-        #add output directory if listed.
+        # add output directory if listed.
         # change if listed among the inputs
         if "Output_directory" in dir(self.settings_from_file):
             self.output_directory = self.settings_from_file.Output_directory
@@ -337,9 +338,13 @@ class settings:
         if "cascade_bin_type" in dir(self.settings_from_file):
             self.cascade_bin_type = self.settings_from_file.cascade_bin_type
         if "cascade_historgram_type" in dir(self.settings_from_file):
-            self.cascade_historgram_type = self.settings_from_file.cascade_historgram_type
+            self.cascade_historgram_type = (
+                self.settings_from_file.cascade_historgram_type
+            )
         if "cascade_historgram_bins" in dir(self.settings_from_file):
-            self.cascade_historgram_bins = self.settings_from_file.cascade_historgram_bins
+            self.cascade_historgram_bins = (
+                self.settings_from_file.cascade_historgram_bins
+            )
 
         # organise the fits
         if "fit_orders" in dir(self.settings_from_file):
@@ -370,7 +375,6 @@ class settings:
 
         self.validate_settings_file()
         # FIXME: it needs to fail if everything is not present as needed and report what is missing
-
 
     def validate_settings_file(self):
         """
@@ -409,12 +413,7 @@ class settings:
         if self.output_types != None:
             self.validate_output_types()
 
-
-    def check_files_exist(
-        self,
-        files_to_check: list[Path] | Path,
-        write: bool = False
-    ):
+    def check_files_exist(self, files_to_check: list[Path] | Path, write: bool = False):
         """
         Check if a file exists. If not issue an error
         """
@@ -436,12 +435,7 @@ class settings:
                 if write == True:
                     logger.info(" ".join(map(str, [(files_to_check[j] + " exists.")])))
 
-
-    def check_directory_exists(
-        self,
-        directory: Path,
-        write: bool = False
-    ):
+    def check_directory_exists(self, directory: Path, write: bool = False):
         """
         Check if a directory exists. If not issue an error
         """
@@ -460,7 +454,6 @@ class settings:
         self.check_directory_exists(self.datafile_directory, write=True)
         self.check_files_exist(self.datafile_list, write=False)
         logger.info(" ".join(map(str, [("All the data files exist.")])))
-
 
     def validate_fit_orders(self, report=False, peak=None, orders=None):
         """
@@ -505,7 +498,20 @@ class settings:
                     and len(orders[i]["range"]) == 1
                     and len(orders[i]["range"][0]) == 2
                 ):
-                    logger.warning(" ".join(map(str, [("  input fix: subpattern " + str(i) + ": range is a now a simple list.")])))
+                    logger.warning(
+                        " ".join(
+                            map(
+                                str,
+                                [
+                                    (
+                                        "  input fix: subpattern "
+                                        + str(i)
+                                        + ": range is a now a simple list."
+                                    )
+                                ],
+                            )
+                        )
+                    )
                     self.fit_orders[i]["range"] = self.fit_orders[i]["range"][0]
                 # check if range is valid
                 if (
@@ -545,7 +551,23 @@ class settings:
                 # bascially -- check if it is old nomlencature (*-*) and replace (with *_*)
                 for l in range(len(comp_modifications)):
                     if "background" + "-" + comp_modifications[l] in self.fit_orders[i]:
-                        logger.warning(" ".join(map(str, [("  input fix: subpattern %s: 'background-%s' replaced with 'background_%s'" % (str(i), comp_modifications[l], comp_modifications[l]))])))
+                        logger.warning(
+                            " ".join(
+                                map(
+                                    str,
+                                    [
+                                        (
+                                            "  input fix: subpattern %s: 'background-%s' replaced with 'background_%s'"
+                                            % (
+                                                str(i),
+                                                comp_modifications[l],
+                                                comp_modifications[l],
+                                            )
+                                        )
+                                    ],
+                                )
+                            )
+                        )
                         self.fit_orders[i][
                             "background" + "_" + comp_modifications[l]
                         ] = self.fit_orders[i].pop(
@@ -553,17 +575,16 @@ class settings:
                         )
                 if "background_type" in self.fit_orders[i]:
                     status = self.validate_order_type(
-                            self.fit_orders[i]["background_type"],
-                            peak_set=i,
-                            peak=0,
-                            component="background",
-                            report=report,
+                        self.fit_orders[i]["background_type"],
+                        peak_set=i,
+                        peak=0,
+                        component="background",
+                        report=report,
                     )
                     if isinstance(status, str):
                         missing.append(status)
                 else:
                     status = 0
-
 
             # check peaks
             if "peak" not in orders[i]:
@@ -602,8 +623,26 @@ class settings:
                                 comp_list[k] + "-" + comp_modifications[l]
                                 in self.fit_orders[i]["peak"][j]
                             ):
-                                logger.warning(" ".join(map(str, [("  input fix: subpattern %s %s: '%s-%s' replaced with '%s_%s'"
-                                                                % (str(i), str(j), comp_list[k], comp_modifications[l], comp_list[k],comp_modifications[l]))])))
+                                logger.warning(
+                                    " ".join(
+                                        map(
+                                            str,
+                                            [
+                                                (
+                                                    "  input fix: subpattern %s %s: '%s-%s' replaced with '%s_%s'"
+                                                    % (
+                                                        str(i),
+                                                        str(j),
+                                                        comp_list[k],
+                                                        comp_modifications[l],
+                                                        comp_list[k],
+                                                        comp_modifications[l],
+                                                    )
+                                                )
+                                            ],
+                                        )
+                                    )
+                                )
                                 self.fit_orders[i]["peak"][j][
                                     comp_list[k] + "_" + comp_modifications[l]
                                 ] = self.fit_orders[i]["peak"][j].pop(
@@ -613,11 +652,11 @@ class settings:
                         # validate component types
                         if comp_list[k] + "_type" in self.fit_orders[i]["peak"][j]:
                             status = self.validate_order_type(
-                                    self.fit_orders[i]["peak"][j][comp_list[k] + "_type"],
-                                    peak_set=i,
-                                    peak=j,
-                                    component=comp_list[k],
-                                    report=report,
+                                self.fit_orders[i]["peak"][j][comp_list[k] + "_type"],
+                                peak_set=i,
+                                peak=j,
+                                component=comp_list[k],
+                                report=report,
                             )
                             if isinstance(status, str):
                                 missing.append(status)
@@ -636,9 +675,12 @@ class settings:
                                     missing.append(mssng[m])
 
                         # check if phase and hkl are present. If neither then add them to make a label.
-                        if not "hkl" in self.fit_orders[i]["peak"][j] and not "phase" in self.fit_orders[i]["peak"][j]:
+                        if (
+                            not "hkl" in self.fit_orders[i]["peak"][j]
+                            and not "phase" in self.fit_orders[i]["peak"][j]
+                        ):
                             self.fit_orders[i]["peak"][j]["phase"] = "Region"
-                            self.fit_orders[i]["peak"][j]["hkl"] = i+1
+                            self.fit_orders[i]["peak"][j]["hkl"] = i + 1
 
                 if "PeakPositionSelection" in self.fit_orders[i]:
                     mssng = self.validate_position_selection(peak_set=i, report=report)
@@ -649,17 +691,29 @@ class settings:
 
         # report missing bits and bobs
         if len(missing) > 0:
-            logger.error(" ".join(map(str, [("Input problems that will prevent execution: ")])))
+            logger.error(
+                " ".join(map(str, [("Input problems that will prevent execution: ")]))
+            )
             for i in range(len(missing)):
                 logger.error(" ".join(map(str, [(missing[i])])))
-            logger.error(" ".join(map(str, [("The problems listed above will prevent the data fitting and need to be rectified before execution")])))
+            logger.error(
+                " ".join(
+                    map(
+                        str,
+                        [
+                            (
+                                "The problems listed above will prevent the data fitting and need to be rectified before execution"
+                            )
+                        ],
+                    )
+                )
+            )
             if not report:
                 raise ValueError(
                     "The problems listed above will prevent the data fitting."
                 )
         else:
             logger.info(" ".join(map(str, [("fit_orders appears to be correct")])))
-
 
     def validate_order_type(self, comp_type, peak_set, peak, component, report=False):
         """
@@ -671,16 +725,31 @@ class settings:
             if comp_type in coefficient_types():
                 status = 0
             else:
-                status = "subpattern " + str(peak_set) + ", peak" + str(peak) + " " + component + ": the series type is not recognised"
+                status = (
+                    "subpattern "
+                    + str(peak_set)
+                    + ", peak"
+                    + str(peak)
+                    + " "
+                    + component
+                    + ": the series type is not recognised"
+                )
         elif isinstance(comp_type, int):
             try:
                 coefficient_type_as_string(comp_type)
                 status = 0
             except:
-                status = "subpattern " + str(peak_set) + ", peak" + str(peak) + " " + component + ": the series type is not recognised"
+                status = (
+                    "subpattern "
+                    + str(peak_set)
+                    + ", peak"
+                    + str(peak)
+                    + " "
+                    + component
+                    + ": the series type is not recognised"
+                )
 
         return status
-
 
     def validate_order_fixed(self, peak_set, peak, component, report=False):
         """
@@ -724,8 +793,19 @@ class settings:
                 self.fit_orders[peak_set]["peak"][peak][component + "_fixed"] = [
                     self.fit_orders[peak_set]["peak"][peak][component + "_fixed"]
                 ]
-                logger.warning(" ".join(map(str, [("    subpattern %s, peak %s: %s_fixed changed to a list"
-                                                % (str(peak_set), str(peak), component))])))
+                logger.warning(
+                    " ".join(
+                        map(
+                            str,
+                            [
+                                (
+                                    "    subpattern %s, peak %s: %s_fixed changed to a list"
+                                    % (str(peak_set), str(peak), component)
+                                )
+                            ],
+                        )
+                    )
+                )
 
             # validate
             if not num_coeffs == len(
@@ -742,7 +822,6 @@ class settings:
                 )
         return out
 
-
     def validate_position_selection(self, peak_set=0, report=False):
         """
         Checks that the multiple peak position selections have the right number of parts.
@@ -754,7 +833,6 @@ class settings:
         for i in range(len(peak_set)):
             # if PeakPositionSelection - there might be more than one peak
             if "PeakPositionSelection" in self.fit_orders[i]:
-
                 # how many peaks in list
                 tthguesses = np.array(self.fit_orders[i]["PeakPositionSelection"])
 
@@ -802,7 +880,6 @@ class settings:
                     )
 
         return miss
-
 
     def validate_fit_bounds(self, report=False):
         """
@@ -854,14 +931,12 @@ class settings:
         else:
             logger.info(" ".join(map(str, [("fit_bounds appears to be correct")])))
 
-
     def set_output_types(self, out_type_list=None, report=False):
         """
         set output types in settings class given a list of output types
         """
         if out_type_list is not None:
             self.output_types = get_output_options(out_type_list)
-
 
     def validate_output_types(self, report=False):
         """
@@ -915,10 +990,22 @@ class settings:
             logger.warning(" ".join(map(str, [("Missing output settings:")])))
             for i in range(len(missing)):
                 logger.warning(" ".join(map(str, [(missing[i])])))
-            logger.warning(" ".join(map(str, [("The issues listed above may prevent outputs being written correctly")])))
+            logger.warning(
+                " ".join(
+                    map(
+                        str,
+                        [
+                            (
+                                "The issues listed above may prevent outputs being written correctly"
+                            )
+                        ],
+                    )
+                )
+            )
         else:
-            logger.info(" ".join(map(str, [("The output settings appear to be in order")])))
-
+            logger.info(
+                " ".join(map(str, [("The output settings appear to be in order")]))
+            )
 
     def set_data_files(self, start=0, end=None, keep=None):
         """
@@ -945,7 +1032,6 @@ class settings:
         self.image_list = self.image_list[start:end]
         self.image_number = len(self.image_list)
 
-
     def set_subpatterns(self, subpatterns="all"):
         """
         restrict to sub-patterns listed
@@ -962,7 +1048,6 @@ class settings:
             j = sub_pats[i]
             orders_tmp.append(self.fit_orders[j])
         self.fit_orders = orders_tmp
-
 
     def set_order_search(
         self,
@@ -997,9 +1082,9 @@ class settings:
                     orders_s = deepcopy(tmp_order)
                     if search_parameter != "background":
                         orders_s["peak"][search_peak][search_parameter] = search[k]
-                        orders_s["peak"][search_peak][
-                            search_parameter + "_type"
-                        ] = search_series[j]
+                        orders_s["peak"][search_peak][search_parameter + "_type"] = (
+                            search_series[j]
+                        )
                     else:
                         orders_s["background"][search_peak] = search[k]
                     if len(tmp_order) > 1:
@@ -1016,7 +1101,6 @@ class settings:
                     orders_search.append(orders_s)
         self.fit_orders = orders_search
 
-
     def set_subpattern(self, file_number, number_subpattern):
         """
         Set the parameters for the subpattern to be fit as immediately accesible.
@@ -1028,7 +1112,6 @@ class settings:
         self.subfit_filename = self.image_list[file_number]
         self.subfit_order_position = number_subpattern
         self.subfit_orders = self.fit_orders[number_subpattern]
-
 
     def save_settings(self, filename="settings.json", filepath="./"):
         """
@@ -1046,7 +1129,18 @@ class settings:
         None.
 
         """
-        logger.warning(" ".join(map(str, [("Caution: save_settings writes a temporary file with no content")])))
+        logger.warning(
+            " ".join(
+                map(
+                    str,
+                    [
+                        (
+                            "Caution: save_settings writes a temporary file with no content"
+                        )
+                    ],
+                )
+            )
+        )
 
         fnam = os.path.join(filepath, filename)
         with open(fnam, "w") as TempFile:

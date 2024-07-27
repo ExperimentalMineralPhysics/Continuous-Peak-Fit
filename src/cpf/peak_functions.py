@@ -17,6 +17,7 @@ __all__ = [
 ]
 
 import numpy as np
+
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
 

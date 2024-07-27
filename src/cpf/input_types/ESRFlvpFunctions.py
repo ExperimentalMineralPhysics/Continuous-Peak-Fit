@@ -3,29 +3,31 @@
 
 __all__ = ["ESRFlvpDetector"]
 
-import sys
-import json
-import glob
 import copy
+import glob
+import json
 import re
+import sys
 from copy import deepcopy
+
+import fabio
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
-import matplotlib.pyplot as plt
-import fabio
 import pyFAI
+from numpy import cos as cos  # used in self.calibration["trans_function"]
+from numpy import pi as pi  # used in self.calibration["trans_function"]
+from numpy import sin as sin  # used in self.calibration["trans_function"]
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.goniometer import MultiGeometry
-from numpy import cos as cos #used in self.calibration["trans_function"]
-from numpy import sin as sin #used in self.calibration["trans_function"]
-from numpy import pi as pi #used in self.calibration["trans_function"]
-from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+
+import cpf.logger_functions as lg
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
+from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
-import cpf.logger_functions as lg
-
 
 """
 25th April 2024
@@ -142,14 +144,13 @@ Remove mask functions from these class files and put in separate common file.
 
 """
 
-class ESRFlvpDetector():
+
+class ESRFlvpDetector:
     # For data from LVP at ESRF collected using spinning detector. Crichton et al 2023.
     #  functions to change
     #   -   Load/import data
     #   -   Load mask
     #   -   Load Calibration
-
-
 
     def __init__(self, settings_class=None):
         """
@@ -168,9 +169,9 @@ class ESRFlvpDetector():
         self.x = None
         self.y = None
         self.azm_start = -180
-        self.azm_end   =  180
+        self.azm_end = 180
         self.tth_start = None
-        self.tth_end   = None
+        self.tth_end = None
         # Moving image plate that be integrated into single image: so contonuous data.
         # basically the data can be treated as having a single claibration.
         self.DispersionType = "AngleDispersive"
@@ -189,7 +190,6 @@ class ESRFlvpDetector():
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
-
     def duplicate(self):
         """
         Makes an independent copy of a ESRFlvpDetector Instance
@@ -205,8 +205,6 @@ class ESRFlvpDetector():
         """
         new = deepcopy(self)
         return new
-
-
 
     def get_calibration(self, file_name=None, settings=None, debug=False):
         """
@@ -238,9 +236,7 @@ class ESRFlvpDetector():
         with open(parms_file, "r") as f:
             self.calibration = json.load(f)
 
-        self.conversion_constant = self.calibration['wavelength'] * 1e10 #in angstroms
-
-
+        self.conversion_constant = self.calibration["wavelength"] * 1e10  # in angstroms
 
     def _get_pos(self, frame, unit="radians"):
         """
@@ -260,16 +256,14 @@ class ESRFlvpDetector():
         pos : number
             Orientation of the detector from the file name.
         """
-        pos = float(frame.split(".")[-2].split("_")[-1])+0.5
-        if pos>self.azm_end:
-            pos=pos-360
+        pos = float(frame.split(".")[-2].split("_")[-1]) + 0.5
+        if pos > self.azm_end:
+            pos = pos - 360
         elif pos <= self.azm_start:
-            pos = pos+360
-        if unit.find('deg') == -1:
+            pos = pos + 360
+        if unit.find("deg") == -1:
             pos = np.deg2rad(pos)
         return pos
-
-
 
     def _get_sorted_files(self, file_string, debug=False):
         """
@@ -290,7 +284,7 @@ class ESRFlvpDetector():
             Array of detector positions in degrees.
 
         """
-        #load the list of files
+        # load the list of files
         files_list = glob.glob(file_string)
 
         positions = []
@@ -303,9 +297,9 @@ class ESRFlvpDetector():
 
         return files_list, positions
 
-
-
-    def get_detector(self, settings=None, calibration_file=None, diffraction_data=None, debug=False):
+    def get_detector(
+        self, settings=None, calibration_file=None, diffraction_data=None, debug=False
+    ):
         """
         Takes the detector information from the settings class, or the
         calibration *.json file and creates a detector-type instance which converts
@@ -334,7 +328,9 @@ class ESRFlvpDetector():
         # Parts of this code are copied from the juypiter notebooks associated with Chriton et al., 2023.
 
         if self.calibration == None:
-            self.get_calibration(settings=settings, file_name=calibration_file, debug=debug)
+            self.get_calibration(
+                settings=settings, file_name=calibration_file, debug=debug
+            )
 
         # set the file to use for the shape of the data.
         if diffraction_data is not None:
@@ -346,7 +342,7 @@ class ESRFlvpDetector():
         else:
             raise ValueError("There is no data to construct the detector from.")
 
-        #load the list of files
+        # load the list of files
         imgs_, positions = self._get_sorted_files(calib_frames, debug=False)
         positions = np.deg2rad(positions)
         frames = int(len(imgs_))
@@ -356,65 +352,87 @@ class ESRFlvpDetector():
         for i in range(frames):
             pos = positions[i]
 
-            #these lines are required because they are called by the calibration trans_function.
-            rot_x = self.calibration["param"][self.calibration['param_names'].index("rot_x")]
-            rot_y = self.calibration["param"][self.calibration['param_names'].index("rot_y")]
-            rot1 = (self.calibration["param"][self.calibration['param_names'].index("rot1")])
-            rot2 = (self.calibration["param"][self.calibration['param_names'].index("rot2")])
-            poni1 = (self.calibration["param"][self.calibration['param_names'].index("poni1")])
-            poni2 = (self.calibration["param"][self.calibration['param_names'].index("poni2")])
-            dist = self.calibration["param"][self.calibration['param_names'].index("dist")]
+            # these lines are required because they are called by the calibration trans_function.
+            rot_x = self.calibration["param"][
+                self.calibration["param_names"].index("rot_x")
+            ]
+            rot_y = self.calibration["param"][
+                self.calibration["param_names"].index("rot_y")
+            ]
+            rot1 = self.calibration["param"][
+                self.calibration["param_names"].index("rot1")
+            ]
+            rot2 = self.calibration["param"][
+                self.calibration["param_names"].index("rot2")
+            ]
+            poni1 = self.calibration["param"][
+                self.calibration["param_names"].index("poni1")
+            ]
+            poni2 = self.calibration["param"][
+                self.calibration["param_names"].index("poni2")
+            ]
+            dist = self.calibration["param"][
+                self.calibration["param_names"].index("dist")
+            ]
 
-            rot1_expr = eval(self.calibration["trans_function"]['rot1_expr'])
-            rot2_expr = eval(self.calibration["trans_function"]['rot2_expr'])
-            poni1_expr = eval(self.calibration["trans_function"]['poni1_expr'])
-            poni2_expr = eval(self.calibration["trans_function"]['poni2_expr'])
-            dist_expr = eval(self.calibration["trans_function"]['dist_expr'])
+            rot1_expr = eval(self.calibration["trans_function"]["rot1_expr"])
+            rot2_expr = eval(self.calibration["trans_function"]["rot2_expr"])
+            poni1_expr = eval(self.calibration["trans_function"]["poni1_expr"])
+            poni2_expr = eval(self.calibration["trans_function"]["poni2_expr"])
+            dist_expr = eval(self.calibration["trans_function"]["dist_expr"])
 
             # make pyFAI AzimuthalIntegrator object for each detector position and append.
             # edited from ESRP code - which edited AzimuthalIntegrator properties and is comparatively very slow.
             # makeing a new AzimuthalIntegrator each time is 100s-1000s of times faster.
-            my_ai = AzimuthalIntegrator(detector=self.calibration["detector"], wavelength=self.calibration["wavelength"],
-                        dist = dist_expr,
-                        poni1 = poni1_expr,
-                        poni2 = poni2_expr,
-                        rot1 = rot1_expr,
-                        rot2 = rot2_expr,
-                        rot3 = pos)
+            my_ai = AzimuthalIntegrator(
+                detector=self.calibration["detector"],
+                wavelength=self.calibration["wavelength"],
+                dist=dist_expr,
+                poni1=poni1_expr,
+                poni2=poni2_expr,
+                rot1=rot1_expr,
+                rot2=rot2_expr,
+                rot3=pos,
+            )
             ais.append(my_ai)
 
         # create the multigeometry detector object.
-        self.detector = MultiGeometry(ais, unit="2th_deg", radial_range=(1, 13), azimuth_range=(self.azm_start, self.azm_end))
+        self.detector = MultiGeometry(
+            ais,
+            unit="2th_deg",
+            radial_range=(1, 13),
+            azimuth_range=(self.azm_start, self.azm_end),
+        )
 
-
-        logger.moreinfo(" ".join(map(str, [("Detector is: ", self.detector)] )) )
+        logger.moreinfo(" ".join(map(str, [("Detector is: ", self.detector)])))
         if lg.make_logger_output(level="DEBUG"):
-
-            #plot all the positions of the AzimuthalIntegrators.
+            # plot all the positions of the AzimuthalIntegrators.
             p_angles = []
             p_dist = []
-            p_poni1=[]
+            p_poni1 = []
             p_poni2 = []
             p_rot1 = []
             p_rot2 = []
             p_rot3 = []
 
-            fig,ax = plt.subplots(6, figsize=(9,9))
+            fig, ax = plt.subplots(6, figsize=(9, 9))
 
-            p_angles = np.array([np.rad2deg(ais[frame].rot3) for frame in range(frames)])
-            p_dist   = np.array([ais[frame].dist for frame in range(frames)])
-            p_poni1  = np.array([ais[frame].poni1 for frame in range(frames)])
-            p_poni2  = np.array([ais[frame].poni2 for frame in range(frames)])
-            p_rot1   = np.array([ais[frame].rot1 for frame in range(frames)])
-            p_rot2   = np.array([ais[frame].rot2 for frame in range(frames)])
-            p_rot3   = np.array(np.rad2deg([ais[frame].rot3 for frame in range(frames)]))
+            p_angles = np.array(
+                [np.rad2deg(ais[frame].rot3) for frame in range(frames)]
+            )
+            p_dist = np.array([ais[frame].dist for frame in range(frames)])
+            p_poni1 = np.array([ais[frame].poni1 for frame in range(frames)])
+            p_poni2 = np.array([ais[frame].poni2 for frame in range(frames)])
+            p_rot1 = np.array([ais[frame].rot1 for frame in range(frames)])
+            p_rot2 = np.array([ais[frame].rot2 for frame in range(frames)])
+            p_rot3 = np.array(np.rad2deg([ais[frame].rot3 for frame in range(frames)]))
 
-            ax[0].plot(p_angles, p_dist, marker='.', ls='--')
-            ax[1].plot(p_angles, p_poni1, marker='.', ls='--')
-            ax[2].plot(p_angles, p_poni2, marker='.', ls='--')
-            ax[3].plot(p_angles, p_rot1, marker='.', ls='--')
-            ax[4].plot(p_angles, p_rot2, marker='.', ls='--')
-            ax[5].plot(p_angles, p_rot3, marker='.', ls='--')
+            ax[0].plot(p_angles, p_dist, marker=".", ls="--")
+            ax[1].plot(p_angles, p_poni1, marker=".", ls="--")
+            ax[2].plot(p_angles, p_poni2, marker=".", ls="--")
+            ax[3].plot(p_angles, p_rot1, marker=".", ls="--")
+            ax[4].plot(p_angles, p_rot2, marker=".", ls="--")
+            ax[5].plot(p_angles, p_rot3, marker=".", ls="--")
 
             ax[0].set_ylabel("Distance (m)")
             ax[1].set_ylabel("Poni1 (m)")
@@ -426,10 +444,10 @@ class ESRFlvpDetector():
             ax[-1].set_xlabel("Rot3 (°)")
             plt.tight_layout()
 
-
-
     # @staticmethod
-    def import_image(self, image_name=None, settings=None, mask=None, dtype=None, debug=False):
+    def import_image(
+        self, image_name=None, settings=None, mask=None, dtype=None, debug=False
+    ):
         """
         Import the data image into the intensity array.
         Apply new mask to the data (if given) otherwise use previous mask
@@ -460,7 +478,7 @@ class ESRFlvpDetector():
 
         """
 
-        #check inputs
+        # check inputs
         if image_name == None and settings.subpattern == None:
             raise ValueError("Settings are given but no subpattern is set.")
 
@@ -468,16 +486,16 @@ class ESRFlvpDetector():
             self.get_detector(settings)
 
         if image_name == None:
-            #load the data for the chosen subpattern.
+            # load the data for the chosen subpattern.
             image_name = settings.subfit_filename
 
-        #get ordered list of images
+        # get ordered list of images
         frames, angles = self._get_sorted_files(image_name, debug=debug)
 
         im = np.array([np.flipud(fabio.open(f).data) for f in frames])
         # 13th June 2024 - Note on flipud: the flipud command is included to invert the short axis of the detector intensity.
         # If I flip the data then the 'spots' in the reconstructed data are spot like, rather than incoherent
-        #intensity diffraction peaks.
+        # intensity diffraction peaks.
         # this is possibly due to confusion between clockwise and anti-clockwise data reading between pyFAI
         # ESRF and LVP beamline multidetector objects.
         # I (SAH) do not believe this is the same feature as the Dioptas and Fit2D
@@ -490,15 +508,15 @@ class ESRFlvpDetector():
         # inherits integer properties from the data.
         #
         # Allow option for the data type to be set.
-        if dtype==None:
+        if dtype == None:
             if self.intensity.size > 2:
                 # self.intensity has been set before. Inherit the dtype.
                 dtype = self.intensity.dtype
             elif "int" in im[0].dtype.name:
-                #the type is either int or uint - convert to float
+                # the type is either int or uint - convert to float
                 # using same bit precision
                 precision = re.findall("\d+", im[0].dtype.name)[0]
-                dtype = np.dtype("float"+precision)
+                dtype = np.dtype("float" + precision)
         im = ma.array(im, dtype=dtype)
 
         # apply mask to the intensity array
@@ -510,15 +528,12 @@ class ESRFlvpDetector():
             self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
             return ma.array(im, mask=mask)
         else:
-            #apply mask from intensities
+            # apply mask from intensities
             self.intensity = ma.array(im, mask=self.intensity.mask)
             return ma.array(im)
 
-
-
     def fill_data(
-        self, diff_file=None, settings=None, mask=None, make_zyx=False,
-        debug=False
+        self, diff_file=None, settings=None, mask=None, make_zyx=False, debug=False
     ):
         """
         Initiates the data arrays.
@@ -554,11 +569,11 @@ class ESRFlvpDetector():
         """
         # parts of this methos are copied from ESRF/ID7 (Wilson Crichton's) code.
 
-        #check inputs
+        # check inputs
         if diff_file != None:
             pass
-        elif settings != None: # and diff_file == None
-            #load the data for the chosen subpattern.
+        elif settings != None:  # and diff_file == None
+            # load the data for the chosen subpattern.
             if settings.subfit_filename != None:
                 diff_file = settings.subfit_filename
             else:
@@ -566,8 +581,8 @@ class ESRFlvpDetector():
         else:
             raise ValueError("No diffraction file or settings have been given.")
 
-        if mask==None and settings is not None:
-            if settings.calibration_mask is not None:# in settings.items():
+        if mask == None and settings is not None:
+            if settings.calibration_mask is not None:  # in settings.items():
                 mask = settings.calibration_mask
 
         if self.detector == None:
@@ -578,81 +593,140 @@ class ESRFlvpDetector():
         # Float32 or float16 take up much less memoary than flost64.
         array_dtype = np.float32
 
-        #get ordered list of images
+        # get ordered list of images
         frames, detectorangles = self._get_sorted_files(diff_file, debug=debug)
         detectorangles = np.deg2rad(detectorangles)
 
         # use import_image to fill in the intensity data.
         if np.size(self.intensity) <= 1:
             if diff_file != None:
-                #sets self.intensity
-                #self.import_image(diff_file, mask=mask, dtype=array_dtype)
+                # sets self.intensity
+                # self.import_image(diff_file, mask=mask, dtype=array_dtype)
                 self.import_image(diff_file, dtype=array_dtype)
             else:
                 # empty array
-                self.intensity = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
+                self.intensity = ma.zeros(
+                    [
+                        len(frames),
+                        self.detector.ais[0].detector.shape[0],
+                        self.detector.ais[0].detector.shape[1],
+                    ],
+                    dtype=array_dtype,
+                )
 
-
-        #create emmpty arrays
-        self.tth = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
-        self.azm = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
+        # create emmpty arrays
+        self.tth = ma.zeros(
+            [
+                len(frames),
+                self.detector.ais[0].detector.shape[0],
+                self.detector.ais[0].detector.shape[1],
+            ],
+            dtype=array_dtype,
+        )
+        self.azm = ma.zeros(
+            [
+                len(frames),
+                self.detector.ais[0].detector.shape[0],
+                self.detector.ais[0].detector.shape[1],
+            ],
+            dtype=array_dtype,
+        )
         if make_zyx:
             # the x, y, z, arrays are not usually needed.
             # but if created can fill the memory.
             # switched incase ever needed/wanted
-            self.x = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
-            self.y = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
-            self.z = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
-        logger.debug(" ".join(map(str, [("self.tth.shape, self.azm.shape", self.tth.shape, self.azm.shape)] )) )
+            self.x = ma.zeros(
+                [
+                    len(frames),
+                    self.detector.ais[0].detector.shape[0],
+                    self.detector.ais[0].detector.shape[1],
+                ],
+                dtype=array_dtype,
+            )
+            self.y = ma.zeros(
+                [
+                    len(frames),
+                    self.detector.ais[0].detector.shape[0],
+                    self.detector.ais[0].detector.shape[1],
+                ],
+                dtype=array_dtype,
+            )
+            self.z = ma.zeros(
+                [
+                    len(frames),
+                    self.detector.ais[0].detector.shape[0],
+                    self.detector.ais[0].detector.shape[1],
+                ],
+                dtype=array_dtype,
+            )
+        logger.debug(
+            " ".join(
+                map(
+                    str,
+                    [
+                        (
+                            "self.tth.shape, self.azm.shape",
+                            self.tth.shape,
+                            self.azm.shape,
+                        )
+                    ],
+                )
+            )
+        )
 
         # fill the arrays
         for i in range(len(self.detector.ais)):
-            self.tth[i,:,:] = np.rad2deg(self.detector.ais[i].twoThetaArray())
-            self.azm[i,:,:] = np.rad2deg(self.detector.ais[i].chiArray())
+            self.tth[i, :, :] = np.rad2deg(self.detector.ais[i].twoThetaArray())
+            self.azm[i, :, :] = np.rad2deg(self.detector.ais[i].chiArray())
             if make_zyx:
                 zyx = self.detector.ais[i].calc_pos_zyx()
-                self.z[i,:,:] = zyx[0]
-                self.y[i,:,:] = zyx[1]
-                self.x[i,:,:] = zyx[2]
+                self.z[i, :, :] = zyx[0]
+                self.y[i, :, :] = zyx[1]
+                self.x[i, :, :] = zyx[2]
 
-        logger.debug(" ".join(map(str, [("Detector is: ", self.detector)] )) )
+        logger.debug(" ".join(map(str, [("Detector is: ", self.detector)])))
         if lg.make_logger_output(level="DEBUG"):
-
-            #plot all the positions of the AzimuthalIntegrators.
+            # plot all the positions of the AzimuthalIntegrators.
             p_angles = []
             p_Chi = []
 
-            fig,ax = plt.subplots(1, figsize=(9,9))
+            fig, ax = plt.subplots(1, figsize=(9, 9))
 
             frames = int(len(self.detector.ais))
 
-            p_angles = np.array([np.rad2deg(self.detector.ais[frame].rot3) for frame in range(frames)])
-            p_Chi   = np.array(np.rad2deg([np.mean(self.detector.ais[frame].chiArray()) for frame in range(frames)]))
+            p_angles = np.array(
+                [np.rad2deg(self.detector.ais[frame].rot3) for frame in range(frames)]
+            )
+            p_Chi = np.array(
+                np.rad2deg(
+                    [
+                        np.mean(self.detector.ais[frame].chiArray())
+                        for frame in range(frames)
+                    ]
+                )
+            )
 
-            ax.plot(p_angles, p_Chi, marker='.', ls='--')
+            ax.plot(p_angles, p_Chi, marker=".", ls="--")
             ax.set_ylabel("Mean ChiArray from azimuthal integrators (°)")
             ax.set_xlabel("Rot3, from azimuthal integrators  (°)")
             plt.title("rot3 vs Chi for EXRF lvp Multigeometry")
 
         # from sys import getsizeof
 
-        #F IX ME: (June 2024) i dont know that the d-space array is needed.
+        # F IX ME: (June 2024) i dont know that the d-space array is needed.
         # Check for calls and if this is the only one then remove it
         # self.dspace    = self._get_d_space()
 
         # add masks to arrays
-        #FIX ME: should we apply the mask as the arrays are populated rather than here?
+        # FIX ME: should we apply the mask as the arrays are populated rather than here?
         mask_array = self.get_mask(mask, self.intensity)
 
         self.mask_apply(mask_array, debug=debug)
-        #FIX ME: should we apply the mask as the arrays are populated rather than
+        # FIX ME: should we apply the mask as the arrays are populated rather than
         # in a separate function?
 
         self.azm_start = np.floor(self.azm.min() / self.azm_blocks) * self.azm_blocks
         self.azm_end = np.ceil(self.azm.max() / self.azm_blocks) * self.azm_blocks
-
-
-
 
     def get_requirements(self, parameter_settings=None):
         """
@@ -676,17 +750,15 @@ class ESRFlvpDetector():
         #       - file listing data file numbers (needs directory, file name, number digits, ending)
         #       - beginning and numbers for files (needs directory, file name, number digits, ending)
         required_list = [
-            "Calib_type",          # Must be 'ESRFlvp'
-            #"Calib_detector"      # not required -- this is a unique deteor type for ESRF LVP.
+            "Calib_type",  # Must be 'ESRFlvp'
+            # "Calib_detector"      # not required -- this is a unique deteor type for ESRF LVP.
             # 'Calib_data',        # Removed because this is not strictly required.
-            "Calib_param",         # *.json file the holds the multigeometry calibration
+            "Calib_param",  # *.json file the holds the multigeometry calibration
             # 'Calib_pixels',      # this is only needed for GSAS-II and should be read from image file. FIX
-
             "datafile_directory",  # yes
-            "datafile_Basename",   # here this is the file name but needs a * for the detector steps
-            "datafile_Ending",     # may contain the * depending where the collection number is specified.
+            "datafile_Basename",  # here this is the file name but needs a * for the detector steps
+            "datafile_Ending",  # may contain the * depending where the collection number is specified.
             "datafile_NumDigit",
-
             "AziBins",  # required based on detector type
             "fit_orders",
             # 'Output_type',		   # should be optional
@@ -695,13 +767,11 @@ class ESRFlvpDetector():
         ]
 
         optional_list = [
-            'Calib_mask',         # a mask file is not strictly required.
-
-            'datafile_StartNum',  # now optionally replaced by datafile_Files
-            'datafile_EndNum',    # now optionally replaced by datafile_Files
-            "datafile_Files",     # optionl replacement for start and end.
-
-            ]
+            "Calib_mask",  # a mask file is not strictly required.
+            "datafile_StartNum",  # now optionally replaced by datafile_Files
+            "datafile_EndNum",  # now optionally replaced by datafile_Files
+            "datafile_Files",  # optionl replacement for start and end.
+        ]
 
         # Check required against inputs if given
         if parameter_settings is not None:
@@ -709,9 +779,22 @@ class ESRFlvpDetector():
             all_present = 1
             for par in parameter_settings:
                 if par in required_list:
-                    logger.info(" ".join(map(str, [("Got: ", par)] )) )
+                    logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    logger.warning(" ".join(map(str, [("The settings file requires a parameter called  '", par, "'")] )) )
+                    logger.warning(
+                        " ".join(
+                            map(
+                                str,
+                                [
+                                    (
+                                        "The settings file requires a parameter called  '",
+                                        par,
+                                        "'",
+                                    )
+                                ],
+                            )
+                        )
+                    )
                     all_present = 0
             if all_present == 0:
                 sys.exit(
@@ -719,8 +802,6 @@ class ESRFlvpDetector():
                     "are all present."
                 )
         return required_list
-
-
 
     @staticmethod
     def detector_check(calibration_data, settings=None):
@@ -751,23 +832,23 @@ class ESRFlvpDetector():
 
 # add common function.
 ESRFlvpDetector._get_d_space = _AngleDispersive_common._get_d_space
-ESRFlvpDetector.conversion   = _AngleDispersive_common.conversion
-ESRFlvpDetector.bins         = _AngleDispersive_common.bins
-ESRFlvpDetector.set_limits   = _AngleDispersive_common.set_limits
-ESRFlvpDetector.test_azims   = _AngleDispersive_common.test_azims
+ESRFlvpDetector.conversion = _AngleDispersive_common.conversion
+ESRFlvpDetector.bins = _AngleDispersive_common.bins
+ESRFlvpDetector.set_limits = _AngleDispersive_common.set_limits
+ESRFlvpDetector.test_azims = _AngleDispersive_common.test_azims
 
-#add masking functions to detetor class.
-ESRFlvpDetector.get_mask     = _masks.get_mask
-ESRFlvpDetector.set_mask     = _masks.set_mask
-ESRFlvpDetector.mask_apply   = _masks.mask_apply
+# add masking functions to detetor class.
+ESRFlvpDetector.get_mask = _masks.get_mask
+ESRFlvpDetector.set_mask = _masks.set_mask
+ESRFlvpDetector.mask_apply = _masks.mask_apply
 ESRFlvpDetector.mask_restore = _masks.mask_restore
-ESRFlvpDetector.mask_remove  = _masks.mask_remove
+ESRFlvpDetector.mask_remove = _masks.mask_remove
 
-#these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
-#Each of these methods remains here because they are called by higher-level functions:
-ESRFlvpDetector.plot_masked      = _Plot_AngleDispersive.plot_masked
-ESRFlvpDetector.plot_fitted      = _Plot_AngleDispersive.plot_fitted
-ESRFlvpDetector.plot_collected   = _Plot_AngleDispersive.plot_collected
-ESRFlvpDetector.plot_calibrated  = _Plot_AngleDispersive.plot_calibrated
-#this function is added because it requires access to self:
+# these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
+# Each of these methods remains here because they are called by higher-level functions:
+ESRFlvpDetector.plot_masked = _Plot_AngleDispersive.plot_masked
+ESRFlvpDetector.plot_fitted = _Plot_AngleDispersive.plot_fitted
+ESRFlvpDetector.plot_collected = _Plot_AngleDispersive.plot_collected
+ESRFlvpDetector.plot_calibrated = _Plot_AngleDispersive.plot_calibrated
+# this function is added because it requires access to self:
 ESRFlvpDetector.dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks

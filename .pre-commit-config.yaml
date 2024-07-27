@@ -37,13 +37,14 @@ repos:
         # types_or: [css, html, json, yaml]
 
   # Use Ruff for both linting and formatting (one-stop replacement for Black)
-  # - repo: https://github.com/astral-sh/ruff-pre-commit
-  #   rev: v0.4.10 # Released 2024-06-20 | Latest version
-  #   hooks:
-  #     - id: ruff
-  #       name: Run the Ruff linter for Python
-  #       types: [python]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.10 # Released 2024-06-20 | Latest version
+    hooks:
+      - id: ruff
+        name: Run the Ruff linter for Python
+        types: [python]
+        args: [--fix]
 
-  #     - id: ruff-format
-  #       name: Run the Ruff formatter for Python
-  #       types: [python]
+      - id: ruff-format
+        name: Run the Ruff formatter for Python
+        types: [python]

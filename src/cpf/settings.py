@@ -9,7 +9,7 @@ import logging
 import os
 from copy import copy, deepcopy
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 
@@ -64,7 +64,7 @@ class settings:
 
     def __init__(
         self,
-        settings_file: str | Path | None = None,
+        settings_file: Optional[Union[str, Path]] = None,
         out_type=None,
         report: bool = False,
         debug: bool = False,
@@ -98,15 +98,15 @@ class settings:
 
         """
 
-        self.datafile_list: Optional[list[str | Path]] = None
+        self.datafile_list: Optional[list[Union[str, Path]]] = None
         self.datafile_number: int = 0
-        self.image_list: Optional[list[str | Path]] = None
+        self.image_list: Optional[list[Union[str, Path]]] = None
         self.image_number: int = 0
         self.datafile_directory = Path(".")
 
         self.datafile_preprocess = None
 
-        self.file_label = None
+        self.file_label: Optional[str] = None
 
         # calibration type: dioptas etc.
         self.calibration_type = None
@@ -148,7 +148,7 @@ class settings:
         self.output_directory = "."
         self.output_types = None
         # output_settings is populated with additional requirements for each type (if any)
-        self.output_settings = dict()
+        self.output_settings: dict = {}
 
         # initiate the subpattern settings.
         # set to save diggging through self.fit_orders and carring values around
@@ -187,7 +187,7 @@ class settings:
 
     def populate(
         self,
-        settings_file: str | Path = None,
+        settings_file: Optional[Union[str, Path]] = None,
         out_type=None,
         report=False,
         debug=False,
@@ -413,7 +413,11 @@ class settings:
         if self.output_types != None:
             self.validate_output_types()
 
-    def check_files_exist(self, files_to_check: list[Path] | Path, write: bool = False):
+    def check_files_exist(
+        self,
+        files_to_check: Union[list[Path], Path],
+        write: bool = False,
+    ):
         """
         Check if a file exists. If not issue an error
         """
@@ -429,13 +433,17 @@ class settings:
             # logger.info(" ".join(map(str, [(files_to_check[j])])))
             if files_to_check[j].is_file() is False:
                 raise FileNotFoundError(
-                    "The file " + files_to_check[j] + " is not found but is required."
+                    f"The file {files_to_check[j]} is not found but is required."
                 )
             else:
                 if write == True:
-                    logger.info(" ".join(map(str, [(files_to_check[j] + " exists.")])))
+                    logger.info(" ".join(map(str, [(f"{files_to_check[j]} exists.")])))
 
-    def check_directory_exists(self, directory: Path, write: bool = False):
+    def check_directory_exists(
+        self,
+        directory: Path,
+        write: bool = False,
+    ):
         """
         Check if a directory exists. If not issue an error
         """
@@ -455,16 +463,24 @@ class settings:
         self.check_files_exist(self.datafile_list, write=False)
         logger.info(" ".join(map(str, [("All the data files exist.")])))
 
-    def validate_fit_orders(self, report=False, peak=None, orders=None):
+    def validate_fit_orders(
+        self,
+        report: bool = False,
+        peak=None,
+        orders=None,
+    ):
         """
         check that the orders of the fit contain all the needed parameters
         """
 
-        if not self.fit_orders and not orders:
+        if self.fit_orders is None and orders is None:
             raise ValueError("There are no fit orders.")
 
+        if self.fit_orders is None:
+            raise ValueError("No values for 'fit_orders' were provided")
+
         # enable orders as the variable to check over -- then it is possible to validate orders that are not in the class.
-        if not orders:
+        if orders is None:
             orders = self.fit_orders
             order_str = "fit_orders"
         else:
@@ -477,8 +493,8 @@ class settings:
             validate = peak
 
         # check the peak fitting options in the input file are not illicit.
-        missing = []
-        extras = []
+        missing: list = []
+        extras: list = []
 
         for i in validate:
             # FIX ME: we should check for incorrect or unneeded options
@@ -715,7 +731,14 @@ class settings:
         else:
             logger.info(" ".join(map(str, [("fit_orders appears to be correct")])))
 
-    def validate_order_type(self, comp_type, peak_set, peak, component, report=False):
+    def validate_order_type(
+        self,
+        comp_type,
+        peak_set,
+        peak,
+        component,
+        report: bool = False,
+    ):
         """
         Checks that a set component type is valid -- i.e. it exists in PeakFunctions.
         """
@@ -751,12 +774,21 @@ class settings:
 
         return status
 
-    def validate_order_fixed(self, peak_set, peak, component, report=False):
+    def validate_order_fixed(
+        self,
+        peak_set,
+        peak,
+        component,
+        report: bool = False,
+    ):
         """
         Checks that a fixed component set is the same size of the orders that govern it.
 
         FIXME: This should possibly override one of the settings but I am not sure which.
         """
+
+        if self.fit_orders is None:
+            raise ValueError("No values were provided for 'fit_orders'")
 
         # get coefficient type and number of coefficients expected
         if component + "_type" in self.fit_orders[peak_set]["peak"][peak]:
@@ -822,10 +854,17 @@ class settings:
                 )
         return out
 
-    def validate_position_selection(self, peak_set=0, report=False):
+    def validate_position_selection(
+        self,
+        peak_set: Union[int, list[int]] = 0,
+        report: bool = False,
+    ):
         """
         Checks that the multiple peak position selections have the right number of parts.
         """
+        if self.fit_orders is None:
+            raise ValueError("No values were provided for 'fit_orders'")
+
         if isinstance(peak_set, int):
             peak_set = [peak_set]
 
@@ -881,15 +920,18 @@ class settings:
 
         return miss
 
-    def validate_fit_bounds(self, report=False):
+    def validate_fit_bounds(
+        self,
+        report: bool = False,
+    ):
         """
         check the peak fitting bounds in the input file are valid.
         """
 
-        if not self.fit_bounds:
+        if self.fit_bounds is None:
             raise ValueError("There are no fit bounds.")
 
-        required = ["background", "d-space", "height", "profile", "width"]
+        required = ("background", "d-space", "height", "profile", "width")
 
         # check all are present
         missing = []
@@ -899,7 +941,7 @@ class settings:
                 missing.append("fit_bounds is missing a " + comp)
             elif (
                 not isinstance(self.fit_bounds[comp], list)
-                and len(self.fit_bounds[comp]) != 2
+                and len(self.fit_bounds[comp]) != 2  # type: ignore  # Ignoring hard-to-fix type checking for now
             ):
                 missing.append("fit_bounds has an incorrectly formatted " + comp)
 
@@ -931,7 +973,11 @@ class settings:
         else:
             logger.info(" ".join(map(str, [("fit_bounds appears to be correct")])))
 
-    def set_output_types(self, out_type_list=None, report=False):
+    def set_output_types(
+        self,
+        out_type_list=None,
+        report: bool = False,
+    ):
         """
         set output types in settings class given a list of output types
         """
@@ -1007,7 +1053,12 @@ class settings:
                 " ".join(map(str, [("The output settings appear to be in order")]))
             )
 
-    def set_data_files(self, start=0, end=None, keep=None):
+    def set_data_files(
+        self,
+        start=0,
+        end=None,
+        keep=None,
+    ):
         """
         Cut the number of data files.
 
@@ -1192,4 +1243,4 @@ def detector_factory(fit_settings=None):
 
 
 if __name__ == "__main__":
-    settings = settings()
+    settings

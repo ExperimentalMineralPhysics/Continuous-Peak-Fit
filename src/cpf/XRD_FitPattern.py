@@ -7,7 +7,8 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
+from types import ModuleType
+from typing import Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -36,7 +37,7 @@ np.set_printoptions(threshold=sys.maxsize)
 # Also need to do something similar with data class
 
 
-def register_default_formats() -> object:
+def register_default_formats() -> dict[str, ModuleType]:
     """
     Load all available output modules
     :return:
@@ -45,7 +46,7 @@ def register_default_formats() -> object:
     output_list = output_formatters.module_list
     new_module = {}
     for output_module in output_list:
-        module = __import__("cpf.output_formatters." + output_module, fromlist=[None])
+        module = __import__("cpf.output_formatters." + output_module, fromlist=[])
         new_module[output_module[5:]] = module
     return new_module
 
@@ -55,7 +56,7 @@ output_methods_modules = register_default_formats()
 
 
 def initiate(
-    setting_file: Optional[str | Path] = None,
+    setting_file: Optional[Union[str, Path]] = None,
     inputs=None,
     out_type=None,
     report: bool = False,
@@ -136,7 +137,7 @@ def initiate(
 
 
 def set_range(
-    setting_file: str | Path = None,
+    setting_file: Optional[Union[str, Path]] = None,
     setting_class: Optional[settings] = None,
     inputs=None,
     debug: bool = False,
@@ -164,12 +165,11 @@ def set_range(
     :return:
     """
 
-    if setting_class is None:
-        settings_for_fit: settings = initiate(
-            setting_file, inputs=inputs, report=report
-        )
-    else:
-        settings_for_fit: settings = setting_class
+    settings_for_fit: settings = (
+        initiate(setting_file, inputs=inputs, report=report)
+        if setting_class is None
+        else setting_class
+    )
 
     # search over the first file only
     # restrict file list to first file
@@ -191,7 +191,7 @@ def set_range(
 
 
 def initial_peak_position(
-    setting_file: Optional[str | Path] = None,
+    setting_file: Optional[Union[str, Path]] = None,
     setting_class: Optional[settings] = None,
     inputs=None,
     debug: bool = False,
@@ -224,12 +224,11 @@ def initial_peak_position(
     :return:
     """
 
-    if setting_class is None:
-        settings_for_fit: settings = initiate(
-            setting_file, inputs=inputs, report=report
-        )
-    else:
-        settings_for_fit: settings = setting_class
+    settings_for_fit: settings = (
+        initiate(setting_file, inputs=inputs, report=report)
+        if setting_class is None
+        else setting_class
+    )
 
     # search over the first file only
     settings_for_fit.set_data_files(keep=0)
@@ -367,7 +366,7 @@ class PointBuilder:
 
 
 def order_search(
-    setting_file: Optional[str | Path] = None,
+    setting_file: Optional[Union[str, Path]] = None,
     setting_class: Optional[settings] = None,
     inputs=None,
     debug: bool = False,
@@ -378,10 +377,10 @@ def order_search(
     # track: bool = False,
     parallel: bool = True,
     search_parameter: str = "height",
-    search_over: list[int, int] = [0, 20],
+    search_over: list[int] = [0, 20],
     subpattern: str = "all",
     search_peak: int = 0,
-    search_series: list[str, str] = ["fourier", "spline"],
+    search_series: list[str] = ["fourier", "spline"],
     report: bool = False,
 ):
     """
@@ -402,12 +401,11 @@ def order_search(
     :return:
     """
 
-    if setting_class is None:
-        settings_for_fit: settings = initiate(
-            setting_file, inputs=inputs, report=report
-        )
-    else:
-        settings_for_fit: settings = setting_class
+    settings_for_fit: settings = (
+        initiate(setting_file, inputs=inputs, report=report)
+        if setting_class is None
+        else setting_class
+    )
 
     # force it to write the required output type.
     settings_for_fit.set_output_types(out_type_list="DifferentialStrain")
@@ -458,7 +456,7 @@ def order_search(
 
 
 def write_output(
-    setting_file: Optional[str | Path] = None,
+    setting_file: Optional[Union[str, Path]] = None,
     setting_class: Optional[settings] = None,
     # fit_settings=None,
     # fit_parameters=None,
@@ -483,13 +481,14 @@ def write_output(
     :return:
     """
 
-    if setting_class is None:
-        setting_class: settings = initiate(
-            setting_file, report=report, out_type=out_type
-        )
+    setting_class = (
+        initiate(setting_file, report=report, out_type=out_type)
+        if setting_class is None
+        else setting_class
+    )
 
     if out_type is not None:
-        logger.moreinfo(
+        logger.moreinfo(  # type: ignore
             " ".join(
                 map(
                     str,
@@ -530,7 +529,7 @@ def write_output(
 
 
 def execute(
-    setting_file: Optional[str | Path] = None,
+    setting_file: Optional[Union[str, Path]] = None,
     setting_class=None,
     # fit_settings=None,
     # fit_parameters=None,
@@ -667,7 +666,7 @@ def execute(
             and mode == "fit"
         ):
             # Read JSON data from file
-            logger.moreinfo(
+            logger.moreinfo(  # type: ignore
                 " ".join(
                     map(
                         str,
@@ -716,7 +715,7 @@ def execute(
                 clean = any_terms_null(params, val_to_find=None)
                 if clean == 0:
                     # the previous fit has problems so discard it
-                    logger.moreinfo(
+                    logger.moreinfo(  # type: ignore
                         " ".join(
                             map(
                                 str,
@@ -748,7 +747,7 @@ def execute(
                         settings_for_fit.fit_orders[i]["range"] + move_by
                     )
 
-                    logger.moreinfo(
+                    logger.moreinfo(  # type: ignore
                         " ".join(
                             map(
                                 str,

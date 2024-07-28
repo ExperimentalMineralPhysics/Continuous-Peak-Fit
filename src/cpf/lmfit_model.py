@@ -537,17 +537,19 @@ def initiate_params(
         if num_coeff is not None:
             num_coeff = num_coeff
         elif value is not None:
-            try:
+            if isinstance(value, list):
                 # FIX ME: DMF is this resolved?
                 # trig_orders = int((len(value) - 1)/2) #FIX ME: coefficient series length
                 # -- make into separate function.
                 num_coeff = len(value)
-            except TypeError or AttributeError:
+            elif isinstance(value, np.ndarray):
                 # trig_orders = int((value.size - 1)/2)
                 # FIX ME: I don't know why the try except is needed, but it is. it arose during the spline development
                 # DMF: len is for lists, size is for arrays - need to track if this difference should exist
                 # The real confusion though is len should work for arrays as well...
                 num_coeff = value.size
+            else:
+                raise TypeError(f"Object type {type(value)} is invalid")
         else:
             err_str = (
                 "Cannot define independent values without a number of coefficients."
@@ -556,14 +558,16 @@ def initiate_params(
             raise ValueError(err_str)
 
     elif trig_orders is None:
-        try:
+        if isinstance(value, list):
             # trig_orders = int((len(value) - 1)/2) #FIX ME: coefficient series length -- make into separate function.
             num_coeff = len(value)
-        except TypeError or AttributeError:
+        elif isinstance(value, np.ndarray):
             # FIX ME: I don't know why the try except is needed, but it is. it arose during the spline development
             # DMF: len is for lists, size is for arrays - need to track if this difference should exist
             # The real confusion though is len should work for arrays as well...
             num_coeff = value.size
+        else:
+            raise TypeError(f"Object type {type(value)} is invalid")
     else:
         num_coeff = np.max(trig_orders) * 2 + 1
         # leave the spline with the 2n+1 coefficients so that it matches the equivalent fourier series.

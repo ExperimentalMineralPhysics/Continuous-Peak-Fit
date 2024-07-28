@@ -29,7 +29,7 @@ logging.basicConfig(
         logging.StreamHandler()  # Log to stdout
     ],
 )
-# add custom logging levels.
+# Add custom logging level.
 levelNum = 17
 levelName = "MOREINFO"
 
@@ -49,6 +49,7 @@ setattr(logging.getLoggerClass(), levelName.lower(), logForMI)
 setattr(logging, levelName.lower(), logToRoot)
 
 
+# Add another logging level
 levelName2 = "EFFUSIVE"
 levelNum2 = 13
 
@@ -58,14 +59,14 @@ def logForE(self, message, *args, **kwargs):
         self._log(levelNum2, message, args, **kwargs)
 
 
-def logToRoot(message, *args, **kwargs):
+def logToRoot2(message, *args, **kwargs):
     logging.log(levelNum2, message, *args, **kwargs)
 
 
 logging.addLevelName(levelNum2, levelName2)
 setattr(logging, levelName2, levelNum2)
 setattr(logging.getLoggerClass(), levelName2.lower(), logForE)
-setattr(logging, levelName2.lower(), logToRoot)
+setattr(logging, levelName2.lower(), logToRoot2)
 
 # Create a logger instance
 logger = logging.getLogger(__name__)

@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import sys
+from importlib import import_module
 from pathlib import Path
 from types import ModuleType
 from typing import Optional, Union
@@ -46,9 +47,7 @@ def register_default_formats() -> dict[str, ModuleType]:
     output_list = output_formatters.module_list
     new_module = {}
     for output_module in output_list:
-        module: ModuleType = __import__(
-            "cpf.output_formatters.{output_module}", fromlist=[]
-        )
+        module: ModuleType = import_module(f"cpf.output_formatters.{output_module}")
         new_module[output_module[5:]] = module
     return new_module
 
@@ -512,7 +511,7 @@ def write_output(
                     str,
                     [
                         (
-                            "Thre are no output types. Add 'Output_type' to input file or specify 'out_type' in command."
+                            "There are no output types. Add 'Output_type' to input file or specify 'out_type' in command."
                         )
                     ],
                 )

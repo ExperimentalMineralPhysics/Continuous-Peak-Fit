@@ -5,6 +5,7 @@
 # from . import GSASIIFunctions
 # from . import MedFunctions
 import os
+from importlib import import_module
 from types import ModuleType
 
 """
@@ -15,7 +16,7 @@ This allows the addition of new output types by just adding them to the director
 
 """
 module_list: list[str] = []
-new_module: dict[str, ModuleType] = {}
+new_module: dict[str, object] = {}
 for module_path in os.listdir(os.path.dirname(__file__)):
     if (
         module_path == "__init__.py"
@@ -25,7 +26,7 @@ for module_path in os.listdir(os.path.dirname(__file__)):
         # do not list the file to be loaded
         pass
     else:
-        output_module = module_path[:-3]
+        output_module = module_path[:-3]  # Remove ".py"
         module_list.append(output_module)
-        module: ModuleType = __import__(f"cpf.input_types.{output_module}", fromlist=[])
+        module: ModuleType = import_module(f"cpf.input_types.{output_module}")
         new_module[output_module] = module

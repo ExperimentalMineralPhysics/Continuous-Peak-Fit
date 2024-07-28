@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+from importlib import import_module
 from types import ModuleType
 
 """
@@ -20,15 +21,12 @@ for module_path in os.listdir(os.path.dirname(__file__)):
         module_path == "__init__.py"
         or module_path[-3:] != ".py"
         or module_path[:2] == "._"
-        or not "Write" in module_path
+        or "Write" not in module_path
     ):
         # do not list the file to be loaded
         pass
     else:
-        output_module = module_path[:-3]
+        output_module = module_path[:-3]  # Remove ".py"
         module_list.append(output_module)
-        module: ModuleType = __import__(
-            f"cpf.output_formatters.{output_module}", fromlist=[]
-        )
-        print(f"Imported {output_module} successfully")
+        module: ModuleType = import_module(f"cpf.output_formatters.{output_module}")
         new_module[output_module] = module

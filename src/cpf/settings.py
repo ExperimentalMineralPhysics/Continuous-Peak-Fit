@@ -64,7 +64,7 @@ class settings:
 
     def __init__(
         self,
-        settings_file: Optional[str | Path] = None,
+        settings_file: str | Path | None = None,
         out_type=None,
         report: bool = False,
         debug: bool = False,

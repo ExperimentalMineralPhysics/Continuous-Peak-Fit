@@ -1,18 +1,20 @@
 __all__ = ["Requirements", "WriteOutput"]
 
-
-import os
-
-import numpy as np
-
-# import cpf.PeakFunctions as ff
-import cpf.output_formatters.WriteMultiFit as WriteMultiFit
+# import datetime
 import json
-import cpf.IO_functions as IO
-from cpf.XRD_FitPattern import logger
+import os
+from pathlib import Path
 
 # import re
-# import datetime
+import numpy as np
+
+import cpf.IO_functions as IO
+import cpf.output_formatters.WriteMultiFit as WriteMultiFit
+
+# import cpf.PeakFunctions as ff
+from cpf.logger_functions import logger
+
+# from cpf.XRD_FitPattern import logger
 
 
 def Requirements():
@@ -47,7 +49,7 @@ def WriteOutput(
     setting_file=None,
     differential_only=False,
     debug=False,
-    **kwargs
+    **kwargs,
 ):
     # writes *.fit files produced by multifit (as input for polydefix)
     # writes *.exp files required by polydefix.
@@ -58,7 +60,7 @@ def WriteOutput(
             "bummer Either the settings file or the setting class need to be specified."
         )
     elif setting_class is None:
-        import cpf.XRD_FitPattern.initiate as initiate
+        from cpf.XRD_FitPattern import initiate
 
         setting_class = initiate(setting_file)
 
@@ -81,7 +83,9 @@ def WriteOutput(
     # base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
     base = setting_class.datafile_basename
     if base is None:
-        logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
+        logger.info(
+            " ".join(map(str, [("No base filename, using input filename instead.")]))
+        )
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
     # if not base:
     #     logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
@@ -148,7 +152,6 @@ def WriteOutput(
     #     Files = 1
 
     for i in range(Files):
-
         fnam = base
         if Files > 1:
             # if "Output_ElasticProperties" in FitParameters:
@@ -197,7 +200,7 @@ def WriteOutput(
         # needs absolute path for the data files and the string has to end with a '/' e.g. Users/me/data/BCC1_2GPa_10s_e/
         text_file.write(
             "     %s/\n"
-            % os.path.abspath(os.getcwd() + "/" + setting_class.output_directory)
+            % str(Path((os.getcwd())).resolve() / str(setting_class.output_directory))
         )
         text_file.write("# Basename for FIT files\n")
         # if last symbol in the file name is '_' then we need to strip it from the name
@@ -249,7 +252,6 @@ def WriteOutput(
         text_file.write("# Peaks info (use, h, k, l)\n")
         for x in range(len(setting_class.fit_orders)):
             for y in range(len(setting_class.fit_orders[x]["peak"])):
-
                 # FIXME: use this line below as a shortening for all the x and y pointers
                 setting_class.set_subpattern(i, x)
 
@@ -277,7 +279,9 @@ def WriteOutput(
                     with open(filename) as json_data:
                         fit = json.load(json_data)
                     # check if the d-spacing fits are NaN or not. if NaN switch off.
-                    if type(fit[x]["peak"][y]["d-space"][0])==type(None) or np.isnan(fit[x]["peak"][y]["d-space"][0]):
+                    if type(fit[x]["peak"][y]["d-space"][0]) == type(None) or np.isnan(
+                        fit[x]["peak"][y]["d-space"][0]
+                    ):
                         use = 0
                     else:
                         use = 1
@@ -341,13 +345,11 @@ def WriteOutput(
         # material properties
         text_file.write("# Material properties\n")
         if "Material" in setting_class.output_settings:
-
             raise ValueError(
                 "''Material'' is depreciated as an option. Change your input file to have a ''Phase'' instead."
             )
 
         elif "Output_ElasticProperties" in setting_class.output_settings:
-
             fid = open(
                 setting_class.output_settings["Output_ElasticProperties"][i], "r"
             )
@@ -356,7 +358,6 @@ def WriteOutput(
             text_file.write(fid.read())
 
         elif "phase" in setting_class.output_settings:
-
             try:
                 fid = open(
                     (
@@ -390,7 +391,6 @@ def WriteOutput(
                     )
 
         else:
-
             # FIX ME: here I am just writing the elastic properties of BCC iron with no regard for the structure of the file or the avaliable data.
             #         This should really be fixed.
             text_file.write("# Name:  (N.B. this is the default phase)\n")

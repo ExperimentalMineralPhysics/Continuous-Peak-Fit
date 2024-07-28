@@ -59,3 +59,8 @@ Repository = "https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit"
 [tool.setuptools.packages.find]
 where = ["src"]
 namespaces = false
+
+[tool.ruff.lint]
+select = [
+  "I",  # isort implementation
+]

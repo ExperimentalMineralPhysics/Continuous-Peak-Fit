@@ -146,7 +146,7 @@ class settings:
 
         # output requirements
         self.output_directory = "."
-        self.output_types = None
+        self.output_types: Optional[list[str]] = None
         # output_settings is populated with additional requirements for each type (if any)
         self.output_settings: dict = {}
 

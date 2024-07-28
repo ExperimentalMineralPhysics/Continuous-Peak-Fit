@@ -14,8 +14,8 @@ The output modules all require "Functions" in their filename.
 This allows the addition of new output types by just adding them to the directory.
 
 """
-module_list = []
-new_module = {}
+module_list: list[str] = []
+new_module: dict[str, ModuleType] = {}
 for module_path in os.listdir(os.path.dirname(__file__)):
     if (
         module_path == "__init__.py"

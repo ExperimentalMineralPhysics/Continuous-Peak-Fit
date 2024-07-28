@@ -46,7 +46,9 @@ def register_default_formats() -> dict[str, ModuleType]:
     output_list = output_formatters.module_list
     new_module = {}
     for output_module in output_list:
-        module = __import__("cpf.output_formatters." + output_module, fromlist=[])
+        module: ModuleType = __import__(
+            "cpf.output_formatters.{output_module}", fromlist=[]
+        )
         new_module[output_module[5:]] = module
     return new_module
 

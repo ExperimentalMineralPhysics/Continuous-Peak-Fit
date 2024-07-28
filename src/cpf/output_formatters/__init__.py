@@ -13,8 +13,8 @@ This allows the addition of new output types by just adding them to the director
 Each output formatter must contain two modules called "Requirements" and "WriteOutput"
 
 """
-module_list = []
-new_module = {}
+module_list: list[str] = []
+new_module: dict[str, ModuleType] = {}
 for module_path in os.listdir(os.path.dirname(__file__)):
     if (
         module_path == "__init__.py"
@@ -30,4 +30,5 @@ for module_path in os.listdir(os.path.dirname(__file__)):
         module: ModuleType = __import__(
             f"cpf.output_formatters.{output_module}", fromlist=[]
         )
+        print(f"Imported {output_module} successfully")
         new_module[output_module] = module

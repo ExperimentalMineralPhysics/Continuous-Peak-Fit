@@ -476,6 +476,9 @@ def read_saved_chunks(
     print("Reading chunk files")
     logger = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
 
+    print("Reading chunk files")
+    logger = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
+
     # for f in range(setting_class.image_number):
     for f in logger.iter_bar(iteration=range(setting_class.image_number)):
         setting_class.set_subpattern(f, 0)

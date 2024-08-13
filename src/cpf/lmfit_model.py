@@ -23,12 +23,15 @@ __all__ = [
     "coefficient_fit",
 ]
 
-import numpy as np
 import sys
 import warnings
-from lmfit import Parameters, Model
+
+import numpy as np
+from lmfit import Model, Parameters
+
 import cpf.peak_functions as pf
 import cpf.series_functions as sf
+
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
 
@@ -68,7 +71,7 @@ def parse_bounds(bounds, data_as_class, ndat=None, n_peaks=1, param=None):
             vals = data_as_class.intensity
         elif par == "width":
             vals = data_as_class.tth
-        else: #par == "d-space"
+        else:  # par == "d-space"
             vals = data_as_class.tth
 
         b = bounds[par]
@@ -80,7 +83,7 @@ def parse_bounds(bounds, data_as_class, ndat=None, n_peaks=1, param=None):
         b = [w.replace("npeaks", str(n_peaks)) for w in b]
         b = [eval(w) for w in b]
         if par == "d-space":
-            #use conversion rather than storing d-spacing array
+            # use conversion rather than storing d-spacing array
             b = list(data_as_class.conversion(np.array(b)))
         limits[par] = b
 
@@ -147,18 +150,21 @@ def params_to_new_params(params, orders=None):
     elif orders == None and isinstance(params, Parameters):
         var_names = list(params.keys())
         done = 0
-        num_peaks=0
+        num_peaks = 0
         while done != 1:
-            if len([match for match in var_names if "peak_"+str(num_peaks) in match]) > 0:
+            if (
+                len([match for match in var_names if "peak_" + str(num_peaks) in match])
+                > 0
+            ):
                 num_peaks += 1
             elif num_peaks >= 50:
                 done = 1
             else:
                 done = 1
         done = 0
-        num_bg=0
+        num_bg = 0
         while done == 0:
-            if len([match for match in var_names if "bg_c"+str(num_bg) in match]) > 0:
+            if len([match for match in var_names if "bg_c" + str(num_bg) in match]) > 0:
                 num_bg += 1
             elif num_bg >= 50:
                 done = 1
@@ -226,9 +232,6 @@ def params_to_new_params(params, orders=None):
     }
 
     return new_params
-
-
-
 
 
 # def flatten(li):
@@ -511,8 +514,8 @@ def initiate_params(
                 new_min = 0
                 new_max = pcent_diff
             else:
-                new_min *= (1-pcent_diff)
-                new_max *= (1+pcent_diff)
+                new_min *= 1 - pcent_diff
+                new_max *= 1 + pcent_diff
         half_range = (new_max - new_min) / 2
     else:
         new_min = -np.inf
@@ -534,31 +537,37 @@ def initiate_params(
         if num_coeff is not None:
             num_coeff = num_coeff
         elif value is not None:
-            try:
+            if isinstance(value, list):
                 # FIX ME: DMF is this resolved?
                 # trig_orders = int((len(value) - 1)/2) #FIX ME: coefficient series length
                 # -- make into separate function.
                 num_coeff = len(value)
-            except TypeError or AttributeError:
+            elif isinstance(value, np.ndarray):
                 # trig_orders = int((value.size - 1)/2)
                 # FIX ME: I don't know why the try except is needed, but it is. it arose during the spline development
                 # DMF: len is for lists, size is for arrays - need to track if this difference should exist
                 # The real confusion though is len should work for arrays as well...
                 num_coeff = value.size
+            else:
+                raise TypeError(f"Object type {type(value)} is invalid")
         else:
-            err_str = "Cannot define independent values without a number of coefficients."
+            err_str = (
+                "Cannot define independent values without a number of coefficients."
+            )
             logger.critical(" ".join(map(str, [(value)])))
             raise ValueError(err_str)
 
     elif trig_orders is None:
-        try:
+        if isinstance(value, list):
             # trig_orders = int((len(value) - 1)/2) #FIX ME: coefficient series length -- make into separate function.
             num_coeff = len(value)
-        except TypeError or AttributeError:
+        elif isinstance(value, np.ndarray):
             # FIX ME: I don't know why the try except is needed, but it is. it arose during the spline development
             # DMF: len is for lists, size is for arrays - need to track if this difference should exist
             # The real confusion though is len should work for arrays as well...
             num_coeff = value.size
+        else:
+            raise TypeError(f"Object type {type(value)} is invalid")
     else:
         num_coeff = np.max(trig_orders) * 2 + 1
         # leave the spline with the 2n+1 coefficients so that it matches the equivalent fourier series.
@@ -718,7 +727,7 @@ def peaks_model(
     data_class=None,  # needs to contain conversion factor
     orders=None,  # orders dictionary to get minimum position of the range.
     start_end=[0, 360],
-    **params
+    **params,
 ):
     """Full model of intensities at twotheta and azi given input parameters
     :param two_theta: arr values float
@@ -749,7 +758,6 @@ def peaks_model(
     # loop over the number of peaks
     intens_peak = []
     for a in range(int(num_peaks)):
-
         if "peak_" + str(a) + "_s0" in params:
             symm = params["peak_" + str(a) + "_s0"]
         else:
@@ -760,19 +768,27 @@ def peaks_model(
         comp = "d"
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
-        d_all = sf.coefficient_expand(azimuth, parms, coeff_type=coeff_type, start_end=start_end)
+        d_all = sf.coefficient_expand(
+            azimuth, parms, coeff_type=coeff_type, start_end=start_end
+        )
         comp = "h"
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
-        h_all = sf.coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end)
+        h_all = sf.coefficient_expand(
+            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end
+        )
         comp = "w"
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
-        w_all = sf.coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end)
+        w_all = sf.coefficient_expand(
+            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end
+        )
         comp = "p"
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
-        p_all = sf.coefficient_expand(azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end)
+        p_all = sf.coefficient_expand(
+            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end
+        )
 
         # conversion
         two_theta_all = data_class.conversion(
@@ -829,7 +845,7 @@ def fit_model(
                 azimuth=data_as_class.azm,
                 data_class=data_as_class,  # needs to contain tth, azi, conversion factor
                 orders=orders,  # orders class to get peak lengths (if needed)
-                start_end=start_end, # start and end of azimuths if needed
+                start_end=start_end,  # start and end of azimuths if needed
                 nan_policy="propagate",
                 max_nfev=max_n_fev,
                 xtol=1e-5,
@@ -842,7 +858,7 @@ def fit_model(
             azimuth=data_as_class.azm,
             data_class=data_as_class,  # needs to contain tth, azi, conversion factor
             orders=orders,  # orders class to get peak lengths (if needed)
-            start_end=start_end, # start and end of azimuths if needed
+            start_end=start_end,  # start and end of azimuths if needed
             nan_policy="propagate",
             max_nfev=max_n_fev,
             xtol=1e-5,
@@ -859,8 +875,8 @@ def coefficient_fit(
     param_str="peak_0",
     symmetry=1,
     fit_method="leastsq",
-    start_end = [0,360],
-    max_nfev = 400
+    start_end=[0, 360],
+    max_nfev=400,
 ):
     """Fit the Fourier expansion to number of required terms
     :param ydata: Component data array to fit float
@@ -897,7 +913,13 @@ def coefficient_fit(
     azimuth = np.array(azimuth)
 
     coeff_type = inp_param.eval(param_str + "_tp")
-    f_model = Model(sf.coefficient_expand, independent_vars=["azimuth"], start_end=start_end, comp_str=param_str, coeff_type=coeff_type)
+    f_model = Model(
+        sf.coefficient_expand,
+        independent_vars=["azimuth"],
+        start_end=start_end,
+        comp_str=param_str,
+        coeff_type=coeff_type,
+    )
     # logger.info(" ".join(map(str, [('parameter names: {}'.format(f_model.param_names))])))
     # logger.info(" ".join(map(str, [('independent variables: {}'.format(f_model.independent_vars))])))
 
@@ -921,6 +943,6 @@ def coefficient_fit(
         weights=new_errs,
         # comp_str=param_str,
         nan_policy="propagate",
-        max_nfev = max_nfev
+        max_nfev=max_nfev,
     )
     return out

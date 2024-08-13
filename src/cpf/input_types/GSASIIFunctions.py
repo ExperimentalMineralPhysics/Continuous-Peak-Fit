@@ -6,17 +6,20 @@
 # __all__ = ['Requirements', 'ImportImage', 'DetectorCheck', 'Conversion', 'GetMask', 'GetCalibration', 'GetTth',
 #            'GetAzm', 'GetDsp']
 
+import copy
+import math
+import os
+import sys
+
+import matplotlib.cm as cm
+import matplotlib.path as mlp
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
-import copy, os, sys
 from PIL import Image
 from PIL.ExifTags import TAGS
-import math
-import matplotlib.cm as cm
-import matplotlib.pyplot as plt
-import matplotlib.path as mlp
-import sys
 from scipy.optimize import curve_fit
+
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
 
@@ -138,7 +141,20 @@ class GSASIIDetector:
                 if par in required_list:
                     logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    logger.info(" ".join(map(str, [("The settings file requires a parameter called  '", par, "'")])))
+                    logger.info(
+                        " ".join(
+                            map(
+                                str,
+                                [
+                                    (
+                                        "The settings file requires a parameter called  '",
+                                        par,
+                                        "'",
+                                    )
+                                ],
+                            )
+                        )
+                    )
                     all_present = 0
             if all_present == 0:
                 sys.exit(

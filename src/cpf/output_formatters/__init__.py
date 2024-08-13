@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import os
+from importlib import import_module
+from types import ModuleType
 
 """
 Loads all available output format modules
@@ -10,22 +12,21 @@ The output modules all require "Write" in their filename.
 This allows the addition of new output types by just adding them to the directory.
 
 Each output formatter must contain two modules called "Requirements" and "WriteOutput"
- 
+
 """
-module_list = []
-for module in os.listdir(os.path.dirname(__file__)):
-    if module == "__init__.py" or module[-3:] != ".py" or module[:2]=="._" or not "Write" in module:
+module_list: list[str] = []
+new_module: dict[str, ModuleType] = {}
+for module_path in os.listdir(os.path.dirname(__file__)):
+    if (
+        module_path == "__init__.py"
+        or module_path[-3:] != ".py"
+        or module_path[:2] == "._"
+        or "Write" not in module_path
+    ):
         # do not list the file to be loaded
         pass
     else:
-        module_list.append(module[:-3])
-
-new_module = {}
-for output_module in module_list:
-    module = __import__("cpf.output_formatters." + output_module, fromlist=[None])
-    new_module[output_module] = module
-
-# del os
-# del module
-# del module_list
-# del output_module
+        output_module = module_path[:-3]  # Remove ".py"
+        module_list.append(output_module)
+        module: ModuleType = import_module(f"cpf.output_formatters.{output_module}")
+        new_module[output_module] = module

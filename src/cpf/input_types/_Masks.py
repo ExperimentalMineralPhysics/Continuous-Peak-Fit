@@ -30,29 +30,29 @@ Need functions that can:
 Remove mask functions from these class files and put in separate common file.
 """
 
-
 import numpy as np
 import numpy.ma as ma
+
 # import matplotlib.pyplot as plt
-#from matplotlib import gridspec, cm, colors
+# from matplotlib import gridspec, cm, colors
 from PIL import Image, ImageDraw
+
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
 
 
-
-class _masks():
+class _masks:
     """
     Class definiing mask functions.
 
     These are imported into the detector functions as methods.
     """
+
     # def __init__(self, detector_class=None):
     #     """
     #     :param detector_class:
     #     """
     #     self = detector_class
-
 
     def get_mask(self, mask, im_ints=None, debug=False):
         """
@@ -80,38 +80,43 @@ class _masks():
         if not isinstance(mask, dict) and mask is not None:
             mask = {"image": mask}
         elif mask is None:
-            #make empty dictionary
+            # make empty dictionary
             mask = {}
 
         # make empty mask
-        im_mask = np.zeros(im_ints.shape, dtype='bool')
+        im_mask = np.zeros(im_ints.shape, dtype="bool")
 
         if "image" in mask:
-            #Dioptas mask is compressed Tiff image.
-            #Save and load functions within Dioptas are: load_mask and save_mask in dioptas/model/MaskModel.py
+            # Dioptas mask is compressed Tiff image.
+            # Save and load functions within Dioptas are: load_mask and save_mask in dioptas/model/MaskModel.py
             mask_from_image = np.array(Image.open(mask["image"]))
-            #im_ints = ma.array(im_ints, mask=im_mask)
-            #im_ints = ma.masked_less(im_ints, 0)
+            # im_ints = ma.array(im_ints, mask=im_mask)
+            # im_ints = ma.masked_less(im_ints, 0)
             if mask_from_image.shape == im_ints.shape:
                 im_mask = np.asarray(im_mask) | np.asarray(mask_from_image)
             elif mask_from_image.shape == im_ints.shape[1:2]:
                 # the masked image is for a single detector frame and the diffraction data is composed of multiple frames
                 # (e.g. ESRFlvp detector).
-                #assumes the repitition of the detector frame is in the first dimension of the array
+                # assumes the repitition of the detector frame is in the first dimension of the array
                 mask_from_image = np.expand_dims(mask_from_image, axis=0)
-                mask_from_image = np.repeat(mask_from_image, mask_from_image.shape[0], axis=0)
+                mask_from_image = np.repeat(
+                    mask_from_image, mask_from_image.shape[0], axis=0
+                )
             im_mask = np.asarray(im_mask) | ma.asarray(mask_from_image)
 
         if "polygon" in mask:
-            polygons = mask['polygon']
+            polygons = mask["polygon"]
             for i in polygons:
-                img = Image.new('L', im_ints.shape, 0)
+                img = Image.new("L", im_ints.shape, 0)
                 ImageDraw.Draw(img).polygon(i, outline=1, fill=1)
-                im_mask = im_mask +ma.array(img)
+                im_mask = im_mask + ma.array(img)
 
         if "threshold" in mask:
-            threshold = mask['threshold']
-            im_mask = np.asarray(im_mask) | ma.masked_outside(im_ints,threshold[0],threshold[1]).mask
+            threshold = mask["threshold"]
+            im_mask = (
+                np.asarray(im_mask)
+                | ma.masked_outside(im_ints, threshold[0], threshold[1]).mask
+            )
 
         if "detector" in mask:
             # Masks for energy dispersive detector elements for full detector.
@@ -123,31 +128,37 @@ class _masks():
             raise ValueError("'Energy' is not implemented.")
 
         if ("two theta" in mask) or ("twotheta" in mask):
-            if ("two theta" in mask):
-                lbl_str = 'two theta'
+            if "two theta" in mask:
+                lbl_str = "two theta"
             else:
-                lbl_str = 'twotheta'
+                lbl_str = "twotheta"
             limits = mask[lbl_str]
-            im_mask = np.asarray(im_mask) | ma.masked_inside(self.tth,limits[0], limits[1]).mask
+            im_mask = (
+                np.asarray(im_mask)
+                | ma.masked_inside(self.tth, limits[0], limits[1]).mask
+            )
 
         if ("azm" in mask) or ("azimuth" in mask):
-            if ("azm" in mask):
-                lbl_str = 'azm'
+            if "azm" in mask:
+                lbl_str = "azm"
             else:
-                lbl_str = 'azimuth'
+                lbl_str = "azimuth"
             limits = mask[lbl_str]
-            im_mask = np.asarray(im_mask) | ma.masked_inside(self.azm,limits[0], limits[1]).mask
+            im_mask = (
+                np.asarray(im_mask)
+                | ma.masked_inside(self.azm, limits[0], limits[1]).mask
+            )
 
         # FIX ME: Should also add circles and other polygons as per GSAS-II masks
 
-        #mask invalid values
+        # mask invalid values
         mask2 = ma.masked_invalid(im_ints).mask
-        #mask everything less than 0.
+        # mask everything less than 0.
         mask3 = ma.masked_less(im_ints, 0).mask
 
-        #combine masks
+        # combine masks
         im_mask = np.asarray(im_mask) | np.asarray(mask2) | np.asarray(mask3)
-        #im_ints = ma.array(im_ints, mask=im_mask)
+        # im_ints = ma.array(im_ints, mask=im_mask)
 
         """
         if debug:
@@ -213,14 +224,13 @@ class _masks():
 
         return im_mask
 
-
-
-
-    def set_mask(self,
+    def set_mask(
+        self,
         intensity_bounds=[-np.inf, np.inf],
         range_bounds=[-np.inf, np.inf],
         azm_bounds=[-np.inf, np.inf],
-        mask=None ):
+        mask=None,
+    ):
         """
         Set limits to data
         :param range_bounds:
@@ -229,29 +239,53 @@ class _masks():
         :return:
         """
 
-        if mask==None:
+        if mask == None:
             mask = self.intensity.mask
             logger.debug(" ".join(map(str, [("Retreived previous mask")])))
         local_mask = np.where(
-            (self.tth >= range_bounds[0]) & (self.tth <= range_bounds[1]) &
-            (self.azm >= azm_bounds[0])   & (self.azm <= azm_bounds[1]),
-            False, True
+            (self.tth >= range_bounds[0])
+            & (self.tth <= range_bounds[1])
+            & (self.azm >= azm_bounds[0])
+            & (self.azm <= azm_bounds[1]),
+            False,
+            True,
         )
 
-        #ma.masked_outside(self.tth,(limits[0]),(limits[1])).mask
-        local_mask2 = ma.masked_outside(self.intensity, intensity_bounds[0], intensity_bounds[1]).mask
+        # ma.masked_outside(self.tth,(limits[0]),(limits[1])).mask
+        local_mask2 = ma.masked_outside(
+            self.intensity, intensity_bounds[0], intensity_bounds[1]
+        ).mask
 
-        logger.debug(" ".join(map(str, [("type(mask), type(local_mask)", type(mask), type(local_mask))])))
-        logger.debug(" ".join(map(str, [("mask.shape, (local_mask.shape)", mask.shape, (local_mask.shape))])))
+        logger.debug(
+            " ".join(
+                map(
+                    str,
+                    [("type(mask), type(local_mask)", type(mask), type(local_mask))],
+                )
+            )
+        )
+        logger.debug(
+            " ".join(
+                map(
+                    str,
+                    [
+                        (
+                            "mask.shape, (local_mask.shape)",
+                            mask.shape,
+                            (local_mask.shape),
+                        )
+                    ],
+                )
+            )
+        )
         combined_mask = np.ma.mask_or(mask, local_mask)
         combined_mask = np.ma.mask_or(combined_mask, local_mask2)
         NoneType = type(None)
         if not isinstance(mask, NoneType):  # or mask.all() != None:
             combined_mask = np.ma.mask_or(combined_mask, mask)
 
-        #apply mask to all arrays
+        # apply mask to all arrays
         self.mask_apply(combined_mask)
-
 
     def mask_apply(self, mask, debug=False):
         """
@@ -283,9 +317,6 @@ class _masks():
         if "z" in self.__dict__.items():
             self.z.mask = mask
 
-
-
-
     def mask_restore(self):
         """
         Restores the loaded mask.
@@ -294,10 +325,6 @@ class _masks():
 
         logger.effusive(" ".join(map(str, [("Restore original mask.")])))
         self.mask_apply(self.original_mask)
-
-
-
-
 
     def mask_remove(self):
         """

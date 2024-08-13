@@ -1,18 +1,20 @@
 __all__ = ["Requirements", "WriteOutput"]
 
 
-import os
 import json
+import os
+
 import matplotlib.pyplot as plt
 from moviepy.editor import VideoClip
 from moviepy.video.io.bindings import mplfig_to_npimage
 
 import cpf.IO_functions as IO
-from cpf.XRD_FitSubpattern import plot_FitAndModel
-from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
 from cpf.BrightSpots import SpotProcess
+from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
+
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
+from cpf.XRD_FitSubpattern import plot_FitAndModel
 
 
 def Requirements():
@@ -21,10 +23,7 @@ def Requirements():
     RequiredParams = [
         #'apparently none!
     ]
-    OptionalParams = [
-        "fps",
-        "file_types"
-    ]
+    OptionalParams = ["fps", "file_types"]
 
     return RequiredParams, OptionalParams
 
@@ -60,11 +59,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     if not "fps" in kwargs:
         fps = 10
     elif not isinstance(fps, float):
-        raise ValueError(
-            "The frames per second needs to be a number."
-        )
-
-
+        raise ValueError("The frames per second needs to be a number.")
 
     if setting_class is None and setting_file is None:
         raise ValueError(
@@ -75,13 +70,22 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
 
         setting_class = initiate(setting_file)
 
-    #make the base file name
+    # make the base file name
     base = setting_class.datafile_basename
     if base is None or len(base) == 0:
-        logger.info(" ".join(map(str, [("No base filename, trying ending without extension instead.")])))
+        logger.info(
+            " ".join(
+                map(
+                    str,
+                    [("No base filename, trying ending without extension instead.")],
+                )
+            )
+        )
         base = setting_class.datafile_ending
     if base is None:
-        logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
+        logger.info(
+            " ".join(map(str, [("No base filename, using input filename instead.")]))
+        )
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
 
     # make the data class.
@@ -93,16 +97,13 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
         debug=debug,
     )
 
-
-    duration = (setting_class.image_number)/fps
+    duration = (setting_class.image_number) / fps
     num_subpatterns = len(setting_class.fit_orders)
 
     for z in range(num_subpatterns):
-
         y = list(range(setting_class.image_number))
 
         setting_class.set_subpattern(0, z)
-
 
         addd = IO.peak_string(setting_class.subfit_orders, fname=True)
         if setting_class.file_label != None:
@@ -112,7 +113,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
             directory=setting_class.output_directory,
             extension=file_types[0],
             overwrite=True,
-            additional_text=addd
+            additional_text=addd,
         )
         logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
 
@@ -120,28 +121,28 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
         # edited after :https://zulko.github.io/moviepy/getting_started/working_with_matplotlib.html?highlight=matplotlib
         # 4th April 2023.
         def make_frame(t):
-
             # t scales between 0 and 1.
             # to call each of the images in turn t has to be scaled back
             # into the number of images (here 'y'). And it has to be an integer.
-            #logger.info(" ".join(map(str, [(t, int(t*fps), y[int(t*fps)])])))
+            # logger.info(" ".join(map(str, [(t, int(t*fps), y[int(t*fps)])])))
 
             # Get diffraction pattern to process.
-            data_class.import_image(setting_class.image_list[y[int(t*fps)]], debug=debug)
-
+            data_class.import_image(
+                setting_class.image_list[y[int(t * fps)]], debug=debug
+            )
 
             if setting_class.datafile_preprocess is not None:
                 # needed because image preprocessing adds to the mask and is different for each image.
                 data_class.mask_restore()
                 if "cosmics" in setting_class.datafile_preprocess:
-                    pass#data_class = cosmicsimage_preprocess(data_class, setting_class)
+                    pass  # data_class = cosmicsimage_preprocess(data_class, setting_class)
             else:
-               # nothing is done here.
-               pass
+                # nothing is done here.
+                pass
 
             # restrict data to the right part.
             sub_data = data_class.duplicate()
-            setting_class.set_subpattern(y[int(t*fps)], z)
+            setting_class.set_subpattern(y[int(t * fps)], z)
             sub_data.set_limits(range_bounds=setting_class.subfit_orders["range"])
 
             # Mask the subpattern by intensity if called for
@@ -163,21 +164,32 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
 
             # make the plot of the fits.
             fig = plt.figure(1)
-            fig = plot_FitAndModel(setting_class,
-                                   sub_data,
-                                   #param_lmfit=None,
-                                   params_dict=data_fit,
-                                   figure=fig)
-            title_str = (IO.peak_string(setting_class.subfit_orders)+"; " + str(y[int(t*fps)]) +"/" +
-                            str(setting_class.image_number) + "\n" +
-                            IO.title_file_names(setting_class, num=y[int(t*fps)], image_name=setting_class.subfit_filename)
-                            )
+            fig = plot_FitAndModel(
+                setting_class,
+                sub_data,
+                # param_lmfit=None,
+                params_dict=data_fit,
+                figure=fig,
+            )
+            title_str = (
+                IO.peak_string(setting_class.subfit_orders)
+                + "; "
+                + str(y[int(t * fps)])
+                + "/"
+                + str(setting_class.image_number)
+                + "\n"
+                + IO.title_file_names(
+                    setting_class,
+                    num=y[int(t * fps)],
+                    image_name=setting_class.subfit_filename,
+                )
+            )
             if "note" in setting_class.subfit_orders:
                 title_str = title_str + " " + setting_class.subfit_orders["note"]
             plt.suptitle(title_str)
             IO.figure_suptitle_space(fig, topmargin=0.4)
 
-            #return the figure
+            # return the figure
             return mplfig_to_npimage(fig)
 
         # make the video clip

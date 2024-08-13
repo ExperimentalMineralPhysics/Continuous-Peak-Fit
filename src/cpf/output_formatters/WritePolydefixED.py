@@ -1,18 +1,21 @@
 __all__ = ["Requirements", "WriteOutput"]
 
 
+import datetime
+import json
 import os
+import re
 
 import numpy as np
 
+import cpf.IO_functions as IO
+
 # import cpf.PeakFunctions as ff
 import cpf.series_functions as sf
-import cpf.IO_functions as IO
-import json
-import re
-import datetime
+
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
+
 
 def Requirements():
     # List non-universally required parameters for writing this output type.
@@ -38,7 +41,7 @@ def WriteOutput(
     setting_file=None,
     differential_only=False,
     debug=False,
-    **kwargs
+    **kwargs,
 ):
     # writes *.exp files required by polydefixED.
     # N.B. this is a different file than that required by polydefix for monochromatic diffraction.
@@ -68,7 +71,9 @@ def WriteOutput(
 
     base = setting_class.datafile_basename
     if base is None:
-        logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
+        logger.info(
+            " ".join(map(str, [("No base filename, using input filename instead.")]))
+        )
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
     if differential_only is not False:
         base = base + "_DiffOnly"
@@ -114,7 +119,7 @@ def WriteOutput(
     # text_file.write("%12.5f\n" % parms_dict["calibs"].mcas[0].calibration.two_theta)
     text_file.write(
         "%12.5f\n"
-        #% setting_class.data_class.calibration["calibs"].mcas[0].calibration.two_theta
+        # % setting_class.data_class.calibration["calibs"].mcas[0].calibration.two_theta
         % setting_class.data_class.calibration["two_theta"][0]
     )
 
@@ -125,7 +130,6 @@ def WriteOutput(
 
     az_used = []
     for x in range(len(setting_class.data_class.calibration["azimuths"])):
-
         # determine if detector masked
         if setting_class.calibration_mask is not None:
             if x + 1 in setting_class.calibration_mask:
@@ -218,7 +222,6 @@ def WriteOutput(
     text_file.write("2       \n")
 
     if "Material" in setting_class.output_settings:
-
         raise ValueError(
             "''Material'' is depreciated as an option. Change your input file to have a ''Phase'' instead."
         )
@@ -228,14 +231,12 @@ def WriteOutput(
         text_file.write("")
 
     elif "ElasticProperties" in setting_class.output_settings:
-
         fid = open(setting_class.output_settings["ElasticProperties"], "r")
 
         # pipe ealstic properties to the output file.
         text_file.write(fid.read())
 
     else:
-
         # FIX ME: here I am just writing the elastic properties of olivine with no regard for the structure of the file or the avaliable data.
         #         This should really be fixed.
         text_file.write("# Name\n")
@@ -327,7 +328,6 @@ def WriteOutput(
         )  # pre-set temperature to 0 incase no value is found in the data file.
         with open(setting_class.datafile_list[x], "r") as myfile:
             for line in myfile:  # For each line, stored as line,
-
                 # get date.
                 if "DATE:" in line:
                     ftime = datetime.datetime.strptime(
@@ -386,7 +386,6 @@ def WriteOutput(
         "# Peak number.  h.  k.  l.  d-spacing.  intensity.  detector number. step number E t \n"
     )
     for z in range(setting_class.datafile_number):
-
         setting_class.set_subpattern(z, 0)
 
         filename = IO.make_outfile_name(
@@ -403,7 +402,6 @@ def WriteOutput(
         peak = 1
         for x in range(num_subpatterns):
             for y in range(len(setting_class.fit_orders[x]["peak"])):
-
                 # Write the following structure to the data file.
                 # [peak number     H     K     L     d-spacing     Intensity     detector number     step number   ]  repeat for the number of
                 # ...                                                                                ]  peaks*number detectors*number patterns
@@ -453,9 +451,7 @@ def WriteOutput(
                     coeff_type=coef_type,
                 )
                 n = -1
-                for w in range(
-                    len(setting_class.data_class.calibration["two_theta"])
-                ):
+                for w in range(len(setting_class.data_class.calibration["two_theta"])):
                     # determine if detector masked
                     if setting_class.calibration_mask:
                         if w + 1 in setting_class.calibration_mask:

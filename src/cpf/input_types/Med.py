@@ -8,13 +8,17 @@ Modifications:
     Stripped out parts that are not required:
         - spline function and option to align the called data.
 """
-from cpf.input_types import Mca
+
 import numpy as Numeric
+
+from cpf.input_types import Mca
+
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
 
 # FIX ME: DMF Need to rationalise this code and keep what's needed.
 # FIX ME: where do we stand on licensing? has this been published?
+
 
 #########################################################################
 class Med(Mca.Mca):

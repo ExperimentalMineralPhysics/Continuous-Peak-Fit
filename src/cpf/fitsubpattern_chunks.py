@@ -8,14 +8,16 @@ __all__ = ["get_manual_guesses", "get_chunk_background_guess", "fit_chunks"]
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
-from lmfit import Parameters, Model
-import cpf.IO_functions as io
-import cpf.series_functions as sf
-import cpf.lmfit_model as lmm
+from lmfit import Model, Parameters
+
 import cpf.histograms as hist
+import cpf.IO_functions as io
+import cpf.lmfit_model as lmm
+import cpf.logger_functions as lg
+import cpf.series_functions as sf
+
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
-import cpf.logger_functions as lg
 
 
 def get_manual_guesses(settings_as_class, data_as_class, debug=False):
@@ -83,7 +85,7 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
 
         lg.pretty_print_to_logger(temp_param, level="DEBUG", space=True)
         # if debug:
-            # temp_param.pretty_print()
+        # temp_param.pretty_print()
         dfour.append(lmm.gather_param_errs_to_list(temp_param, param_str, comp))
     return dfour
 
@@ -120,27 +122,26 @@ def get_chunk_background_guess(settings_as_class, data_chunk_class, n, debug=Fal
                 [
                     np.mean(data_chunk_class.intensity[tth_ord[:n]]),
                     np.mean(data_chunk_class.intensity[tth_ord[-n:]]),
-                        # np.mean(data_chunk_class.intensity.compressed()[tth_ord[:n]]),
-                        # np.mean(data_chunk_class.intensity.compressed()[tth_ord[-n:]]),
+                    # np.mean(data_chunk_class.intensity.compressed()[tth_ord[:n]]),
+                    # np.mean(data_chunk_class.intensity.compressed()[tth_ord[-n:]]),
                 ]
             )
         else:  # len(orders['background']) > 1:
             # first value (offset) is mean of left-hand values
             background_guess[0][0] = np.mean(
                 data_chunk_class.intensity[tth_ord[:n]]
-                    # data_chunk_class.intensity.compressed()[tth_ord[:n]]
+                # data_chunk_class.intensity.compressed()[tth_ord[:n]]
             )
             # if there are more, then calculate a gradient guess.
             background_guess[1][0] = (
                 np.mean(data_chunk_class.intensity[tth_ord[-n:]])
                 - np.mean(data_chunk_class.intensity[tth_ord[:n]])
-                    # np.mean(data_chunk_class.intensity.compressed()[tth_ord[-n:]])
-                    # - np.mean(data_chunk_class.intensity.compressed()[tth_ord[:n]])
+                # np.mean(data_chunk_class.intensity.compressed()[tth_ord[-n:]])
+                # - np.mean(data_chunk_class.intensity.compressed()[tth_ord[:n]])
             ) / (
-                data_chunk_class.tth[tth_ord[-1]]
-                - data_chunk_class.tth[tth_ord[0]]
-                    # data_chunk_class.tth.compressed()[tth_ord[-1]]
-                    # - data_chunk_class.tth.compressed()[tth_ord[0]]
+                data_chunk_class.tth[tth_ord[-1]] - data_chunk_class.tth[tth_ord[0]]
+                # data_chunk_class.tth.compressed()[tth_ord[-1]]
+                # - data_chunk_class.tth.compressed()[tth_ord[0]]
             )
             # leave all higher order terms as 0 -- assume they are small.
 
@@ -226,7 +227,7 @@ def get_chunk_peak_guesses(
                     + background_guess[1][0]
                     * (
                         data_chunk_class.tth[idx]
-                            # data_chunk_class.tth.compressed()[idx]
+                        # data_chunk_class.tth.compressed()[idx]
                         - data_chunk_class.tth.min()
                     )
                 )
@@ -301,8 +302,8 @@ def fit_chunks(
     settings_as_class,
     fit_method="least_squares",
     mode="fit",
-    histogram_type = None, #"width",
-    histogram_bins = None,
+    histogram_type=None,  # "width",
+    histogram_bins=None,
     max_n_f_eval=400,
     save_fit=False,
     debug=False,
@@ -326,11 +327,25 @@ def fit_chunks(
             p = "peaks"
         else:
             p = "peak"
-        logger.debug(" ".join(map(str, [("No previous fits or selections. Assuming %i %s and group fitting in azimuth..." % (peeks, p) )])))
+        logger.debug(
+            " ".join(
+                map(
+                    str,
+                    [
+                        (
+                            "No previous fits or selections. Assuming %i %s and group fitting in azimuth..."
+                            % (peeks, p)
+                        )
+                    ],
+                )
+            )
+        )
         dfour = None
         # FIXME: passed as None now - check functions as expected
     else:
-        logger.debug(" ".join(map(str, [("Using manual selections for initial guesses...")])))
+        logger.debug(
+            " ".join(map(str, [("Using manual selections for initial guesses...")]))
+        )
         # FIXME: Need to check that the num. of peaks for which we have parameters is the same as the
         # number of peaks guessed at.
         # dfour = get_manual_guesses(peeks, orders, bounds, twotheta, debug=None)
@@ -375,7 +390,19 @@ def fit_chunks(
 
     for j in range(len(chunks)):
         # logger.info(" ".join(map(str, [('\nFitting to data chunk ' + str(j + 1) + ' of ' + str(len(chunks)) + '\n')])))
-        logger.debug(" ".join(map(str, [("Fitting to data chunk %s of %s" % (str(j + 1), str(len(chunks))))])))
+        logger.debug(
+            " ".join(
+                map(
+                    str,
+                    [
+                        (
+                            "Fitting to data chunk %s of %s"
+                            % (str(j + 1), str(len(chunks)))
+                        )
+                    ],
+                )
+            )
+        )
 
         # make data class for chunks.
         chunk_data = data_as_class.duplicate()
@@ -411,22 +438,23 @@ def fit_chunks(
             raise NotImplementedError
 
         elif mode == "fit" or mode == "cascade":
-
             # Define parameters to pass to fit
             params = Parameters()
 
             # if ma.MaskedArray.count(chunk_data.intensity) >= min_dat:
             if len(chunk_data.intensity) >= min_dat:
-
                 # integrate (smooth) the chunks
                 if histogram_type != None:
-                    chunk_data.tth, chunk_data.intensity, chunk_data.azm = hist.histogram1d(chunk_data.tth,
-                                  chunk_data.intensity,
-                                  azi=chunk_data.azm,
-                                  histogram_type = histogram_type,
-                                  bin_n = histogram_bins,
-                                  debug=debug
-                            )
+                    chunk_data.tth, chunk_data.intensity, chunk_data.azm = (
+                        hist.histogram1d(
+                            chunk_data.tth,
+                            chunk_data.intensity,
+                            azi=chunk_data.azm,
+                            histogram_type=histogram_type,
+                            bin_n=histogram_bins,
+                            debug=debug,
+                        )
+                    )
 
                 # append azimuth to output
                 new_azi_chunks.append(azichunks[j])
@@ -450,8 +478,8 @@ def fit_chunks(
                 # Chunks limited to no Fourier expansion so only single value per polynomial order.
                 for b in range(len(background_guess)):
                     if b == 0:
-                        vary=True
-                        if limits["background"][0]==limits["background"][1]:
+                        vary = True
+                        if limits["background"][0] == limits["background"][1]:
                             # catch incase there is no intensity in the chunk.
                             limits["background"][0] -= 0.1
                             limits["background"][1] += 0.1
@@ -461,7 +489,7 @@ def fit_chunks(
                             background_guess[b][0],
                             min=limits["background"][0],
                             max=limits["background"][1],
-                            vary=vary
+                            vary=vary,
                         )
                     else:
                         params.add(
@@ -478,11 +506,14 @@ def fit_chunks(
                             vary = False
                         else:
                             vary = True
-                        if limits["peak"][pk][comp_names[cp]][0] == limits["peak"][pk][comp_names[cp]][1]:
+                        if (
+                            limits["peak"][pk][comp_names[cp]][0]
+                            == limits["peak"][pk][comp_names[cp]][1]
+                        ):
                             # catch incase there is no intensity in the chunk.
                             limits["peak"][pk][comp_names[cp]][0] -= 0.1
                             limits["peak"][pk][comp_names[cp]][1] += 0.1
-                            vary=False
+                            vary = False
                         params.add(
                             "peak_" + str(pk) + "_" + comp_list[cp] + "0",
                             peaks[pk][comp_names[cp]][0],
@@ -491,7 +522,11 @@ def fit_chunks(
                             vary=vary,
                         )
 
-                logger.debug(" ".join(map(str, [("Initiallised chunk; %i/%i" % (j, len(chunks)) )] )))
+                logger.debug(
+                    " ".join(
+                        map(str, [("Initiallised chunk; %i/%i" % (j, len(chunks)))])
+                    )
+                )
                 lg.pretty_print_to_logger(params, level="DEBUG", space=True)
                 # if debug:
                 if lg.make_logger_output(level="DEBUG"):
@@ -504,13 +539,15 @@ def fit_chunks(
                     settings_as_class.subfit_orders,
                     params,
                     fit_method=fit_method,
-                    max_n_fev = max_n_f_eval,
+                    max_n_fev=max_n_f_eval,
                     weights=None,
                 )
                 params = fit.params  # update lmfit parameters
 
                 # if debug:
-                logger.debug(" ".join(map(str, [("Fitted chunk; %i/%i" % (j, len(chunks)) )] )))
+                logger.debug(
+                    " ".join(map(str, [("Fitted chunk; %i/%i" % (j, len(chunks)))]))
+                )
                 lg.pretty_print_to_logger(params, level="DEBUG", space=True)
 
                 # get values from fit and append to arrays for output
@@ -600,8 +637,15 @@ def fit_chunks(
     return out_vals, new_azi_chunks
 
 
-def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=False, save_fit=False, max_n_f_eval=400):
-
+def fit_series(
+    master_params,
+    data,
+    settings_as_class,
+    start_end=[0, 360],
+    debug=False,
+    save_fit=False,
+    max_n_f_eval=400,
+):
     orders = settings_as_class.subfit_orders
 
     # Initiate background parameters and perform an initial fit
@@ -609,7 +653,6 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
     for b in range(len(orders["background"])):
         param_str = "bg_c" + str(b)
         comp = "f"
-
 
         lg.pretty_print_to_logger(master_params, level="DEBUG", space=True)
         # master_params.pretty_print()
@@ -643,7 +686,6 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
 
     # initiate peak(s)
     for j in range(len(orders["peak"])):
-
         # defines peak string to start parameter name
         param_str = "peak_" + str(j)
 
@@ -703,7 +745,7 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
                     symmetry=symmetry,
                     errs=data_val_errors,
                     fit_method="leastsq",
-                    max_nfev = max_n_f_eval
+                    max_nfev=max_n_f_eval,
                 )
 
             master_params = fout.params
@@ -732,7 +774,6 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
             ax[i].set_title(comp_names[i])
             ax[i].set_xlim(x_lims)
             for j in range(len(orders["peak"])):
-
                 param_str = "peak_" + str(j)
                 comp = comp_list[i]
                 if "symmetry" in orders["peak"][j].keys() and comp != "d":
@@ -757,7 +798,7 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
                     gmod_plot,
                 )
                 # set x-labels by data type.
-                #if notthing in the data class then continue
+                # if notthing in the data class then continue
                 try:
                     label_x = settings_as_class.data_class.dispersion_ticks(
                         disp_ticks=ax[i + 1].get_xticks
@@ -794,7 +835,7 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
             )
             ax[i + k + 1].set_xlim(x_lims)
             # set x-labels by data type.
-            #if notthing in the data class then continue
+            # if notthing in the data class then continue
             try:
                 label_x = settings_as_class.data_class.dispersion_ticks(
                     disp_ticks=ax[i + k + 1].get_xticks

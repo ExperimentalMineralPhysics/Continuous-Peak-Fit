@@ -1,13 +1,14 @@
 __all__ = ["Requirements", "WriteOutput"]
 
+# import cpf.PeakFunctions as ff
+import json
 import os
 
 import numpy as np
 
-# import cpf.PeakFunctions as ff
-import json
 import cpf.IO_functions as IO
 import cpf.series_functions as sf
+
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
 
@@ -31,7 +32,6 @@ def Requirements():
 def WriteOutput(
     setting_class=None, setting_file=None, differential_only=False, debug=True, **kwargs
 ):
-
     # writes output from multifit in the form of *.fit files required for polydefix.
     # writes a separate file for each diffraction pattern.
     # uses the parameters in the json files to do so.
@@ -72,7 +72,6 @@ def WriteOutput(
     wavelength = setting_class.data_class.conversion_constant
 
     for z in range(setting_class.image_number):
-
         # read file to write output for
         # filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
         # filename = filename+'.json'
@@ -90,12 +89,18 @@ def WriteOutput(
         # Read JSON data from file
         with open(filename) as json_data:
             data_to_write = json.load(json_data)
-            data_to_write = IO.replace_null_terms(data_to_write, val_to_find=None, replace_with=0)
+            data_to_write = IO.replace_null_terms(
+                data_to_write, val_to_find=None, replace_with=0
+            )
 
         # create output file name from passed name
         base = setting_class.subfit_filename
         if base is None:
-            logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
+            logger.info(
+                " ".join(
+                    map(str, [("No base filename, using input filename instead.")])
+                )
+            )
             base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
         # if not base:
         #     logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
@@ -155,7 +160,6 @@ def WriteOutput(
         # print num_subpatterns
 
         for j in range(num_subpatterns):
-
             text_file.write("# Sub-patterns        %i\n" % j)
 
             # number of peaks

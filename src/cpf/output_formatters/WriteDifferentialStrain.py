@@ -1,17 +1,17 @@
 __all__ = ["Requirements", "WriteOutput"]
 
 
+# import cpf.PeakFunctions as pf
+import json
 import os
 
 import numpy as np
-
-# import cpf.PeakFunctions as pf
-import json
 from lmfit.model import load_modelresult
-import cpf.lmfit_model as lmm
 
 import cpf.IO_functions as IO
+import cpf.lmfit_model as lmm
 import cpf.output_formatters.convert_fit_to_crystallographic as cfc
+
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
 
@@ -23,8 +23,8 @@ def Requirements():
         #'apparently none!
     ]
     OptionalParams = [
-        "SampleGeometry" # changes the strain tensor calucaltion from 2d to 3d. This determines how the cetroid and differnetial strain of the dpsaice are extracted from the fourier series.
-        "SampleDeformation" # changes calculation between 'compression' and 'extension'.
+        "SampleGeometry"  # changes the strain tensor calucaltion from 2d to 3d. This determines how the cetroid and differnetial strain of the dpsaice are extracted from the fourier series.
+        "SampleDeformation"  # changes calculation between 'compression' and 'extension'.
     ]
 
     return RequiredParams, OptionalParams
@@ -56,8 +56,6 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
     # version 2  accounts for 2d and 3d experimntal gemoetries, compression and extension. The crystallographic values are now calculated in a different file/function.
     f_version = 2
 
-
-
     if setting_class is None and setting_file is None:
         raise ValueError(
             "Either the settings file or the setting class need to be specified."
@@ -73,20 +71,26 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
         SampleGeometry = setting_class.output_settings["SampleGeometry"].lower()
     SampleDeformation = "compression".lower()
     if "SampleDeformation" in setting_class.output_settings:
-            SampleDeformation = setting_class.output_settings["SampleDeformation"].lower()
+        SampleDeformation = setting_class.output_settings["SampleDeformation"].lower()
 
     base = setting_class.datafile_basename
 
     # if not base:
     if base is None or len(base) == 0:
-        logger.info(" ".join(("No base filename, trying ending without extension instead.")))
+        logger.info(
+            " ".join(("No base filename, trying ending without extension instead."))
+        )
         base = setting_class.datafile_ending
 
     if base is None:
         logger.info(" ".join(("No base filename, using input filename instead.")))
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
     out_file = IO.make_outfile_name(
-        base, directory=setting_class.output_directory, extension=".dat", overwrite=True, additional_text=setting_class.file_label
+        base,
+        directory=setting_class.output_directory,
+        extension=".dat",
+        overwrite=True,
+        additional_text=setting_class.file_label,
     )
 
     text_file = open(out_file, "w")
@@ -95,9 +99,13 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
         "# Summary of fits produced by continuous_peak_fit for input file: %s.\n"
         % setting_class.settings_file  # FitSettings.inputfile
     )
-    text_file.write(f"# Sample Geometry = {SampleGeometry}; Sample Deformation = {SampleDeformation}\n")
+    text_file.write(
+        f"# Sample Geometry = {SampleGeometry}; Sample Deformation = {SampleDeformation}\n"
+    )
     text_file.write("# \n")
-    text_file.write("# For more information: https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit\n")
+    text_file.write(
+        "# For more information: https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit\n"
+    )
     text_file.write("# File version: %i \n" % f_version)
     text_file.write("# \n")
 
@@ -168,17 +176,20 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
 
             all_fits.append(fit)
 
-            #calculate the required parameters.
+            # calculate the required parameters.
             num_subpatterns = len(fit)
             for y in range(num_subpatterns):
-
                 out_name = IO.make_outfile_name(
                     setting_class.subfit_filename,
                     directory="",
                     overwrite=True,
                 )
                 # logger.info(" ".join(('  Incorporating ' + subfilename)))
-                logger.info(" ".join(["  Incorporating: %s,%s" % (out_name, IO.peak_string(fit[y])) ]))
+                logger.info(
+                    " ".join(
+                        ["  Incorporating: %s,%s" % (out_name, IO.peak_string(fit[y]))]
+                    )
+                )
                 # try reading an lmfit object file.
                 savfilename = IO.make_outfile_name(
                     setting_class.subfit_filename,
@@ -200,44 +211,64 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                             )
                         except:
                             # raise FileNotFoundError
-                            logger.info(" ".join(map(str, [("    Can't open file with the correlation coefficients in...")])))
+                            logger.info(
+                                " ".join(
+                                    map(
+                                        str,
+                                        [
+                                            (
+                                                "    Can't open file with the correlation coefficients in..."
+                                            )
+                                        ],
+                                    )
+                                )
+                            )
                     # FIX ME: this will only work for one peak. Needs fixing if more then one peak in subpattern
                     try:
                         corr = gmodel.params["peak_0_d3"].correl["peak_0_d4"]
                     except:
                         corr = np.nan
 
-                elif "correlation_coeffs" in fit[y]: # try reading correlation coefficient from fit file.
+                elif (
+                    "correlation_coeffs" in fit[y]
+                ):  # try reading correlation coefficient from fit file.
                     try:
                         corr_all = json.loads(fit[0]["correlation_coeffs"])
                         corr = corr_all["peak_0_d3"]["peak_0_d4"]
                     except:
                         corr = np.nan
-                else: #no correlation coefficient.
+                else:  # no correlation coefficient.
                     corr = np.nan
 
                 width_fnam = np.max((width_fnam, len(out_name)))
 
                 for x in range(len(fit[y]["peak"])):
-
                     out_peak = []
 
                     if fit[y]["peak"][x]["d-space_type"] != "fourier":
-                        raise ValueError("This output type is not setup to process non-Fourier peak centroids.")
+                        raise ValueError(
+                            "This output type is not setup to process non-Fourier peak centroids."
+                        )
 
                     # peak
                     out_peak = IO.peak_string(fit[y], peak=[x])
                     width_hkl = np.max((width_hkl, len(out_peak)))
 
-                    #%%% get converted values.
-                    crystallographic_values = cfc.fourier_to_crystallographic(fit, SampleGeometry=SampleGeometry, SampleDeformation=SampleDeformation,  subpattern=y, peak=x)
+                    # %%% get converted values.
+                    crystallographic_values = cfc.fourier_to_crystallographic(
+                        fit,
+                        SampleGeometry=SampleGeometry,
+                        SampleDeformation=SampleDeformation,
+                        subpattern=y,
+                        peak=x,
+                    )
 
                     try:
-                        #centroid
+                        # centroid
                         out_d0 = crystallographic_values["dp"]
                         out_d0err = crystallographic_values["dp_err"]
 
-                        #differential components
+                        # differential components
                         out_dcos2 = fit[y]["peak"][x]["d-space"][3]
                         out_dsin2 = fit[y]["peak"][x]["d-space"][4]
                         out_dcos2err = fit[y]["peak"][x]["d-space_err"][3]
@@ -248,7 +279,9 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                         out_ang = crystallographic_values["orientation"]
                         out_angerr = crystallographic_values["orientation_err"]
 
-                        out_dcorr = corr  # gmodel.params['peak_0_d3'].correl['peak_0_d4']
+                        out_dcorr = (
+                            corr  # gmodel.params['peak_0_d3'].correl['peak_0_d4']
+                        )
 
                         # differential max
                         out_dmax = crystallographic_values["d_max"]
@@ -256,7 +289,6 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                         # differential min
                         out_dmin = crystallographic_values["d_min"]
                         out_dminerr = crystallographic_values["d_min_err"]
-
 
                         # centre position (not used)
                         # FIX ME: This is not correct at the time of writing. See function called above.
@@ -271,7 +303,6 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                         out_dderr = np.nan
                         out_ang = np.nan
                         out_angerr = np.nan
-
 
                     # height mean
                     if fit[y]["peak"][x]["height_type"] == "fourier":
@@ -324,8 +355,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                     if out_p0err is None:  # catch  'null' as an error
                         out_p0err = np.nan
 
-
-                    #%% write numbers to file
+                    # %% write numbers to file
 
                     text_file.write(
                         ("{0:<" + str(width_fnam) + "}").format(out_name + ",")

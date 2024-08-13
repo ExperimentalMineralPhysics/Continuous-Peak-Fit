@@ -45,35 +45,37 @@ Currently only linear cnversions have been implemented. An example:
 
 """
 
-
 __all__ = ["XYDetector"]
 
 
-import sys
-import re
 import os
 import pickle
+import re
+import sys
 from copy import deepcopy
+
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
-import matplotlib.pyplot as plt
 from matplotlib import image
-#import pyFAI
+
+# import pyFAI
 from PIL import Image
-# from matplotlib import gridspec
-#from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
-#from pyFAI.io import ponifile
-# from matplotlib import cm, colors
-from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+
+import cpf.h5_functions as h5_functions
+import cpf.logger_functions as lg
+from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
-from cpf import IO_functions
-import cpf.h5_functions as h5_functions
-import pickle
+
+# from matplotlib import gridspec
+# from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+# from pyFAI.io import ponifile
+# from matplotlib import cm, colors
+from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+
 # from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
-import cpf.logger_functions as lg
-
 
 # plot the data as an image (TRue) or a scatter plot (false).
 # FIXME: the plot as image (im_show) does not work. The fitted data has to be reshaped
@@ -82,7 +84,6 @@ plot_as_image = True
 
 
 class XYDetector:
-
     def __init__(self, settings_class=None):
         """
         :param calibration_parameters:
@@ -100,28 +101,29 @@ class XYDetector:
         self.x = None
         self.y = None
         self.azm_start = None
-        self.azm_end   = None
+        self.azm_end = None
         self.tth_start = None
-        self.tth_end   = None
+        self.tth_end = None
         # Single image plate detector so contonuous data.
         self.DispersionType = "EnergyDispersive"
         self.continuous_azm = False
 
-        self.azm_blocks = 45 # SAH: June 2024. I am not sure what this does in this class.
+        self.azm_blocks = (
+            45  # SAH: June 2024. I am not sure what this does in this class.
+        )
 
         self.calibration = None
         self.conversion_constant = None
         self.detector = None
 
-        #set the start and end limits for the data
-        #self.start = 0
-        #self.end   = np.inf
+        # set the start and end limits for the data
+        # self.start = 0
+        # self.end   = np.inf
 
         if settings_class:
             self.get_calibration(settings=settings_class)
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
-
 
     def duplicate(self):
         """
@@ -131,86 +133,87 @@ class XYDetector:
         new = deepcopy(self)
         return new
 
-
-
     def get_calibration(self, file_name=None, settings=None):
-       """
-       Opens the file with the calibration data in it and updates
-       XYDetector.calibration and
-       XYDetector.conversion_constant
+        """
+        Opens the file with the calibration data in it and updates
+        XYDetector.calibration and
+        XYDetector.conversion_constant
 
-       Either file_name or settings should be set.
+        Either file_name or settings should be set.
 
-       Parameters
-       ----------
-       file_name : string, optional
-           Filename of the calibration file. In this case a *.poni file.
-           The default is None.
-       settings : settings class, optional
-           cpf settings class containing the calibration file name.
-           The default is None.
+        Parameters
+        ----------
+        file_name : string, optional
+            Filename of the calibration file. In this case a *.poni file.
+            The default is None.
+        settings : settings class, optional
+            cpf settings class containing the calibration file name.
+            The default is None.
 
-       Returns
-       -------
-       None.
+        Returns
+        -------
+        None.
 
-       """
-       #make empty calibration
-       self.calibration = {
-                   #"x_dim":   0,
-                   #"x":       [0,1],
-                   #"x_start": None, # begining of the 'tth' axis
-                   #"x_end":   None, # end of the 'tth' axis
-                   #"y":       [0,1],
-                   #"y_start": None, # begining of the 'azimith' axis
-                   #"y_end":   None, # end of the 'azimith' axis
-                   #"conversion_constant": 1,
-                   #"max_shape": [0,0]
-                   }
+        """
+        # make empty calibration
+        self.calibration = {
+            # "x_dim":   0,
+            # "x":       [0,1],
+            # "x_start": None, # begining of the 'tth' axis
+            # "x_end":   None, # end of the 'tth' axis
+            # "y":       [0,1],
+            # "y_start": None, # begining of the 'azimith' axis
+            # "y_end":   None, # end of the 'azimith' axis
+            # "conversion_constant": 1,
+            # "max_shape": [0,0]
+        }
 
-       # parms_file is file
-       if settings != None:
-           temp_calib = settings.calibration_parameters
-       else:
-           parms_file = file_name
-           with open(parms_file, 'wb') as f:
-               temp_calib = pickle.dump("calibration", f)
+        # parms_file is file
+        if settings != None:
+            temp_calib = settings.calibration_parameters
+        else:
+            parms_file = file_name
+            with open(parms_file, "wb") as f:
+                temp_calib = pickle.dump("calibration", f)
 
-       #pass temp_calib into the calibration
-       for key, val in temp_calib.items():
-           self.calibration[key] = val
+        # pass temp_calib into the calibration
+        for key, val in temp_calib.items():
+            self.calibration[key] = val
 
-       if "conversion_constant" in self.calibration:
-           self.conversion_constant = self.calibration["conversion_constant"]
-       else:
-           self.conversion_constant = None
-       # self.azm_start = self.calibration["y_start"]
-       # self.azm_end = self.calibration["y_end"]
+        if "conversion_constant" in self.calibration:
+            self.conversion_constant = self.calibration["conversion_constant"]
+        else:
+            self.conversion_constant = None
+        # self.azm_start = self.calibration["y_start"]
+        # self.azm_end = self.calibration["y_end"]
 
-
-
-    def get_detector(self, settings=None, calibration_file=None, diffraction_data=None, debug=False):
+    def get_detector(
+        self, settings=None, calibration_file=None, diffraction_data=None, debug=False
+    ):
         """
         :param diff_file:
         :param settings:
         """
 
         if self.calibration == None:
-            self.get_calibration(settings=settings, file_name=calibration_file, debug=debug)
+            self.get_calibration(
+                settings=settings, file_name=calibration_file, debug=debug
+            )
 
-        if diffraction_data is None and  settings is not None:
+        if diffraction_data is None and settings is not None:
             if settings.calibration_data is None:
                 diffraction_data = settings.subfit_filename
             else:
                 diffraction_data = settings.calibration_data
 
-        self.detector = OrthogonalDetector(calibration=self.calibration, diffraction_data=diffraction_data, debug=debug)
-
-
-
+        self.detector = OrthogonalDetector(
+            calibration=self.calibration, diffraction_data=diffraction_data, debug=debug
+        )
 
     # @staticmethod
-    def import_image(self, image_name=None, settings=None, mask=None, dtype=None, debug=False):
+    def import_image(
+        self, image_name=None, settings=None, mask=None, dtype=None, debug=False
+    ):
         """
         Import the data image into the intensity array.
         Apply new mask to the data (if given) otherwise use previous mask
@@ -240,7 +243,7 @@ class XYDetector:
             Masked image intensity array.
 
         """
-        #check inputs
+        # check inputs
         if image_name == None and settings.subpattern == None:
             raise ValueError("Settings are given but no subpattern is set.")
 
@@ -248,14 +251,16 @@ class XYDetector:
             self.get_detector(settings)
 
         if image_name == None:
-            #load the data for the chosen subpattern.
+            # load the data for the chosen subpattern.
             image_name = settings.subfit_filename
-
 
         if isinstance(image_name, list):
             # then it is a h5 type file
             im = h5_functions.get_images(image_name)
-        elif os.path.splitext(image_name)[1] == ".txt" or os.path.splitext(image_name)[1] == ".csv":
+        elif (
+            os.path.splitext(image_name)[1] == ".txt"
+            or os.path.splitext(image_name)[1] == ".csv"
+        ):
             # load csvs or txt file as an image.
             im = csv_to_image(image_name)
         else:
@@ -266,17 +271,16 @@ class XYDetector:
         # inherits integer properties from the data.
         #
         # Allow option for the data type to be set.
-        if dtype==None:
+        if dtype == None:
             if self.intensity is None and np.size(self.intensity) > 2:
                 # self.intensity has been set before. Inherit the dtype.
                 dtype = self.intensity.dtype
             elif "int" in im[0].dtype.name:
-                #the type is either int or uint - convert to float
+                # the type is either int or uint - convert to float
                 # using same bit precision
                 precision = re.findall("\d+", im[0].dtype.name)[0]
-                dtype = np.dtype("float"+precision)
+                dtype = np.dtype("float" + precision)
         im = ma.array(im, dtype=dtype)
-
 
         if self.calibration["x_dim"] != 0:
             im = im.T
@@ -314,7 +318,7 @@ class XYDetector:
             self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
             return ma.array(im, mask=mask)
         else:
-            #apply mask from intensities
+            # apply mask from intensities
             self.intensity = ma.array(im, mask=self.intensity.mask)
             return ma.array(im)
 
@@ -335,11 +339,8 @@ class XYDetector:
             return ma.array(im)
        """
 
-
-
     def fill_data(
-        self, diff_file=None, settings=None, mask=None, make_zyx=False,
-        debug=False
+        self, diff_file=None, settings=None, mask=None, make_zyx=False, debug=False
     ):
         """
         Initiates the data arrays.
@@ -375,11 +376,11 @@ class XYDetector:
         None.
         """
 
-        #check inputs
+        # check inputs
         if diff_file != None:
             pass
-        elif settings != None: # and diff_file == None
-            #load the data for the chosen subpattern.
+        elif settings != None:  # and diff_file == None
+            # load the data for the chosen subpattern.
             if settings.subfit_filename != None:
                 diff_file = settings.subfit_filename
             else:
@@ -387,14 +388,14 @@ class XYDetector:
         else:
             raise ValueError("No diffreaction file or settings have been given.")
 
-        if mask==None:
-            if settings.calibration_mask:# in settings.items():
+        if mask == None:
+            if settings.calibration_mask:  # in settings.items():
                 mask = settings.calibration_mask
 
         if self.detector == None:
             self.get_detector(settings=settings)
 
-        #get the intensities (without mask)
+        # get the intensities (without mask)
         self.intensity = self.import_image(diff_file)
 
         self.tth = ma.array(self.detector.get_horizontal())
@@ -402,14 +403,16 @@ class XYDetector:
 
         # self.dspace = self._get_d_space()
 
-        #get and apply mask
+        # get and apply mask
         mask_array = self.get_mask(mask, self.intensity)
         self.mask_apply(mask_array, debug=debug)
 
-        self.azm_start = np.around(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        self.azm_end = np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-
-
+        self.azm_start = (
+            np.around(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        )
+        self.azm_end = (
+            np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        )
 
     @staticmethod
     def detector_check(calibration_data, settings=None):
@@ -436,7 +439,6 @@ class XYDetector:
         # FIX ME: check the detector type is valid.
         return detector
 
-
     def get_requirements(self, parameter_settings=None):
         """
         Get the parameters required for this detector
@@ -452,7 +454,20 @@ class XYDetector:
                 if par in required_list:
                     logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    logger.info(" ".join(map(str, [("The settings file requires a parameter called  '", par, "'")])))
+                    logger.info(
+                        " ".join(
+                            map(
+                                str,
+                                [
+                                    (
+                                        "The settings file requires a parameter called  '",
+                                        par,
+                                        "'",
+                                    )
+                                ],
+                            )
+                        )
+                    )
                     all_present = 0
             if all_present == 0:
                 sys.exit(
@@ -460,7 +475,6 @@ class XYDetector:
                     "are all present."
                 )
         return required_list
-
 
 
 def csv_to_image(image_name):
@@ -471,8 +485,9 @@ def csv_to_image(image_name):
     while done == 0:
         if os.path.splitext(image_name)[1] == ".csv":
             import csv
+
             im = []
-            with open(image_name, 'r', encoding='utf-8-sig') as f:
+            with open(image_name, "r", encoding="utf-8-sig") as f:
                 reader = csv.reader(f)
                 for row in reader:
                     for i in range(len(row)):
@@ -480,7 +495,7 @@ def csv_to_image(image_name):
                             row[i] = np.nan
                         else:
                             row[i] = float(row[i])
-                        #row[row == ""] = 0
+                        # row[row == ""] = 0
                     im.append(row)
 
             im = np.array(im)
@@ -492,7 +507,7 @@ def csv_to_image(image_name):
             except:
                 done = 0
                 n += 1
-                if n>20:
+                if n > 20:
                     # issue an error
                     err_str = "There seems to be more than 20 header rows in the data file. Is this correct?"
                     raise ValueError(err_str)
@@ -501,43 +516,44 @@ def csv_to_image(image_name):
 
 # add common function.
 XYDetector._get_d_space = _AngleDispersive_common._get_d_space
-XYDetector.conversion   = _AngleDispersive_common.conversion
-XYDetector.bins         = _AngleDispersive_common.bins
-XYDetector.set_limits   = _AngleDispersive_common.set_limits
-XYDetector.test_azims   = _AngleDispersive_common.test_azims
+XYDetector.conversion = _AngleDispersive_common.conversion
+XYDetector.bins = _AngleDispersive_common.bins
+XYDetector.set_limits = _AngleDispersive_common.set_limits
+XYDetector.test_azims = _AngleDispersive_common.test_azims
 
-#add masking functions to detetor class.
-XYDetector.get_mask     = _masks.get_mask
-XYDetector.set_mask     = _masks.set_mask
-XYDetector.mask_apply   = _masks.mask_apply
+# add masking functions to detetor class.
+XYDetector.get_mask = _masks.get_mask
+XYDetector.set_mask = _masks.set_mask
+XYDetector.mask_apply = _masks.mask_apply
 XYDetector.mask_restore = _masks.mask_restore
-XYDetector.mask_remove  = _masks.mask_remove
+XYDetector.mask_remove = _masks.mask_remove
 
-#these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
-#Each of these methods remains here because they are called by higher-level functions:
-XYDetector.plot_masked      = _Plot_AngleDispersive.plot_masked
-XYDetector.plot_fitted      = _Plot_AngleDispersive.plot_fitted
-XYDetector.plot_collected   = _Plot_AngleDispersive.plot_collected
-XYDetector.plot_calibrated  = _Plot_AngleDispersive.plot_calibrated
-#this function is added because it requires access to self:
+# these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
+# Each of these methods remains here because they are called by higher-level functions:
+XYDetector.plot_masked = _Plot_AngleDispersive.plot_masked
+XYDetector.plot_fitted = _Plot_AngleDispersive.plot_fitted
+XYDetector.plot_collected = _Plot_AngleDispersive.plot_collected
+XYDetector.plot_calibrated = _Plot_AngleDispersive.plot_calibrated
+# this function is added because it requires access to self:
 XYDetector.dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks
 
 
-
-
-
-
-class OrthogonalDetector():
-
-    def __init__(self, calibration=None, diffraction_data=None, mask=None, max_shape=None, debug=False):
-
+class OrthogonalDetector:
+    def __init__(
+        self,
+        calibration=None,
+        diffraction_data=None,
+        mask=None,
+        max_shape=None,
+        debug=False,
+    ):
         self.calibration = calibration
         self.max_shape = max_shape
 
         if calibration:
-            self.load_calibration(calibration=calibration, diffraction_data=diffraction_data)
-
-
+            self.load_calibration(
+                calibration=calibration, diffraction_data=diffraction_data
+            )
 
     def load_calibration(self, calibration=None, diffraction_data=None):
         """
@@ -571,7 +587,7 @@ class OrthogonalDetector():
         self.calibration["y_start"] = np.nan
         self.calibration["y_end"] = np.nan
         self.calibration["y_scale"] = "linear"
-        self.calibration["rotation"] = 0 # in degrees
+        self.calibration["rotation"] = 0  # in degrees
 
         self.calibration["x_unit"] = "degrees"
         self.calibration["x_label"] = "two theta"
@@ -588,48 +604,59 @@ class OrthogonalDetector():
                 elif key in list(self.calibration.keys()):
                     self.calibration[key] = value
                 else:
-                    error_str = "Key '" + key + "' in not recognised as a calibration parameter"
+                    error_str = (
+                        "Key '" + key + "' in not recognised as a calibration parameter"
+                    )
                     raise ValueError(error_str)
 
         if "max_shape" in list(self.calibration.keys()):
             self.max_shape = self.calibration["max_shape"]
         elif diffraction_data:
-            if (os.path.splitext(diffraction_data)[1] == ".txt" or
-                os.path.splitext(diffraction_data)[1] == ".csv"):
+            if (
+                os.path.splitext(diffraction_data)[1] == ".txt"
+                or os.path.splitext(diffraction_data)[1] == ".csv"
+            ):
                 self.max_shape = csv_to_image(diffraction_data).shape
             else:
                 with Image.open(diffraction_data) as img:
                     self.max_shape = img.size
-        if self.calibration["x_dim"]!=0:
+        if self.calibration["x_dim"] != 0:
             self.max_shape = np.flip(self.max_shape)
 
         # either "x" or x_start and x_end are allowed. Fill in the other values.
         if self.calibration["x"] == None:
-            self.calibration["x"] = (self.calibration["x_start"], (self.calibration["x_end"]-self.calibration["x_start"])/(self.max_shape[self.calibration["x_dim"]]-1))
+            self.calibration["x"] = (
+                self.calibration["x_start"],
+                (self.calibration["x_end"] - self.calibration["x_start"])
+                / (self.max_shape[self.calibration["x_dim"]] - 1),
+            )
         if self.calibration["x_start"] == np.nan:
             self.calibration["x_start"] = self.calibration["x"][0]
-            self.calibration["x_end"]   = self.calibration["x"][0] + self.calibration["x"][1] * (self.max_shape[self.calibration["x_dim"]]-1)
+            self.calibration["x_end"] = self.calibration["x"][0] + self.calibration[
+                "x"
+            ][1] * (self.max_shape[self.calibration["x_dim"]] - 1)
         # ditto for y.
-        if self.calibration["x_dim"]==0:
+        if self.calibration["x_dim"] == 0:
             y_dim = 1
         else:
             y_dim = 0
         if self.calibration["y"] == None:
-            self.calibration["y"] = (self.calibration["y_start"], (self.calibration["y_end"]-self.calibration["y_start"])/(self.max_shape[y_dim]-1))
+            self.calibration["y"] = (
+                self.calibration["y_start"],
+                (self.calibration["y_end"] - self.calibration["y_start"])
+                / (self.max_shape[y_dim] - 1),
+            )
         if self.calibration["y_start"] == np.nan:
             self.calibration["y_start"] = self.calibration["y"][0]
-            self.calibration["y_end"]   = self.calibration["y"][0] + self.calibration["y"][1] * (self.max_shape[y_dim]-1)
-
+            self.calibration["y_end"] = self.calibration["y"][0] + self.calibration[
+                "y"
+            ][1] * (self.max_shape[y_dim] - 1)
 
         self.calibration_check
-
-
 
     def calibration_check(self):
         # FIXME (SAH, June 2024) This should have a validation proess in here.
         pass
-
-
 
     def get_xy(self):
         """
@@ -643,33 +670,34 @@ class OrthogonalDetector():
             DESCRIPTION.
         """
 
-        if self.calibration["x_dim"] ==1:
+        if self.calibration["x_dim"] == 1:
             nx, ny = self.max_shape
         else:
             nx, ny = self.max_shape
 
         if self.calibration["x_scale"] == "linear":
-            x = np.linspace(0, nx-1, nx)
+            x = np.linspace(0, nx - 1, nx)
         else:
-            x = np.logspace(0, nx-1, nx)
+            x = np.logspace(0, nx - 1, nx)
         if self.calibration["y_scale"] == "linear":
-            y = np.linspace(0, ny-1, ny)
+            y = np.linspace(0, ny - 1, ny)
         else:
-            y = np.logspace(0, ny-1, ny)
-        x_array, y_array = np.meshgrid(y,x)
+            y = np.logspace(0, ny - 1, ny)
+        x_array, y_array = np.meshgrid(y, x)
 
         if self.calibration["rotation"] != 0:
-            c, s = np.cos(self.calibration["rotation"]), np.sin(self.calibration["rotation"])
+            c, s = (
+                np.cos(self.calibration["rotation"]),
+                np.sin(self.calibration["rotation"]),
+            )
             R = np.array(((c, -s), (s, c)))
 
-            tmp = np.vstack((x_array,x_array))
+            tmp = np.vstack((x_array, x_array))
             tmp = R @ tmp
-            x_array = np.reshape(tmp[:,0], x_array.shape)
-            y_array = np.reshape(tmp[:,1], y_array.shape)
+            x_array = np.reshape(tmp[:, 0], x_array.shape)
+            y_array = np.reshape(tmp[:, 1], y_array.shape)
 
         return x_array, y_array
-
-
 
     def get_horizontal(self):
         """
@@ -678,13 +706,11 @@ class OrthogonalDetector():
         :return:
         """
         x_array, _ = self.get_xy()
-        calibrated_x = np.ones(x_array.shape)*self.calibration["x"][0]
-        for i in range(len(self.calibration["x"])-1):
-            calibrated_x += x_array * self.calibration["x"][i+1] * (i+1)
+        calibrated_x = np.ones(x_array.shape) * self.calibration["x"][0]
+        for i in range(len(self.calibration["x"]) - 1):
+            calibrated_x += x_array * self.calibration["x"][i + 1] * (i + 1)
 
         return calibrated_x
-
-
 
     def get_vertical(self, mask=None):
         """
@@ -693,7 +719,7 @@ class OrthogonalDetector():
         :return:
         """
         _, y_array = self.get_xy()
-        calibrated_y = np.ones(y_array.shape)*self.calibration["y"][0]
-        for i in range(len(self.calibration["y"])-1):
-            calibrated_y += y_array * self.calibration["y"][i+1] * (i+1)
+        calibrated_y = np.ones(y_array.shape) * self.calibration["y"][0]
+        for i in range(len(self.calibration["y"]) - 1):
+            calibrated_y += y_array * self.calibration["y"][i + 1] * (i + 1)
         return calibrated_y

@@ -13,7 +13,8 @@ import cpf.IO_functions as io
 import cpf.series_functions as sf
 import cpf.lmfit_model as lmm
 import cpf.histograms as hist
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 import cpf.logger_functions as lg
 
 
@@ -79,7 +80,7 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
             fit_method="leastsq",
         )
         temp_param = fout.params
-            
+
         lg.pretty_print_to_logger(temp_param, level="DEBUG", space=True)
         # if debug:
             # temp_param.pretty_print()
@@ -181,7 +182,7 @@ def get_chunk_peak_guesses(
         # FIX ME: altered from locals call as now passed as None - check!
         if dfour:  # If the positions have been pre-guessed extract values from dfour.
             # if debug and k == 0:
-            if k == 0:  
+            if k == 0:
                 logger.debug(" ".join(map(str, [("dfour in locals")])))
 
             coeff_type = sf.params_get_type(
@@ -302,7 +303,7 @@ def fit_chunks(
     mode="fit",
     histogram_type = None, #"width",
     histogram_bins = None,
-    max_n_f_eval=400, 
+    max_n_f_eval=400,
     save_fit=False,
     debug=False,
 ):
@@ -451,7 +452,7 @@ def fit_chunks(
                     if b == 0:
                         vary=True
                         if limits["background"][0]==limits["background"][1]:
-                            # catch incase there is no intensity in the chunk. 
+                            # catch incase there is no intensity in the chunk.
                             limits["background"][0] -= 0.1
                             limits["background"][1] += 0.1
                             vary = False
@@ -478,7 +479,7 @@ def fit_chunks(
                         else:
                             vary = True
                         if limits["peak"][pk][comp_names[cp]][0] == limits["peak"][pk][comp_names[cp]][1]:
-                            # catch incase there is no intensity in the chunk. 
+                            # catch incase there is no intensity in the chunk.
                             limits["peak"][pk][comp_names[cp]][0] -= 0.1
                             limits["peak"][pk][comp_names[cp]][1] += 0.1
                             vary=False
@@ -493,10 +494,10 @@ def fit_chunks(
                 logger.debug(" ".join(map(str, [("Initiallised chunk; %i/%i" % (j, len(chunks)) )] )))
                 lg.pretty_print_to_logger(params, level="DEBUG", space=True)
                 # if debug:
-                if lg.make_logger_output(level="DEBUG"):                
+                if lg.make_logger_output(level="DEBUG"):
                     # keep the original params for plotting afterwards
                     guess = params
-                    
+
                 # Run actual fit
                 fit = lmm.fit_model(
                     chunk_data,  # needs to contain intensity, tth, azi (as chunks), conversion factor
@@ -511,7 +512,7 @@ def fit_chunks(
                 # if debug:
                 logger.debug(" ".join(map(str, [("Fitted chunk; %i/%i" % (j, len(chunks)) )] )))
                 lg.pretty_print_to_logger(params, level="DEBUG", space=True)
-                    
+
                 # get values from fit and append to arrays for output
                 for i in range(len(background_guess)):
                     out_vals["bg"][i].append(params["bg_c" + str(i) + "_f0"].value)
@@ -609,7 +610,7 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
         param_str = "bg_c" + str(b)
         comp = "f"
 
-        
+
         lg.pretty_print_to_logger(master_params, level="DEBUG", space=True)
         # master_params.pretty_print()
         master_params = lmm.un_vary_params(
@@ -715,7 +716,7 @@ def fit_series(master_params, data, settings_as_class, start_end=[0,360], debug=
     lg.pretty_print_to_logger(master_params, level="DEBUG", space=True)
 
     # plot output of series fits....
-    if lg.make_logger_output(level="DEBUG"): 
+    if lg.make_logger_output(level="DEBUG"):
         x_lims = start_end
         azi_plot = range(np.int_(x_lims[0]), np.int_(x_lims[1]), 2)
         gmodel = Model(sf.coefficient_expand, independent_vars=["azimuth"])

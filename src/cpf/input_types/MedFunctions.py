@@ -16,24 +16,25 @@ from matplotlib import cm, colors, gridspec
 from cpf.input_types import Med, med_detectors
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 
 
 
 class MedDetector:
     """
-    Data class for Energy dispersive diffraction. 
-    
-    The defines the class for energy dispersive diffraction detectors and is 
-    currently implemented for the *.med files used by GSECARS and the APS, 
-    specifically APS beamline 6-BMB. 
-    
-    The data reading uses Mark Rivers' Med.py and Mca.py functions, which were 
-    downloaded from Github in June 2019. These were then edited to remove 
-    unnecessary dependencies e.g. the 'Numeric' and 'LinearAlgebra' packages 
+    Data class for Energy dispersive diffraction.
+
+    The defines the class for energy dispersive diffraction detectors and is
+    currently implemented for the *.med files used by GSECARS and the APS,
+    specifically APS beamline 6-BMB.
+
+    The data reading uses Mark Rivers' Med.py and Mca.py functions, which were
+    downloaded from Github in June 2019. These were then edited to remove
+    unnecessary dependencies e.g. the 'Numeric' and 'LinearAlgebra' packages
     and other functions that had further dependencies.
-    """   
-    
+    """
+
     def __init__(self, settings_class=None):
         """
         :param calibration_parameters:
@@ -59,11 +60,11 @@ class MedDetector:
         self.continuous_azm = False
 
         self.azm_blocks = 45
-        
+
         self.calibration = None
         self.conversion_constant = None
         self.detector = None
-        
+
         if settings_class:
             self.calibration = self.get_calibration(settings=settings_class)
         if self.calibration:
@@ -73,8 +74,8 @@ class MedDetector:
 
     def duplicate(self):
         """
-        Makes an independent copy of a MedDetector Instance.    
-        
+        Makes an independent copy of a MedDetector Instance.
+
         Parameters
         ----------
         None.
@@ -83,9 +84,9 @@ class MedDetector:
         -------
         MedDetector Instance.
         """
-        
+
         """
-        Cannot use deepcopy on the detector class itself. So have to use a 
+        Cannot use deepcopy on the detector class itself. So have to use a
         combination of copy and deepcopy.
         """
         new = MedDetector()
@@ -97,7 +98,7 @@ class MedDetector:
         new.azm_end   = copy(self.azm_end)
         new.tth_start = copy(self.tth_start)
         new.tth_end   = copy(self.tth_end)
-        
+
         new.intensity = deepcopy(self.intensity)
         new.tth = deepcopy(self.tth)
         new.azm = deepcopy(self.azm)
@@ -109,11 +110,11 @@ class MedDetector:
 
     def get_calibration(self, file_name=None, settings=None, debug=False):
         """
-        Opens the *.med file with the calibration data in it and updates 
+        Opens the *.med file with the calibration data in it and updates
         MedClass.calibration and MedClass.conversion_constant
-        
-        Either file_name or settings should be set. 
-        
+
+        Either file_name or settings should be set.
+
         Parameters
         ----------
         file_name : string, optional
@@ -205,21 +206,21 @@ class MedDetector:
         self.azm_start = np.floor((np.min(np.array(parms_dict["azimuths"])) / self.azm_blocks)) * self.azm_blocks
         self.azm_end   =  np.ceil((np.max(np.array(parms_dict["azimuths"])) / self.azm_blocks)) * self.azm_blocks
 
-        
+
         self.calibration = parms_dict
-        
-        
+
+
 
 
     def get_detector(self, settings=None, calibration_file=None, diffraction_data=None, debug=False):
         """
-        Takes the detector information from the settings class, or the 
-        calibration *.med file and creates a detector-type instance which converts 
-        the x,y,azimith of the diffraction data pixels into two-theta vs. 
+        Takes the detector information from the settings class, or the
+        calibration *.med file and creates a detector-type instance which converts
+        the x,y,azimith of the diffraction data pixels into two-theta vs.
         azimuth.
-        
-        Either settings or the file_name are required. 
-        
+
+        Either settings or the file_name are required.
+
         Parameters
         ----------
         file_name : string, optional
@@ -245,20 +246,20 @@ class MedDetector:
             self.detector = Med.Med(file=settings.calibration_parameters)
         elif calibration_file != None:
             self.detector = Med.Med(file=calibration_file)
-            
-            
-            
+
+
+
     def import_image(self, image_name=None, settings=None, mask=None, dtype=None, debug=False):
         """
-        Import the data image into the intensity array.        
+        Import the data image into the intensity array.
         Apply new mask to the data (if given) otherwise use previous mask
-        
+
         Parameters
         ----------
         image_name : string, optional
             Name of the image set to import. Either this or settings are required.
         settings : settings class, optional
-            Cpf setting class that constins the image set to import. 
+            Cpf setting class that constins the image set to import.
             Either this or imagename is required.
         mask : array, optional
             Mask array to apply to data. The default is None.
@@ -266,30 +267,30 @@ class MedDetector:
             Data type string, to force the data type and bit depth. The default is None.
         debug : boolian, optional
             True/Flase to display debuging information. The default is False.
-        
+
         Raises
         ------
         ValueError
             If there is no image_name of the settings.subpattern is not set.
-        
+
         Returns
         -------
         Im : masked array
             Masked image intensity array.
-        
+
         """
-        
+
         #check inputs
         if image_name == None and settings.subpattern == None:
             raise ValueError("Settings are given but no subpattern is set.")
-        
+
         if self.detector == None:
             self.get_detector(settings)
 
         if image_name == None:
             #load the data for the chosen subpattern.
-            image_name = settings.subfit_filename        
-        
+            image_name = settings.subfit_filename
+
         _, file_extension = os.path.splitext(image_name)
         if file_extension == ".med":
             self.detector.read_file(image_name)
@@ -306,10 +307,10 @@ class MedDetector:
         if dtype==None:
             if self.intensity is None and np.size(self.intensity) > 2:
                 # self.intensity has been set before. Inherit the dtype.
-                dtype = self.intensity.dtype  
+                dtype = self.intensity.dtype
             elif "int" in im_all[0].dtype.name:
                 #the type is either int or uint - convert to float
-                # using same bit precision 
+                # using same bit precision
                 precision = re.findall("\d+", im_all[0].dtype.name)[0]
                 dtype = np.dtype("float"+precision)
         im_all = ma.array(im_all, dtype=dtype)
@@ -326,23 +327,23 @@ class MedDetector:
             #apply mask from intensities
             self.intensity = ma.array(im_all, mask=self.intensity.mask)
             return ma.array(im_all)
-        
 
-            
+
+
     def fill_data(
-        self, diff_file=None, settings=None, mask=None, make_zyx=False, 
+        self, diff_file=None, settings=None, mask=None, make_zyx=False,
         debug=False
     ):
         """
-        Initiates the data arrays. 
-        Creates the intensity, two theta, azimuth and d-spacing arrays from the 
+        Initiates the data arrays.
+        Creates the intensity, two theta, azimuth and d-spacing arrays from the
         Detector and the data.
-        
-        If diffraction data is provided this makes the intensity array otherwise 
+
+        If diffraction data is provided this makes the intensity array otherwise
         the intensity array is filled with zeros.
 
         It must be called after setting the detector but before import_data.
-        
+
         Parameters
         ----------
         diff_file : string, optional
@@ -351,11 +352,11 @@ class MedDetector:
             cpf settings class containing the calibration file name.
             The default is None.
         mask : string or dirctionarry, optional
-            Filename or dictionary of instructions to make data mask. 
+            Filename or dictionary of instructions to make data mask.
             The default is None.
         make_zyx : boolian, optional
             Switch to make x,y,z arrays for the pixels. These arrays are not
-            used by default. They exist incase ever needed. 
+            used by default. They exist incase ever needed.
             The default is False.
         debug : True/False, optional
             Additional output, used for debugging.
@@ -365,7 +366,7 @@ class MedDetector:
         -------
         None.
         """
-            
+
         #check inputs
         if diff_file != None:
             pass
@@ -377,7 +378,7 @@ class MedDetector:
                 raise ValueError("Settings are given but no subpattern is set.")
         else:
             raise ValueError("No diffraction file or settings have been given.")
-            
+
         if mask==None:
             if settings.calibration_mask:# in settings.items():
                 mask = settings.calibration_mask
@@ -387,24 +388,24 @@ class MedDetector:
 
         #get the intensities (without mask)
         self.intensity = self.import_image(diff_file)
-                
+
         self.tth    = self._get_two_theta()
         self.azm    = self._get_azimuth()
         self.dspace = self._get_d_space()
         if make_zyx:
             raise ValueError("'make_zyx' is not implemented for MedDetector. ")
-            #  FIXME: (SAH 19th June 2024) implement this. 
-        
+            #  FIXME: (SAH 19th June 2024) implement this.
+
         #get and apply mask
         # catch old formtting of the mask
         if isinstance(mask, list):
             mask = {"detector": mask}
         mask_array = self.get_mask(mask, debug=debug)
         self.mask_apply(mask_array, debug=debug)
-        
+
         self.azm_start = np.around(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
         self.azm_end = np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        
+
 
 
     @staticmethod
@@ -628,27 +629,27 @@ class MedDetector:
     def test_azims(self, steps = None):
         """
         Returns unique azimuths in the data set.
-    
+
         Parameters
         ----------
         steps : None, optional
             DESCRIPTION. Does nothing in this case. Maintained for compatibility
-    
+
         Returns
         -------
         array
             list of possible azimuths.
-    
+
         """
         return np.unique(self.azm)
 
 
 # =============================================================================
-# Start of plotting functions. 
-# Not common with the angle dispersive plotting 
+# Start of plotting functions.
+# Not common with the angle dispersive plotting
 # =============================================================================
-    
-    
+
+
     def _dispersion_ticks(self, disp_ticks=None, unique=10, disp_lims = None):
         """
         Returns the labels for the dispersion axis/colour bars.
@@ -663,10 +664,10 @@ class MedDetector:
 
         return disp_ticks
 
-    
+
     def _plot_spacing(self, gap=200):
         """
-        Sets the spacing for the detectors in the plots. 
+        Sets the spacing for the detectors in the plots.
 
         Parameters
         ----------
@@ -787,7 +788,7 @@ class MedDetector:
 
         # tidy layout
         plt.tight_layout()
-        
+
 
 
     def plot_collected(
@@ -809,7 +810,7 @@ class MedDetector:
         :return:
         """
 
-        if spacing == None:        
+        if spacing == None:
             spacing = self._plot_spacing(gap=10)
 
         for x in range(len(self.intensity)):
@@ -828,7 +829,7 @@ class MedDetector:
         show="intensity",
         x_axis="default",
         y_axis="default",
-        spacing=None, 
+        spacing=None,
         data=None,
         limits=[0, 99.9],
         colourmap="jet",
@@ -845,9 +846,9 @@ class MedDetector:
         :return:
         """
 
-        if spacing == None:        
+        if spacing == None:
             spacing = self._plot_spacing(gap=200)
-            
+
         if x_axis == "default":
             plot_x = self.tth
         else:
@@ -933,7 +934,7 @@ class MedDetector:
             normalize = colors.Normalize(vmin=self.azm_start, vmax=self.azm_end)
             c_map = cm.get_cmap(name=colourmap)
             for i in range(len(np.unique(self.azm)) - 1, -1, -1):
-                
+
                 colour = c_map(
                     normalize(np.mean(plot_c[self.azm == np.unique(self.azm)[i]]))
                 )
@@ -969,7 +970,7 @@ class MedDetector:
 
 
 
-# add common functions. 
+# add common functions.
 MedDetector.set_limits   = _AngleDispersive_common.set_limits
 
 #add masking functions to detetor class.

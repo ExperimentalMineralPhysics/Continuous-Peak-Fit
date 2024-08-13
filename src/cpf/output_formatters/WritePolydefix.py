@@ -1,18 +1,19 @@
 __all__ = ["Requirements", "WriteOutput"]
 
-
+# import datetime
+import json
 import os
+# import re
 
 import numpy as np
+from pathlib import Path
 
-# import cpf.PeakFunctions as ff
-import cpf.output_formatters.WriteMultiFit as WriteMultiFit
-import json
 import cpf.IO_functions as IO
-from cpf.XRD_FitPattern import logger
+import cpf.output_formatters.WriteMultiFit as WriteMultiFit
+# import cpf.PeakFunctions as ff
+from cpf.logger_functions import logger
+# from cpf.XRD_FitPattern import logger
 
-# import re
-# import datetime
 
 
 def Requirements():
@@ -58,7 +59,7 @@ def WriteOutput(
             "bummer Either the settings file or the setting class need to be specified."
         )
     elif setting_class is None:
-        import cpf.XRD_FitPattern.initiate as initiate
+        from cpf.XRD_FitPattern import initiate
 
         setting_class = initiate(setting_file)
 
@@ -197,7 +198,7 @@ def WriteOutput(
         # needs absolute path for the data files and the string has to end with a '/' e.g. Users/me/data/BCC1_2GPa_10s_e/
         text_file.write(
             "     %s/\n"
-            % os.path.abspath(os.getcwd() + "/" + setting_class.output_directory)
+            % str(Path((os.getcwd())).resolve() / str(setting_class.output_directory))
         )
         text_file.write("# Basename for FIT files\n")
         # if last symbol in the file name is '_' then we need to strip it from the name

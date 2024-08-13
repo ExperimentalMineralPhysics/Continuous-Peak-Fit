@@ -17,7 +17,8 @@ import cpf.peak_functions as pf
 import cpf.lmfit_model as lmm
 import cpf.IO_functions as io
 from cpf.fitsubpattern_chunks import fit_chunks, fit_series
-from cpf.XRD_FitPattern import logger
+# from cpf.XRD_FitPattern import logger
+from cpf.logger_functions import logger
 import cpf.logger_functions as lg
 
 np.set_printoptions(threshold=sys.maxsize)
@@ -199,7 +200,7 @@ def fit_sub_pattern(
     iterations=2,
     fit_method=None,
     mode="fit",
-    histogram_type = None, 
+    histogram_type = None,
     histogram_bins = None,
     cascade=False,
     min_data_intensity = 1,
@@ -269,7 +270,7 @@ def fit_sub_pattern(
             # the previous fit has problems so discard it
             logger.moreinfo(" ".join(map(str, [("Propagated fit has problems so discarding it and doing fit from scratch")])))
             previous_params = None
-            
+
     if previous_params:
         # check if the previous fit d-spacings fall within the bounds.
         # if they are not then assume the previous fit must have been poor and discard it.
@@ -286,7 +287,7 @@ def fit_sub_pattern(
                 )
             )
         if (
-            np.min(fit_centroid) < settings_as_class.subfit_orders["range"][0] or 
+            np.min(fit_centroid) < settings_as_class.subfit_orders["range"][0] or
             np.min(fit_centroid) > settings_as_class.subfit_orders["range"][1]
         ):
             logger.moreinfo(" ".join(map(str, [("Fitted d-spacing limits are out of bounds; discarding the fit and starting again.")])))
@@ -333,15 +334,15 @@ def fit_sub_pattern(
                 values=previous_params,
                 debug=debug,
             )
-            
-            #check if the data intensity is above threshold. 
+
+            #check if the data intensity is above threshold.
             if np.max(data_as_class.intensity) <= min_data_intensity:
                 #then there is likely no determinable peak in the data
                 logger.moreinfo(" ".join(map(str, [("Not sufficient intensity in the data to proceed with fitting (I_max < %s)." % min_data_intensity)])))
                 #set step to -21 so that it is still negative at the end
                 step = -21 #get to the end and void the fit
                 fout=master_params
-            
+
             if step >= 0 and not previous_params:
                 # There is no previous fit -- Fit data in azimuthal chunks
                 # using manual guesses ("PeakPositionSelection") if they exist.
@@ -349,12 +350,12 @@ def fit_sub_pattern(
                     data_as_class,
                     settings_as_class,
                     mode=mode,
-                    histogram_type = histogram_type, 
+                    histogram_type = histogram_type,
                     histogram_bins = histogram_bins,
                     debug=debug,
                     fit_method=fit_method
                 )
-                
+
                 if mode != "fit":  # cascade==True:
                     # some cascade option. so exit returning values.
                     return chunk_fits, chunk_positions
@@ -363,7 +364,7 @@ def fit_sub_pattern(
                 logger.moreinfo(" ".join(map(str, [("Performing Series fits...")])))
                 # Feed each d_0,h,w into coefficient function to get fit for coeficient component
                 # get lmfit parameters as output.
-                
+
                 # fit the chunk values with fourier/spline series.
                 # iterate over each parameter in turn
                 master_params = fit_series(
@@ -380,26 +381,26 @@ def fit_sub_pattern(
                 for k in range(peeks):
                     ave_intensity.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
                 if isinstance(min_peak_intensity, str):
-                    # is the threshold a multiple of the data's variance of standard deviation? 
+                    # is the threshold a multiple of the data's variance of standard deviation?
                     if min_peak_intensity.find("var") != -1:
                         var = np.var(data_as_class.intensity.flatten())
                         min_peak_intensity = min_peak_intensity.strip("var").strip("*")
                         if min_peak_intensity == "":
                             min_peak_intensity = 1
                         min_peak_intensity = float(min_peak_intensity) * var
-                        
+
                     elif min_peak_intensity.find("std") != -1:
                         std = np.std(data_as_class.intensity.flatten())
                         min_peak_intensity = min_peak_intensity.strip("std").strip("*")
                         if min_peak_intensity == "":
                             min_peak_intensity = 1
                         min_peak_intensity = float(min_peak_intensity) * std
-    
+
                     else:
                         err_str = "The 'min_peak_intensity' has to be a number or a multiple of 'var' or 'std'"
                         logger.critical(" ".join(map(str, [(err_str)])))
                         raise ValueError(err_str)
-                        
+
                 if np.max(ave_intensity) <= min_peak_intensity:
                     #then there is no determinable peak(s) in the data
                     logger.moreinfo(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting (h_max < %s)." % min_peak_intensity)])))
@@ -457,23 +458,23 @@ def fit_sub_pattern(
                         peak_mean.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
                     #get order to process peaks in -- reverse order starting with the most intense.
                     peak_order = np.array(peak_mean).argsort()[::-1]
-                    
-                    
+
+
                     comp_list, comp_names = pf.peak_components(include_profile=True)
-                    
+
                     # iterate over peak parameters in order and then by peak.
-                    # testing on triples (NaMgF3) shows this is better than iterating 
+                    # testing on triples (NaMgF3) shows this is better than iterating
                     # over peaks as the higher level loop.
                     for cp in range(len(comp_list)):
                         comp = comp_list[cp]
                         for l in range(peeks):
                             k = peak_order[l]
                             param_str = "peak_" + str(k)
-                             
+
                             if not (
                                 comp_names[cp]+"_fixed" in settings_as_class.subfit_orders["peak"][k]
                             ):
-                            
+
                                 # set other parameters to not vary
                                 master_params = lmm.un_vary_params(
                                     master_params, param_str, comp
@@ -510,46 +511,46 @@ def fit_sub_pattern(
                                     weights=None,
                                     max_n_fev=refine_max_f_eval,
                                 )
-                                master_params = fout.params       
+                                master_params = fout.params
 
                     logger.effusive(" ".join(map(str, [("Parameters after refining series fits %i time(s):" % (j+1))])))
                     #master_params.pretty_print()
                     lg.pretty_print_to_logger(master_params, level="EFFUSIVE")
-                        
+
                 step = step + 10
-            
+
                 #get mean height of chunked peaks and check if it is greater than threshold
                 ave_intensity = []
                 for k in range(peeks):
                     ave_intensity.append(sf.get_series_mean(master_params, "peak_"+str(k), comp="h"))
                 if isinstance(min_peak_intensity, str):
-                    # is the threshold a multiple of the data's variance of standard deviation? 
+                    # is the threshold a multiple of the data's variance of standard deviation?
                     if min_peak_intensity.find("var") != -1:
                         var = np.var(data_as_class.intensity.flatten())
                         min_peak_intensity = min_peak_intensity.strip("var").strip("*")
                         if min_peak_intensity == "":
                             min_peak_intensity = 1
                         min_peak_intensity = float(min_peak_intensity) * var
-                        
+
                     elif min_peak_intensity.find("std") != -1:
                         std = np.std(data_as_class.intensity.flatten())
                         min_peak_intensity = min_peak_intensity.strip("std").strip("*")
                         if min_peak_intensity == "":
                             min_peak_intensity = 1
                         min_peak_intensity = float(min_peak_intensity) * std
-    
+
                     else:
                         err_str = "The 'min_peak_intensity' has to be a number or a multiple of 'var' or 'std'"
                         logger.critical(" ".join(map(str, [(err_str)])))
                         raise ValueError(err_str)
-                        
+
                 if np.max(ave_intensity) <= min_peak_intensity:
                     #then there is no determinable peak in the data
                     logger.moreinfo(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting.")])))
                     #set step to -101 so that it is still negative at the end
                     step = -101 #get to the end and void the fit
                     fout=master_params
-            
+
             else:
                 step = step + 11
 
@@ -578,11 +579,11 @@ def fit_sub_pattern(
                 # set these parameters to vary
                 master_params = lmm.vary_params(master_params, param_str, comp)
                 # set part of these parameters to not vary
-                
+
             comp_list, comp_names = pf.peak_components(include_profile=True)
             for k in range(peeks):
                 param_str = "peak_" + str(k)
-                
+
                 for cp in range(len(comp_list)):
                     comp = comp_list[cp]
                     if (
@@ -618,8 +619,8 @@ def fit_sub_pattern(
             )
             master_params = fout.params
 
-            if (fout.success == 1 and 
-                    previous_params != None and 
+            if (fout.success == 1 and
+                    previous_params != None and
                     io.any_errors_huge(
                         lmm.params_to_new_params(master_params, orders=settings_as_class.subfit_orders),
                         large_errors=large_errors)==0):
@@ -627,14 +628,14 @@ def fit_sub_pattern(
                 step = 0
                 # clear previous_params so we can't get back here
                 previous_params = None
-            elif (fout.success == 1 and 
-                    previous_params != None and 
+            elif (fout.success == 1 and
+                    previous_params != None and
                     io.any_terms_null(master_params, val_to_find=None)==0):
                 logger.moreinfo(" ".join(map(str, [("The fitting worked, but propagated params could have lead to rubbish fits (null values). Try again.")])))
                 step = 0
                 # clear previous_params so we can't get back here
                 previous_params = None
-            elif fout.success == 1: 
+            elif fout.success == 1:
                 # it worked, errors are not massive, carry on
                 step = step + 100
                 master_params = fout.params
@@ -671,8 +672,8 @@ def fit_sub_pattern(
                         except:
                             # now we have run out of coefficients. So get the mean and then leave the loop.
                             done = 1
-    
-            
+
+
     # Write master_params to new_params dict object
     new_params = lmm.params_to_new_params(
         master_params, orders=settings_as_class.subfit_orders
@@ -681,7 +682,7 @@ def fit_sub_pattern(
     # if step < 0:
     #     new_params.update({"FitProperties": fit_stats})
     # else:
-    if step > 0:        
+    if step > 0:
         logger.effusive(" ".join(map(str, [("Final Coefficients")])))
         logger.effusive(" ".join(map(str, [(fout.fit_report(show_correl=False))])))
         # Record some stats
@@ -700,7 +701,7 @@ def fit_sub_pattern(
         correl_str = json.dumps(correl)
         correl_str = correl_str.replace("\n", "")
         new_params.update({"correlation_coeffs": correl_str})
-    
+
     # takes the maximum and minimum values to reflect data - rather then the inputs.
     new_params.update(
         {
@@ -748,33 +749,33 @@ def fit_sub_pattern(
             "aic": np.nan,
             "bic": np.nan,
         }
-        
+
     new_params.update({"FitProperties": fit_stats})
     new_params.update({"DataProperties": {"max": np.max(data_as_class.intensity),
                                           "min": np.min(data_as_class.intensity)}})
-    
+
     # add peak names to new_params
     new_params.update({"PeakLabel": io.peak_string(settings_as_class.subfit_orders)})
-    
+
     # Plot results to check
     view = 0
     if (save_fit == 1 or view == 1 or lg.make_logger_output("EFFUSIVE")) and step>0:
         logger.effusive(" ".join(map(str, [("Plotting results for fit...")])))
-        
+
         orientation = "vertical"
         if orientation == "vertical":
             fig = plt.figure(figsize=(4,6)) # default figure size is [6.4, 4.8]
         else:
             fig = plt.figure() # default figure size is [6.4, 4.8]
-        fig = plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=master_params, 
-                               params_dict=new_params, figure=fig, 
+        fig = plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=master_params,
+                               params_dict=new_params, figure=fig,
                                orientation=orientation,
-                               plot_type="scatter", 
+                               plot_type="scatter",
                                )
         title_str = io.peak_string(settings_as_class.subfit_orders) + "\n final fit"
         if "note" in settings_as_class.subfit_orders:
             title_str = title_str + " " + settings_as_class.subfit_orders["note"]
-        
+
         # io.figure_suptitle_space(fig, topmargin=2)
         plt.suptitle(title_str)
         plt.tight_layout()
@@ -822,8 +823,8 @@ def fit_sub_pattern(
 def plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=None, params_dict=None, figure=None, debug=False,
                      orientation="vertical", plot_type="scatter"):
     """
-    Generates the figure for the fitted data. 
-    It calls the plot_fitted function of the data_class and returns the figure. 
+    Generates the figure for the fitted data.
+    It calls the plot_fitted function of the data_class and returns the figure.
     Normally this has three axes: data, model and residuals but see Data class for specifics.
 
     Parameters
@@ -852,17 +853,17 @@ def plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=None, params_
         Figure with axes generated by DATA_CLASS.plot_fitted.
 
     """
-    
+
 
     #parse the input parameters
     if figure == None:
         figure = plt.figure()
     else:
         figure.clear(True)
-        
-    if param_lmfit == None and params_dict == None: 
+
+    if param_lmfit == None and params_dict == None:
         err_str = "No data has been passed."
-        raise ValueError(err_str) 
+        raise ValueError(err_str)
     elif param_lmfit == None:
         # initiate the model parameter set
         param_lmfit = lmm.initiate_all_params_for_fit(
@@ -871,7 +872,7 @@ def plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=None, params_
             values=params_dict,
             debug=debug,
         )
-    elif params_dict == None: 
+    elif params_dict == None:
         # make params dict from lmfit object
         params_dict = lmm.params_to_new_params(
             param_lmfit, orders=settings_as_class.subfit_orders
@@ -879,7 +880,7 @@ def plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=None, params_
     else:
         pass
         #all the required data are present in the required format.
-        
+
     y_lims = [data_as_class.azm_start, data_as_class.azm_end]
     gmodel = Model(
         lmm.peaks_model,

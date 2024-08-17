@@ -115,7 +115,7 @@ class _AngleDispersive_common():
             # split the data into bins with an approximately constant number of data.
             # uses b_num to determine bin size
             num_bins = int(np.round(len(self.azm[self.azm.mask == False]) / b_num))
-            bin_boundaries = self.equalObs(
+            bin_boundaries = equalObs(
                 np.sort(self.azm[self.azm.mask == False]), num_bins
             )
         elif bt == 1:

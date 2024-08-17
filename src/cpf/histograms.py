@@ -84,7 +84,7 @@ def histogram1d(tth,
         azm      = []
         dspc     = []
         
-        for i in range(np.int(bin_n)):
+        for i in range(int(bin_n)):
             data_start = int(np.round(order.size/np.round(bin_n)*i))
             data_end   = int(np.round(order.size/np.round(bin_n)*(i+1)))
             

@@ -300,6 +300,9 @@ class ESRFlvpDetector():
         positions = [positions[i] for i in order]
         files_list = [files_list[i] for i in order]
         
+        if not files_list:
+            raise ValueError("No image files are found")
+        
         return files_list, positions
         
         

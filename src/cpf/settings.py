@@ -4,6 +4,7 @@
 __all__ = ["settings", "get_output_options", "detector_factory"]
 
 import os
+import glob
 from copy import deepcopy, copy
 import numpy as np
 import importlib.util
@@ -390,7 +391,8 @@ class settings:
 
         for j in range(len(files_to_check)):
             # logger.info(" ".join(map(str, [(files_to_check[j])])))
-            if os.path.isfile(files_to_check[j]) is False:
+            if not glob.glob(files_to_check[j]):
+                # use glob.glob for a file search to account for compund detectors of ESRFlvp detectors
                 raise ImportError(
                     "The file " + files_to_check[j] + " is not found but is required."
                 )

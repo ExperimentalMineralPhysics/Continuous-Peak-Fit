@@ -153,6 +153,7 @@ def initiate(setting_file=None, inputs=None, out_type=None, report=False, **kwar
         #get number from name
         level = getattr(logging, report.upper())
     else:
+        level = 20
         pass # level should be a number
     logger.setLevel(level)
 
@@ -170,6 +171,59 @@ def initiate(setting_file=None, inputs=None, out_type=None, report=False, **kwar
     settings_for_fit.populate(settings_file=setting_file, report=report)
 
     return settings_for_fit
+
+
+
+def view(
+    setting_file=None,
+    setting_class=None,
+    inputs=None,
+    debug=False,
+    refine=True,
+    save_all=False,
+    # propagate=True,
+    iterations=1,
+    # track=False,
+    parallel=True,
+    pattern="all",
+    subpattern="all",
+    report=False,
+):
+    """
+    :param setting_file:
+    :param inputs:
+    :param debug:
+    :param refine:
+    :param save_all:
+    :param propagate:
+    :param iterations:
+    :param track:
+    :param parallel:
+    :param subpattern:
+    :param kwargs:
+    :return:
+    """
+
+    if setting_class is None:
+        settings_for_fit = initiate(setting_file, inputs=inputs, report=report)
+    else:
+        settings_for_fit = setting_class
+
+    # view the listed file only
+    if pattern != "all":
+        # restrict file list to first file
+        settings_for_fit.set_data_files(keep=pattern)
+
+    execute(
+        setting_class=settings_for_fit,
+        debug=debug,
+        refine=refine,
+        save_all=save_all,
+        iterations=iterations,
+        parallel=parallel,
+        mode="view",
+        report=True,
+    )
 
 
 def set_range(
@@ -609,7 +663,7 @@ def execute(
             pass
 
         # plot input file
-        if lg.make_logger_output(level="DEBUG"):
+        if lg.make_logger_output(level="DEBUG") or mode == "view":
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
             ax_o1 = plt.subplot(111)
@@ -617,7 +671,10 @@ def execute(
             # plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
             plt.title(title_file_names(settings_for_fit=settings_for_fit, num=j))
             plt.show()
-            plt.close()
+            if mode == "view":
+                sys.exit("Plotted data.")
+            else:
+                plt.close()
 
         # Get previous fit (if it exists and is required)
         if (

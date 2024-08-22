@@ -71,37 +71,54 @@ class MedDetector:
 
 
 
-    def duplicate(self):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
         """
-        Makes an independent copy of a MedDetector Instance.    
+        Makes an independent copy of a MedDetector Instance. 
         
+        range_bounds and azi_bounds restrict the extent of the data if needed. 
+        The range resturictions should be applied upon copying (if required) for memory efficieny.
+        Laternatively run:
+        data_class.duplicate()
+        date_calss.set_limit2(range_bounds=[...], azi_bounds=[...])
+                
         Parameters
         ----------
-        None.
+        range_bounds : dict or array, optional
+            Limits for the two theta range. The default is [-np.inf, np.inf].
+        azi_bounds : dict or array, optional
+            Limits for the azimuth range. The default is [-np.inf, np.inf].
 
         Returns
         -------
-        MedDetector Instance.
+        new : MedDetector Instance.
+            Copy of MedDetector with independedent data values
+
         """
+
+        new = copy(self)
         
-        """
-        Cannot use deepcopy on the detector class itself. So have to use a 
-        combination of copy and deepcopy.
-        """
-        new = MedDetector()
-        # new.parameters = copy(self.parameters)
-        new.calibration = copy(self.calibration)
-        new.x = copy(self.x)
-        new.y = copy(self.y)
-        new.azm_start = copy(self.azm_start)
-        new.azm_end   = copy(self.azm_end)
-        new.tth_start = copy(self.tth_start)
-        new.tth_end   = copy(self.tth_end)
+        local_mask = np.where(
+            (self.tth >= range_bounds[0]) & 
+            (self.tth <= range_bounds[1]) &
+            (self.azm >= azi_bounds[0]) & 
+            (self.azm <= azi_bounds[1])
+        )
         
-        new.intensity = deepcopy(self.intensity)
-        new.tth = deepcopy(self.tth)
-        new.azm = deepcopy(self.azm)
-        new.dspace = deepcopy(self.dspace)
+        new.intensity = deepcopy(self.intensity[local_mask])
+        new.tth       = deepcopy(self.tth[local_mask])
+        new.azm       = deepcopy(self.azm[local_mask])
+        if "dspace" in dir(self):
+            new.dspace = deepcopy(self.dspace[local_mask])
+        
+        if "x" in dir(self): 
+            if self.x is not None:
+                new.x = deepcopy(self.x[local_mask])
+        if "y" in dir(self): 
+            if self.y is not None:
+                new.y = deepcopy(self.y[local_mask])
+        if "z" in dir(self): 
+            if self.z is not None:
+                new.z = deepcopy(self.z[local_mask])
 
         return new
 
@@ -957,7 +974,7 @@ class MedDetector:
             # set colour bar labels with unique azimuths (if there are less than 'unique' azimuths - see function for value of unique).
             ticks = self._dispersion_ticks()
             if colourbar is True:
-                cbar = fig_plot.colorbar(s_map, ticks=ticks, orientation=orientation)
+                cbar = plt.colorbar(s_map, ticks=ticks, orientation=orientation, ax=axis_plot)
                 cbar.set_label("Azimuth")
             else:
                 cbar = []

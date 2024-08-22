@@ -6,9 +6,8 @@ __all__ = ["ESRFlvpDetector"]
 import sys
 import json
 import glob
-import copy
 import re
-from copy import deepcopy
+from copy import deepcopy, copy
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
@@ -189,20 +188,55 @@ class ESRFlvpDetector():
             self.detector = self.get_detector(settings=settings_class)
 
 
-    def duplicate(self):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
         """
-        Makes an independent copy of a ESRFlvpDetector Instance
+        Makes an independent copy of a ESRFlvpDetector Instance. 
+        
+        range_bounds and azi_bounds restrict the extent of the data if needed. 
+        The range resturictions should be applied upon copying (if required) for memory efficieny.
+        Laternatively run:
+        data_class.duplicate()
+        date_calss.set_limit2(range_bounds=[...], azi_bounds=[...])
                 
         Parameters
         ----------
-        None.
+        range_bounds : dict or array, optional
+            Limits for the two theta range. The default is [-np.inf, np.inf].
+        azi_bounds : dict or array, optional
+            Limits for the azimuth range. The default is [-np.inf, np.inf].
 
         Returns
         -------
-        ESRFlvpDetector Instance.
+        new : ESRFlvpDetector Instance.
+            Copy of ESRFlvpDetector with independedent data values
 
         """
-        new = deepcopy(self)
+        
+        new = copy(self)
+        
+        local_mask = np.where(
+            (self.tth >= range_bounds[0]) & 
+            (self.tth <= range_bounds[1]) &
+            (self.azm >= azi_bounds[0]) & 
+            (self.azm <= azi_bounds[1])
+        )
+        
+        new.intensity = deepcopy(self.intensity[local_mask])
+        new.tth       = deepcopy(self.tth[local_mask])
+        new.azm       = deepcopy(self.azm[local_mask])
+        if "dspace" in dir(self):
+            new.dspace = deepcopy(self.dspace[local_mask])
+        
+        if "x" in dir(self): 
+            if self.x is not None:
+                new.x = deepcopy(self.x[local_mask])
+        if "y" in dir(self): 
+            if self.y is not None:
+                new.y = deepcopy(self.y[local_mask])
+        if "z" in dir(self): 
+            if self.z is not None:
+                new.z = deepcopy(self.z[local_mask])
+        
         return new
 
     
@@ -389,7 +423,7 @@ class ESRFlvpDetector():
         self.detector = MultiGeometry(ais, unit="2th_deg", radial_range=(1, 13), azimuth_range=(self.azm_start, self.azm_end)) 
         
 
-        logger.moreinfo(" ".join(map(str, [("Detector is: ", self.detector)] )) )
+        logger.moreinfo(" ".join(map(str, ["Detector is: %s" % self.detector] )) )
         if lg.make_logger_output(level="DEBUG"):            
             
             #plot all the positions of the AzimuthalIntegrators. 
@@ -476,7 +510,16 @@ class ESRFlvpDetector():
         #get ordered list of images
         frames, angles = self._get_sorted_files(image_name, debug=debug)     
         
-        im = np.array([np.flipud(fabio.open(f).data) for f in frames])
+        
+        # if mask is False and ma.is_masked(self.intensity) == True:
+        #     mask =self.intensity.mask
+            
+        if self.intensity is None:
+            self.intensity = ma.array([np.flipud(fabio.open(f).data) for f in frames], dtype=dtype)
+            self.intensity = ma.array(self.intensity, mask=self.get_mask(mask, self.intensity))
+        else:
+            dtype_tmp = self.intensity.dtype
+            self.intensity.data[:] = ma.array([np.flipud(fabio.open(f).data) for f in frames], dtype = dtype_tmp)
         # 13th June 2024 - Note on flipud: the flipud command is included to invert the short axis of the detector intensity. 
         # If I flip the data then the 'spots' in the reconstructed data are spot like, rather than incoherent 
         #intensity diffraction peaks. 
@@ -496,25 +539,46 @@ class ESRFlvpDetector():
             if self.intensity.size > 2:
                 # self.intensity has been set before. Inherit the dtype.
                 dtype = self.intensity.dtype  
-            elif "int" in im[0].dtype.name:
+            elif "int" in self.intensity[0].dtype.name:
                 #the type is either int or uint - convert to float
                 # using same bit precision 
-                precision = re.findall("\d+", im[0].dtype.name)[0]
+                precision = re.findall("\d+", self.intensity[0].dtype.name)[0]
                 dtype = np.dtype("float"+precision)  
-        im = ma.array(im, dtype=dtype)
+        # im = ma.array(im, dtype=dtype)
         
         # apply mask to the intensity array
-        if mask == None and ma.is_masked(self.intensity) == False:
-            self.intensity = ma.array(im)
-            return ma.array(im)
-        elif mask is not None:
-            # apply given mask
-            self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
-            return ma.array(im, mask=mask)
-        else:
-            #apply mask from intensities
-            self.intensity = ma.array(im, mask=self.intensity.mask)
-            return ma.array(im)
+        # print("mask", mask)
+        # print(ma.is_masked(self.intensity))
+        # try:
+        #     print("mask 1", self.intensity.mask[0][0])
+        # except:
+        #     pass
+        
+        # if mask is not False:
+        #     self.intensity = ma.array(self.intensity, mask=self.get_mask(mask, self.intensity))
+        
+        # if mask is False:
+        #     return self.intensity
+        # elif mask is not False:
+        #     # apply given mask
+        #     self.intensity = ma.array(self.intensity, mask=self.fill_mask(mask, self.intensity))
+        #     return ma.array(im, mask=mask)
+        # else:
+        #     #apply mask from intensities
+        #     # self.intensity = ma.array(im, mask=self.intensity.mask)
+        #     return self.intensity
+
+        # if mask is None and ma.is_masked(self.intensity) == False:
+        #     self.intensity = ma.array(im)
+        #     return ma.array(im)
+        # elif mask is not None:
+        #     # apply given mask
+        #     self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
+        #     return ma.array(im, mask=mask)
+        # else:
+        #     #apply mask from intensities
+        #     self.intensity = ma.array(im, mask=self.intensity.mask)
+        #     return ma.array(im)
 
 
 
@@ -605,7 +669,7 @@ class ESRFlvpDetector():
             self.x = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
             self.y = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
             self.z = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
-        logger.debug(" ".join(map(str, [("self.tth.shape, self.azm.shape", self.tth.shape, self.azm.shape)] )) )
+        logger.debug(" ".join(map(str, ["self.tth.shape, self.azm.shape (%i, %i, %i)" % self.tth.shape, self.azm.shape] )) )
         
         # fill the arrays
         for i in range(len(self.detector.ais)):
@@ -617,7 +681,7 @@ class ESRFlvpDetector():
                 self.y[i,:,:] = zyx[1] 
                 self.x[i,:,:] = zyx[2] 
 
-        logger.debug(" ".join(map(str, [("Detector is: ", self.detector)] )) )
+        logger.debug(" ".join(map(str, ["Detector is: %s" % self.detector] )) )
         if lg.make_logger_output(level="DEBUG"):  
             
             #plot all the positions of the AzimuthalIntegrators. 
@@ -768,6 +832,7 @@ ESRFlvpDetector.mask_remove  = _masks.mask_remove
 #these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
 #Each of these methods remains here because they are called by higher-level functions: 
 ESRFlvpDetector.plot_masked      = _Plot_AngleDispersive.plot_masked
+ESRFlvpDetector.plot_integrated  = _Plot_AngleDispersive.plot_integrated
 ESRFlvpDetector.plot_fitted      = _Plot_AngleDispersive.plot_fitted
 ESRFlvpDetector.plot_collected   = _Plot_AngleDispersive.plot_collected
 ESRFlvpDetector.plot_calibrated  = _Plot_AngleDispersive.plot_calibrated

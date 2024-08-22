@@ -92,6 +92,8 @@ class XYDetector:
         self.calibration = None
         self.detector = None
 
+        self.plot_orientation = "vertical"
+        
         self.intensity = None
         self.tth = None
         self.azm = None

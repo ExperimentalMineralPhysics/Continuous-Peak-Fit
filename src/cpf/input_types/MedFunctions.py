@@ -44,6 +44,8 @@ class MedDetector:
         self.calibration = None
         self.detector = None
 
+        self.plot_orientation = "horizontal"
+        
         self.intensity = None
         self.tth = None
         self.azm = None
@@ -727,7 +729,7 @@ class MedDetector:
 
 
 
-    def plot_fitted(self, fig_plot=None, model=None, fit_centroid=None):
+    def plot_fitted(self, fig_plot=None, model=None, fit_centroid=None, **kwargs):
         """
         add data to axes.
         :param ax:

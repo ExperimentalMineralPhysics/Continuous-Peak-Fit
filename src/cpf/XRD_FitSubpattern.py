@@ -763,7 +763,7 @@ def fit_sub_pattern(
     if (save_fit == 1 or view == 1 or lg.make_logger_output("EFFUSIVE")) and step[-1]>0:
         logger.effusive(" ".join(map(str, [("Plotting results for fit...")])))
         
-        orientation = "vertical"
+        orientation = data_as_class.plot_orientation
         if orientation == "vertical":
             fig = plt.figure(figsize=(4,6)) # default figure size is [6.4, 4.8]
         else:

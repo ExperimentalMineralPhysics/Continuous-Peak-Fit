@@ -47,7 +47,8 @@ class MedDetector:
         self.intensity = None
         self.tth = None
         self.azm = None
-        # self.dspace = None
+        
+        self.dspace = None
         self.x = None
         self.y = None
         self.azm_start = None
@@ -107,18 +108,30 @@ class MedDetector:
         new.intensity = deepcopy(self.intensity[local_mask])
         new.tth       = deepcopy(self.tth[local_mask])
         new.azm       = deepcopy(self.azm[local_mask])
-        if "dspace" in dir(self):
-            new.dspace = deepcopy(self.dspace[local_mask])
         
-        if "x" in dir(self): 
+        new.intensity = new.intensity[new.intensity.mask==False]
+        new.tth       = new.tth[new.tth.mask==False]
+        new.azm       = new.azm[new.azm.mask==False]
+    
+    
+        if "dspace" in dir(new):
+            if self.dspace is not None:
+                new.dspace = deepcopy(self.dspace.squeeze()[local_mask])
+                new.dspace = new.dspace[new.dspace.mask==False]
+        
+        
+        if "x" in dir(new): 
             if self.x is not None:
-                new.x = deepcopy(self.x[local_mask])
-        if "y" in dir(self): 
+                new.x = deepcopy(self.x.squeeze()[local_mask])
+                new.x = new.x[new.x.mask==False]
+        if "y" in dir(new): 
             if self.y is not None:
-                new.y = deepcopy(self.y[local_mask])
-        if "z" in dir(self): 
+                new.y = deepcopy(self.y.squeeze()[local_mask])
+                new.y = new.y[new.y.mask==False]
+        if "z" in dir(new): 
             if self.z is not None:
-                new.z = deepcopy(self.z[local_mask])
+                new.z = deepcopy(self.z.squeeze()[local_mask])
+                new.z = new.z[new.z.mask==False]
 
         return new
 

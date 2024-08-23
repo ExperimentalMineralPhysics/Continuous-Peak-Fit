@@ -566,6 +566,11 @@ def make_outfile_name(
     if filename[-1:] == "_":  # if the base file name ends in an '_' remove it.
         filename = filename[0:-1]
 
+    # assume here that the only illicit symbol in the file name is *, from 
+    # ESRF compound detector. Replace with text. If any other illicit characters 
+    # are present it is going to look very strange. 
+    filename = licit_filename(filename, replacement="multi")    
+
     # check the iteration is not in the file ending.
     # another way to do this would be to check in the file ending in the input file is empty.
     try:
@@ -636,7 +641,7 @@ def number_to_string(number, replace=".", withthis="pt"):
     return number
 
 
-def licit_filename(fname, replacement="=="):
+def licit_filename(fname, replacement="==", exclude_dir=True):
     """
     This makes sure that a file name generated from a string is licit.
     It replaces the illegal characters [<>:/\|?*] with a replacement character
@@ -644,7 +649,10 @@ def licit_filename(fname, replacement="=="):
 
     after https://gist.github.com/AaronLaw/a936bebfbbd691fc954252444767e6de -- Find NTFS illegal characters in black list and rename filename.
     """
-    blacklist = r"[<>:/\|?*]"
+    blacklist = r"[<>:|?*]"
+    # the file name might include a directory link...
+    if exclude_dir==False:
+        blacklist += r"\/"
 
     fname = re.sub(blacklist, replacement, fname)
 

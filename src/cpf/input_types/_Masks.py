@@ -272,16 +272,19 @@ class _masks():
         self.tth.mask = mask
         self.azm.mask = mask
         
-        if "dspace" in self.__dict__.items():
-            self.dspace.mask = mask
+        if "dspace" in dir(self):
+            if self.dspace is not None:
+                self.dspace.mask = mask
         
-        if "x" in self.__dict__.items():
-            self.x.mask = mask
-        if "y" in self.__dict__.items():         
-            self.y.mask = mask
-        if "z" in self.__dict__.items():
-            self.z.mask = mask
-        
+        if "x" in dir(self):
+            if self.x is not None:
+                self.x.mask = mask
+        if "y" in dir(self):
+            if self.y is not None:
+                self.y.mask = mask
+        if "z" in dir(self):
+            if self.z is not None:
+                self.z.mask = mask        
     
 
 

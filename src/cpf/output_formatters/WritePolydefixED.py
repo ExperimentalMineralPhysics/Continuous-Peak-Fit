@@ -51,6 +51,19 @@ def WriteOutput(
         import cpf.XRD_FitPattern.initiate as initiate
 
         setting_class = initiate(setting_file)
+        
+    #fill calibration into settings class if it is not here.
+    if not setting_class.data_class.calibration:
+        if setting_class.calibration_data:
+            data_to_fill = os.path.abspath(setting_class.calibration_data)
+        else:
+            # data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
+            data_to_fill = setting_class.image_list[0]
+        setting_class.data_class.fill_data(
+            data_to_fill,
+            settings=setting_class,
+            debug=debug,
+        )
 
     # FitParameters = dir(FitSettings)
 
@@ -173,7 +186,7 @@ def WriteOutput(
                 with open(filename) as json_data:
                     fit = json.load(json_data)
                 # check if the d-spacing fits are NaN or not. if NaN switch off.
-                if np.isnan(fit[x]["peak"][y]["d-space"][0]):
+                if np.all(fit[x]["peak"][y]["d-space"])==None or np.isnan(fit[x]["peak"][y]["d-space"][0]):
                     use = 0
                 else:
                     use = 1
@@ -442,13 +455,13 @@ def WriteOutput(
                 az = setting_class.data_class.calibration["azimuths"]
                 coef_type = sf.params_get_type(fit[x], "d", peak=y)
                 peak_d = sf.coefficient_expand(
-                    np.array(az), fit[x]["peak"][y]["d-space"], coeff_type=coef_type
+                    np.array(az), IO.replace_null_terms(fit[x]["peak"][y]["d-space"]), coeff_type=coef_type
                 )
                 # peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
                 coef_type = sf.params_get_type(fit[x], "h", peak=y)
                 peak_i = sf.coefficient_expand(
                     np.array(az_used) * sym,
-                    fit[x]["peak"][y]["height"],
+                    IO.replace_null_terms(fit[x]["peak"][y]["height"]),
                     coeff_type=coef_type,
                 )
                 n = -1

@@ -735,6 +735,15 @@ def fit_sub_pattern(
             "aic": fout.aic,
             "bic": fout.bic,
         }
+        
+        # Store values related to the data. 
+        # Will be used by WriteFitMovie to keep colour scales consistent.
+        new_params.update({"DataProperties": {"max": np.max(data_as_class.intensity),
+                                              "min": np.min(data_as_class.intensity)}})
+        new_params.update({"ModelProperties": {"max": np.max(fout.best_fit),
+                                               "min": np.min(fout.best_fit)}})
+        new_params.update({"ResidualProperties":{"max": np.max(data_as_class.intensity-fout.best_fit),
+                                                 "min": np.min(data_as_class.intensity-fout.best_fit)}})
     else:
         fit_stats = {
             "time-elapsed": t_elapsed,
@@ -750,10 +759,18 @@ def fit_sub_pattern(
             "aic": np.nan,
             "bic": np.nan,
         }
+        # Store values related to the data. 
+        # Will be used by WriteFitMovie to keep colour scales consistent.
+        new_params.update({"DataProperties": {"max": np.max(data_as_class.intensity),
+                                              "min": np.min(data_as_class.intensity)}})
+        new_params.update({"ModelProperties": {"max": np.nan,
+                                               "min": np.nan}})
+        new_params.update({"ResidualProperties":{"max": np.nan,
+                                                "min": np.nan}})
         
     new_params.update({"FitProperties": fit_stats})
-    new_params.update({"DataProperties": {"max": np.max(data_as_class.intensity),
-                                          "min": np.min(data_as_class.intensity)}})
+    
+
     
     # add peak names to new_params
     new_params.update({"PeakLabel": io.peak_string(settings_as_class.subfit_orders)})
@@ -768,7 +785,9 @@ def fit_sub_pattern(
             fig = plt.figure(figsize=(4,6)) # default figure size is [6.4, 4.8]
         else:
             fig = plt.figure() # default figure size is [6.4, 4.8]
-        fig = plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=master_params, 
+        fig = plot_FitAndModel(settings_as_class, data_as_class, 
+                               modelresult = fout,
+                               param_lmfit=master_params, 
                                params_dict=new_params, figure=fig, 
                                orientation=orientation,
                                plot_type="scatter", 
@@ -821,8 +840,10 @@ def fit_sub_pattern(
     return [new_params, fout]
 
 
-def plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=None, params_dict=None, figure=None, debug=False,
-                     orientation="vertical", plot_type="scatter"):
+def plot_FitAndModel(settings_as_class, data_as_class, modelresult=None,
+                     param_lmfit=None, params_dict=None, figure=None, debug=False,
+                     orientation="vertical", plot_type="scatter",
+                     plot_ColourRange=None):
     """
     Generates the figure for the fitted data. 
     It calls the plot_fitted function of the data_class and returns the figure. 
@@ -836,6 +857,8 @@ def plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=None, params_
         DESCRIPTION.
     data_as_class : TYPE
         DESCRIPTION.
+    modelresult : TYPE, optional
+        DESCRIPTION. The default is None.
     param_lmfit : TYPE, optional
         DESCRIPTION. The default is None.
     params_dict : TYPE, optional
@@ -861,45 +884,47 @@ def plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=None, params_
         figure = plt.figure()
     else:
         figure.clear(True)
-        
-    if param_lmfit == None and params_dict == None: 
-        err_str = "No data has been passed."
-        raise ValueError(err_str) 
-    elif param_lmfit == None:
-        # initiate the model parameter set
-        param_lmfit = lmm.initiate_all_params_for_fit(
-            settings_as_class,
-            data_as_class,
-            values=params_dict,
-            debug=debug,
-        )
-    elif params_dict == None: 
-        # make params dict from lmfit object
-        params_dict = lmm.params_to_new_params(
-            param_lmfit, orders=settings_as_class.subfit_orders
-        )
+    
+    if modelresult:
+        full_fit_intens = modelresult.best_fit
     else:
-        pass
-        #all the required data are present in the required format.
-        
-    y_lims = [data_as_class.azm_start, data_as_class.azm_end]
-    gmodel = Model(
-        lmm.peaks_model,
-        independent_vars=["two_theta", "azimuth"],
-        data_class=data_as_class,
-        orders=settings_as_class.subfit_orders,
-        start_end = [data_as_class.azm_start, data_as_class.azm_end],
-    )
-    full_fit_intens = gmodel.eval(
-        params=param_lmfit,
-        two_theta=data_as_class.tth.flatten(),
-        azimuth=data_as_class.azm.flatten(),
-    )
+        if param_lmfit == None and params_dict == None: 
+            err_str = "No data has been passed."
+            raise ValueError(err_str) 
+        elif param_lmfit == None:
+            # initiate the model parameter set
+            param_lmfit = lmm.initiate_all_params_for_fit(
+                settings_as_class,
+                data_as_class,
+                values=params_dict,
+                debug=debug,
+            )
+        elif params_dict == None: 
+            # make params dict from lmfit object
+            params_dict = lmm.params_to_new_params(
+                param_lmfit, orders=settings_as_class.subfit_orders
+            )
+        else:
+            pass
+            #all the required data are present in the required format.
+            
+        gmodel = Model(
+            lmm.peaks_model,
+            independent_vars=["two_theta", "azimuth"],
+            data_class=data_as_class,
+            orders=settings_as_class.subfit_orders,
+            start_end = [data_as_class.azm_start, data_as_class.azm_end],
+        )
+        full_fit_intens = gmodel.eval(
+            params=param_lmfit,
+            two_theta=data_as_class.tth.flatten(),
+            azimuth=data_as_class.azm.flatten(),
+        )
 
     azi_plot = np.unique(data_as_class.azm.flatten())
     if data_as_class.continuous_azm:
         # if there are lots and lots of data make the list shorter
-        azi_plot = np.array(list(range(np.int_(y_lims[0]), np.int_(y_lims[1]), 2)))
+        azi_plot = np.array(list(range(np.int_(data_as_class.azm_start), np.int_(data_as_class.azm_end), 2)))
     peeks = len(params_dict["peak"])
     fit_centroid = []
     for i in range(peeks):
@@ -919,6 +944,7 @@ def plot_FitAndModel(settings_as_class, data_as_class, param_lmfit=None, params_
     # plot the data and the fit
     data_as_class.plot_fitted(
         fig_plot=figure, model=full_fit_intens, fit_centroid=[azi_plot, fit_centroid],
-        orientation=orientation, plot_type=plot_type
+        orientation=orientation, plot_type=plot_type,
+        plot_ColourRange=plot_ColourRange
     )
     return figure

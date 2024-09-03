@@ -641,7 +641,8 @@ def fit_sub_pattern(
             elif step[-1] == 24 and fout.success == 0:
                 err_str = "Oh Dear. It should not be possible to get here. Something has gone very wrong with the fitting."
                 logger.critical(" ".join(map(str, [(err_str)])))
-                raise ValueError(err_str)
+                # raise ValueError(err_str)
+                step.append(step[-1] - 1000)
             elif step[-1] == 29 and fout.success == 0:
                 step.append(0)  # go back to the start, discard PreviousParams and do the chunks for this data set.
             elif any(x == step[-1] for x in [20, 25]) and fout.success == 0:

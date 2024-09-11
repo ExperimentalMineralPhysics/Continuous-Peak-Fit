@@ -26,6 +26,7 @@ from . import fitsubpattern_chunks
 from . import settings
 from . import peak_functions
 from . import series_functions
+from . import series_constraints
 from . import IO_functions
 from . import h5_functions
 from . import lmfit_model

@@ -13,6 +13,7 @@ from lmfit import Model
 from lmfit.model import save_modelresult  # , load_modelresult
 import json
 import cpf.series_functions as sf
+import cpf.series_constraints as sc
 import cpf.peak_functions as pf
 import cpf.lmfit_model as lmm
 import cpf.IO_functions as io
@@ -72,9 +73,8 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
         for param in choice_list:
             coeff_type = sf.params_get_type(previous_params, param, peak=y)
             if coeff_type != 5:  # if parameters are not independent
-                if np.max(orders["peak"][y][param]) > sf.fourier_order(
-                    previous_params["peak"][y][param]
-                ):
+                if sc.BiggestValue(orders["peak"][y][param]) > sf.fourier_order(
+                        previous_params["peak"][y][param]):
                     change_by = (
                         np.max(orders["peak"][y][param]) * 2
                         + 1
@@ -83,9 +83,8 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                     previous_params["peak"][y][param] = (
                         previous_params["background"][y] + [0] * change_by
                     )
-                elif np.max(orders["peak"][y][param]) < sf.fourier_order(
-                    previous_params["peak"][y][param]
-                ):
+                elif sc.BiggestValue(orders["peak"][y][param]) < sf.fourier_order(
+                        previous_params["peak"][y][param]):
                     change_by = (
                         np.size(previous_params["peak"][y][param])
                         - np.max(orders["peak"][y][param]) * 2
@@ -173,13 +172,13 @@ def check_num_azimuths(peeks, azimu, orders):
             coeff_type = sf.params_get_type(orders, param, peak=y)
             if coeff_type != 5:  # if parameters are not independent
                 max_coeff = np.max(
-                    [max_coeff, np.max(orders["peak"][y][param]) * 2 + 1]
+                    [max_coeff, sf.get_number_coeff(orders, param, peak=y)]
                 )
     param = "background"
     for y in range(np.max([len(orders["background"])])):
         coeff_type = sf.params_get_type(orders, param, peak=y)
         if coeff_type != 5:  # if parameters are not independent
-            max_coeff = np.max([max_coeff, np.max(orders["background"][y]) * 2 + 1])
+            max_coeff = np.max([max_coeff, sf.get_number_coeff(orders, "background")])
     if max_coeff > len(np.unique(azimu)):
         err_str = (
             "The maximum order, %i, needs more coefficients than the number of unique azimuths, %i. "
@@ -436,8 +435,8 @@ def fit_sub_pattern(
                         # set these parameters to vary
                         master_params = lmm.vary_params(master_params, param_str, comp)
                         # set part of these parameters to not vary
-                        # master_params = ff.un_vary_part_params(master_params, param_str, comp,
-                        # orders['background'][k])
+                        master_params = lmm.un_vary_part_params(master_params, param_str, comp,
+                                                               settings_as_class.subfit_orders["background"][k])
                         fout = lmm.fit_model(
                             data_as_class,
                             settings_as_class.subfit_orders,
@@ -483,19 +482,32 @@ def fit_sub_pattern(
                                     master_params, param_str, comp
                                 )
                                 # set part of these parameters to not vary
-                                if isinstance(
-                                    settings_as_class.subfit_orders["peak"][k][
+                                print(sc.SeriesValues(settings_as_class.subfit_orders["peak"][k][
+                                    comp_names[cp]
+                                ]), isinstance(
+                                    sc.SeriesValues(settings_as_class.subfit_orders["peak"][k][
                                         comp_names[cp]
-                                    ],
-                                    list,
-                                ):
+                                    ]), list
+                                ))
+                                if isinstance(
+                                    sc.SeriesValues(settings_as_class.subfit_orders["peak"][k][
+                                        comp_names[cp]
+                                    ]), list
+                                ):  # set part of these parameters to not vary
+                                
+                                # isinstance(
+                                #     settings_as_class.subfit_orders["peak"][k][
+                                #         comp_names[cp]
+                                #     ],
+                                #     list,
+                                # ):
                                     master_params = lmm.un_vary_part_params(
                                         master_params,
                                         param_str,
                                         comp,
-                                        settings_as_class.subfit_orders["peak"][k][
+                                        sc.SeriesValues(settings_as_class.subfit_orders["peak"][k][
                                             comp_names[cp]
-                                        ],
+                                        ]),
                                     )
                                 if comp == "h":
                                     refine_max_f_eval = 5 * peeks * default_max_f_eval
@@ -510,7 +522,8 @@ def fit_sub_pattern(
                                     weights=None,
                                     max_n_fev=refine_max_f_eval,
                                 )
-                                master_params = fout.params       
+                                master_params = fout.params   
+                                lg.pretty_print_to_logger(master_params, level="EFFUSIVE")
 
                     logger.effusive(" ".join(map(str, [("Parameters after refining series fits %i time(s):" % (j+1))])))
                     #master_params.pretty_print()
@@ -604,7 +617,9 @@ def fit_sub_pattern(
                                 master_params,
                                 param_str,
                                 comp,
-                                settings_as_class.subfit_orders["peak"][k][comp_names[cp]],
+                                sc.SeriesValues(settings_as_class.subfit_orders["peak"][k][
+                                    comp_names[cp]
+                                ]),
                             )
 
             fout = lmm.fit_model(

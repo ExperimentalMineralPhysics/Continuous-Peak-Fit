@@ -482,13 +482,6 @@ def fit_sub_pattern(
                                     master_params, param_str, comp
                                 )
                                 # set part of these parameters to not vary
-                                print(sc.SeriesValues(settings_as_class.subfit_orders["peak"][k][
-                                    comp_names[cp]
-                                ]), isinstance(
-                                    sc.SeriesValues(settings_as_class.subfit_orders["peak"][k][
-                                        comp_names[cp]
-                                    ]), list
-                                ))
                                 if isinstance(
                                     sc.SeriesValues(settings_as_class.subfit_orders["peak"][k][
                                         comp_names[cp]

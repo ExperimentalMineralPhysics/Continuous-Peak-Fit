@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0 # Released 2024-04-06
     hooks:
       - id: check-added-large-files
         name: Checking for added large files
@@ -22,7 +22,7 @@ repos:
 
   # Format the pyproject.toml file
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: 1.7.0 # Released 2024-01-22
+    rev: 2.2.1 # Released 2024-07-31
     hooks:
       - id: pyproject-fmt
         name: Formatting the pyproject.toml file
@@ -38,7 +38,7 @@ repos:
 
   # Use Ruff for both linting and formatting (one-stop replacement for Black)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.10 # Released 2024-06-20 | Latest version
+    rev: v0.5.7 # Released 2024-08-08
     hooks:
       - id: ruff
         name: Run the Ruff linter for Python
@@ -51,10 +51,9 @@ repos:
 
   # Type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.9.0 # Released 2024-03-09
+    rev: v1.11.1 # Released 2024-07-31
     hooks:
       - id: mypy
         name: Checking types in Python scripts using MyPy
         files: '(src|tests)/.*\.py$' # RegEx string showing directories and files to check
         # Single quote critical due to escape character '\' used in the search string
-        # (see YAML specifications - 7.3 Flow Scalar Styles)

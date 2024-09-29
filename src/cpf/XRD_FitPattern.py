@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import annotations  # Enables additional Python features
+
 __all__ = ["execute", "write_output"]
 
 import json
@@ -17,7 +19,6 @@ import pathos.pools as mp
 import proglog
 from pathos.multiprocessing import cpu_count
 
-import cpf.logger_functions as lg
 from cpf import output_formatters
 from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
@@ -60,7 +61,7 @@ def initiate(
     setting_file: Optional[Union[str, Path]] = None,
     inputs=None,
     out_type=None,
-    report: bool = False,
+    report: str | bool = False,
     **kwargs,
 ):
     """
@@ -89,11 +90,11 @@ def initiate(
 
     # reinitialise the logger -- with a new file name
     if report is not False:  # reporting is required and we must have a setting_file.
-        # make sure log file ends *.log.
+        # Create a log file for this dataset
         log_name = make_outfile_name(setting_file, extension=".log", overwrite=True)
 
-        # remove all handlers and then add new ones.
-        logging.getLogger().handlers.clear()
+        # Remove all handlers and then add new ones.
+        logger.handlers.clear()
 
         # (Re)Configure the logging module
         logging.basicConfig(
@@ -112,13 +113,14 @@ def initiate(
     # set logging level.
     if report is False:
         # if not defined default to "INFO"
-        level = getattr(logging, "INFO")
-    elif isinstance(report, str):
-        # Get level. Level should be a number
-        # get number from name
-        level = getattr(logging, report.upper())
+        level = getattr(logger, "INFO")
+    elif isinstance(report, (str)):
+        # Get level number from the provided logger level name
+        level = getattr(logger, report.upper())
     else:
-        pass  # level should be a number
+        raise ValueError(
+            f"Invalid value given for report: {report}"
+        )  # level should be a number
     logger.setLevel(level)
 
     # make a header in the log file so that we know where the processing starts
@@ -595,7 +597,7 @@ def execute(
 
     # plot calibration file
     if (
-        lg.make_logger_output(level="DEBUG")
+        logger.is_below_level(level="DEBUG")
         and settings_for_fit.calibration_data is not None
     ):
         fig = plt.figure()
@@ -650,7 +652,7 @@ def execute(
             pass
 
         # plot input file
-        if lg.make_logger_output(level="DEBUG"):
+        if logger.is_below_level(level="DEBUG"):
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
             ax_o1 = plt.subplot(111)
@@ -943,7 +945,7 @@ if __name__ == "__main__":
     # Safely exit the program
     for handler in logging.getLogger().handlers:
         handler.flush()
-    # # sys.exit()
+    # sys.exit()
     execute(
         inputs=None,
         debug=False,

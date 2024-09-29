@@ -70,8 +70,6 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-
-# from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
 from cpf.settings import settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
@@ -1055,7 +1053,7 @@ def execute2(
             threshold,
             label_ims,
         )
-        stop
+        # stop
         for t in threshold:
             label_ims[t].finalise()
 

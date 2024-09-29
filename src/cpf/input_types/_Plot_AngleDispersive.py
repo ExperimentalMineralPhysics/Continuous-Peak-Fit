@@ -7,10 +7,7 @@ import numpy as np
 import numpy.ma as ma
 from matplotlib import cm, colors, gridspec, tri
 
-import cpf.logger_functions as lg
 from cpf.histograms import histogram2d
-
-# from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
 
 
@@ -817,7 +814,7 @@ def raster_plot(
     # maybe it should be replaced by datashader or something else that is good for dynamicaly plotting massive data sets.
     # an alternative is to use GIS image referencing packages.
 
-    if lg.make_logger_output(level="DEBUG"):
+    if logger.is_below_level(level="DEBUG"):
         import time
 
         start = time.time()
@@ -858,7 +855,7 @@ def raster_plot(
     )
 
     # axis_plot.invert_yaxis()
-    if lg.make_logger_output(level="DEBUG"):
+    if logger.is_below_level(level="DEBUG"):
         end = time.time()
         logger.debug(" ".join(map(str, [(f"Time to make rastered plot {end-start}")])))
 

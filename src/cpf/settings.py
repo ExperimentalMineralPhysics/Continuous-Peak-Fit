@@ -5,7 +5,6 @@ __all__ = ["settings", "get_output_options", "detector_factory"]
 
 import importlib.util
 import json
-import logging
 import os
 from copy import copy, deepcopy
 from pathlib import Path
@@ -22,8 +21,7 @@ from cpf.IO_functions import (
 )
 
 # , get_output_options, detector_factory, register_default_formats
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger  # Results in circular import error
+from cpf.logger_functions import logger
 from cpf.series_functions import (
     coefficient_type_as_number,
     coefficient_type_as_string,
@@ -31,18 +29,10 @@ from cpf.series_functions import (
     get_number_coeff,
 )
 
-# import logging
-# # Configure the logging module
-# logger.basicConfig(
-#     level=logger.INFO,
-#     format='%(asctime)s [%(levelname)s] %(message)s',
-#     datefmt='%Y-%m-%d %H:%M:%S'
-# )
-logger = logging.getLogger("cpf.settings")  # Basic logger to avoid errors for now
-
 
 class settings:
-    """Settings class definitions.
+    """
+    Settings class definitions.
     The settings class is contains all the variables/informtion needed to execute
     continuous peak fit.
     """

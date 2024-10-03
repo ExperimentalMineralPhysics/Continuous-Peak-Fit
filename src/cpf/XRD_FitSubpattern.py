@@ -16,12 +16,9 @@ from lmfit.model import save_modelresult  # , load_modelresult
 
 import cpf.IO_functions as io
 import cpf.lmfit_model as lmm
-import cpf.logger_functions as lg
 import cpf.peak_functions as pf
 import cpf.series_functions as sf
 from cpf.fitsubpattern_chunks import fit_chunks, fit_series
-
-# from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
 
 np.set_printoptions(threshold=sys.maxsize)
@@ -617,8 +614,7 @@ def fit_sub_pattern(
                             )
                         )
                     )
-                    # master_params.pretty_print()
-                    lg.pretty_print_to_logger(master_params, level="EFFUSIVE")
+                    logger.log_lmfit_obj(master_params, level="EFFUSIVE")
 
                 step = step + 10
 
@@ -918,7 +914,7 @@ def fit_sub_pattern(
 
     # Plot results to check
     view = 0
-    if (save_fit == 1 or view == 1 or lg.make_logger_output("EFFUSIVE")) and step > 0:
+    if (save_fit == 1 or view == 1 or logger.is_below_level("EFFUSIVE")) and step > 0:
         logger.effusive(" ".join(map(str, [("Plotting results for fit...")])))
 
         orientation = "vertical"
@@ -943,7 +939,7 @@ def fit_sub_pattern(
         plt.suptitle(title_str)
         plt.tight_layout()
 
-        if view == 1 or lg.make_logger_output("EFFUSIVE"):
+        if view == 1 or logger.is_below_level("EFFUSIVE"):
             plt.show()
         # save figures without overwriting old names
         if save_fit:

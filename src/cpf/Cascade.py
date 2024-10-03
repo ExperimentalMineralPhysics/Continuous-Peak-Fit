@@ -46,6 +46,8 @@ import cpf.XRD_FitPattern as XRD_FitPattern
 import cpf.IO_functions as IO
 import os.path
 import proglog
+import pathos.pools as mp
+from pathos.multiprocessing import cpu_count
 # import copy
 # import pandas as pd
 import json
@@ -182,16 +184,25 @@ def execute(
         plt.close()
 
     # if parallel processing start the pool
-    # if parallel is True:
-    #     p = mp.Pool(processes=mp.cpu_count())
-    # p = mp.Pool()
+    if parallel is True:
+        # p = mp.Pool(processes=mp.cpu_count())
+        p = mp.ParallelPool(nodes=cpu_count())
+        # p = mp.Pool()
+
+        # Since we may have already closed the pool, try to restart it
+        try:
+            p.restart()
+        except AssertionError:
+            pass
 
     # restrict to sub-patterns listed
     settings_for_fit.set_subpatterns(subpatterns=subpattern)
 
-    # Process the diffraction patterns #
-    for j in range(settings_for_fit.image_number):
-        logger.info(" ".join(map(str, [("Process ", settings_for_fit.datafile_list[j])])))
+    # Process the diffraction patterns
+    # for j in range(settings_for_fit.image_number):
+    progress = proglog.default_bar_logger('bar')  # shorthand to generate a bar logger
+    for j in progress.iter_bar(iteration=range(settings_for_fit.image_number)):
+        logger.info(" ".join(map(str, [("Process %s" % title_file_names(image_name=settings_for_fit.image_list[j]))] )))
         # Get diffraction pattern to process.
         new_data.import_image(settings_for_fit.image_list[j], debug=debug)
 
@@ -233,6 +244,7 @@ def execute(
         # Pass each sub-pattern to Fit_Subpattern for fitting in turn.
         all_fitted_chunks = []
         all_chunk_positions = []
+        parallel_pile = []
 
         for i in range(len(settings_for_fit.fit_orders)):
 
@@ -331,43 +343,65 @@ def execute(
                 plt.close()
 
             else:
-                tmp = fit_sub_pattern(
-                    sub_data,
-                    settings_for_fit,  # added
-                    None,  # do not pass params they are not needed.
-                    save_fit=save_figs,
-                    debug=debug,
-                    mode=mode,
-                    histogram_type = settings_for_fit.cascade_histogram_type,
-                    histogram_bins = settings_for_fit.cascade_histogram_bins,
-                )
-                all_fitted_chunks.append(tmp[0])
-                all_chunk_positions.append(tmp[1])
+                if parallel is True:  # setup parallel version
+                    kwargs = {
+                        "save_fit": save_figs,
+                        "debug": debug,
+                        "mode": mode,
+                        "histogram_type": settings_for_fit.cascade_histogram_type,
+                        "histogram_bins": settings_for_fit.cascade_histogram_bins,
+                    }
+                    arg = (sub_data, settings_for_fit.duplicate())
+                    parallel_pile.append((arg, kwargs))
 
-        # paste the fits to an output file.
-        # store the chunk fits' information as a JSON file.
-        filename = make_outfile_name(
-            settings_for_fit.subfit_filename,
-            directory=settings_for_fit.output_directory,
-            additional_text="chunks",
-            # orders=settings_for_fit.subfit_orders,
-            extension=".json",
-            overwrite=True,
-        )
-        with open(filename, "w") as TempFile:
-            # Write a JSON string into the file.
-            json.dump(
-                (all_fitted_chunks, all_chunk_positions),
-                TempFile,
-                sort_keys=True,
-                indent=2,
-                default=json_numpy_serializer,
+                else:  # non-parallel version
+                    tmp = fit_sub_pattern(
+                        sub_data,
+                        settings_for_fit,  # added
+                        None,  # do not pass params they are not needed.
+                        save_fit=save_figs,
+                        debug=debug,
+                        mode=mode,
+                        histogram_type = settings_for_fit.cascade_histogram_type,
+                        histogram_bins = settings_for_fit.cascade_histogram_bins,
+                    )
+                    all_fitted_chunks.append(tmp[0])
+                    all_chunk_positions.append(tmp[1])
+                    
+        # write output files
+        if mode != "set-range":
+            if parallel is True:
+                tmp = p.map(parallel_processing, parallel_pile)
+                for i in range(len(settings_for_fit.fit_orders)):
+                    # fitted_param.append(tmp[i][0])
+                    # lmfit_models.append(tmp[i][1])
+                    all_fitted_chunks.append(tmp[i][0])
+                    all_chunk_positions.append(tmp[i][1])
+
+                # tmp = fit_sub_pattern(
+                #     sub_data,
+                #     settings_for_fit,  # added
+                #     None,  # do not pass params they are not needed.
+                #     save_fit=save_figs,
+                #     debug=debug,
+                #     mode=mode,
+                #     histogram_type = settings_for_fit.cascade_histogram_type,
+                #     histogram_bins = settings_for_fit.cascade_histogram_bins,
+                # )
+                # all_fitted_chunks.append(tmp[0])
+                # all_chunk_positions.append(tmp[1])
+    
+            # paste the fits to an output file.
+            # store the chunk fits' information as a JSON file.
+            filename = make_outfile_name(
+                settings_for_fit.subfit_filename,
+                directory=settings_for_fit.output_directory,
+                additional_text="chunks",
+                # orders=settings_for_fit.subfit_orders,
+                extension=".json",
+                overwrite=True,
             )
-
-        # if propagating the fits write them to a temporary file
-        if settings_for_fit.fit_propagate:
-            # print json_string
-            with open(temporary_data_file, "w") as TempFile:
+            with open(filename, "w") as TempFile:
                 # Write a JSON string into the file.
                 json.dump(
                     (all_fitted_chunks, all_chunk_positions),
@@ -376,17 +410,30 @@ def execute(
                     indent=2,
                     default=json_numpy_serializer,
                 )
+    
+            # if propagating the fits write them to a temporary file
+            if settings_for_fit.fit_propagate:
+                # print json_string
+                with open(temporary_data_file, "w") as TempFile:
+                    # Write a JSON string into the file.
+                    json.dump(
+                        (all_fitted_chunks, all_chunk_positions),
+                        TempFile,
+                        sort_keys=True,
+                        indent=2,
+                        default=json_numpy_serializer,
+                    )
 
-    # if parallel is True:
-    #     p.close()
+    if parallel is True:
+        p.close()
 
     # plot the fits
     plot_cascade_chunks(
-        inputs=settings_for_fit, debug=debug, report=report, subpattern="all", **kwargs
+        inputs=settings_for_fit, report=report, subpattern="all", **kwargs
     )
 
     plot_peak_count(
-        inputs=settings_for_fit, debug=debug, report=report, subpattern="all", **kwargs
+        inputs=settings_for_fit, report=report, subpattern="all", **kwargs
     )
 
 
@@ -745,6 +792,7 @@ def peak_count(
     # all_peaks, all_properties, count = peak_count(setting_class=setting_class, prominence=prominence)
 
     all_peaks = []
+    all_peakAzis = []
     all_properties = []
     count = []
     peak_labels = []
@@ -765,10 +813,21 @@ def peak_count(
                     peaks, properties = find_peaks(
                         all_data[i][j]["h"][k], prominence=prominence, width=0
                     )
-
+                    properties['PeakAzis'] = np.array(all_azis[i][j])[peaks]
                     all_peaks_tmp.append(peaks)
+                    # all_peakAzis.append(np.array(all_azis[i][j])[peaks])
                     all_properties_tmp.append(properties)
                     count_tmp.append(len(peaks))
+
+                    if 1 and i == 0:
+                        fig = plt.figure()
+                        plt.plot(all_data[i][j]["h"][k])
+                        plt.plot(peaks, np.array(all_data[i][j]["h"][k])[peaks], "x")
+                        
+                        #plt.plot(np.zeros_like(x), "--", color="gray")
+                        
+                        plt.show()
+
 
                 all_peaks.append(all_peaks_tmp)
                 all_properties.append(all_properties_tmp)
@@ -999,14 +1058,11 @@ def execute2(
         # can't do this as a data class function because it cant pickle a Fabio instance. 
         frame = fabio.open(settings_for_fit.datafile_list[j])
         frame.data = new_data.intensity
-        print(type(frame.data))
 
         frame.header['Omega'] = 0
         frame.data = frame.data.astype( np.float32 )
-        print(type(frame.data))
         # corrections like dark/flat/normalise would be added here
         peaksearch( os.path.basename(settings_for_fit.datafile_list[j]), frame, corrector, threshold, label_ims )
-        stop
         for t in threshold:
             label_ims[t].finalise()
             
@@ -1052,22 +1108,25 @@ def load_flts(
     #find all the *.flt files for this image    
     fnam = make_outfile_name(settings_for_fit.subfit_filename, directory=settings_for_fit.output_directory)    
     fnams = glob.glob(fnam+"*.flt")
-        
+    print(fnams)
     obj = []
     #obj = columnfile()
     for i in range(len(fnams)):
         
-        obj.append(columnfile(fnams[i]))
+        try:
+            obj.append(columnfile(fnams[i]))
         
-        plt.scatter(-obj[i].dety, obj[i].detz,1,c=(obj[i].sum_intensity))
-        plt.colorbar()
-        plt.title(fnams[i])
-        plt.show()
-        
-        plt.scatter((obj[i].Number_of_pixels),(obj[i].sum_intensity))
-        plt.title(fnams[i])
-        plt.show()
-        
+            plt.scatter(-obj[i].dety, obj[i].detz,1,c=(obj[i].sum_intensity))
+            plt.colorbar()
+            plt.title(fnams[i])
+            plt.show()
+            
+            plt.scatter((obj[i].Number_of_pixels),(obj[i].sum_intensity))
+            plt.title(fnams[i])
+            plt.show()
+            
+        except:
+            obj.append([])
     return obj
 
     
@@ -1100,12 +1159,15 @@ def make_im_from_flts(
     
     for i in range(len(pks)):
         
-        x = -pks[i].dety
-        y = pks[i].detz
-        z = pks[i].sum_intensity
-        
-        for j in range(len(x)):    
-            peaks_im[int(y[j]), int(x[j])] = z[j]
+        try:
+            x = -pks[i].dety
+            y = pks[i].detz
+            z = pks[i].sum_intensity
+            
+            for j in range(len(x)):    
+                peaks_im[int(y[j]), int(x[j])] = z[j]
+        except:
+            pass
             
     #peaks_im = peaks_im(mask=data_class.intensity.mask)
     peaks_im = ma.masked_where(ma.getmask(data_class.intensity), peaks_im)

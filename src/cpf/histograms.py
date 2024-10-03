@@ -48,8 +48,7 @@ def histogram1d(tth,
     bin_positions, intensities, azimuths
 
     """
-    
-    if azi.all!=None:
+    if azi is not None:
         if tth.size != intensity.size:
             raise ValueError("the intensity and two theta arrays are not the same size")
     else:
@@ -62,19 +61,20 @@ def histogram1d(tth,
         # or the number of data.
         #the multiply by 4 for Sturges' Rule is arbitrary but needed here becuase the data is wider than the distributions.
         bin_n = np.max([1 + 3.322* np.log10(tth.size)*4, tth.size/50])
+        # catch for ESRFlvp data where millions are bins are possible.
+        if bin_n > 10000:
+            bin_n = 10000
     if not isinstance(bin_n, int):
         bin_n = int(np.round(bin_n))
-    
+        
     if histogram_type == "data":
         #sort the data and then bin accordingly. 
-        order = np.argsort(tth)
-        tth = tth[order]
-        intensity = intensity[order]
-        if azi.all != None:
-            azi = azi[order]
-        
+        order = np.argsort(tth, axis=None)
+        tth = tth.flatten()[order]
+        intensity = intensity.flatten()[order]
+        if azi is not None:
+            azi = azi.flatten()[order]
         mean_per_bin = order.size / bin_n
-        
         # could use a use pyFAI named tuple data holder. 
         # histogram = namedtuple("Integrate1dtpl", "position intensity sigma signal variance normalization count std sem norm_sq", defaults=(None,) * 3)
         position = []
@@ -92,11 +92,11 @@ def histogram1d(tth,
             intens.append(np.mean(intensity[data_start:data_end]))
             signal.append(np.sum(intensity[data_start:data_end]))
             count.append(np.size(tth[data_start:data_end]))
-            if azi.all != None:
+            if azi is not None:
                 azm.append(np.mean(azi[data_start:data_end]))
         
         if debug==True:
-            plt.plot(tth,intensity,'.',position, intens, '-', position, count, '-') 
+            plt.plot(tth.flatten(),intensity.flatten(),'.',position, intens, '-', position, count, '-') 
             plt.show()
         
         
@@ -104,7 +104,7 @@ def histogram1d(tth,
     elif histogram_type == "width":
         # use pyFAI 1D integration to make equal width histogram.
         # pyFAI function is here :  pyFAI/src/pyFAI/containers.py
-        histogram = he.histogram1d_engine(tth, bin_n, intensity)
+        histogram = he.histogram1d_engine(tth, bin_n, intensity, empty=np.nan)
         # returns a pyFAI named tuple data holder. 
         # histogram = namedtuple("Integrate1dtpl", "position intensity sigma signal variance normalization count std sem norm_sq", defaults=(None,) * 3)
         # histogram.position or is tth position
@@ -120,7 +120,7 @@ def histogram1d(tth,
         azm = histogram.intensity
         
         if debug==True:
-            plt.plot(tth,intensity,'.',histogram.position, histogram.intensity, '-', histogram.position, histogram.normalization, '-',) 
+            plt.plot(tth.flatten(),intensity.flatten(),'.',histogram.position, histogram.intensity, '-', histogram.position, histogram.normalization, '-',) 
             plt.show()
                 
         

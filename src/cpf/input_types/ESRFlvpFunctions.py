@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
 __all__ = ["ESRFlvpDetector"]
 
-import copy
 import glob
 import json
 import re
@@ -21,12 +22,9 @@ from numpy import sin as sin  # used in self.calibration["trans_function"]
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.goniometer import MultiGeometry
 
-import cpf.logger_functions as lg
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
-
-# from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
 
 """
@@ -405,7 +403,7 @@ class ESRFlvpDetector:
         )
 
         logger.moreinfo(" ".join(map(str, [("Detector is: ", self.detector)])))
-        if lg.make_logger_output(level="DEBUG"):
+        if logger.is_below_level(level="DEBUG"):
             # plot all the positions of the AzimuthalIntegrators.
             p_angles = []
             p_dist = []
@@ -685,7 +683,7 @@ class ESRFlvpDetector:
                 self.x[i, :, :] = zyx[2]
 
         logger.debug(" ".join(map(str, [("Detector is: ", self.detector)])))
-        if lg.make_logger_output(level="DEBUG"):
+        if logger.is_below_level(level="DEBUG"):
             # plot all the positions of the AzimuthalIntegrators.
             p_angles = []
             p_Chi = []
@@ -829,26 +827,25 @@ class ESRFlvpDetector:
         # FIX ME: check the detector type is valid.
         return detector
 
+    # add common function.
+    _get_d_space = _AngleDispersive_common._get_d_space
+    conversion = _AngleDispersive_common.conversion
+    bins = _AngleDispersive_common.bins
+    set_limits = _AngleDispersive_common.set_limits
+    test_azims = _AngleDispersive_common.test_azims
 
-# add common function.
-ESRFlvpDetector._get_d_space = _AngleDispersive_common._get_d_space
-ESRFlvpDetector.conversion = _AngleDispersive_common.conversion
-ESRFlvpDetector.bins = _AngleDispersive_common.bins
-ESRFlvpDetector.set_limits = _AngleDispersive_common.set_limits
-ESRFlvpDetector.test_azims = _AngleDispersive_common.test_azims
+    # add masking functions to detetor class.
+    get_mask = _masks.get_mask
+    set_mask = _masks.set_mask
+    mask_apply = _masks.mask_apply
+    mask_restore = _masks.mask_restore
+    mask_remove = _masks.mask_remove
 
-# add masking functions to detetor class.
-ESRFlvpDetector.get_mask = _masks.get_mask
-ESRFlvpDetector.set_mask = _masks.set_mask
-ESRFlvpDetector.mask_apply = _masks.mask_apply
-ESRFlvpDetector.mask_restore = _masks.mask_restore
-ESRFlvpDetector.mask_remove = _masks.mask_remove
-
-# these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
-# Each of these methods remains here because they are called by higher-level functions:
-ESRFlvpDetector.plot_masked = _Plot_AngleDispersive.plot_masked
-ESRFlvpDetector.plot_fitted = _Plot_AngleDispersive.plot_fitted
-ESRFlvpDetector.plot_collected = _Plot_AngleDispersive.plot_collected
-ESRFlvpDetector.plot_calibrated = _Plot_AngleDispersive.plot_calibrated
-# this function is added because it requires access to self:
-ESRFlvpDetector.dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks
+    # these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
+    # Each of these methods remains here because they are called by higher-level functions:
+    plot_masked = _Plot_AngleDispersive.plot_masked
+    plot_fitted = _Plot_AngleDispersive.plot_fitted
+    plot_collected = _Plot_AngleDispersive.plot_collected
+    plot_calibrated = _Plot_AngleDispersive.plot_calibrated
+    # this function is added because it requires access to self:
+    dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks

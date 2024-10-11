@@ -130,7 +130,7 @@ class _AngleDispersive_common:
             err_str = "The bin type is not recognised. Check input file."
             raise ValueError(err_str)
 
-        if 0:  # lg.make_logger_output(level="DEBUG"):
+        if 0:
             # create histogram with equal-frequency bins
             n, bins, patches = plt.hist(
                 self.azm[self.azm.mask == False], bin_boundaries, edgecolor="black"

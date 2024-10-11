@@ -13,11 +13,15 @@ from lmfit import Model, Parameters
 import cpf.histograms as hist
 import cpf.IO_functions as io
 import cpf.lmfit_model as lmm
-import cpf.logger_functions as lg
+
+# import cpf.logger_functions as lg
 import cpf.series_functions as sf
+from cpf.logger_functions import CPFLogger
 
 # from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+# from cpf.logger_functions import logger
+
+logger = CPFLogger("cpf.fitsubpattern_chunks")
 
 
 def get_manual_guesses(settings_as_class, data_as_class, debug=False):
@@ -83,7 +87,8 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
         )
         temp_param = fout.params
 
-        lg.pretty_print_to_logger(temp_param, level="DEBUG", space=True)
+        logger.log_lmfit_obj(temp_param, level="DEBUG", space=True)
+
         # if debug:
         # temp_param.pretty_print()
         dfour.append(lmm.gather_param_errs_to_list(temp_param, param_str, comp))
@@ -527,9 +532,9 @@ def fit_chunks(
                         map(str, [("Initiallised chunk; %i/%i" % (j, len(chunks)))])
                     )
                 )
-                lg.pretty_print_to_logger(params, level="DEBUG", space=True)
-                # if debug:
-                if lg.make_logger_output(level="DEBUG"):
+                logger.log_lmfit_obj(params, level="DEBUG", space=True)
+
+                if logger.is_below_level("DEBUG") is True:
                     # keep the original params for plotting afterwards
                     guess = params
 
@@ -548,7 +553,7 @@ def fit_chunks(
                 logger.debug(
                     " ".join(map(str, [("Fitted chunk; %i/%i" % (j, len(chunks)))]))
                 )
-                lg.pretty_print_to_logger(params, level="DEBUG", space=True)
+                logger.log_lmfit_obj(params, level="DEBUG", space=True)
 
                 # get values from fit and append to arrays for output
                 for i in range(len(background_guess)):
@@ -568,8 +573,7 @@ def fit_chunks(
                 out_vals["chunks"].append(azichunks[j])
 
                 # plot the fits.
-                # if debug:
-                if lg.make_logger_output(level="DEBUG"):
+                if logger.is_below_level("DEBUG") is True:
                     tth_plot = chunk_data.tth
                     int_plot = chunk_data.intensity
                     azm_plot = chunk_data.azm
@@ -654,8 +658,7 @@ def fit_series(
         param_str = "bg_c" + str(b)
         comp = "f"
 
-        lg.pretty_print_to_logger(master_params, level="DEBUG", space=True)
-        # master_params.pretty_print()
+        logger.log_lmfit_obj(master_params, level="DEBUG", space=True)
         master_params = lmm.un_vary_params(
             master_params, param_str, comp
         )  # set other parameters to not vary
@@ -754,11 +757,10 @@ def fit_series(
             # Need to incorporate vary and un-vary params as well as partial vary
     # if 1:  # debug:
     logger.debug(" ".join(map(str, [("Parameters after initial Fourier fits")])))
-    # master_params.pretty_print()
-    lg.pretty_print_to_logger(master_params, level="DEBUG", space=True)
+    logger.log_lmfit_obj(master_params, level="DEBUG", space=True)
 
     # plot output of series fits....
-    if lg.make_logger_output(level="DEBUG"):
+    if logger.is_below_level("DEBUG") is True:
         x_lims = start_end
         azi_plot = range(np.int_(x_lims[0]), np.int_(x_lims[1]), 2)
         gmodel = Model(sf.coefficient_expand, independent_vars=["azimuth"])

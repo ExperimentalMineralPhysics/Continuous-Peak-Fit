@@ -17,7 +17,8 @@ from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.io import ponifile
 
 import cpf.h5_functions as h5_functions
-import cpf.logger_functions as lg
+
+# import cpf.logger_functions as lg
 from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
@@ -261,7 +262,7 @@ class DioptasDetector:
         # Therefore implemented here to be consistent with Dioptas.
         im = np.array(im)[::-1]
 
-        if lg.make_logger_output(level="DEBUG"):
+        if logger.is_below_level(level="DEBUG"):
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
             ax.imshow(im)
@@ -464,26 +465,25 @@ class DioptasDetector:
                 )
         return required_list
 
+    # add common function.
+    _get_d_space = _AngleDispersive_common._get_d_space
+    conversion = _AngleDispersive_common.conversion
+    bins = _AngleDispersive_common.bins
+    set_limits = _AngleDispersive_common.set_limits
+    test_azims = _AngleDispersive_common.test_azims
 
-# add common function.
-DioptasDetector._get_d_space = _AngleDispersive_common._get_d_space
-DioptasDetector.conversion = _AngleDispersive_common.conversion
-DioptasDetector.bins = _AngleDispersive_common.bins
-DioptasDetector.set_limits = _AngleDispersive_common.set_limits
-DioptasDetector.test_azims = _AngleDispersive_common.test_azims
+    # add masking functions to detetor class.
+    get_mask = _masks.get_mask
+    set_mask = _masks.set_mask
+    mask_apply = _masks.mask_apply
+    mask_restore = _masks.mask_restore
+    mask_remove = _masks.mask_remove
 
-# add masking functions to detetor class.
-DioptasDetector.get_mask = _masks.get_mask
-DioptasDetector.set_mask = _masks.set_mask
-DioptasDetector.mask_apply = _masks.mask_apply
-DioptasDetector.mask_restore = _masks.mask_restore
-DioptasDetector.mask_remove = _masks.mask_remove
-
-# these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
-# Each of these methods remains here because they are called by higher-level functions:
-DioptasDetector.plot_masked = _Plot_AngleDispersive.plot_masked
-DioptasDetector.plot_fitted = _Plot_AngleDispersive.plot_fitted
-DioptasDetector.plot_collected = _Plot_AngleDispersive.plot_collected
-DioptasDetector.plot_calibrated = _Plot_AngleDispersive.plot_calibrated
-# this function is added because it requires access to self:
-DioptasDetector.dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks
+    # these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
+    # Each of these methods remains here because they are called by higher-level functions:
+    plot_masked = _Plot_AngleDispersive.plot_masked
+    plot_fitted = _Plot_AngleDispersive.plot_fitted
+    plot_collected = _Plot_AngleDispersive.plot_collected
+    plot_calibrated = _Plot_AngleDispersive.plot_calibrated
+    # this function is added because it requires access to self:
+    dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks

@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import pyFAI.detectors
+
 __all__ = ["ESRFlvpDetector"]
 
 import glob
@@ -20,6 +22,7 @@ from numpy import cos as cos  # used in self.calibration["trans_function"]
 from numpy import pi as pi  # used in self.calibration["trans_function"]
 from numpy import sin as sin  # used in self.calibration["trans_function"]
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from pyFAI.detectors._common import Detector
 from pyFAI.goniometer import MultiGeometry
 
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
@@ -893,7 +896,7 @@ class ESRFlvpDetector:
             sz = calibration_data.calibration_pixel_size  # Pixel_size
             if sz > 1:
                 sz = sz * 1e-6
-            detector = pyFAI.detectors.Detector(
+            detector = Detector(
                 pixel1=sz, pixel2=sz, splineFile=None, max_shape=im_all.shape
             )
         # FIX ME: check the detector type is valid.

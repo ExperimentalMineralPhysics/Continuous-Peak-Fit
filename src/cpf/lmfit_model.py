@@ -30,9 +30,8 @@ import numpy as np
 from lmfit import Model, Parameters
 
 import cpf.peak_functions as pf
+import cpf.series_constraints as sc
 import cpf.series_functions as sf
-
-# from cpf.XRD_FitPattern import logger
 from cpf.logger_functions import logger
 
 np.set_printoptions(threshold=sys.maxsize)
@@ -346,16 +345,28 @@ def gather_params_from_dict(inp_param, param_str, comp):
 
 
 def initiate_all_params_for_fit(
-    settings_as_class, data_as_class, values=None, debug=False
+    settings_as_class,
+    data_as_class,
+    peak_orders=None,
+    values=None,
+    types=True,
+    debug=False,
 ):
     """
     Initiate all the parameters needed for the fitting with lmfit.
+
+    If present orders overrides settings_as_class
 
     :param inp_param: dict with multiple coefficients per component
     :param param_str: base string to select parameters
     :param comp: component to add to base string to select parameters
     :return: list of parameters in alphanumerical order
     """
+    # FIXME: reorganise funtion so that settings is optional. Either settings or
+    #  orders are required. orders overrised settings if present.
+
+    if not peak_orders:
+        peak_orders = settings_as_class.subfit_orders
 
     comp_list, comp_names = pf.peak_components(full=False)
 
@@ -380,8 +391,8 @@ def initiate_all_params_for_fit(
 
     # Initiate background parameters
     comps = "bg"
-    coeff_type = sf.params_get_type(settings_as_class.subfit_orders, comps)
-    for k in range(len(settings_as_class.subfit_orders["background"])):
+    coeff_type = sf.params_get_type(peak_orders, comps)
+    for k in range(len(peak_orders["background"])):
         param_str = "bg_c" + str(k)
         comp = "f"
         if k == 0:
@@ -389,7 +400,7 @@ def initiate_all_params_for_fit(
         else:
             limits = None
         n_coeff = sf.get_number_coeff(
-            settings_as_class.subfit_orders, comps, peak=k, azimuths=data_as_class.azm
+            peak_orders, comps, peak=k, azimuths=data_as_class.azm
         )
         # add values is present
         vals = None
@@ -403,22 +414,21 @@ def initiate_all_params_for_fit(
             coeff_type=coeff_type,
             num_coeff=n_coeff,
             value=vals,
-            trig_orders=settings_as_class.subfit_orders["background"][k],
+            trig_orders=peak_orders["background"][k],
             limits=limits,
+            types=types,
         )
 
     # initiate peak(s)
     peak_comp_list = comp_list
     comp_names_list = comp_names
-
-    for j in range(len(settings_as_class.subfit_orders["peak"])):
+    for j in range(len(peak_orders["peak"])):
         # defines peak string to start parameter name
         param_str = "peak_" + str(j)
-
         # initiate symmetry
         comp = "s"
-        if "symmetry" in settings_as_class.subfit_orders["peak"][j].keys():
-            symm = settings_as_class.subfit_orders["peak"][j]["symmetry"]
+        if "symmetry" in peak_orders["peak"][j].keys():
+            symm = peak_orders["peak"][j]["symmetry"]
         else:
             symm = 1
         master_params = initiate_params(
@@ -429,6 +439,7 @@ def initiate_all_params_for_fit(
             limits=[10, 1],
             value=np.array(symm),
             vary=False,
+            types=types,
         )
 
         comp_list = ["h", "d", "w", "p"]
@@ -443,19 +454,17 @@ def initiate_all_params_for_fit(
 
             # fixed = 0
             vals = None
-            if comp_names[cp] + "_fixed" in settings_as_class.subfit_orders["peak"][j]:
+            if comp_names[cp] + "_fixed" in peak_orders["peak"][j]:
                 # fixed = 1
-                vals = settings_as_class.subfit_orders["peak"][j][
+                vals = peak_orders["peak"][j][
                     comp_names[cp] + "_fixed"
                 ]  # values if fixed.
             elif values:
                 vals = values["peak"][j][comp_names[cp]]
 
-            coeff_type = sf.params_get_type(
-                settings_as_class.subfit_orders, comp, peak=j
-            )
+            coeff_type = sf.params_get_type(peak_orders, comp, peak=j)
             n_coeff = sf.get_number_coeff(
-                settings_as_class.subfit_orders,
+                peak_orders,
                 comp,
                 peak=j,
                 azimuths=data_as_class.azm,
@@ -467,9 +476,10 @@ def initiate_all_params_for_fit(
                 comp,
                 coeff_type=coeff_type,
                 num_coeff=n_coeff,
-                trig_orders=settings_as_class.subfit_orders["peak"][j][comp_names[cp]],
+                trig_orders=peak_orders["peak"][j][comp_names[cp]],
                 limits=lims[comp_names[cp]],
                 value=vals,
+                types=types,
             )
 
             # FIX ME. Check which params should be varying and which should not.
@@ -489,6 +499,7 @@ def initiate_params(
     value=None,
     ind_vars=None,
     vary=True,
+    types=True,
 ):
     """
     Create all required coefficients for no. terms
@@ -566,10 +577,8 @@ def initiate_params(
             # DMF: len is for lists, size is for arrays - need to track if this difference should exist
             # The real confusion though is len should work for arrays as well...
             num_coeff = value.size
-        else:
-            raise TypeError(f"Object type {type(value)} is invalid")
     else:
-        num_coeff = np.max(trig_orders) * 2 + 1
+        num_coeff = sc.BiggestValue(trig_orders) * 2 + 1
         # leave the spline with the 2n+1 coefficients so that it matches the equivalent fourier series.
         # FIX ME: should we change this to make it more natural to understand?
         # DMF: how?
@@ -581,6 +590,15 @@ def initiate_params(
             v = value.item(0)
         else:
             v = 0
+
+        # get constraint expression (if set)
+        po = sc.ParseOrders(trig_orders, param_str, comp, t)
+        if po[0] != None:
+            expr = po[0]
+        else:
+            expr = None
+        if comp != "s":
+            vary = po[1]
         if t == 0 or coeff_type != 0:
             inp_param.add(
                 param_str + "_" + comp + str(t),
@@ -600,11 +618,11 @@ def initiate_params(
                 vary=vary,
             )
 
-    if comp != "s":
+    if comp != "s" and types == True:
         inp_param.add(
             param_str + "_" + comp + "_tp",
             sf.coefficient_type_as_number(coeff_type),
-            expr=expr,
+            expr=None,
             vary=False,
         )
 
@@ -627,7 +645,8 @@ def vary_params(inp_param, param_str, comp):
         key for key, val in inp_param.items() if new_str in key and "tp" not in key
     ]
     for p in str_keys:
-        inp_param[p].set(vary=True)
+        if inp_param[p].expr == None:
+            inp_param[p].set(vary=True)
     return inp_param
 
 
@@ -716,7 +735,7 @@ def un_vary_single_param(inp_param, param_str, comp, val):
     new_str = new_str + str(val)
     str_keys = [key for key, val in inp_param.items() if new_str in key]
     for p in inp_param:
-        if p in str_keys:
+        if p in str_keys and inp_param[p].expr == None:
             inp_param[p].set(vary=False)
     return inp_param
 

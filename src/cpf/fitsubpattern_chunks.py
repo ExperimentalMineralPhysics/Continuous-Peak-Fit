@@ -5,6 +5,8 @@ __all__ = ["get_manual_guesses", "get_chunk_background_guess", "fit_chunks"]
 # CPF_XRD_FitSubpattern
 # Script fits subset of the data with peaks of pre-defined Fourier orders
 
+from copy import deepcopy
+
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
@@ -13,15 +15,9 @@ from lmfit import Model, Parameters
 import cpf.histograms as hist
 import cpf.IO_functions as io
 import cpf.lmfit_model as lmm
-
-# import cpf.logger_functions as lg
+import cpf.series_constraints as sc
 import cpf.series_functions as sf
-from cpf.logger_functions import CPFLogger
-
-# from cpf.XRD_FitPattern import logger
-# from cpf.logger_functions import logger
-
-logger = CPFLogger("cpf.fitsubpattern_chunks")
+from cpf.logger_functions import logger
 
 
 def get_manual_guesses(settings_as_class, data_as_class, debug=False):
@@ -74,7 +70,7 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
             param_str=param_str,
             coeff_type=coeff_type,
             comp=comp,
-            trig_orders=o,
+            trig_orders=sc.SeriesValues(o),
             limits=lims["d-space"],
             value=data_as_class.conversion(t_th_guess[0, 1], azm=t_th_guess[0, 1]),
         )
@@ -480,52 +476,49 @@ def fit_chunks(
                     debug,
                 )
 
-                # Chunks limited to no Fourier expansion so only single value per polynomial order.
-                for b in range(len(background_guess)):
-                    if b == 0:
-                        vary = True
-                        if limits["background"][0] == limits["background"][1]:
-                            # catch incase there is no intensity in the chunk.
-                            limits["background"][0] -= 0.1
-                            limits["background"][1] += 0.1
-                            vary = False
-                        params.add(
-                            "bg_c" + str(b) + "_f" + str(0),
-                            background_guess[b][0],
-                            min=limits["background"][0],
-                            max=limits["background"][1],
-                            vary=vary,
-                        )
-                    else:
-                        params.add(
-                            "bg_c" + str(b) + "_f" + str(0), background_guess[b][0]
-                        )
                 comp_list = ["h", "d", "w", "p"]
                 comp_names = ["height", "d-space", "width", "profile"]
+
+                local_orders = deepcopy(settings_as_class.subfit_orders)
+                for b in range(len(local_orders["background"])):
+                    local_orders["background"][b] = 0
                 for pk in range(len(peaks)):
-                    for cp in range(len(comp_list)):
-                        if (
-                            comp_names[cp] + "_fixed"
-                            in settings_as_class.subfit_orders["peak"][pk]
+                    for i in range(len(comp_names)):
+                        val = local_orders["peak"][pk][comp_names[i]]
+                        # print(val)
+                        if isinstance(val, int):
+                            # has to be single value with no constraints.
+                            if val > 0:
+                                local_orders["peak"][pk][comp_names[i]] = 0
+
+                        elif (
+                            len(
+                                sc.SeriesConstraints(
+                                    local_orders["peak"][pk][comp_names[i]]
+                                )
+                            )
+                            > 0
                         ):
-                            vary = False
+                            # if length >0 there has to be constrains on the peak parameters
+
+                            local_orders["peak"][pk][comp_names[i]] = [
+                                0
+                            ] + sc.SeriesConstraints(
+                                local_orders["peak"][pk][comp_names[i]]
+                            )
+
                         else:
-                            vary = True
-                        if (
-                            limits["peak"][pk][comp_names[cp]][0]
-                            == limits["peak"][pk][comp_names[cp]][1]
-                        ):
-                            # catch incase there is no intensity in the chunk.
-                            limits["peak"][pk][comp_names[cp]][0] -= 0.1
-                            limits["peak"][pk][comp_names[cp]][1] += 0.1
-                            vary = False
-                        params.add(
-                            "peak_" + str(pk) + "_" + comp_list[cp] + "0",
-                            peaks[pk][comp_names[cp]][0],
-                            min=limits["peak"][pk][comp_names[cp]][0],
-                            max=limits["peak"][pk][comp_names[cp]][1],
-                            vary=vary,
-                        )
+                            # the orders a list of numbers - in which case stil
+                            # have to be reduced to 0
+                            local_orders["peak"][pk][comp_names[i]] = 0
+
+                params = lmm.initiate_all_params_for_fit(
+                    settings_as_class,
+                    chunk_data,
+                    peak_orders=local_orders,
+                    values={"background": background_guess, "peak": peaks},
+                    types=False,
+                )
 
                 logger.debug(
                     " ".join(
@@ -533,15 +526,15 @@ def fit_chunks(
                     )
                 )
                 logger.log_lmfit_obj(params, level="DEBUG", space=True)
-
-                if logger.is_below_level("DEBUG") is True:
+                # if debug:
+                if logger.is_below_level(level="DEBUG"):
                     # keep the original params for plotting afterwards
                     guess = params
 
                 # Run actual fit
                 fit = lmm.fit_model(
                     chunk_data,  # needs to contain intensity, tth, azi (as chunks), conversion factor
-                    settings_as_class.subfit_orders,
+                    local_orders,
                     params,
                     fit_method=fit_method,
                     max_n_fev=max_n_f_eval,
@@ -573,7 +566,7 @@ def fit_chunks(
                 out_vals["chunks"].append(azichunks[j])
 
                 # plot the fits.
-                if logger.is_below_level("DEBUG") is True:
+                if logger.is_below_level(level="DEBUG"):
                     tth_plot = chunk_data.tth
                     int_plot = chunk_data.intensity
                     azm_plot = chunk_data.azm
@@ -725,7 +718,7 @@ def fit_series(
                     master_params, param_str, comp
                 )  # set these parameters to vary
                 if isinstance(
-                    orders["peak"][j][comp_names[cp]], list
+                    sc.SeriesValues(orders["peak"][j][comp_names[cp]]), list
                 ):  # set part of these parameters to not vary
                     master_params = lmm.un_vary_part_params(
                         master_params,
@@ -753,8 +746,6 @@ def fit_series(
 
             master_params = fout.params
 
-            # FIX ME. Check which params should be varying and which should not.
-            # Need to incorporate vary and un-vary params as well as partial vary
     # if 1:  # debug:
     logger.debug(" ".join(map(str, [("Parameters after initial Fourier fits")])))
     logger.log_lmfit_obj(master_params, level="DEBUG", space=True)

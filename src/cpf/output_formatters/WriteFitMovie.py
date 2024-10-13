@@ -2,9 +2,10 @@ __all__ = ["Requirements", "WriteOutput"]
 
 
 import json
-import os
 
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from moviepy.editor import VideoClip
 from moviepy.video.io.bindings import mplfig_to_npimage
 
@@ -97,10 +98,51 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
         debug=debug,
     )
 
-    duration = (setting_class.image_number) / fps
-    num_subpatterns = len(setting_class.fit_orders)
+    # get the intensity ranges from the data fits.
+    data_range = [[] for i in range(len(setting_class.fit_orders))]
+    model_range = [[] for i in range(len(setting_class.fit_orders))]
+    resid_range = [[] for i in range(len(setting_class.fit_orders))]
+    for z in range(setting_class.image_number):
+        setting_class.set_subpattern(z, 0)
+        # read fit file
+        json_file = IO.make_outfile_name(
+            setting_class.subfit_filename,  # diff_files[z],
+            directory=setting_class.output_directory,
+            extension=".json",
+            overwrite=True,
+        )
+        with open(json_file) as json_data:
+            data_fit = json.load(json_data)
+        for y in range(len(data_fit)):
+            data_range[y].append(data_fit[y]["DataProperties"])
+            try:
+                # try to see if model range is in the json file. If it is not
+                # then just fill with DataProperties.
+                model_range[y].append(data_fit[y]["ModelProperties"])
+            except:
+                model_range[y].append(data_fit[y]["DataProperties"])
+            try:
+                # try to see if model range is in the json file. If it is not
+                # then just fill with DataProperties.
+                resid_range[y].append(data_fit[y]["ResidualProperties"])
+            except:
+                resid_range[y].append({"max": np.nan, "min": np.nan})
+    Imax = []
+    Imin = []
+    Rmax = []
+    Rmin = []
+    for y in range(len(data_fit)):
+        tmp1 = pd.DataFrame(data_range[y], index=list(range(len(data_range[y]))))
+        tmp2 = pd.DataFrame(model_range[y], index=list(range(len(model_range[y]))))
+        Imax.append(np.max([tmp1["max"].max(), tmp2["max"].max()]))
+        Imin.append(np.min([tmp1["min"].min(), tmp2["min"].min()]))
+        tmp3 = pd.DataFrame(resid_range[y], index=list(range(len(resid_range[y]))))
+        Rmax.append(tmp3["max"].max())
+        Rmin.append(tmp3["min"].min())
 
-    for z in range(num_subpatterns):
+    duration = (setting_class.image_number) / fps
+
+    for z in range(len(setting_class.fit_orders)):
         y = list(range(setting_class.image_number))
 
         setting_class.set_subpattern(0, z)
@@ -127,9 +169,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
             # logger.info(" ".join(map(str, [(t, int(t*fps), y[int(t*fps)])])))
 
             # Get diffraction pattern to process.
-            data_class.import_image(
-                setting_class.image_list[y[int(t * fps)]], debug=debug
-            )
+            data_class.import_image(setting_class.image_list[y[int(t * fps)]])
 
             if setting_class.datafile_preprocess is not None:
                 # needed because image preprocessing adds to the mask and is different for each image.
@@ -170,6 +210,12 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                 # param_lmfit=None,
                 params_dict=data_fit,
                 figure=fig,
+                plot_ColourRange={
+                    "max": Imax[z],
+                    "min": Imin[z],
+                    "rmin": Rmin[z],
+                    "rmax": Rmax[z],
+                },
             )
             title_str = (
                 IO.peak_string(setting_class.subfit_orders)

@@ -47,8 +47,107 @@ Refinement of dispersion parameters
 
 text goes here
 
+
+
 Final fit of all parameters
 ---------------------------
 
 text goes here.
 
+
+
+
+
+Meaning of 'Fit Status' 
+---------------------------
+The status in the output json file is a record of all the steps that the fitting passed through. 
+The assignent of each value and that path to get the value is as follows:
+
+
+*Initial 'step' value*:
+
+   step = 0 [new fit, do chunks]
+
+   step = 5 [fit using previous parameters]
+
+
+*Initiate parameters and perform inital fit to chunks*. At the end of which:
+
+   step = step + 10
+
+Giving:
+
+   step = 10 [new series fits, using chunked fits]
+
+   step = 15 [series fits from previous parameters]
+
+*Refine the peak parameters one at a time.*
+
+if refinementments are used:
+
+   step = step + 10
+
+otherwise:
+
+   step = step + 11
+
+Step values at the end of the first attempt at refinements:
+
+   step = 20 [new series fits, refined]
+
+   step = 21 [new series fits, not refined]
+
+   step = 25 [series fits from previous parameters, refined]
+
+   step = 26 [series fits from previous parameters, not refined]
+
+Other values (22 or 27) are possible if the peak parameters have been refined more than once. 
+
+
+*Perform a global fit to all parameters*.
+
+
+if the step value is 20, 21, 22, 25, 26, or 27
+
+   use default maximum function evaluaitons (max_f_eval)
+
+otherwise if the step value is 23 or 28
+
+   use 2 time max_f_eval
+
+otherwise for step values of 24 or 29
+
+   use inf for  max_f_eval
+
+
+*Determine the state of the fit and act accordingly*
+
+if the fit is sucsessful (i.e. lmfit sucsess==1) and there are no problems with the fit
+
+   step = step+100
+
+alternatively if the fit is sucsessful but there are problmes with the fit 
+
+   either 
+
+      try changing some of the setttings and trying again
+
+   or 
+
+      Dicscard everything and start again
+
+
+The possible final status values are:
+
+* **-176** -- the fitting ended up in a state that is not going to work. Exit neatly.
+* **-11** -- no valid data, failed, exit neatly.
+* **120** -- no previous fits, refined, finished
+* **121** -- no previous fits, not refined, finished
+* **122** -- no previous fits, not refined, failed, refined, finished
+* **123** -- (no previous fits, refined, failed, refined, finished) or (no previous fits, not refined, failed, refined, failed, refined, finished)
+* **124** -- not possible, raises an error
+* **125** -- previous fits, refiend, finished
+* **126** -- previous fits, not refined, finished
+* **127** -- previous fits, not refined, failed, refined, finished
+* **128** -- (previous fits, refined, failed, refined, finished) or (previous fits, not refined, failed, refined, failed, refined, finished)
+* **129** -- not possible as final status. But it passes through everything and starts again: process is previous fits, (not refined), failed, refined, failed, refined, failed, discard all and start again with no previous fits. 

@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
 __all__ = ["settings", "get_output_options", "detector_factory"]
 
 import importlib.util
 import json
 import os
 from copy import copy, deepcopy
+from glob import glob
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 
@@ -30,7 +33,7 @@ from cpf.series_functions import (
 )
 
 
-class settings:
+class Settings:
     """
     Settings class definitions.
     The settings class is contains all the variables/informtion needed to execute
@@ -54,7 +57,7 @@ class settings:
 
     def __init__(
         self,
-        settings_file: Optional[Union[str, Path]] = None,
+        settings_file: Optional[str | Path] = None,
         out_type=None,
         report: bool = False,
         debug: bool = False,
@@ -88,9 +91,9 @@ class settings:
 
         """
 
-        self.datafile_list: Optional[list[Union[str, Path]]] = None
+        self.datafile_list: Optional[list[str | Path]] = None
         self.datafile_number: int = 0
-        self.image_list: Optional[list[Union[str, Path]]] = None
+        self.image_list: Optional[list[str | Path]] = None
         self.image_number: int = 0
         self.datafile_directory = Path(".")
 
@@ -177,7 +180,7 @@ class settings:
 
     def populate(
         self,
-        settings_file: Optional[Union[str, Path]] = None,
+        settings_file: Optional[str | Path] = None,
         out_type=None,
         report=False,
         debug=False,
@@ -405,7 +408,7 @@ class settings:
 
     def check_files_exist(
         self,
-        files_to_check: Union[list[Path], Path],
+        files_to_check: list[Path] | Path,
         write: bool = False,
     ):
         """
@@ -421,8 +424,9 @@ class settings:
 
         for j in range(len(files_to_check)):
             # logger.info(" ".join(map(str, [(files_to_check[j])])))
-            if files_to_check[j].is_file() is False:
-                raise FileNotFoundError(
+            if files_to_check[j].exists() is False:
+                # use glob.glob for a file search to account for compund detectors of ESRFlvp detectors
+                raise ImportError(
                     f"The file {files_to_check[j]} is not found but is required."
                 )
             else:
@@ -846,7 +850,7 @@ class settings:
 
     def validate_position_selection(
         self,
-        peak_set: Union[int, list[int]] = 0,
+        peak_set: int | list[int] = 0,
         report: bool = False,
     ):
         """
@@ -1233,4 +1237,4 @@ def detector_factory(fit_settings=None):
 
 
 if __name__ == "__main__":
-    settings
+    Settings

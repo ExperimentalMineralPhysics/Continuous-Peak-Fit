@@ -200,6 +200,7 @@ class _Plot_AngleDispersive:
         fit_centroid=None,
         plot_type="surface",
         orientation="horizontal",
+        plot_ColourRange=None,
     ):
         """
         add data to axes.
@@ -209,10 +210,19 @@ class _Plot_AngleDispersive:
         """
 
         # match max and min of colour scales
-        limits = {
-            "max": np.max([self.intensity.max(), model.max()]),
-            "min": np.min([self.intensity.min(), model.min()]),
-        }
+        if plot_ColourRange:
+            if not isinstance(plot_ColourRange, dict):
+                limits = {
+                    "max": plot_ColourRange[0],
+                    "min": plot_ColourRange[1],
+                }
+            else:
+                limits = plot_ColourRange
+        else:
+            limits = {
+                "max": np.max([self.intensity.max(), model.max()]),
+                "min": np.min([self.intensity.min(), model.min()]),
+            }
 
         tight = False
 
@@ -287,12 +297,16 @@ class _Plot_AngleDispersive:
         # plt.setp(labels, rotation=90)
 
         # plot residuals
+        if "rmin" in limits:
+            limits_resid = {"min": limits["rmin"], "max": limits["rmax"]}
+        else:
+            limits_resid = [0, 100]
         self.plot_calibrated(
             fig_plot=fig_plot,
             axis_plot=ax[2],
             data=self.intensity - model,
             y_label=None,
-            limits=[0, 100],
+            limits=limits_resid,
             colourmap="residuals-blanaced",
             # location=location,
             rastered=plot_type,
@@ -722,6 +736,10 @@ class _Plot_AngleDispersive:
             location=location,
             shrink=0.9,
         )  # , pad=0.1, aspect=8)
+
+    def plot_integrated(self):
+        # FIXME: Other classes are looking for a plot_integrated function under this class
+        pass
 
 
 def residuals_colour_scheme(maximum_value, minimum_value, **kwargs):

@@ -349,7 +349,7 @@ class Med(Mca.Mca):
             data[i, :] = self.mcas[i].get_data()
         if align != 0:
             logger.info(" ".join(map(str, [("This option has been removed")])))
-            stop
+
         #         ref_energy = self.mcas[0].get_energy()
         #         for i in range(self.n_detectors):
         #            energy = self.mcas[i].get_energy()

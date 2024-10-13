@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = [
     "settings",
     "XRD_FitPattern",
@@ -34,6 +36,7 @@ from . import (
     logger_functions,
     output_formatters,
     peak_functions,
+    series_constraints,
     series_functions,
     settings,
 )

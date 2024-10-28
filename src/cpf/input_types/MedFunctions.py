@@ -878,6 +878,7 @@ class MedDetector:
         colourmap="jet",
         colourbar=True,
         debug=False,
+        rastered = {},
     ):
         """
         add data to axes in form collected in.

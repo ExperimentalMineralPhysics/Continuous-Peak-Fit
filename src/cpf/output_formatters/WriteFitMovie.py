@@ -29,7 +29,7 @@ def Requirements():
     return RequiredParams, OptionalParams
 
 
-def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
+def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
     """
     Writes a *.?? file of the fits.
 
@@ -62,17 +62,17 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     elif not isinstance(fps, float):
         raise ValueError("The frames per second needs to be a number.")
 
-    if setting_class is None and setting_file is None:
+    if settings_class is None and settings_file is None:
         raise ValueError(
             "Either the settings file or the setting class need to be specified."
         )
-    elif setting_class is None:
+    elif settings_class is None:
         import cpf.XRD_FitPattern.initiate as initiate
 
-        setting_class = initiate(setting_file)
+        settings_class = initiate(settings_file)
 
     # make the base file name
-    base = setting_class.datafile_basename
+    base = settings_class.datafile_basename
     if base is None or len(base) == 0:
         logger.info(
             " ".join(
@@ -82,32 +82,32 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                 )
             )
         )
-        base = setting_class.datafile_ending
+        base = settings_class.datafile_ending
     if base is None:
         logger.info(
             " ".join(map(str, [("No base filename, using input filename instead.")]))
         )
-        base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
+        base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
 
     # make the data class.
-    data_to_fill = setting_class.image_list[0]
-    data_class = setting_class.data_class
+    data_to_fill = settings_class.image_list[0]
+    data_class = settings_class.data_class
     data_class.fill_data(
         data_to_fill,
-        settings=setting_class,
+        settings=settings_class,
         debug=debug,
     )
 
     # get the intensity ranges from the data fits.
-    data_range = [[] for i in range(len(setting_class.fit_orders))]
-    model_range = [[] for i in range(len(setting_class.fit_orders))]
-    resid_range = [[] for i in range(len(setting_class.fit_orders))]
-    for z in range(setting_class.image_number):
-        setting_class.set_subpattern(z, 0)
+    data_range = [[] for i in range(len(settings_class.fit_orders))]
+    model_range = [[] for i in range(len(settings_class.fit_orders))]
+    resid_range = [[] for i in range(len(settings_class.fit_orders))]
+    for z in range(settings_class.image_number):
+        settings_class.set_subpattern(z, 0)
         # read fit file
         json_file = IO.make_outfile_name(
-            setting_class.subfit_filename,  # diff_files[z],
-            directory=setting_class.output_directory,
+            settings_class.subfit_filename,  # diff_files[z],
+            directory=settings_class.output_directory,
             extension=".json",
             overwrite=True,
         )
@@ -140,19 +140,19 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
         Rmax.append(tmp3["max"].max())
         Rmin.append(tmp3["min"].min())
 
-    duration = (setting_class.image_number) / fps
+    duration = (settings_class.image_number) / fps
 
-    for z in range(len(setting_class.fit_orders)):
-        y = list(range(setting_class.image_number))
+    for z in range(len(settings_class.fit_orders)):
+        y = list(range(settings_class.image_number))
 
-        setting_class.set_subpattern(0, z)
+        settings_class.set_subpattern(0, z)
 
-        addd = IO.peak_string(setting_class.subfit_orders, fname=True)
-        if setting_class.file_label != None:
-            addd = addd + setting_class.file_label
+        addd = IO.peak_string(settings_class.subfit_orders, fname=True)
+        if settings_class.file_label != None:
+            addd = addd + settings_class.file_label
         out_file = IO.make_outfile_name(
             base,
-            directory=setting_class.output_directory,
+            directory=settings_class.output_directory,
             extension=file_types[0],
             overwrite=True,
             additional_text=addd,
@@ -169,33 +169,33 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
             # logger.info(" ".join(map(str, [(t, int(t*fps), y[int(t*fps)])])))
 
             # Get diffraction pattern to process.
-            data_class.import_image(setting_class.image_list[y[int(t * fps)]])
+            data_class.import_image(settings_class.image_list[y[int(t * fps)]])
 
-            if setting_class.datafile_preprocess is not None:
+            if settings_class.datafile_preprocess is not None:
                 # needed because image preprocessing adds to the mask and is different for each image.
                 data_class.mask_restore()
-                if "cosmics" in setting_class.datafile_preprocess:
-                    pass  # data_class = cosmicsimage_preprocess(data_class, setting_class)
+                if "cosmics" in settings_class.datafile_preprocess:
+                    pass  # data_class = cosmicsimage_preprocess(data_class, settings_class)
             else:
                 # nothing is done here.
                 pass
 
             # restrict data to the right part.
             sub_data = data_class.duplicate()
-            setting_class.set_subpattern(y[int(t * fps)], z)
-            sub_data.set_limits(range_bounds=setting_class.subfit_orders["range"])
+            settings_class.set_subpattern(y[int(t * fps)], z)
+            sub_data.set_limits(range_bounds=settings_class.subfit_orders["range"])
 
             # Mask the subpattern by intensity if called for
             if (
-                "imax" in setting_class.subfit_orders
-                or "imin" in setting_class.subfit_orders
+                "imax" in settings_class.subfit_orders
+                or "imin" in settings_class.subfit_orders
             ):
-                sub_data = SpotProcess(sub_data, setting_class)
+                sub_data = SpotProcess(sub_data, settings_class)
 
             # read fit file
             json_file = IO.make_outfile_name(
-                setting_class.subfit_filename,  # diff_files[z],
-                directory=setting_class.output_directory,
+                settings_class.subfit_filename,  # diff_files[z],
+                directory=settings_class.output_directory,
                 extension=".json",
                 overwrite=True,
             )
@@ -205,7 +205,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
             # make the plot of the fits.
             fig = plt.figure(1)
             fig = plot_FitAndModel(
-                setting_class,
+                settings_class,
                 sub_data,
                 # param_lmfit=None,
                 params_dict=data_fit,
@@ -218,20 +218,20 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                 },
             )
             title_str = (
-                IO.peak_string(setting_class.subfit_orders)
+                IO.peak_string(settings_class.subfit_orders)
                 + "; "
                 + str(y[int(t * fps)])
                 + "/"
-                + str(setting_class.image_number)
+                + str(settings_class.image_number)
                 + "\n"
                 + IO.title_file_names(
-                    setting_class,
+                    settings_class,
                     num=y[int(t * fps)],
-                    image_name=setting_class.subfit_filename,
+                    image_name=settings_class.subfit_filename,
                 )
             )
-            if "note" in setting_class.subfit_orders:
-                title_str = title_str + " " + setting_class.subfit_orders["note"]
+            if "note" in settings_class.subfit_orders:
+                title_str = title_str + " " + settings_class.subfit_orders["note"]
             plt.suptitle(title_str)
             IO.figure_suptitle_space(fig, topmargin=0.4)
 

@@ -30,47 +30,47 @@ def Requirements():
 
 
 # def WriteOutput(FitSettings, parms_dict, **kwargs):
-def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
+def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
     # writes some of the fitted coeficients to a table.
     # More general version of WriteDifferentialStrain.
     # Focused on d-spacing coefficents but generalisible to all coefficients.
 
     ordering_of_output = "peak"
 
-    if setting_class is None and setting_file is None:
+    if settings_class is None and settings_file is None:
         raise ValueError(
             "bummer Either the settings file or the setting class need to be specified."
         )
-    elif setting_class is None:
+    elif settings_class is None:
         import cpf.XRD_FitPattern.initiate as initiate
 
-        setting_class = initiate(setting_file)
+        settings_class = initiate(settings_file)
 
     # get what to write
     if "coefs_write" in kwargs:
         coefs_vals_write = kwargs.get("coefs_write")
-    elif "coefs_vals_write" in setting_class.output_settings:
-        coefs_vals_write = setting_class.output_settings["coefs_vals_write"]
+    elif "coefs_vals_write" in settings_class.output_settings:
+        coefs_vals_write = settings_class.output_settings["coefs_vals_write"]
     else:
         coefs_vals_write = "all"
 
     # make filename for output
-    base = setting_class.datafile_basename
+    base = settings_class.datafile_basename
     if base is None:
         logger.info(
             " ".join(map(str, [("No base filename, using input filename instead.")]))
         )
-        base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
+        base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
     out_file = IO.make_outfile_name(
         base,
-        directory=setting_class.output_directory,
+        directory=settings_class.output_directory,
         extension=".dat",
         overwrite=True,
         additional_text="all_coefficients",
     )
 
     # get number of coefficients.
-    num_subpatterns = len(setting_class.fit_orders)
+    num_subpatterns = len(settings_class.fit_orders)
     peak_properties = pf.peak_components(full=True)
     if coefs_vals_write == "all":
         coefs_vals_write = peak_properties
@@ -83,24 +83,25 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
             max_coef[coefs_vals_write[1][w]] = [0]
     max_coefs = 0
     for y in range(num_subpatterns):
-        for x in range(len(setting_class.fit_orders[y]["peak"])):
+        for x in range(len(settings_class.fit_orders[y]["peak"])):
             for w in range(len(coefs_vals_write[1])):
                 ind = coefs_vals_write[1][w]
                 if ind != "background":
                     max_coef[ind] = np.max(
                         [
                             max_coef[ind],
-                            np.max(2 * setting_class.fit_orders[y]["peak"][x][ind]) + 1,
+                            np.max(2 * settings_class.fit_orders[y]["peak"][x][ind])
+                            + 1,
                         ]
                     )
                 else:
-                    for v in range(len(setting_class.fit_orders[y][ind])):
+                    for v in range(len(settings_class.fit_orders[y][ind])):
                         if v > len(max_coef[ind]) - 1:
                             max_coef[ind].append(0)
                         max_coef[ind][v] = np.max(
                             [
                                 max_coef[ind][v],
-                                2 * setting_class.fit_orders[y][ind][v] + 1,
+                                2 * settings_class.fit_orders[y][ind][v] + 1,
                             ]
                         )
 
@@ -109,7 +110,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
 
     text_file.write(
         "# Summary of fits produced by continuous_peak_fit for input file: %s.\n"
-        % setting_class.settings_file
+        % settings_class.settings_file
     )
     text_file.write("# For more information: http://www.github.com/me/something\n")
     text_file.write("# File version: %i \n" % 2)
@@ -136,7 +137,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
         elif ind == "symmetry":
             text_file.write(("{0:>" + str(col_width) + "}").format(ind + ","))
         else:
-            for u in range(len(setting_class.fit_orders[y][ind])):
+            for u in range(len(settings_class.fit_orders[y][ind])):
                 for v in range(max_coef[ind][u]):
                     text_file.write(
                         ("{0:>" + str(col_width) + "}").format(
@@ -153,12 +154,12 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
 
     # read all the data.
     fits = []
-    for z in range(setting_class.image_number):
-        setting_class.set_subpattern(z, 0)
+    for z in range(settings_class.image_number):
+        settings_class.set_subpattern(z, 0)
 
         filename = IO.make_outfile_name(
-            setting_class.subfit_filename,  # diff_files[z],
-            directory=setting_class.output_directory,  # directory=FitSettings.Output_directory,
+            settings_class.subfit_filename,  # diff_files[z],
+            directory=settings_class.output_directory,  # directory=FitSettings.Output_directory,
             extension=".json",
             overwrite=True,
         )  # overwrite =false to get the file name without incrlemeting it.
@@ -168,11 +169,11 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
             fits.append(json.load(json_data))
 
     # make lists of the parameters to iterate over
-    images = list(range(setting_class.image_number))
+    images = list(range(settings_class.image_number))
     subpatterns = list(range(num_subpatterns))
     max_peaks = 1
-    for i in range(len(setting_class.fit_orders)):
-        max_peaks = np.max([max_peaks, len(setting_class.fit_orders[i]["peak"])])
+    for i in range(len(settings_class.fit_orders)):
+        max_peaks = np.max([max_peaks, len(settings_class.fit_orders[i]["peak"])])
     lists = images, subpatterns, list(range(max_peaks))
     lists = np.array(list(product(*lists)))
 
@@ -185,12 +186,12 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
 
     # print the data.
     for z in range(len(lists)):
-        setting_class.set_subpattern(lists[z, 0], lists[z, 1])
+        settings_class.set_subpattern(lists[z, 0], lists[z, 1])
         data_to_write = fits[lists[z, 0]][lists[z, 1]]
 
         if len(data_to_write["peak"]) > lists[z, 2]:
             out_name = IO.make_outfile_name(
-                setting_class.subfit_filename,
+                settings_class.subfit_filename,
                 directory="",
                 extension=".json",
                 overwrite=True,
@@ -199,18 +200,18 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
             out_peak = []
 
             # peak
-            if "phase" in setting_class.fit_orders[lists[z, 1]]["peak"][lists[z, 2]]:
-                out_peak = setting_class.fit_orders[lists[z, 1]]["peak"][lists[z, 2]][
+            if "phase" in settings_class.fit_orders[lists[z, 1]]["peak"][lists[z, 2]]:
+                out_peak = settings_class.fit_orders[lists[z, 1]]["peak"][lists[z, 2]][
                     "phase"
                 ]
             else:
                 out_peak = out_peak + "Peak"
-            if "hkl" in setting_class.fit_orders[lists[z, 1]]["peak"][lists[z, 2]]:
+            if "hkl" in settings_class.fit_orders[lists[z, 1]]["peak"][lists[z, 2]]:
                 out_peak = (
                     out_peak
                     + " ("
                     + str(
-                        setting_class.fit_orders[lists[z, 1]]["peak"][lists[z, 2]][
+                        settings_class.fit_orders[lists[z, 1]]["peak"][lists[z, 2]][
                             "hkl"
                         ]
                     )

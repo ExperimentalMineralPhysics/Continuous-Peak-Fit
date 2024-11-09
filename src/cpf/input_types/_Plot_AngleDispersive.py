@@ -951,7 +951,7 @@ def surface_plot(
         def PolyArea(x, y):
             return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
-        # for f in range(setting_class.image_number):
+        # for f in range(settings_class.image_number):
         for i in progress_bar.iter_bar(iteration=range(len(corners))):
             if triang.mask[i] == True:
                 pass

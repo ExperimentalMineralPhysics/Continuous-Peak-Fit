@@ -30,13 +30,13 @@ def Requirements():
     return RequiredParams, OptionalParams
 
 
-def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
+def WriteOutput(settings_class=None, settings_file=None, debug=True, **kwargs):
     """
 
     writes some of the fitted coeficients to a table. With a focus on the differential strain coefficents
     Parameters
     ----------
-    setting_class : TYPE
+    settings_class : TYPE
         DESCRIPTION.
     parms_dict : TYPE
         DESCRIPTION.
@@ -56,48 +56,48 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
     # version 2  accounts for 2d and 3d experimntal gemoetries, compression and extension. The crystallographic values are now calculated in a different file/function.
     f_version = 2
 
-    if setting_class is None and setting_file is None:
+    if settings_class is None and settings_file is None:
         raise ValueError(
             "Either the settings file or the setting class need to be specified."
         )
-    elif setting_class is None:
+    elif settings_class is None:
         import cpf.XRD_FitPattern.initiate as initiate
 
-        setting_class = initiate(setting_file)
+        settings_class = initiate(settings_file)
 
     # Parse optional parameters
     SampleGeometry = "3D".lower()
-    if "SampleGeometry" in setting_class.output_settings:
-        SampleGeometry = setting_class.output_settings["SampleGeometry"].lower()
+    if "SampleGeometry" in settings_class.output_settings:
+        SampleGeometry = settings_class.output_settings["SampleGeometry"].lower()
     SampleDeformation = "compression".lower()
-    if "SampleDeformation" in setting_class.output_settings:
-        SampleDeformation = setting_class.output_settings["SampleDeformation"].lower()
+    if "SampleDeformation" in settings_class.output_settings:
+        SampleDeformation = settings_class.output_settings["SampleDeformation"].lower()
 
-    base = setting_class.datafile_basename
+    base = settings_class.datafile_basename
 
     # if not base:
     if base is None or len(base) == 0:
         logger.info(
             " ".join(("No base filename, trying ending without extension instead."))
         )
-        base = setting_class.datafile_ending
+        base = settings_class.datafile_ending
 
     if base is None:
         logger.info(" ".join(("No base filename, using input filename instead.")))
-        base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
+        base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
     out_file = IO.make_outfile_name(
         base,
-        directory=setting_class.output_directory,
+        directory=settings_class.output_directory,
         extension=".dat",
         overwrite=True,
-        additional_text=setting_class.file_label,
+        additional_text=settings_class.file_label,
     )
 
     text_file = open(out_file, "w")
     logger.info(" ".join(["Writing %s" % out_file]))
     text_file.write(
         "# Summary of fits produced by continuous_peak_fit for input file: %s.\n"
-        % setting_class.settings_file  # FitSettings.inputfile
+        % settings_class.settings_file  # FitSettings.inputfile
     )
     text_file.write(
         f"# Sample Geometry = {SampleGeometry}; Sample Deformation = {SampleDeformation}\n"
@@ -157,12 +157,12 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
     text_file.write("\n")
 
     all_fits = []
-    for z in range(setting_class.image_number):
-        setting_class.set_subpattern(z, 0)
+    for z in range(settings_class.image_number):
+        settings_class.set_subpattern(z, 0)
 
         filename = IO.make_outfile_name(
-            setting_class.subfit_filename,
-            directory=setting_class.output_directory,
+            settings_class.subfit_filename,
+            directory=settings_class.output_directory,
             extension=".json",
             overwrite=True,
         )
@@ -180,7 +180,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
             num_subpatterns = len(fit)
             for y in range(num_subpatterns):
                 out_name = IO.make_outfile_name(
-                    setting_class.subfit_filename,
+                    settings_class.subfit_filename,
                     directory="",
                     overwrite=True,
                 )
@@ -192,8 +192,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=True, **kwargs):
                 )
                 # try reading an lmfit object file.
                 savfilename = IO.make_outfile_name(
-                    setting_class.subfit_filename,
-                    directory=setting_class.output_directory,
+                    settings_class.subfit_filename,
+                    directory=settings_class.output_directory,
                     orders=fit[y],
                     extension=".sav",
                     overwrite=True,

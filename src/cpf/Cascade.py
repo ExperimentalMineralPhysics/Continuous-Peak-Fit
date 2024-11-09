@@ -36,6 +36,7 @@ __all__ = ["initiate", "set_range", "execute"]
 
 import json
 import os.path
+from typing import Literal
 
 import matplotlib.colors as colours
 import matplotlib.pyplot as plt
@@ -105,12 +106,12 @@ def execute(
     setting_file=None,
     setting_class=None,
     inputs=None,
-    debug: bool =False,
-    save_all: bool =False,
-    parallel: bool =True,
-    subpattern: str ="all",
-    mode: str ="cascade",
-    report: bool =False,
+    debug: bool = False,
+    save_all: bool = False,
+    parallel: bool = True,
+    subpattern: str = "all",
+    mode: str = "cascade",
+    report: bool = False,
     show_plots: bool = False,
     **kwargs,
 ):
@@ -595,11 +596,11 @@ def plot_cascade_chunks(
         setting_class = setting_class
 
     # get file times
-    modified_time_s = []
-    for i in range(setting_class.image_number):
-        modified_time_s.append(os.path.getmtime(setting_class.image_list[i]))
-    modified_time_s = np.array(modified_time_s)
-    modified_time_s = modified_time_s - modified_time_s[0]
+    modified_time_s = np.array(
+        [os.path.getmtime(file) for file in setting_class.image_list]
+    )
+    modified_time_s -= float(modified_time_s[0])
+
     y_label_str = r"Time (s)"
     # use file numbers if all times are the same
     if len(np.unique(modified_time_s)) == 1:
@@ -673,7 +674,7 @@ def plot_cascade_chunks(
                         )
 
                     # determine the label for the figure -- if there is data in the other peaks then just label as single peak otherwise it is all the peaks
-                    pk = k
+                    pk: int | Literal["all"] = k
                     for l in range(len(setting_class.subfit_orders["peak"])):
                         if not all_data[0][j]["h"][l]:
                             pk = "all"
@@ -789,10 +790,10 @@ def peak_count(
     setting_file=None,
     setting_class=None,
     inputs=None,
-    debug: bool =False,
-    report: bool =False,
-    prominence: int =15,
-    subpattern: str ="all",
+    debug: bool = False,
+    report: bool = False,
+    prominence: int = 15,
+    subpattern: str = "all",
     show_plots: bool = False,
     **kwargs,
 ):
@@ -832,9 +833,9 @@ def peak_count(
     # get the number of peaks
     # all_peaks, all_properties, count = peak_count(setting_class=setting_class, prominence=prominence)
 
-    all_peaks = []
-    all_peakAzis = []
-    all_properties = []
+    all_peaks: list[list] = []
+    all_peakAzis: list = []
+    all_properties: list[list] = []
     count = []
     peak_labels = []
     for j in range(num_orders):
@@ -876,7 +877,7 @@ def peak_count(
                 all_properties.append(all_properties_tmp)
                 count.append(count_tmp)
                 # determine the label for the figure -- if there is data in the other peaks then just label as single peak otherwise it is all the peaks
-                pk = k
+                pk: int | Literal["all"] = k
                 for l in range(len(setting_class.subfit_orders["peak"])):
                     if not all_data[0][j]["h"][l]:
                         pk = "all"
@@ -891,11 +892,11 @@ def plot_peak_count(
     setting_file=None,
     setting_class=None,
     inputs=None,
-    debug: bool =False,
-    report: bool =False,
-    prominence: int =1,
-    subpattern: str ="all",
-    rotate: bool =False,
+    debug: bool = False,
+    report: bool = False,
+    prominence: int = 1,
+    subpattern: str = "all",
+    rotate: bool = False,
     show_plots: bool = False,
     **kwargs,
 ):
@@ -921,11 +922,11 @@ def plot_peak_count(
         setting_class = setting_class
 
     # get file times
-    modified_time_s = []
-    for i in range(setting_class.image_number):
-        modified_time_s.append(os.path.getmtime(setting_class.image_list[i]))
-    modified_time_s = np.array(modified_time_s)
-    modified_time_s = modified_time_s - modified_time_s[0]
+    modified_time_s = np.array(
+        [os.path.getmtime(file) for file in setting_class.image_list]
+    )
+    modified_time_s -= float(modified_time_s[0])
+
     y_label_str = r"Time (s)"
     # use file numbers if all times are the same
     if len(np.unique(modified_time_s)) == 1:

@@ -32,7 +32,9 @@ from lmfit import Model, Parameters
 import cpf.peak_functions as pf
 import cpf.series_constraints as sc
 import cpf.series_functions as sf
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
+
+logger = CPFLogger("cpf.lmfit_model")
 
 np.set_printoptions(threshold=sys.maxsize)
 

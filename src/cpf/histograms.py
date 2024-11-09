@@ -9,8 +9,9 @@ import numpy as np
 import numpy.ma as ma
 import pyFAI.engines.histogram_engine as he
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
+
+logger = CPFLogger("cpf.histograms")
 
 
 def histogram1d(

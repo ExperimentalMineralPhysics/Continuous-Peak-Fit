@@ -42,8 +42,9 @@ __version__ = "0.1"
 
 import numpy as np
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
+
+logger = CPFLogger("cpf.BrightSpots")
 
 
 def SpotProcess(sub_data, settings_for_fit):

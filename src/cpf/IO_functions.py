@@ -15,7 +15,9 @@ from pathlib import Path
 
 import numpy as np
 
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
+
+logger = CPFLogger("cpf.IO_functions")
 
 
 # Needed for JSON to save fitted parameters.

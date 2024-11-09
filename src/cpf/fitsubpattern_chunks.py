@@ -17,7 +17,9 @@ import cpf.IO_functions as io
 import cpf.lmfit_model as lmm
 import cpf.series_constraints as sc
 import cpf.series_functions as sf
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
+
+logger = CPFLogger("cpf.fitsubpattern_chunks")
 
 
 def get_manual_guesses(settings_as_class, data_as_class, debug=False):

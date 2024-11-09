@@ -24,13 +24,15 @@ from cpf.IO_functions import (
 )
 
 # , get_output_options, detector_factory, register_default_formats
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
 from cpf.series_functions import (
     coefficient_type_as_number,
     coefficient_type_as_string,
     coefficient_types,
     get_number_coeff,
 )
+
+logger = CPFLogger("cpf.settings")
 
 
 class Settings:

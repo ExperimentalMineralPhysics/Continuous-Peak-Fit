@@ -35,8 +35,10 @@ from __future__ import annotations
 __all__ = ["initiate", "set_range", "execute"]
 
 import json
+import logging
 import os.path
-from typing import Literal
+from pathlib import Path
+from typing import Literal, Optional
 
 import matplotlib.colors as colours
 import matplotlib.pyplot as plt
@@ -60,8 +62,44 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
 from cpf.XRD_FitSubpattern import fit_sub_pattern
+
+logger = CPFLogger("cpf.Cascade")
+
+
+def initialise_logger(
+    settings_file: Optional[str | Path] = None,
+    report: str | bool = False,
+):
+    # Start the logger with the desired outputs
+    logger.handlers.clear()
+    format = "%(asctime)s [%(levelname)s] %(message)s"
+    formatter = logging.Formatter(format)
+    if isinstance(report, (str)):
+        # Fail gracefully
+        if settings_file is None:
+            raise ValueError(
+                "Settings file needs to be specified in order to create a log file."
+            )
+
+        # Set the logging level and log file name
+        level = report.upper()
+        log_name = make_outfile_name(settings_file, extension=".log", overwrite=True)
+
+        # Create and add the file handler
+        fh = logging.FileHandler(log_name, mode="a", encoding="utf-8")
+        fh.setFormatter(formatter)
+        fh.setLevel(level)
+        logger.addHandler(fh)
+    else:
+        level = "INFO"
+
+    # Create the stream handler
+    sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    sh.setLevel(level)
+    logger.addHandler(sh)
 
 
 def initiate(*args, **kwargs):
@@ -131,6 +169,8 @@ def execute(
     :param iterations:
     :return:
     """
+
+    initialise_logger(settings_file=settings_file, report=report)
 
     if settings_class is None:
         settings_for_fit = initiate(settings_file, inputs=inputs, report=True)
@@ -1025,6 +1065,8 @@ def execute2(
     :param iterations:
     :return:
     """
+
+    initialise_logger(settings_file=settings_file, report=report)
 
     if settings_class is None:
         settings_for_fit = initiate(settings_file, inputs=inputs, report=True)

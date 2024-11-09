@@ -18,8 +18,9 @@ __all__ = [
 
 import numpy as np
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
+
+logger = CPFLogger("cpf.peak_functions")
 
 
 def peak_components(full=False, include_profile=True):

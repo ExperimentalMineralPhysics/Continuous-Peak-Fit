@@ -29,7 +29,7 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
 from cpf.settings import Settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 
@@ -37,6 +37,9 @@ np.set_printoptions(threshold=sys.maxsize)
 # FIX ME: Need to add complexity here.
 # Need option to check required functions are present if adding new output format.
 # Also need to do something similar with data class
+
+
+logger = CPFLogger("cpf.XRD_FitPattern")
 
 
 def register_default_formats() -> dict[str, ModuleType]:
@@ -55,6 +58,40 @@ def register_default_formats() -> dict[str, ModuleType]:
 
 # Load potential output formats
 output_methods_modules = register_default_formats()
+
+
+def initialise_logger(
+    settings_file: Optional[str | Path] = None,
+    report: str | bool = False,
+):
+    # Start the logger with the desired outputs
+    logger.handlers.clear()
+    format = "%(asctime)s [%(levelname)s] %(message)s"
+    formatter = logging.Formatter(format)
+    if isinstance(report, (str)):
+        # Fail gracefully
+        if settings_file is None:
+            raise ValueError(
+                "Settings file needs to be specified in order to create a log file."
+            )
+
+        # Set the logging level and log file name
+        level = report.upper()
+        log_name = make_outfile_name(settings_file, extension=".log", overwrite=True)
+
+        # Create and add the file handler
+        fh = logging.FileHandler(log_name, mode="a", encoding="utf-8")
+        fh.setFormatter(formatter)
+        fh.setLevel(level)
+        logger.addHandler(fh)
+    else:
+        level = "INFO"
+
+    # Create the stream handler
+    sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    sh.setLevel(level)
+    logger.addHandler(sh)
 
 
 def initiate(
@@ -87,40 +124,6 @@ def initiate(
             settings_file = Path(settings_file)
         except Exception as error:
             raise error
-
-    # reinitialise the logger -- with a new file name
-    if report is not False:  # reporting is required and we must have a settings_file.
-        # Create a log file for this dataset
-        log_name = make_outfile_name(settings_file, extension=".log", overwrite=True)
-
-        # Remove all handlers and then add new ones.
-        logger.handlers.clear()
-
-        # (Re)Configure the logging module
-        logging.basicConfig(
-            level="CRITICAL",
-            format="%(asctime)s [%(levelname)s] %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-            handlers=[
-                logging.FileHandler(
-                    log_name, mode="a", encoding=None, delay=False
-                ),  # Log to a file
-                logging.StreamHandler(),  # Log to stdout
-            ],
-            force=True,  # force the change in handlers
-        )
-
-    # set logging level.
-    if report is False:
-        # if not defined default to "INFO"
-        level = getattr(logger, "INFO")
-    elif isinstance(report, (str)):
-        # Get level number from the provided logger level name
-        level = getattr(logger, report.upper())
-    else:
-        level = 20
-        pass  # level should be a number
-    logger.setLevel(level)
 
     # make a header in the log file so that we know where the processing starts
     logger.info("")
@@ -615,6 +618,8 @@ def execute(
     :param iterations:
     :return:
     """
+
+    initialise_logger(settings_file=settings_file, report=report)
 
     if settings_class is None:
         settings_for_fit = initiate(settings_file, inputs=inputs, report=report)

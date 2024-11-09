@@ -105,12 +105,13 @@ def execute(
     setting_file=None,
     setting_class=None,
     inputs=None,
-    debug=False,
-    save_all=False,
-    parallel=True,
-    subpattern="all",
-    mode="cascade",
-    report=False,
+    debug: bool =False,
+    save_all: bool =False,
+    parallel: bool =True,
+    subpattern: str ="all",
+    mode: str ="cascade",
+    report: bool =False,
+    show_plots: bool = False,
     **kwargs,
 ):
     """
@@ -569,6 +570,7 @@ def plot_cascade_chunks(
     azi_range="all",
     vmax=np.inf,
     vmin=0,
+    show_plots: bool = False,
     **kwargs,
 ):
     """
@@ -694,8 +696,8 @@ def plot_cascade_chunks(
                     cb = plt.colorbar(extend=cb_extend)
                     # cb.set_label(r"Log$_{10}$(Intensity)")
                     cb.set_label(r"Intensity")
-                    plt.show()
-                    # save the figure
+
+                    # Save the figure
                     filename = IO.make_outfile_name(
                         setting_class.datafile_basename,
                         directory=setting_class.output_directory,
@@ -706,7 +708,10 @@ def plot_cascade_chunks(
                         overwrite=True,
                     )
                     fig.savefig(filename, transparent=True, bbox_inches="tight")
-                print("\n")
+                    if show_plots is True:
+                        plt.show()
+                    else:
+                        plt.close()
 
             elif plot_type == "map":
                 leng = 500
@@ -784,10 +789,11 @@ def peak_count(
     setting_file=None,
     setting_class=None,
     inputs=None,
-    debug=False,
-    report=False,
-    prominence=15,
-    subpattern="all",
+    debug: bool =False,
+    report: bool =False,
+    prominence: int =15,
+    subpattern: str ="all",
+    show_plots: bool = False,
     **kwargs,
 ):
     """
@@ -861,7 +867,10 @@ def peak_count(
 
                         # plt.plot(np.zeros_like(x), "--", color="gray")
 
-                        plt.show()
+                        if show_plots is True:
+                            plt.show()
+                        else:
+                            plt.close()
 
                 all_peaks.append(all_peaks_tmp)
                 all_properties.append(all_properties_tmp)
@@ -882,11 +891,12 @@ def plot_peak_count(
     setting_file=None,
     setting_class=None,
     inputs=None,
-    debug=False,
-    report=False,
-    prominence=1,
-    subpattern="all",
-    rotate=False,
+    debug: bool =False,
+    report: bool =False,
+    prominence: int =1,
+    subpattern: str ="all",
+    rotate: bool =False,
+    show_plots: bool = False,
     **kwargs,
 ):
     """
@@ -950,10 +960,9 @@ def plot_peak_count(
             plt.plot(count[j], modified_time_s, ".-", label=titles[j])
         plt.xlabel(r"Number peaks")
         plt.ylabel(y_label_str)
-
     plt.legend()
-    plt.show()
 
+    # Save the plot
     filename = IO.make_outfile_name(
         "PeakCountTime",
         directory=setting_class.output_directory,
@@ -962,6 +971,11 @@ def plot_peak_count(
         overwrite=True,
     )
     fig.savefig(filename, transparent=True)
+
+    if show_plots is True:
+        plt.show()
+    else:
+        plt.close()
 
 
 """

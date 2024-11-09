@@ -28,8 +28,9 @@ import math
 
 import numpy as Numeric
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
+
+logger = CPFLogger("cpf.input_types.Mca")
 
 # FIX ME: DMF Need to rationalise this code and keep what's needed.
 # FIX ME: where do we stand on licensing? has this been published?

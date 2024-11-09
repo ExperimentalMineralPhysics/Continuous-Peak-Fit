@@ -17,17 +17,13 @@ from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.io import ponifile
 
 import cpf.h5_functions as h5_functions
-
-# import cpf.logger_functions as lg
 from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
-
-# from PIL import Image
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.input_types.DioptasFunctions")
 
 
 class DioptasDetector:

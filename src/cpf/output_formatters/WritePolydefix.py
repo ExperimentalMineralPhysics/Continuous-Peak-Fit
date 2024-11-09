@@ -12,9 +12,9 @@ import cpf.IO_functions as IO
 import cpf.output_formatters.WriteMultiFit as WriteMultiFit
 
 # import cpf.PeakFunctions as ff
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
+logger = CPFLogger("cpf.output_formatters.WritePolydefix")
 
 
 def Requirements():

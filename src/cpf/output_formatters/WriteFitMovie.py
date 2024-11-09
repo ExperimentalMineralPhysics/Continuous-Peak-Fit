@@ -2,6 +2,7 @@ __all__ = ["Requirements", "WriteOutput"]
 
 
 import json
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,10 +13,10 @@ from moviepy.video.io.bindings import mplfig_to_npimage
 import cpf.IO_functions as IO
 from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
-
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
 from cpf.XRD_FitSubpattern import plot_FitAndModel
+
+logger = CPFLogger("cpf.output_formatters.WriteFitMovie")
 
 
 def Requirements():
@@ -67,7 +68,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
             "Either the settings file or the setting class need to be specified."
         )
     elif settings_class is None:
-        import cpf.XRD_FitPattern.initiate as initiate
+        from cpf.XRD_FitPattern import initiate
 
         settings_class = initiate(settings_file)
 

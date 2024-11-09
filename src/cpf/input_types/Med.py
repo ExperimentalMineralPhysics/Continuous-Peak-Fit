@@ -12,9 +12,9 @@ Modifications:
 import numpy as Numeric
 
 from cpf.input_types import Mca
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.input_types.Med")
 
 # FIX ME: DMF Need to rationalise this code and keep what's needed.
 # FIX ME: where do we stand on licensing? has this been published?

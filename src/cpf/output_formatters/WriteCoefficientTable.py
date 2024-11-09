@@ -10,9 +10,9 @@ import numpy as np
 # import cpf.XRD_FitPattern as XRD_FP
 import cpf.IO_functions as IO
 import cpf.peak_functions as pf
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.output_formatters.WriteCoefficientTable")
 
 
 def Requirements():
@@ -42,7 +42,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
             "bummer Either the settings file or the setting class need to be specified."
         )
     elif settings_class is None:
-        import cpf.XRD_FitPattern.initiate as initiate
+        from cpf.XRD_FitPattern import initiate
 
         settings_class = initiate(settings_file)
 

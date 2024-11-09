@@ -69,15 +69,10 @@ import cpf.logger_functions as lg
 from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
-
-# from matplotlib import gridspec
-# from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
-# from pyFAI.io import ponifile
-# from matplotlib import cm, colors
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.input_types.XYFunctions")
 
 # plot the data as an image (TRue) or a scatter plot (false).
 # FIXME: the plot as image (im_show) does not work. The fitted data has to be reshaped

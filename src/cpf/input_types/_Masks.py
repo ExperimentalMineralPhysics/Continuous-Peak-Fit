@@ -32,13 +32,11 @@ Remove mask functions from these class files and put in separate common file.
 
 import numpy as np
 import numpy.ma as ma
-
-# import matplotlib.pyplot as plt
-# from matplotlib import gridspec, cm, colors
 from PIL import Image, ImageDraw
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
+
+logger = CPFLogger("cpf.input_types._Masks")
 
 
 class _masks:

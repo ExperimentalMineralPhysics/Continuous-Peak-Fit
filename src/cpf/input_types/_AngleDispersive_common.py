@@ -7,9 +7,9 @@ import numpy as np
 import numpy.ma as ma
 
 import cpf.logger_functions as lg
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.input_types._AngelDispersive_common")
 
 
 class _AngleDispersive_common:

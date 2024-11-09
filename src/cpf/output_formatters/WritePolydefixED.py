@@ -12,9 +12,9 @@ import cpf.IO_functions as IO
 
 # import cpf.PeakFunctions as ff
 import cpf.series_functions as sf
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.output_formatters.WritePolydefixED")
 
 
 def Requirements():
@@ -52,7 +52,7 @@ def WriteOutput(
             "bummer Either the settings file or the setting class need to be specified."
         )
     elif settings_class is None:
-        import cpf.XRD_FitPattern.initiate as initiate
+        from cpf.XRD_FitPattern import initiate
 
         settings_class = initiate(settings_file)
 

@@ -8,9 +8,9 @@ import numpy as np
 
 import cpf.IO_functions as IO
 import cpf.series_functions as sf
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.output_formatters.WriteMultiFit")
 
 
 def Requirements():
@@ -45,7 +45,7 @@ def WriteOutput(
             "Either the settings file or the setting class need to be specified."
         )
     elif settings_class is None:
-        import cpf.XRD_FitPattern.initiate as initiate
+        from cpf.XRD_FitPattern import initiate
 
         settings_class = initiate(settings_file)
 
@@ -438,7 +438,7 @@ def WriteTestCase(FitSettings, parms_dict, differential_only=False):
 
     Azimuths = 360.0
 
-    WriteMultiFit.WriteOutput(file_name, Fouriers_to_write, Azimuths)
+    WriteOutput(file_name, Fouriers_to_write, Azimuths)
 
     # Write the fits to a temporary file
     TempFilename = open("Fit_previous_JSON.dat", "w")

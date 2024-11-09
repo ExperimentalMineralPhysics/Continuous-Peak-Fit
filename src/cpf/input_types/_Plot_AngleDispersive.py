@@ -8,7 +8,9 @@ import numpy.ma as ma
 from matplotlib import cm, colors, gridspec, tri
 
 from cpf.histograms import histogram2d
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
+
+logger = CPFLogger("cpf.input_types._Plot_AngleDispersive")
 
 
 class _Plot_AngleDispersive:

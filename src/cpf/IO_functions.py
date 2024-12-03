@@ -155,6 +155,37 @@ def file_list(fit_parameters, fit_settings):
     """
     From the Settings make a list of all the data files.
     This function is called by the output writing scripts to make sure the file names are called consistently.
+    
+    if datafile_StartNum and datafile_EndNum are in the settings a list of file names is made. If step is present
+    it is also used. datafile_StartNum is always present in the file list and if step > 0 then is the fisrt file in the 
+    list. If step <0 then datafile_StartNum is the last file in the list. 
+    e.g. 
+    1. datafile_StartNum = 1
+       datafile_EndNum   = 10
+       step = 1
+       gives file list: 1,2,3,4,5,6,7,8,9,10
+       
+    2. datafile_StartNum = 1
+       datafile_EndNum   = 10
+       step = 4
+       gives file list: 1,5,9
+       
+    3. datafile_StartNum = 1
+       datafile_EndNum   = 10
+       step = -4
+       gives file list: 9,5,1
+       
+    4. datafile_StartNum = 10
+       datafile_EndNum   = 1
+       step = 4
+       gives file list: 10,6,2
+       
+    5. datafile_StartNum = 10
+       datafile_EndNum   = 1
+       step = -4
+       gives file list: 2,6,10
+    
+    
     :param fit_parameters:
     :param fit_settings:
     :return:
@@ -162,15 +193,8 @@ def file_list(fit_parameters, fit_settings):
     # Define step
     if "datafile_Step" in fit_parameters:
         step = fit_settings.datafile_Step
-    elif "datafile_Files" in fit_parameters:
+    else:
         step = 1
-    elif "datafile_StartNum" in fit_parameters and "datafile_EndNum" in fit_parameters:
-        if fit_settings.datafile_EndNum >= fit_settings.datafile_StartNum:
-            step = 1
-        else:
-            step = -1
-    else: # it must be a single file with no numberical compoent.
-        step = None
 
     if "datafile_NumDigit" not in fit_parameters:
         fit_settings.datafile_NumDigit = 1
@@ -190,19 +214,20 @@ def file_list(fit_parameters, fit_settings):
         )
     elif "datafile_Files" not in fit_parameters:
         n_diff_files = int(
-            np.round(
-                (fit_settings.datafile_EndNum - fit_settings.datafile_StartNum) / np.abs(step)
-                + 1
-            )
+            np.floor(
+                np.abs(fit_settings.datafile_EndNum - fit_settings.datafile_StartNum) / np.abs(step)
+                )
+            + 1
+            
         )
         for j in range(n_diff_files):
             # Make list of diffraction pattern names and no. of pattern
-            if step < 0:
-                n = str(fit_settings.datafile_EndNum + j * step).zfill(
+            if fit_settings.datafile_EndNum >= fit_settings.datafile_StartNum: 
+                n = str(fit_settings.datafile_StartNum + (j * np.abs(step))).zfill(
                     fit_settings.datafile_NumDigit
                 )
             else:
-                n = str(fit_settings.datafile_StartNum + j * step).zfill(
+                n = str(fit_settings.datafile_StartNum + (j * -np.abs(step))).zfill(
                     fit_settings.datafile_NumDigit
                 )
             # Append diffraction pattern name and directory
@@ -215,6 +240,9 @@ def file_list(fit_parameters, fit_settings):
                     + fit_settings.datafile_Ending
                 )
             )
+        if step<0:
+            diff_files = diff_files[::-1]
+        
     elif "datafile_Files" in fit_parameters:
         n_diff_files = int(np.round(len(fit_settings.datafile_Files) / np.abs(step)))
         for j in range(n_diff_files):

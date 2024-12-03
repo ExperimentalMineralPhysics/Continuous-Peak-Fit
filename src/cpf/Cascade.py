@@ -489,10 +489,10 @@ def read_saved_chunks(
     all_fits = []
     
     print("Reading chunk files")
-    logger = proglog.default_bar_logger('bar')  # shorthand to generate a bar logger
+    lgr = proglog.default_bar_logger('bar')  # shorthand to generate a bar logger
 
     #for f in range(setting_class.image_number):
-    for f in logger.iter_bar(iteration=range(setting_class.image_number)):
+    for f in lgr.iter_bar(iteration=range(setting_class.image_number)):
         setting_class.set_subpattern(f, 0)
         filename = IO.make_outfile_name(
             setting_class.subfit_filename,
@@ -572,7 +572,7 @@ def plot_cascade_chunks(
     modified_time_s = modified_time_s - modified_time_s[0]
     y_label_str = r"Time (s)"
     # use file numbers if all times are the same
-    if len(np.unique(modified_time_s)) == 1:
+    if 1:#len(np.unique(modified_time_s)) == 1:
         modified_time_s = list(range(setting_class.image_number))
         y_label_str = r"Image in sequence"
 
@@ -588,14 +588,16 @@ def plot_cascade_chunks(
         inputs=setting_class, debug=debug, report=report, subpattern=subpattern
     )
     min_all, max_all = get_chunks_range(all_data, series="h")
-        
+    
     for j in range(num_plots):
         # loop over the number of sets of peaks fit for (i.e. len(setting_class.fit_orders))
 
         setting_class.set_subpattern(0, j)
 
         # set plot limits
-        if vmax==np.inf:
+        if 'min_all' in locals():
+            vmin=min_all[j]
+        if 'max_all' in locals():
             vmax=max_all[j]
         #set colour bar ends
         if vmax < max_all[j] and vmin > min_all[j]:
@@ -616,24 +618,27 @@ def plot_cascade_chunks(
             norm = None
         for k in range(len(setting_class.subfit_orders["peak"])):
             
-            
             if plot_type == "timeseries":
                 # loop over the number of peaks in each fit_orders
                 print("Making cascade plot for "+ IO.peak_string(setting_class.fit_orders[j], peak=k))
                 if all_data[0][j]["h"][k]:
                     # if there is some data in the array plot it.
                     fig, ax = plt.subplots()
-                    logger = proglog.default_bar_logger('bar')  # shorthand to generate a bar logger
-                    for i in logger.iter_bar(iteration=range(setting_class.image_number)):
+                    lgr = proglog.default_bar_logger('bar')  # shorthand to generate a bar logger
+                    for i in lgr.iter_bar(iteration=range(setting_class.image_number)):
+                        if 1:#len(all_data[i][j]["h"]) == 1:
+                            tms = modified_time_s[j]
+                        else:
+                            tms = modified_time_s[i] * np.ones(np.shape(all_data[i][j]["chunks"]))
                         plt.scatter(
                             all_data[i][j]["chunks"],
                             modified_time_s[i]
                             * np.ones(np.shape(all_data[i][j]["chunks"])),
-                            s=.05,
+                            s=10,#s=.05,
                             c=(all_data[i][j]["h"][k]),
-                            #vmax= vmax,
-                            #vmin= vmin,
-                            cmap="YlOrBr",
+                            vmax= vmax,
+                            vmin= vmin,
+                            #cmap="YlOrBr",
                             norm=norm
                         )
                     
@@ -651,7 +656,7 @@ def plot_cascade_chunks(
                     if azi_range == "all":
                         azi_range = [np.min(all_data[i][j]["chunks"]),np.max(all_data[i][j]["chunks"])]
                     x_ticks = setting_class.data_class.dispersion_ticks(disp_lims = azi_range)
-                    ax.set_xticks(x_ticks)
+                    #ax.set_xticks(x_ticks)
                     
                     cb = plt.colorbar(extend=cb_extend)
                     # cb.set_label(r"Log$_{10}$(Intensity)")
@@ -669,6 +674,7 @@ def plot_cascade_chunks(
                     )
                     fig.savefig(filename, transparent=True, bbox_inches="tight")
                 print("\n")
+                #stop
 
             elif plot_type == "map":
                 

@@ -12,9 +12,9 @@ Modifications:
 import numpy as Numeric
 
 from cpf.input_types import Mca
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.input_types.Med")
 
 # FIX ME: DMF Need to rationalise this code and keep what's needed.
 # FIX ME: where do we stand on licensing? has this been published?
@@ -349,7 +349,7 @@ class Med(Mca.Mca):
             data[i, :] = self.mcas[i].get_data()
         if align != 0:
             logger.info(" ".join(map(str, [("This option has been removed")])))
-            stop
+
         #         ref_energy = self.mcas[0].get_energy()
         #         for i in range(self.n_detectors):
         #            energy = self.mcas[i].get_energy()

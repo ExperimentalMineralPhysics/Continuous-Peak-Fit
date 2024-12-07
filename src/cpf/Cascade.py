@@ -25,35 +25,27 @@ It needs to do a few things.
         b. peak finding algorithm (various)
 
 
-"""
-
-"""
-#another algorithm that could be tried is:
+# Another algorithm that could be tried is:
 https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_blob.html
 https://scikit-image.org/docs/stable/api/skimage.feature.html#skimage.feature.blob_log
 """
 
+from __future__ import annotations
 
 __all__ = ["initiate", "set_range", "execute"]
 
-
-# import copy
-# import pandas as pd
 import json
+import logging
 import os.path
-
-# from findpeaks import findpeaks
-# from scipy import ndimage as ndi
-# from skimage.feature import peak_local_max
-# from skimage import data, img_as_float
-import re
+from pathlib import Path
+from typing import Literal, Optional
 
 import matplotlib.colors as colours
-
-# import numpy.ma as ma
 import matplotlib.pyplot as plt
 import numpy as np
+import pathos.pools as mp
 import proglog
+from pathos.multiprocessing import cpu_count
 
 # import plotly.graph_objects as go
 # import pandas as pd
@@ -70,9 +62,44 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.logger_functions import logger
-from cpf.settings import settings
+from cpf.logger_functions import CPFLogger
 from cpf.XRD_FitSubpattern import fit_sub_pattern
+
+logger = CPFLogger("cpf.Cascade")
+
+
+def initialise_logger(
+    settings_file: Optional[str | Path] = None,
+    report: str | bool = False,
+):
+    # Start the logger with the desired outputs
+    logger.handlers.clear()
+    format = "%(asctime)s [%(levelname)s] %(message)s"
+    formatter = logging.Formatter(format)
+    if isinstance(report, (str)):
+        # Fail gracefully
+        if settings_file is None:
+            raise ValueError(
+                "Settings file needs to be specified in order to create a log file."
+            )
+
+        # Set the logging level and log file name
+        level = report.upper()
+        log_name = make_outfile_name(settings_file, extension=".log", overwrite=True)
+
+        # Create and add the file handler
+        fh = logging.FileHandler(log_name, mode="a", encoding="utf-8")
+        fh.setFormatter(formatter)
+        fh.setLevel(level)
+        logger.addHandler(fh)
+    else:
+        level = "INFO"
+
+    # Create the stream handler
+    sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    sh.setLevel(level)
+    logger.addHandler(sh)
 
 
 def initiate(*args, **kwargs):
@@ -81,7 +108,7 @@ def initiate(*args, **kwargs):
     :param report:
     :param out_type:
     :param initiate_data:
-    :param setting_file:
+    :param settings_file:
     :param inputs:
     :return fit_parameters:
     :return fit_settings:
@@ -95,7 +122,7 @@ def initiate(*args, **kwargs):
 
 def set_range(*args, **kwargs):
     """
-    :param setting_file:
+    :param settings_file:
     :param inputs:
     :param debug:
     :param refine:
@@ -114,21 +141,22 @@ def set_range(*args, **kwargs):
 
 
 def execute(
-    setting_file=None,
-    setting_class=None,
+    settings_file=None,
+    settings_class=None,
     inputs=None,
-    debug=False,
-    save_all=False,
-    parallel=True,
-    subpattern="all",
-    mode="cascade",
-    report=False,
+    debug: bool = False,
+    save_all: bool = False,
+    parallel: bool = True,
+    subpattern: str = "all",
+    mode: str = "cascade",
+    report: bool = False,
+    show_plots: bool = False,
     **kwargs,
 ):
     """
     :param fit_parameters:
     :param fit_settings:
-    :param setting_file:
+    :param settings_file:
     :param parallel:
     :param report:
     :param mode:
@@ -142,10 +170,12 @@ def execute(
     :return:
     """
 
-    if setting_class is None:
-        settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+    initialise_logger(settings_file=settings_file, report=report)
+
+    if settings_class is None:
+        settings_for_fit = initiate(settings_file, inputs=inputs, report=True)
     else:
-        settings_for_fit = setting_class
+        settings_for_fit = settings_class
     new_data = settings_for_fit.data_class
 
     # Define locally required names
@@ -181,17 +211,38 @@ def execute(
         plt.close()
 
     # if parallel processing start the pool
-    # if parallel is True:
-    #     p = mp.Pool(processes=mp.cpu_count())
-    # p = mp.Pool()
+    if parallel is True:
+        # p = mp.Pool(processes=mp.cpu_count())
+        p = mp.ParallelPool(nodes=cpu_count())
+        # p = mp.Pool()
+
+        # Since we may have already closed the pool, try to restart it
+        try:
+            p.restart()
+        except AssertionError:
+            pass
 
     # restrict to sub-patterns listed
     settings_for_fit.set_subpatterns(subpatterns=subpattern)
 
-    # Process the diffraction patterns #
-    for j in range(settings_for_fit.image_number):
+    # Process the diffraction patterns
+    # for j in range(settings_for_fit.image_number):
+    progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
+    for j in progress.iter_bar(iteration=range(settings_for_fit.image_number)):
         logger.info(
-            " ".join(map(str, [("Process ", settings_for_fit.datafile_list[j])]))
+            " ".join(
+                map(
+                    str,
+                    [
+                        (
+                            "Process %s"
+                            % title_file_names(
+                                image_name=settings_for_fit.image_list[j]
+                            )
+                        )
+                    ],
+                )
+            )
         )
         # Get diffraction pattern to process.
         new_data.import_image(settings_for_fit.image_list[j], debug=debug)
@@ -246,6 +297,7 @@ def execute(
         # Pass each sub-pattern to Fit_Subpattern for fitting in turn.
         all_fitted_chunks = []
         all_chunk_positions = []
+        parallel_pile = []
 
         for i in range(len(settings_for_fit.fit_orders)):
             # get settings for current subpattern
@@ -359,43 +411,65 @@ def execute(
                 plt.close()
 
             else:
-                tmp = fit_sub_pattern(
-                    sub_data,
-                    settings_for_fit,  # added
-                    None,  # do not pass params they are not needed.
-                    save_fit=save_figs,
-                    debug=debug,
-                    mode=mode,
-                    histogram_type=settings_for_fit.cascade_histogram_type,
-                    histogram_bins=settings_for_fit.cascade_histogram_bins,
-                )
-                all_fitted_chunks.append(tmp[0])
-                all_chunk_positions.append(tmp[1])
+                if parallel is True:  # setup parallel version
+                    kwargs = {
+                        "save_fit": save_figs,
+                        "debug": debug,
+                        "mode": mode,
+                        "histogram_type": settings_for_fit.cascade_histogram_type,
+                        "histogram_bins": settings_for_fit.cascade_histogram_bins,
+                    }
+                    arg = (sub_data, settings_for_fit.duplicate())
+                    parallel_pile.append((arg, kwargs))
 
-        # paste the fits to an output file.
-        # store the chunk fits' information as a JSON file.
-        filename = make_outfile_name(
-            settings_for_fit.subfit_filename,
-            directory=settings_for_fit.output_directory,
-            additional_text="chunks",
-            # orders=settings_for_fit.subfit_orders,
-            extension=".json",
-            overwrite=True,
-        )
-        with open(filename, "w") as TempFile:
-            # Write a JSON string into the file.
-            json.dump(
-                (all_fitted_chunks, all_chunk_positions),
-                TempFile,
-                sort_keys=True,
-                indent=2,
-                default=json_numpy_serializer,
+                else:  # non-parallel version
+                    tmp = fit_sub_pattern(
+                        sub_data,
+                        settings_for_fit,  # added
+                        None,  # do not pass params they are not needed.
+                        save_fit=save_figs,
+                        debug=debug,
+                        mode=mode,
+                        histogram_type=settings_for_fit.cascade_histogram_type,
+                        histogram_bins=settings_for_fit.cascade_histogram_bins,
+                    )
+                    all_fitted_chunks.append(tmp[0])
+                    all_chunk_positions.append(tmp[1])
+
+        # write output files
+        if mode != "set-range":
+            if parallel is True:
+                tmp = p.map(parallel_processing, parallel_pile)
+                for i in range(len(settings_for_fit.fit_orders)):
+                    # fitted_param.append(tmp[i][0])
+                    # lmfit_models.append(tmp[i][1])
+                    all_fitted_chunks.append(tmp[i][0])
+                    all_chunk_positions.append(tmp[i][1])
+
+                # tmp = fit_sub_pattern(
+                #     sub_data,
+                #     settings_for_fit,  # added
+                #     None,  # do not pass params they are not needed.
+                #     save_fit=save_figs,
+                #     debug=debug,
+                #     mode=mode,
+                #     histogram_type = settings_for_fit.cascade_histogram_type,
+                #     histogram_bins = settings_for_fit.cascade_histogram_bins,
+                # )
+                # all_fitted_chunks.append(tmp[0])
+                # all_chunk_positions.append(tmp[1])
+
+            # paste the fits to an output file.
+            # store the chunk fits' information as a JSON file.
+            filename = make_outfile_name(
+                settings_for_fit.subfit_filename,
+                directory=settings_for_fit.output_directory,
+                additional_text="chunks",
+                # orders=settings_for_fit.subfit_orders,
+                extension=".json",
+                overwrite=True,
             )
-
-        # if propagating the fits write them to a temporary file
-        if settings_for_fit.fit_propagate:
-            # print json_string
-            with open(temporary_data_file, "w") as TempFile:
+            with open(filename, "w") as TempFile:
                 # Write a JSON string into the file.
                 json.dump(
                     (all_fitted_chunks, all_chunk_positions),
@@ -405,17 +479,28 @@ def execute(
                     default=json_numpy_serializer,
                 )
 
-    # if parallel is True:
-    #     p.close()
+            # if propagating the fits write them to a temporary file
+            if settings_for_fit.fit_propagate:
+                # print json_string
+                with open(temporary_data_file, "w") as TempFile:
+                    # Write a JSON string into the file.
+                    json.dump(
+                        (all_fitted_chunks, all_chunk_positions),
+                        TempFile,
+                        sort_keys=True,
+                        indent=2,
+                        default=json_numpy_serializer,
+                    )
+
+    if parallel is True:
+        p.close()
 
     # plot the fits
     plot_cascade_chunks(
-        inputs=settings_for_fit, debug=debug, report=report, subpattern="all", **kwargs
+        inputs=settings_for_fit, report=report, subpattern="all", **kwargs
     )
 
-    plot_peak_count(
-        inputs=settings_for_fit, debug=debug, report=report, subpattern="all", **kwargs
-    )
+    plot_peak_count(inputs=settings_for_fit, report=report, subpattern="all", **kwargs)
 
 
 def parallel_processing(p):
@@ -424,8 +509,8 @@ def parallel_processing(p):
 
 
 def read_saved_chunks(
-    setting_file=None,
-    setting_class=None,
+    settings_file=None,
+    settings_class=None,
     inputs=None,
     debug=False,
     report=False,
@@ -436,9 +521,9 @@ def read_saved_chunks(
 
     Parameters
     ----------
-    setting_file : TYPE, optional
+    settings_file : TYPE, optional
         DESCRIPTION. The default is None.
-    setting_class : TYPE, optional
+    settings_class : TYPE, optional
         DESCRIPTION. The default is None.
     inputs : TYPE, optional
         DESCRIPTION. The default is None.
@@ -459,11 +544,11 @@ def read_saved_chunks(
     """
 
     if inputs:
-        setting_class = inputs
-    elif setting_class is None:
-        setting_class = initiate(setting_file, report=True)
+        settings_class = inputs
+    elif settings_class is None:
+        settings_class = initiate(settings_file, report=True)
     else:
-        setting_class = setting_class
+        settings_class = settings_class
 
     all_azis = []
     all_fits = []
@@ -471,12 +556,18 @@ def read_saved_chunks(
     print("Reading chunk files")
     logger = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
 
-    # for f in range(setting_class.image_number):
-    for f in logger.iter_bar(iteration=range(setting_class.image_number)):
-        setting_class.set_subpattern(f, 0)
+    print("Reading chunk files")
+    logger = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
+
+    print("Reading chunk files")
+    logger = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
+
+    # for f in range(settings_class.image_number):
+    for f in logger.iter_bar(iteration=range(settings_class.image_number)):
+        settings_class.set_subpattern(f, 0)
         filename = IO.make_outfile_name(
-            setting_class.subfit_filename,
-            directory=setting_class.output_directory,
+            settings_class.subfit_filename,
+            directory=settings_class.output_directory,
             additional_text="chunks",
             extension=".json",
             overwrite=True,
@@ -509,8 +600,8 @@ def get_chunks_range(chunks, series="h"):
 
 
 def plot_cascade_chunks(
-    setting_file=None,
-    setting_class=None,
+    settings_file=None,
+    settings_class=None,
     inputs=None,
     debug=False,
     report=False,
@@ -520,12 +611,13 @@ def plot_cascade_chunks(
     azi_range="all",
     vmax=np.inf,
     vmin=0,
+    show_plots: bool = False,
     **kwargs,
 ):
     """
     :param fit_parameters:
     :param fit_settings:
-    :param setting_file:
+    :param settings_file:
     :param parallel:
     :param report:
     :param mode:
@@ -537,41 +629,41 @@ def plot_cascade_chunks(
     """
 
     if inputs:
-        setting_class = inputs
-    elif setting_class is None:
-        setting_class = initiate(setting_file, inputs=inputs, report=True)
+        settings_class = inputs
+    elif settings_class is None:
+        settings_class = initiate(settings_file, inputs=inputs, report=True)
     else:
-        setting_class = setting_class
+        settings_class = settings_class
 
     # get file times
-    modified_time_s = []
-    for i in range(setting_class.image_number):
-        modified_time_s.append(os.path.getmtime(setting_class.image_list[i]))
-    modified_time_s = np.array(modified_time_s)
-    modified_time_s = modified_time_s - modified_time_s[0]
+    modified_time_s = np.array(
+        [os.path.getmtime(file) for file in settings_class.image_list]
+    )
+    modified_time_s -= float(modified_time_s[0])
+
     y_label_str = r"Time (s)"
     # use file numbers if all times are the same
     if len(np.unique(modified_time_s)) == 1:
-        modified_time_s = list(range(setting_class.image_number))
+        modified_time_s = list(range(settings_class.image_number))
         y_label_str = r"Image in sequence"
 
     # restrict to sub-patterns listed
-    setting_class.set_subpatterns(subpatterns=subpattern)
+    settings_class.set_subpatterns(subpatterns=subpattern)
 
     if subpattern == "all":
-        num_plots = len(setting_class.fit_orders)
+        num_plots = len(settings_class.fit_orders)
     else:
         num_plots = len(subpattern)
 
     all_azis, all_data = read_saved_chunks(
-        inputs=setting_class, debug=debug, report=report, subpattern=subpattern
+        inputs=settings_class, debug=debug, report=report, subpattern=subpattern
     )
     min_all, max_all = get_chunks_range(all_data, series="h")
 
     for j in range(num_plots):
-        # loop over the number of sets of peaks fit for (i.e. len(setting_class.fit_orders))
+        # loop over the number of sets of peaks fit for (i.e. len(settings_class.fit_orders))
 
-        setting_class.set_subpattern(0, j)
+        settings_class.set_subpattern(0, j)
 
         # set plot limits
         if vmax == np.inf:
@@ -593,12 +685,12 @@ def plot_cascade_chunks(
             norm = colours.LogNorm(vmin=vmin)
         elif scale == "linear":
             norm = None
-        for k in range(len(setting_class.subfit_orders["peak"])):
+        for k in range(len(settings_class.subfit_orders["peak"])):
             if plot_type == "timeseries":
                 # loop over the number of peaks in each fit_orders
                 print(
                     "Making cascade plot for "
-                    + IO.peak_string(setting_class.fit_orders[j], peak=k)
+                    + IO.peak_string(settings_class.fit_orders[j], peak=k)
                 )
                 if all_data[0][j]["h"][k]:
                     # if there is some data in the array plot it.
@@ -607,7 +699,7 @@ def plot_cascade_chunks(
                         "bar"
                     )  # shorthand to generate a bar logger
                     for i in logger.iter_bar(
-                        iteration=range(setting_class.image_number)
+                        iteration=range(settings_class.image_number)
                     ):
                         plt.scatter(
                             all_data[i][j]["chunks"],
@@ -622,12 +714,12 @@ def plot_cascade_chunks(
                         )
 
                     # determine the label for the figure -- if there is data in the other peaks then just label as single peak otherwise it is all the peaks
-                    pk = k
-                    for l in range(len(setting_class.subfit_orders["peak"])):
+                    pk: int | Literal["all"] = k
+                    for l in range(len(settings_class.subfit_orders["peak"])):
                         if not all_data[0][j]["h"][l]:
                             pk = "all"
                     # make the figure title
-                    ttlstr = IO.peak_string(setting_class.fit_orders[j], peak=pk)
+                    ttlstr = IO.peak_string(settings_class.fit_orders[j], peak=pk)
                     plt.title(ttlstr)
                     plt.xlabel(r"Azimuth (deg)")
                     plt.ylabel(y_label_str)
@@ -637,7 +729,7 @@ def plot_cascade_chunks(
                             np.min(all_data[i][j]["chunks"]),
                             np.max(all_data[i][j]["chunks"]),
                         ]
-                    x_ticks = setting_class.data_class.dispersion_ticks(
+                    x_ticks = settings_class.data_class.dispersion_ticks(
                         disp_lims=azi_range
                     )
                     ax.set_xticks(x_ticks)
@@ -645,19 +737,22 @@ def plot_cascade_chunks(
                     cb = plt.colorbar(extend=cb_extend)
                     # cb.set_label(r"Log$_{10}$(Intensity)")
                     cb.set_label(r"Intensity")
-                    plt.show()
-                    # save the figure
+
+                    # Save the figure
                     filename = IO.make_outfile_name(
-                        setting_class.datafile_basename,
-                        directory=setting_class.output_directory,
+                        settings_class.datafile_basename,
+                        directory=settings_class.output_directory,
                         additional_text="CascadePlot",
-                        orders=setting_class.subfit_orders,
+                        orders=settings_class.subfit_orders,
                         peak=pk,
                         extension=".png",
                         overwrite=True,
                     )
                     fig.savefig(filename, transparent=True, bbox_inches="tight")
-                print("\n")
+                    if show_plots is True:
+                        plt.show()
+                    else:
+                        plt.close()
 
             elif plot_type == "map":
                 leng = 500
@@ -674,12 +769,12 @@ def plot_cascade_chunks(
                 # coloured by azimuth
                 # size is size of symbol (and limited by vmin, vmax and normalisation)
                 """
-                print("Making data cube plot for "+ IO.peak_string(setting_class.fit_orders[j], peak=k))
+                print("Making data cube plot for "+ IO.peak_string(settings_class.fit_orders[j], peak=k))
                 if all_data[0][j]["h"][k]:
                     # if there is some data in the array plot it.
                     fig, ax = plt.subplots()
                     logger = proglog.default_bar_logger('bar')  # shorthand to generate a bar logger
-                    for i in logger.iter_bar(iteration=range(setting_class.image_number)):
+                    for i in logger.iter_bar(iteration=range(settings_class.image_number)):
                         points_plot = all_data[i][j]["h"][k] >= vmin
                         x = all_data[i][j]["chunks"][points_plot]
                         x_label = r"Azimuth (deg)"
@@ -698,11 +793,11 @@ def plot_cascade_chunks(
                         )
                     # determine the label for the figure -- if there is data in the other peaks then just label as single peak otherwise it is all the peaks
                     pk = k
-                    for l in range(len(setting_class.subfit_orders["peak"])):
+                    for l in range(len(settings_class.subfit_orders["peak"])):
                         if not all_data[0][j]["h"][l]:
                             pk = "all"
                     # make the figure title
-                    ttlstr = IO.peak_string(setting_class.fit_orders[j], peak=pk)
+                    ttlstr = IO.peak_string(settings_class.fit_orders[j], peak=pk)
                     plt.title(ttlstr)
                     plt.xlabel(x_label)
                     plt.ylabel(y_label)
@@ -712,10 +807,10 @@ def plot_cascade_chunks(
                     plt.show()
                     # save the figure
                     filename = IO.make_outfile_name(
-                        setting_class.datafile_basename,
-                        directory=setting_class.output_directory,
+                        settings_class.datafile_basename,
+                        directory=settings_class.output_directory,
                         additional_text="CascadePlot",
-                        orders=setting_class.subfit_orders,
+                        orders=settings_class.subfit_orders,
                         peak=pk,
                         extension=".png",
                         overwrite=True,
@@ -732,19 +827,20 @@ def plot_cascade_chunks(
 
 
 def peak_count(
-    setting_file=None,
-    setting_class=None,
+    settings_file=None,
+    settings_class=None,
     inputs=None,
-    debug=False,
-    report=False,
-    prominence=15,
-    subpattern="all",
+    debug: bool = False,
+    report: bool = False,
+    prominence: int = 15,
+    subpattern: str = "all",
+    show_plots: bool = False,
     **kwargs,
 ):
     """
     :param fit_parameters:
     :param fit_settings:
-    :param setting_file:
+    :param settings_file:
     :param parallel:
     :param report:
     :param mode:
@@ -756,37 +852,38 @@ def peak_count(
     """
 
     if inputs:
-        setting_class = inputs
-    elif setting_class is None:
-        setting_class = initiate(setting_file, inputs=inputs, report=True)
+        settings_class = inputs
+    elif settings_class is None:
+        settings_class = initiate(settings_file, inputs=inputs, report=True)
     else:
-        setting_class = setting_class
+        settings_class = settings_class
 
     # restrict to sub-patterns listed
-    setting_class.set_subpatterns(subpatterns=subpattern)
+    settings_class.set_subpatterns(subpatterns=subpattern)
 
     if subpattern == "all":
-        num_orders = len(setting_class.fit_orders)
+        num_orders = len(settings_class.fit_orders)
     else:
         num_orders = len(subpattern)
 
     all_azis, all_data = read_saved_chunks(
-        inputs=setting_class, debug=debug, report=report, subpattern=subpattern
+        inputs=settings_class, debug=debug, report=report, subpattern=subpattern
     )
 
     # get the number of peaks
-    # all_peaks, all_properties, count = peak_count(setting_class=setting_class, prominence=prominence)
+    # all_peaks, all_properties, count = peak_count(settings_class=settings_class, prominence=prominence)
 
-    all_peaks = []
-    all_properties = []
+    all_peaks: list[list] = []
+    all_peakAzis: list = []
+    all_properties: list[list] = []
     count = []
     peak_labels = []
     for j in range(num_orders):
-        # loop over the number of sets of peaks fit for (i.e. len(setting_class.fit_orders))
+        # loop over the number of sets of peaks fit for (i.e. len(settings_class.fit_orders))
 
-        setting_class.set_subpattern(0, j)
+        settings_class.set_subpattern(0, j)
 
-        for k in range(len(setting_class.subfit_orders["peak"])):
+        for k in range(len(settings_class.subfit_orders["peak"])):
             # loop over the number of peaks in each fit_orders
 
             all_peaks_tmp = []
@@ -794,45 +891,59 @@ def peak_count(
             count_tmp = []
             if all_data[0][j]["h"][k]:
                 # if there is some data in the array plot it.
-                for i in range(setting_class.image_number):
+                for i in range(settings_class.image_number):
                     peaks, properties = find_peaks(
                         all_data[i][j]["h"][k], prominence=prominence, width=0
                     )
-
+                    properties["PeakAzis"] = np.array(all_azis[i][j])[peaks]
                     all_peaks_tmp.append(peaks)
+                    # all_peakAzis.append(np.array(all_azis[i][j])[peaks])
                     all_properties_tmp.append(properties)
                     count_tmp.append(len(peaks))
+
+                    if 1 and i == 0:
+                        fig = plt.figure()
+                        plt.plot(all_data[i][j]["h"][k])
+                        plt.plot(peaks, np.array(all_data[i][j]["h"][k])[peaks], "x")
+
+                        # plt.plot(np.zeros_like(x), "--", color="gray")
+
+                        if show_plots is True:
+                            plt.show()
+                        else:
+                            plt.close()
 
                 all_peaks.append(all_peaks_tmp)
                 all_properties.append(all_properties_tmp)
                 count.append(count_tmp)
                 # determine the label for the figure -- if there is data in the other peaks then just label as single peak otherwise it is all the peaks
-                pk = k
-                for l in range(len(setting_class.subfit_orders["peak"])):
+                pk: int | Literal["all"] = k
+                for l in range(len(settings_class.subfit_orders["peak"])):
                     if not all_data[0][j]["h"][l]:
                         pk = "all"
                 # make the figure title
-                ttlstr = IO.peak_string(setting_class.subfit_orders, peak=pk)
+                ttlstr = IO.peak_string(settings_class.subfit_orders, peak=pk)
                 peak_labels.append(ttlstr)
 
     return all_peaks, all_properties, count, peak_labels
 
 
 def plot_peak_count(
-    setting_file=None,
-    setting_class=None,
+    settings_file=None,
+    settings_class=None,
     inputs=None,
-    debug=False,
-    report=False,
-    prominence=1,
-    subpattern="all",
-    rotate=False,
+    debug: bool = False,
+    report: bool = False,
+    prominence: int = 1,
+    subpattern: str = "all",
+    rotate: bool = False,
+    show_plots: bool = False,
     **kwargs,
 ):
     """
     :param fit_parameters:
     :param fit_settings:
-    :param setting_file:
+    :param settings_file:
     :param parallel:
     :param report:
     :param mode:
@@ -844,39 +955,39 @@ def plot_peak_count(
     """
 
     if inputs:
-        setting_class = inputs
-    elif setting_class is None:
-        setting_class = initiate(setting_file, inputs=inputs, report=True)
+        settings_class = inputs
+    elif settings_class is None:
+        settings_class = initiate(settings_file, inputs=inputs, report=True)
     else:
-        setting_class = setting_class
+        settings_class = settings_class
 
     # get file times
-    modified_time_s = []
-    for i in range(setting_class.image_number):
-        modified_time_s.append(os.path.getmtime(setting_class.image_list[i][0]))
-    modified_time_s = np.array(modified_time_s)
-    modified_time_s = modified_time_s - modified_time_s[0]
+    modified_time_s = np.array(
+        [os.path.getmtime(file) for file in settings_class.image_list]
+    )
+    modified_time_s -= float(modified_time_s[0])
+
     y_label_str = r"Time (s)"
     # use file numbers if all times are the same
     if len(np.unique(modified_time_s)) == 1:
-        modified_time_s = list(range(setting_class.image_number))
+        modified_time_s = list(range(settings_class.image_number))
         y_label_str = r"Image in sequence"
 
     # restrict to sub-patterns listed
-    setting_class.set_subpatterns(subpatterns=subpattern)
+    settings_class.set_subpatterns(subpatterns=subpattern)
 
     if subpattern == "all":
-        num_orders = len(setting_class.fit_orders)
+        num_orders = len(settings_class.fit_orders)
     else:
         num_orders = len(subpattern)
 
     # all_azis, all_data = read_saved_chunks(
-    #    inputs=setting_class, debug=debug, report=report, subpattern=subpattern
+    #    inputs=settings_class, debug=debug, report=report, subpattern=subpattern
     # )
 
     # get the number of peaks
     all_peaks, all_properties, count, titles = peak_count(
-        setting_class=setting_class, prominence=prominence
+        settings_class=settings_class, prominence=prominence
     )
 
     fig, ax = plt.subplots()
@@ -890,18 +1001,22 @@ def plot_peak_count(
             plt.plot(count[j], modified_time_s, ".-", label=titles[j])
         plt.xlabel(r"Number peaks")
         plt.ylabel(y_label_str)
-
     plt.legend()
-    plt.show()
 
+    # Save the plot
     filename = IO.make_outfile_name(
         "PeakCountTime",
-        directory=setting_class.output_directory,
+        directory=settings_class.output_directory,
         additional_text="prominence" + str(prominence),
         extension=".png",
         overwrite=True,
     )
     fig.savefig(filename, transparent=True)
+
+    if show_plots is True:
+        plt.show()
+    else:
+        plt.close()
 
 
 """
@@ -922,8 +1037,8 @@ from ImageD11.peaksearcher import peaksearch
 
 
 def execute2(
-    setting_file=None,
-    setting_class=None,
+    settings_file=None,
+    settings_class=None,
     inputs=None,
     debug=False,
     save_all=False,
@@ -937,7 +1052,7 @@ def execute2(
     """
     :param fit_parameters:
     :param fit_settings:
-    :param setting_file:
+    :param settings_file:
     :param parallel:
     :param report:
     :param mode:
@@ -951,10 +1066,12 @@ def execute2(
     :return:
     """
 
-    if setting_class is None:
-        settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+    initialise_logger(settings_file=settings_file, report=report)
+
+    if settings_class is None:
+        settings_for_fit = initiate(settings_file, inputs=inputs, report=True)
     else:
-        settings_for_fit = setting_class
+        settings_for_fit = settings_class
     new_data = settings_for_fit.data_class
 
     if settings_for_fit.calibration_data:
@@ -1040,11 +1157,9 @@ def execute2(
         # can't do this as a data class function because it cant pickle a Fabio instance.
         frame = fabio.open(settings_for_fit.datafile_list[j])
         frame.data = new_data.intensity
-        print(type(frame.data))
 
         frame.header["Omega"] = 0
         frame.data = frame.data.astype(np.float32)
-        print(type(frame.data))
         # corrections like dark/flat/normalise would be added here
         peaksearch(
             os.path.basename(settings_for_fit.datafile_list[j]),
@@ -1053,14 +1168,13 @@ def execute2(
             threshold,
             label_ims,
         )
-        # stop
         for t in threshold:
             label_ims[t].finalise()
 
     # if debug:
 
 
-def load_flts(setting_file=None, setting_class=None, inputs=None, **kwargs):
+def load_flts(settings_file=None, settings_class=None, inputs=None, **kwargs):
     """
     loads flt files for the selected subpattern.
     Makes an array of the peaks, where x,y are the centres and i is the size of the peak.
@@ -1068,9 +1182,9 @@ def load_flts(setting_file=None, setting_class=None, inputs=None, **kwargs):
 
     Parameters
     ----------
-    setting_file : TYPE, optional
+    settings_file : TYPE, optional
         DESCRIPTION. The default is None.
-    setting_class : TYPE, optional
+    settings_class : TYPE, optional
         DESCRIPTION. The default is None.
 
     Returns
@@ -1079,10 +1193,10 @@ def load_flts(setting_file=None, setting_class=None, inputs=None, **kwargs):
 
     """
 
-    if setting_class is None:
-        settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+    if settings_class is None:
+        settings_for_fit = initiate(settings_file, inputs=inputs, report=True)
     else:
-        settings_for_fit = setting_class
+        settings_for_fit = settings_class
 
     # if nothing has been set assume the first pattern
     if settings_for_fit.subfit_filename == None:
@@ -1093,36 +1207,39 @@ def load_flts(setting_file=None, setting_class=None, inputs=None, **kwargs):
         settings_for_fit.subfit_filename, directory=settings_for_fit.output_directory
     )
     fnams = glob.glob(fnam + "*.flt")
-
+    print(fnams)
     obj = []
     # obj = columnfile()
     for i in range(len(fnams)):
-        obj.append(columnfile(fnams[i]))
+        try:
+            obj.append(columnfile(fnams[i]))
 
-        plt.scatter(-obj[i].dety, obj[i].detz, 1, c=(obj[i].sum_intensity))
-        plt.colorbar()
-        plt.title(fnams[i])
-        plt.show()
+            plt.scatter(-obj[i].dety, obj[i].detz, 1, c=(obj[i].sum_intensity))
+            plt.colorbar()
+            plt.title(fnams[i])
+            plt.show()
 
-        plt.scatter((obj[i].Number_of_pixels), (obj[i].sum_intensity))
-        plt.title(fnams[i])
-        plt.show()
+            plt.scatter((obj[i].Number_of_pixels), (obj[i].sum_intensity))
+            plt.title(fnams[i])
+            plt.show()
 
+        except:
+            obj.append([])
     return obj
 
 
 def make_im_from_flts(
-    setting_file=None,
-    setting_class=None,
+    settings_file=None,
+    settings_class=None,
     data_class=None,
     inputs=None,
     debug=False,
     **kwargs,
 ):
-    if setting_class is None:
-        settings_for_fit = initiate(setting_file, inputs=inputs, report=True)
+    if settings_class is None:
+        settings_for_fit = initiate(settings_file, inputs=inputs, report=True)
     else:
-        settings_for_fit = setting_class
+        settings_for_fit = settings_class
 
     # if nothing has been set assume the first pattern
     if settings_for_fit.subfit_filename == None:
@@ -1137,16 +1254,21 @@ def make_im_from_flts(
     peaks_im = ma.zeros(data_class.intensity.shape)
 
     pks = load_flts(
-        setting_file=setting_file, setting_class=settings_for_fit, data_class=data_class
+        settings_file=settings_file,
+        settings_class=settings_for_fit,
+        data_class=data_class,
     )
 
     for i in range(len(pks)):
-        x = -pks[i].dety
-        y = pks[i].detz
-        z = pks[i].sum_intensity
+        try:
+            x = -pks[i].dety
+            y = pks[i].detz
+            z = pks[i].sum_intensity
 
-        for j in range(len(x)):
-            peaks_im[int(y[j]), int(x[j])] = z[j]
+            for j in range(len(x)):
+                peaks_im[int(y[j]), int(x[j])] = z[j]
+        except:
+            pass
 
     # peaks_im = peaks_im(mask=data_class.intensity.mask)
     peaks_im = ma.masked_where(ma.getmask(data_class.intensity), peaks_im)
@@ -1255,14 +1377,12 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
 
             img = ma.array(intens)#, mask=False)
             plt.imshow(img)
-            # #stop
 
             img.filled(0)
             img = ma.array(img, mask = None)
             plt.imshow(img)
 
             fp = findpeaks(limit=1, whitelist=['peak'], scale=False, togray=False, denoise=None)
-            # #stop
 
             # make the fit
             fp.fit(img)
@@ -1373,7 +1493,6 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
 
     #plt.scatter([*range(len(num_peaks_all))], num_peaks_all)
     #plt.scatter
-    stop
 
         # #fraction that is unmasked (as approximation for how much of ring is visible.)
 
@@ -1384,14 +1503,12 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
         # img = ma.array(intens, mask=msk.mask)
 
         # plt.imshow(img)
-        # #stop
 
         # img.filled(0)
         # img = ma.array(img, mask = None)
         # plt.imshow(img)
 
         # fp = findpeaks(limit=2, whitelist=['peak'])
-        # #stop
 
         # # make the fit
         # fp.fit(img)
@@ -1411,7 +1528,6 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
 
 
 
-    stop
 
 
 
@@ -1425,14 +1541,12 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
         img = ma.array(intens, mask=msk.mask)
 
         plt.imshow(img)
-        #stop
 
         img.filled(0)
         img = ma.array(img, mask = None)
         plt.imshow(img)
 
         fp = findpeaks(limit=2, whitelist=['peak'])
-        #stop
 
         # make the fit
         fp.fit(img)
@@ -1446,7 +1560,6 @@ def PeakCount(settings_file=None, inputs=None, debug=False, refine=True, save_al
 
         logger.info(" ".join(map(str, [(fp.results)])))
 
-    stop
 
 
 

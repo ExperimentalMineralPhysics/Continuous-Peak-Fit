@@ -7,9 +7,9 @@ import numpy as np
 import numpy.ma as ma
 
 import cpf.logger_functions as lg
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.input_types._AngelDispersive_common")
 
 
 class _AngleDispersive_common:
@@ -110,7 +110,7 @@ class _AngleDispersive_common:
             # split the data into bins with an approximately constant number of data.
             # uses b_num to determine bin size
             num_bins = int(np.round(len(self.azm[self.azm.mask == False]) / b_num))
-            bin_boundaries = self.equalObs(
+            bin_boundaries = equalObs(
                 np.sort(self.azm[self.azm.mask == False]), num_bins
             )
         elif bt == 1:

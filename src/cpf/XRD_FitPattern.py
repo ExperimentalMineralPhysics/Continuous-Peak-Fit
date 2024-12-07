@@ -29,14 +29,17 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.logger_functions import logger
-from cpf.settings import settings
+from cpf.logger_functions import CPFLogger
+from cpf.settings import Settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 
 np.set_printoptions(threshold=sys.maxsize)
 # FIX ME: Need to add complexity here.
 # Need option to check required functions are present if adding new output format.
 # Also need to do something similar with data class
+
+
+logger = CPFLogger("cpf.XRD_FitPattern")
 
 
 def register_default_formats() -> dict[str, ModuleType]:
@@ -57,8 +60,42 @@ def register_default_formats() -> dict[str, ModuleType]:
 output_methods_modules = register_default_formats()
 
 
+def initialise_logger(
+    settings_file: Optional[str | Path] = None,
+    report: str | bool = False,
+):
+    # Start the logger with the desired outputs
+    logger.handlers.clear()
+    format = "%(asctime)s [%(levelname)s] %(message)s"
+    formatter = logging.Formatter(format)
+    if isinstance(report, (str)):
+        # Fail gracefully
+        if settings_file is None:
+            raise ValueError(
+                "Settings file needs to be specified in order to create a log file."
+            )
+
+        # Set the logging level and log file name
+        level = report.upper()
+        log_name = make_outfile_name(settings_file, extension=".log", overwrite=True)
+
+        # Create and add the file handler
+        fh = logging.FileHandler(log_name, mode="a", encoding="utf-8")
+        fh.setFormatter(formatter)
+        fh.setLevel(level)
+        logger.addHandler(fh)
+    else:
+        level = "INFO"
+
+    # Create the stream handler
+    sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    sh.setLevel(level)
+    logger.addHandler(sh)
+
+
 def initiate(
-    setting_file: Optional[Union[str, Path]] = None,
+    settings_file: Optional[Union[str, Path]] = None,
     inputs=None,
     out_type=None,
     report: str | bool = False,
@@ -70,91 +107,57 @@ def initiate(
     :param report:
     :param out_type:
     :param initiate_data:
-    :param setting_file:
+    :param settings_file:
     :param inputs:
     :return fit_parameters:
     :return fit_settings:
     """
 
     # Fail gracefully
-    if setting_file is None:
+    if settings_file is None:
         raise ValueError(
             "Either the settings file or the parameter dictionary need to be specified."
         )
     # Convert to Path object
-    if isinstance(setting_file, str):
+    if isinstance(settings_file, str):
         try:
-            setting_file = Path(setting_file)
+            settings_file = Path(settings_file)
         except Exception as error:
             raise error
-
-    # reinitialise the logger -- with a new file name
-    if report is not False:  # reporting is required and we must have a setting_file.
-        # Create a log file for this dataset
-        log_name = make_outfile_name(setting_file, extension=".log", overwrite=True)
-
-        # Remove all handlers and then add new ones.
-        logger.handlers.clear()
-
-        # (Re)Configure the logging module
-        logging.basicConfig(
-            level="CRITICAL",
-            format="%(asctime)s [%(levelname)s] %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-            handlers=[
-                logging.FileHandler(
-                    log_name, mode="a", encoding=None, delay=False
-                ),  # Log to a file
-                logging.StreamHandler(),  # Log to stdout
-            ],
-            force=True,  # force the change in handlers
-        )
-
-    # set logging level.
-    if report is False:
-        # if not defined default to "INFO"
-        level = getattr(logger, "INFO")
-    elif isinstance(report, (str)):
-        # Get level number from the provided logger level name
-        level = getattr(logger, report.upper())
-    else:
-        raise ValueError(
-            f"Invalid value given for report: {report}"
-        )  # level should be a number
-    logger.setLevel(level)
 
     # make a header in the log file so that we know where the processing starts
     logger.info("")
     logger.info("=================================================================")
     logger.info("")
-    logger.info("Starting data proceesing using: %s.py" % setting_file)
+    logger.info("Starting data proceesing using: %s.py" % settings_file)
     logger.info("")
     logger.info("=================================================================")
     logger.info("")
 
     # If no params_dict then initiate. Check all the output functions are present and valid.
-    settings_for_fit = settings()
-    settings_for_fit.populate(settings_file=setting_file, report=report)
+    settings_for_fit = Settings()
+    settings_for_fit.populate(settings_file=settings_file, report=report)
 
     return settings_for_fit
 
 
-def set_range(
-    setting_file: Optional[Union[str, Path]] = None,
-    setting_class: Optional[settings] = None,
+def view(
+    settings_file=None,
+    settings_class=None,
     inputs=None,
-    debug: bool = False,
-    refine: bool = True,
-    save_all: bool = False,
-    # propagate: bool = True,
-    iterations: int = 1,
-    # track: bool = False,
-    parallel: bool = True,
-    subpattern: str = "all",
-    report: bool = False,
+    debug=False,
+    refine=True,
+    save_all=False,
+    # propagate=True,
+    iterations=1,
+    # track=False,
+    parallel=True,
+    pattern="all",
+    subpattern="all",
+    report=False,
 ):
     """
-    :param setting_file:
+    :param settings_file:
     :param inputs:
     :param debug:
     :param refine:
@@ -168,10 +171,61 @@ def set_range(
     :return:
     """
 
-    settings_for_fit: settings = (
-        initiate(setting_file, inputs=inputs, report=report)
-        if setting_class is None
-        else setting_class
+    if settings_class is None:
+        settings_for_fit = initiate(settings_file, inputs=inputs, report=report)
+    else:
+        settings_for_fit = settings_class
+
+    # view the listed file only
+    if pattern != "all":
+        # restrict file list to first file
+        settings_for_fit.set_data_files(keep=pattern)
+
+    execute(
+        settings_class=settings_for_fit,
+        debug=debug,
+        refine=refine,
+        save_all=save_all,
+        iterations=iterations,
+        parallel=parallel,
+        mode="view",
+        report=True,
+    )
+
+
+def set_range(
+    settings_file: Optional[Union[str, Path]] = None,
+    settings_class: Optional[Settings] = None,
+    inputs=None,
+    debug: bool = False,
+    refine: bool = True,
+    save_all: bool = False,
+    # propagate: bool = True,
+    iterations: int = 1,
+    # track: bool = False,
+    parallel: bool = True,
+    subpattern: str = "all",
+    report: bool = False,
+):
+    """
+    :param settings_file:
+    :param inputs:
+    :param debug:
+    :param refine:
+    :param save_all:
+    :param propagate:
+    :param iterations:
+    :param track:
+    :param parallel:
+    :param subpattern:
+    :param kwargs:
+    :return:
+    """
+
+    settings_for_fit: Settings = (
+        initiate(settings_file, inputs=inputs, report=report)
+        if settings_class is None
+        else settings_class
     )
 
     # search over the first file only
@@ -182,7 +236,7 @@ def set_range(
     settings_for_fit.set_subpatterns(subpatterns=subpattern)
 
     execute(
-        setting_class=settings_for_fit,
+        settings_class=settings_for_fit,
         debug=debug,
         refine=refine,
         save_all=save_all,
@@ -194,8 +248,8 @@ def set_range(
 
 
 def initial_peak_position(
-    setting_file: Optional[Union[str, Path]] = None,
-    setting_class: Optional[settings] = None,
+    settings_file: Optional[Union[str, Path]] = None,
+    settings_class: Optional[Settings] = None,
     inputs=None,
     debug: bool = False,
     refine: bool = True,
@@ -213,7 +267,7 @@ def initial_peak_position(
     The event handler code is copied from:
     https://matplotlib.org/stable/users/event_handling.html for how to make work
 
-    :param setting_file:
+    :param settings_file:
     :param inputs:
     :param debug:
     :param refine:
@@ -227,10 +281,10 @@ def initial_peak_position(
     :return:
     """
 
-    settings_for_fit: settings = (
-        initiate(setting_file, inputs=inputs, report=report)
-        if setting_class is None
-        else setting_class
+    settings_for_fit: Settings = (
+        initiate(settings_file, inputs=inputs, report=report)
+        if settings_class is None
+        else settings_class
     )
 
     # search over the first file only
@@ -269,7 +323,7 @@ def initial_peak_position(
     )
 
     execute(
-        setting_class=settings_for_fit,
+        settings_class=settings_for_fit,
         debug=debug,
         refine=refine,
         save_all=save_all,
@@ -369,8 +423,8 @@ class PointBuilder:
 
 
 def order_search(
-    setting_file: Optional[Union[str, Path]] = None,
-    setting_class: Optional[settings] = None,
+    settings_file: Optional[Union[str, Path]] = None,
+    settings_class: Optional[Settings] = None,
     inputs=None,
     debug: bool = False,
     refine: bool = True,
@@ -396,7 +450,7 @@ def order_search(
     :param parallel:
     :param propagate:
     :param save_all:
-    :param setting_file:
+    :param settings_file:
     :param inputs:
     :param debug:
     :param refine:
@@ -404,10 +458,10 @@ def order_search(
     :return:
     """
 
-    settings_for_fit: settings = (
-        initiate(setting_file, inputs=inputs, report=report)
-        if setting_class is None
-        else setting_class
+    settings_for_fit: Settings = (
+        initiate(settings_file, inputs=inputs, report=report)
+        if settings_class is None
+        else settings_class
     )
 
     # force it to write the required output type.
@@ -438,7 +492,7 @@ def order_search(
     )
 
     execute(
-        setting_class=settings_for_fit,
+        settings_class=settings_for_fit,
         debug=debug,
         refine=refine,
         save_all=save_all,
@@ -451,16 +505,16 @@ def order_search(
     # FIX ME: using debug as a switch to get all info in file.
     # should probably use another switch
     write_output(
-        setting_file=setting_file,
-        setting_class=settings_for_fit,
+        settings_file=settings_file,
+        settings_class=settings_for_fit,
         debug=True,
         out_type="DifferentialStrain",
     )
 
 
 def write_output(
-    setting_file: Optional[Union[str, Path]] = None,
-    setting_class: Optional[settings] = None,
+    settings_file: Optional[Union[str, Path]] = None,
+    settings_class: Optional[Settings] = None,
     # fit_settings=None,
     # fit_parameters=None,
     parms_dict=None,
@@ -476,7 +530,7 @@ def write_output(
     :param fit_parameters:
     :param use_bounds:
     :param differential_only:
-    :param setting_file:
+    :param settings_file:
     :param fit_settings:
     :param parms_dict:
     :param out_type:
@@ -484,10 +538,10 @@ def write_output(
     :return:
     """
 
-    setting_class = (
-        initiate(setting_file, report=report, out_type=out_type)
-        if setting_class is None
-        else setting_class
+    settings_class = (
+        initiate(settings_file, report=report, out_type=out_type)
+        if settings_class is None
+        else settings_class
     )
 
     if out_type is not None:
@@ -504,9 +558,9 @@ def write_output(
                 )
             )
         )
-        setting_class.set_output_types(out_type_list=out_type)
+        settings_class.set_output_types(out_type_list=out_type)
 
-    if setting_class.output_types is None:
+    if settings_class.output_types is None:
         logger.warning(
             " ".join(
                 map(
@@ -520,20 +574,20 @@ def write_output(
             )
         )
     else:
-        for mod in setting_class.output_types:
+        for mod in settings_class.output_types:
             logger.info(" ".join(map(str, [("Writing output file(s) using %s" % mod)])))
             wr = output_methods_modules[mod]
             wr.WriteOutput(
-                setting_class=setting_class,
-                setting_file=setting_file,
+                settings_class=settings_class,
+                settings_file=settings_file,
                 differential_only=differential_only,
                 debug=debug,
             )
 
 
 def execute(
-    setting_file: Optional[Union[str, Path]] = None,
-    setting_class=None,
+    settings_file: Optional[Union[str, Path]] = None,
+    settings_class=None,
     # fit_settings=None,
     # fit_parameters=None,
     inputs=None,
@@ -551,7 +605,7 @@ def execute(
     """
     :param fit_parameters:
     :param fit_settings:
-    :param setting_file:
+    :param settings_file:
     :param parallel:
     :param report:
     :param mode:
@@ -565,10 +619,12 @@ def execute(
     :return:
     """
 
-    if setting_class is None:
-        settings_for_fit = initiate(setting_file, inputs=inputs, report=report)
+    initialise_logger(settings_file=settings_file, report=report)
+
+    if settings_class is None:
+        settings_for_fit = initiate(settings_file, inputs=inputs, report=report)
     else:
-        settings_for_fit = setting_class
+        settings_for_fit = settings_class
     new_data = settings_for_fit.data_class
 
     # Define locally required names
@@ -652,7 +708,7 @@ def execute(
             pass
 
         # plot input file
-        if logger.is_below_level(level="DEBUG"):
+        if logger.is_below_level(level="DEBUG") or mode == "view":
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
             ax_o1 = plt.subplot(111)
@@ -660,7 +716,10 @@ def execute(
             # plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
             plt.title(title_file_names(settings_for_fit=settings_for_fit, num=j))
             plt.show()
-            plt.close()
+            if mode == "view":
+                sys.exit("Plotted data.")
+            else:
+                plt.close()
 
         # Get previous fit (if it exists and is required)
         if (
@@ -780,8 +839,8 @@ def execute(
                     # re-get settings for current subpattern
                     settings_for_fit.set_subpattern(j, i)
 
-            sub_data = new_data.duplicate()
-            sub_data.set_limits(range_bounds=tth_range)
+            sub_data = new_data.duplicate(range_bounds=tth_range)
+            # sub_data.set_limits(range_bounds=tth_range)
 
             # Mask the subpattern by intensity if called for
             if (
@@ -808,7 +867,7 @@ def execute(
 
                 # if debug:
                 plt.show()
-                plt.close()
+                # plt.close()
 
             elif mode == "set-guess":
                 fig_1 = plt.figure()
@@ -925,7 +984,7 @@ def execute(
     if mode == "fit":
         # Write the output files.
         write_output(
-            setting_file=setting_file, setting_class=settings_for_fit, debug=debug
+            settings_file=settings_file, settings_class=settings_for_fit, debug=debug
         )
 
     if parallel is True:
@@ -952,6 +1011,6 @@ if __name__ == "__main__":
         refine=True,
         save_all=False,
         iterations=1,
-        setting_file=settings_file,
+        settings_file=settings_file,
         parallel=False,
     )

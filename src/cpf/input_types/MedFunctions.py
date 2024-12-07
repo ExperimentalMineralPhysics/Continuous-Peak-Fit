@@ -18,9 +18,9 @@ from matplotlib import cm, colors, gridspec
 from cpf.input_types import Med, med_detectors
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.input_types.MedFunctions")
 
 
 class MedDetector:
@@ -47,10 +47,13 @@ class MedDetector:
         self.calibration = None
         self.detector = None
 
+        self.plot_orientation = "horizontal"
+
         self.intensity = None
         self.tth = None
         self.azm = None
-        # self.dspace = None
+
+        self.dspace = None
         self.x = None
         self.y = None
         self.azm_start = None
@@ -72,37 +75,64 @@ class MedDetector:
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
         """
         Makes an independent copy of a MedDetector Instance.
 
+        range_bounds and azi_bounds restrict the extent of the data if needed.
+        The range resturictions should be applied upon copying (if required) for memory efficieny.
+        Laternatively run:
+        data_class.duplicate()
+        date_calss.set_limit2(range_bounds=[...], azi_bounds=[...])
+
         Parameters
         ----------
-        None.
+        range_bounds : dict or array, optional
+            Limits for the two theta range. The default is [-np.inf, np.inf].
+        azi_bounds : dict or array, optional
+            Limits for the azimuth range. The default is [-np.inf, np.inf].
 
         Returns
         -------
-        MedDetector Instance.
-        """
+        new : MedDetector Instance.
+            Copy of MedDetector with independedent data values
 
         """
-        Cannot use deepcopy on the detector class itself. So have to use a
-        combination of copy and deepcopy.
-        """
-        new = MedDetector()
-        # new.parameters = copy(self.parameters)
-        new.calibration = copy(self.calibration)
-        new.x = copy(self.x)
-        new.y = copy(self.y)
-        new.azm_start = copy(self.azm_start)
-        new.azm_end = copy(self.azm_end)
-        new.tth_start = copy(self.tth_start)
-        new.tth_end = copy(self.tth_end)
 
-        new.intensity = deepcopy(self.intensity)
-        new.tth = deepcopy(self.tth)
-        new.azm = deepcopy(self.azm)
-        new.dspace = deepcopy(self.dspace)
+        new = copy(self)
+
+        local_mask = np.where(
+            (self.tth >= range_bounds[0])
+            & (self.tth <= range_bounds[1])
+            & (self.azm >= azi_bounds[0])
+            & (self.azm <= azi_bounds[1])
+        )
+
+        new.intensity = deepcopy(self.intensity[local_mask])
+        new.tth = deepcopy(self.tth[local_mask])
+        new.azm = deepcopy(self.azm[local_mask])
+
+        new.intensity = new.intensity[new.intensity.mask == False]
+        new.tth = new.tth[new.tth.mask == False]
+        new.azm = new.azm[new.azm.mask == False]
+
+        if "dspace" in dir(new):
+            if self.dspace is not None:
+                new.dspace = deepcopy(self.dspace[local_mask])
+                new.dspace = new.dspace[new.dspace.mask == False]
+
+        if "x" in dir(new):
+            if self.x is not None:
+                new.x = deepcopy(self.x.squeeze()[local_mask])
+                new.x = new.x[new.x.mask == False]
+        if "y" in dir(new):
+            if self.y is not None:
+                new.y = deepcopy(self.y.squeeze()[local_mask])
+                new.y = new.y[new.y.mask == False]
+        if "z" in dir(new):
+            if self.z is not None:
+                new.z = deepcopy(self.z.squeeze()[local_mask])
+                new.z = new.z[new.z.mask == False]
 
         return new
 
@@ -425,7 +455,7 @@ class MedDetector:
                 "\n   import pyFAI\n   pyFAI.detectors.Detector.registry\n\n"
             )
         # FIX ME: check the detector type is valid.
-        return detector
+        return None  # detector
 
     def get_requirements(self, parameter_settings=None):
         """
@@ -665,7 +695,7 @@ class MedDetector:
 
         return disp_ticks
 
-    def _plot_spacing(self, gap=200):
+    def _plot_spacing(self, gap=200, Imax=None):
         """
         Sets the spacing for the detectors in the plots.
 
@@ -680,7 +710,10 @@ class MedDetector:
             Spacing to use for the plotting of azimuths.
 
         """
-        return np.max(self.intensity) / gap
+        if Imax:
+            return Imax / gap
+        else:
+            return np.max(self.intensity) / gap
 
     def plot_masked(self, fig_plot=None):
         """
@@ -694,7 +727,14 @@ class MedDetector:
             fig_plot=fig_plot, axis_plot=ax1, x_axis="default", limits=[0, 100]
         )
 
-    def plot_fitted(self, fig_plot=None, model=None, fit_centroid=None):
+    def plot_fitted(
+        self,
+        fig_plot=None,
+        model=None,
+        fit_centroid=None,
+        plot_ColourRange=None,
+        **kwargs,
+    ):
         """
         add data to axes.
         :param ax:
@@ -715,6 +755,11 @@ class MedDetector:
         # FIXME: this is not used but should be used to set to colour ranges of the data -- by azimuth.
         # limits = {"max": self.azm_start, "min": self.azm_end}
 
+        if plot_ColourRange:
+            spcng = (self._plot_spacing(gap=200, Imax=plot_ColourRange["max"]),)
+        else:
+            spcng = self._plot_spacing(gap=200)
+
         # make axes
         gs = gridspec.GridSpec(1, 3, wspace=0.0)
         ax = []
@@ -727,6 +772,7 @@ class MedDetector:
             axis_plot=ax[0],
             show="intensity",
             x_axis="default",
+            limits=deepcopy(plot_ColourRange),
             colourbar=False,
         )
         ax[0].set_title("Data")
@@ -735,12 +781,16 @@ class MedDetector:
             for i in range(len(fit_centroid[1])):
                 ax[1].plot(
                     np.squeeze(fit_centroid[1][i]),
-                    self._plot_spacing(gap=200) * np.unique(self.azm),
+                    spcng * np.unique(self.azm),
                     ".k--",
                     linewidth=0.5,
                 )
         self.plot_calibrated(
-            fig_plot=fig_plot, axis_plot=ax[1], data=model2, colourbar=False
+            fig_plot=fig_plot,
+            axis_plot=ax[1],
+            data=model2,
+            colourbar=False,
+            limits=deepcopy(plot_ColourRange),
         )
         ax[1].set_title("Model")
         # plot residuals
@@ -748,7 +798,7 @@ class MedDetector:
             for i in range(len(fit_centroid[1])):
                 ax[2].plot(
                     np.squeeze(fit_centroid[1][i]),
-                    self._plot_spacing(gap=200) * np.unique(self.azm),
+                    spcng * np.unique(self.azm),
                     ".k--",
                     linewidth=0.5,
                 )
@@ -756,6 +806,7 @@ class MedDetector:
             fig_plot=fig_plot,
             axis_plot=ax[2],
             data=self.intensity - model2,
+            limits=deepcopy(plot_ColourRange),
             colourbar=True,
         )
         ax[2].set_title("Residuals")
@@ -833,7 +884,7 @@ class MedDetector:
         y_axis="default",
         spacing=None,
         data=None,
-        limits=[0, 99.9],
+        limits=None,
         colourmap="jet",
         colourbar=True,
         debug=False,
@@ -849,7 +900,15 @@ class MedDetector:
         """
 
         if spacing == None:
-            spacing = self._plot_spacing(gap=200)
+            if isinstance(limits, dict):
+                spacing = self._plot_spacing(gap=200, Imax=limits["max"])
+                lims = [limits["rmin"], limits["max"] + np.max(self.azm) * spacing]
+                limits["max"] = limits["max"] + np.max(self.azm) * spacing
+                # spacing = self._plot_spacing(gap=200, Imax=limits["max"])
+                #
+            else:
+                spacing = self._plot_spacing(gap=200)
+                lims = None
 
         if x_axis == "default":
             plot_x = self.tth
@@ -959,23 +1018,28 @@ class MedDetector:
             # set colour bar labels with unique azimuths (if there are less than 'unique' azimuths - see function for value of unique).
             ticks = self._dispersion_ticks()
             if colourbar is True:
-                cbar = fig_plot.colorbar(s_map, ticks=ticks, orientation=orientation)
+                cbar = plt.colorbar(
+                    s_map, ticks=ticks, orientation=orientation, ax=axis_plot
+                )
                 cbar.set_label("Azimuth")
             else:
                 cbar = []
 
         axis_plot.set_xlabel(label_x)
         axis_plot.set_ylabel(label_y)
+        if lims:
+            axis_plot.set_ylim(lims)
+        elif isinstance(limits, dict):
+            axis_plot.set_ylim([limits["min"], limits["max"]])
 
         return the_plot, cbar
 
+    # add common functions.
+    set_limits = _AngleDispersive_common.set_limits
 
-# add common functions.
-MedDetector.set_limits = _AngleDispersive_common.set_limits
-
-# add masking functions to detetor class.
-MedDetector.get_mask = _masks.get_mask
-MedDetector.set_mask = _masks.set_mask
-MedDetector.mask_apply = _masks.mask_apply
-MedDetector.mask_restore = _masks.mask_restore
-MedDetector.mask_remove = _masks.mask_remove
+    # add masking functions to detetor class.
+    get_mask = _masks.get_mask
+    set_mask = _masks.set_mask
+    mask_apply = _masks.mask_apply
+    mask_restore = _masks.mask_restore
+    mask_remove = _masks.mask_remove

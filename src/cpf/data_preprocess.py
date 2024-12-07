@@ -39,11 +39,11 @@ import numpy as np
 import scipy as sp
 from skimage import filters, morphology, restoration
 
-import cpf.settings as settings
+import cpf.settings as Settings
 from cpf.Cosmics import cosmicsimage
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.data_preprocess")
 
 
 def image_adjust(data, image_process):
@@ -214,7 +214,7 @@ def smooth_image(data, options=None, settings_for_fit=None):
         else:
             prep = {}
             prep["smooth"] = options
-    elif isinstance(settings_for_fit, settings.settings):
+    elif isinstance(settings_for_fit, Settings):
         prep = settings_for_fit.data_prepare
     elif isinstance(settings_for_fit, dict):
         prep = settings_for_fit
@@ -293,7 +293,7 @@ def rolling_ball_background(data, options=None, settings_for_fit=None):
         else:
             prep = {}
             prep["background"] = options
-    elif isinstance(settings_for_fit, settings.settings):
+    elif isinstance(settings_for_fit, Settings):
         prep = settings_for_fit.data_prepare
     elif isinstance(settings_for_fit, dict):
         prep = settings_for_fit
@@ -389,7 +389,7 @@ def scale_by_background(data, options=None, settings_for_fit=None):
         else:
             prep = {}
             prep["background"] = options
-    elif isinstance(settings_for_fit, settings.settings):
+    elif isinstance(settings_for_fit, Settings):
         prep = settings_for_fit.data_prepare
     elif isinstance(settings_for_fit, dict):
         prep = settings_for_fit

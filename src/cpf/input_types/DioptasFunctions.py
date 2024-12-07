@@ -6,7 +6,7 @@ __all__ = ["DioptasDetector"]
 
 import re
 import sys
-from copy import deepcopy
+from copy import copy, deepcopy
 
 import fabio
 import matplotlib.pyplot as plt
@@ -17,17 +17,13 @@ from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.io import ponifile
 
 import cpf.h5_functions as h5_functions
-
-# import cpf.logger_functions as lg
 from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
-
-# from PIL import Image
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.input_types.DioptasFunctions")
 
 
 class DioptasDetector:
@@ -44,6 +40,8 @@ class DioptasDetector:
 
         self.calibration = None
         self.detector = None
+
+        self.plot_orientation = "vertical"
 
         self.intensity = None
         self.tth = None
@@ -69,20 +67,55 @@ class DioptasDetector:
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
         """
-        Makes an independent copy of a Dioptas Instance
+        Makes an independent copy of a DioptasDetector Instance.
+
+        range_bounds and azi_bounds restrict the extent of the data if needed.
+        The range resturictions should be applied upon copying (if required) for memory efficieny.
+        Laternatively run:
+        data_class.duplicate()
+        date_calss.set_limit2(range_bounds=[...], azi_bounds=[...])
 
         Parameters
         ----------
-        None.
+        range_bounds : dict or array, optional
+            Limits for the two theta range. The default is [-np.inf, np.inf].
+        azi_bounds : dict or array, optional
+            Limits for the azimuth range. The default is [-np.inf, np.inf].
 
         Returns
         -------
-        Dioptas Instance.
+        new : DioptasDetector Instance.
+            Copy of DioptasDetector with independedent data values
 
         """
-        new = deepcopy(self)
+
+        new = copy(self)
+
+        local_mask = np.where(
+            (self.tth >= range_bounds[0])
+            & (self.tth <= range_bounds[1])
+            & (self.azm >= azi_bounds[0])
+            & (self.azm <= azi_bounds[1])
+        )
+
+        new.intensity = deepcopy(self.intensity[local_mask])
+        new.tth = deepcopy(self.tth[local_mask])
+        new.azm = deepcopy(self.azm[local_mask])
+        if "dspace" in dir(self):
+            new.dspace = deepcopy(self.dspace[local_mask])
+
+        if "x" in dir(self):
+            if self.x is not None:
+                new.x = deepcopy(self.x[local_mask])
+        if "y" in dir(self):
+            if self.y is not None:
+                new.y = deepcopy(self.y[local_mask])
+        if "z" in dir(self):
+            if self.z is not None:
+                new.z = deepcopy(self.z[local_mask])
+
         return new
 
     def get_calibration(self, file_name=None, settings=None):

@@ -17,9 +17,12 @@ from lmfit.model import save_modelresult  # , load_modelresult
 import cpf.IO_functions as io
 import cpf.lmfit_model as lmm
 import cpf.peak_functions as pf
+import cpf.series_constraints as sc
 import cpf.series_functions as sf
 from cpf.fitsubpattern_chunks import fit_chunks, fit_series
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
+
+logger = CPFLogger("cpf.XRD_FitSubpattern")
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -85,7 +88,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
         for param in choice_list:
             coeff_type = sf.params_get_type(previous_params, param, peak=y)
             if coeff_type != 5:  # if parameters are not independent
-                if np.max(orders["peak"][y][param]) > sf.fourier_order(
+                if sc.BiggestValue(orders["peak"][y][param]) > sf.fourier_order(
                     previous_params["peak"][y][param]
                 ):
                     change_by = (
@@ -96,7 +99,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                     previous_params["peak"][y][param] = (
                         previous_params["background"][y] + [0] * change_by
                     )
-                elif np.max(orders["peak"][y][param]) < sf.fourier_order(
+                elif sc.BiggestValue(orders["peak"][y][param]) < sf.fourier_order(
                     previous_params["peak"][y][param]
                 ):
                     change_by = (
@@ -186,13 +189,13 @@ def check_num_azimuths(peeks, azimu, orders):
             coeff_type = sf.params_get_type(orders, param, peak=y)
             if coeff_type != 5:  # if parameters are not independent
                 max_coeff = np.max(
-                    [max_coeff, np.max(orders["peak"][y][param]) * 2 + 1]
+                    [max_coeff, sf.get_number_coeff(orders, param, peak=y)]
                 )
     param = "background"
     for y in range(np.max([len(orders["background"])])):
         coeff_type = sf.params_get_type(orders, param, peak=y)
         if coeff_type != 5:  # if parameters are not independent
-            max_coeff = np.max([max_coeff, np.max(orders["background"][y]) * 2 + 1])
+            max_coeff = np.max([max_coeff, sf.get_number_coeff(orders, "background")])
     if max_coeff > len(np.unique(azimu)):
         err_str = (
             "The maximum order, %i, needs more coefficients than the number of unique azimuths, %i. "
@@ -331,9 +334,9 @@ def fit_sub_pattern(
 
     if previous_params:
         # initiate values for while loop.
-        step = 5
+        step = [5]
     else:
-        step = 0
+        step = [0]
 
     if previous_params and settings_as_class.subfit_orders:
         # If we have both, order takes precedence so update previous_params to match
@@ -347,13 +350,13 @@ def fit_sub_pattern(
     check_num_azimuths(peeks, data_as_class.azm, settings_as_class.subfit_orders)
 
     # Start fitting loops
-    while step >= 0 and step <= 100:
+    while step[-1] >= 0 and step[-1] <= 100:
         # 100 is arbitrarily large number and does not reflect the num. of actual steps/stages in the process.
         # While loops are used so that if the fit is rubbish we can go back and improve it by repeating earlier steps.
         # for chunks step <= 9 and for refine <= 19
         # we are using increments of 10 so that it is possible to record different states or routes after the final fit.
 
-        if step <= 9:
+        if step[-1] <= 9:
             # generate chunks and initial fits
             # or parse previous fits into correct data structure
 
@@ -387,10 +390,10 @@ def fit_sub_pattern(
                     )
                 )
                 # set step to -21 so that it is still negative at the end
-                step = -21  # get to the end and void the fit
+                step.append(-21)  # get to the end and void the fit
                 fout = master_params
 
-            if step >= 0 and not previous_params:
+            if step[-1] >= 0 and not previous_params:
                 # There is no previous fit -- Fit data in azimuthal chunks
                 # using manual guesses ("PeakPositionSelection") if they exist.
                 chunk_fits, chunk_positions = fit_chunks(
@@ -466,10 +469,10 @@ def fit_sub_pattern(
                         )
                     )
                     # set step to -11 so that it is still negative at the end
-                    step = -11  # get to the end and void the fit
+                    step.append(-11)  # get to the end and void the fit
                     fout = master_params
 
-            elif step >= 0 and previous_params:
+            elif step[-1] >= 0 and previous_params:
                 logger.moreinfo(
                     " ".join(
                         map(
@@ -490,11 +493,11 @@ def fit_sub_pattern(
                 # FIX ME: need to confirm the number of parameters matches the orders of the fits.
 
             chunks_end = time.time()
-            step = step + 10
+            step.append(step[-1] + 10)
 
-        if step >= 10:
+        if step[-1] >= 10:
             # if refine or step>=10 or not PreviousParams:
-            if refine or step != 10 or step != 15 and iterations >= 1:
+            if refine or step[-1] != 10 or step[-1] != 15 and iterations >= 1:
                 # Iterate over each parameter series in turn.
                 logger.moreinfo(
                     " ".join(
@@ -520,8 +523,12 @@ def fit_sub_pattern(
                         # set these parameters to vary
                         master_params = lmm.vary_params(master_params, param_str, comp)
                         # set part of these parameters to not vary
-                        # master_params = ff.un_vary_part_params(master_params, param_str, comp,
-                        # orders['background'][k])
+                        master_params = lmm.un_vary_part_params(
+                            master_params,
+                            param_str,
+                            comp,
+                            settings_as_class.subfit_orders["background"][k],
+                        )
                         fout = lmm.fit_model(
                             data_as_class,
                             settings_as_class.subfit_orders,
@@ -570,18 +577,28 @@ def fit_sub_pattern(
                                 )
                                 # set part of these parameters to not vary
                                 if isinstance(
-                                    settings_as_class.subfit_orders["peak"][k][
-                                        comp_names[cp]
-                                    ],
+                                    sc.SeriesValues(
+                                        settings_as_class.subfit_orders["peak"][k][
+                                            comp_names[cp]
+                                        ]
+                                    ),
                                     list,
-                                ):
+                                ):  # set part of these parameters to not vary
+                                    # isinstance(
+                                    #     settings_as_class.subfit_orders["peak"][k][
+                                    #         comp_names[cp]
+                                    #     ],
+                                    #     list,
+                                    # ):
                                     master_params = lmm.un_vary_part_params(
                                         master_params,
                                         param_str,
                                         comp,
-                                        settings_as_class.subfit_orders["peak"][k][
-                                            comp_names[cp]
-                                        ],
+                                        sc.SeriesValues(
+                                            settings_as_class.subfit_orders["peak"][k][
+                                                comp_names[cp]
+                                            ]
+                                        ),
                                     )
                                 if comp == "h":
                                     refine_max_f_eval = 5 * peeks * default_max_f_eval
@@ -600,6 +617,7 @@ def fit_sub_pattern(
                                     max_n_fev=refine_max_f_eval,
                                 )
                                 master_params = fout.params
+                                logger.log_lmfit_obj(master_params, level="EFFUSIVE")
 
                     logger.effusive(
                         " ".join(
@@ -614,9 +632,10 @@ def fit_sub_pattern(
                             )
                         )
                     )
+                    # master_params.pretty_print()
                     logger.log_lmfit_obj(master_params, level="EFFUSIVE")
 
-                step = step + 10
+                step.append(step[-1] + 10)
 
                 # get mean height of chunked peaks and check if it is greater than threshold
                 ave_intensity = []
@@ -660,13 +679,13 @@ def fit_sub_pattern(
                         )
                     )
                     # set step to -101 so that it is still negative at the end
-                    step = -101  # get to the end and void the fit
+                    step.append(-101)  # get to the end and void the fit
                     fout = master_params
 
             else:
-                step = step + 11
+                step.append(step[-1] + 11)
 
-        if step >= 20:
+        if step[-1] >= 20:
             # FIX ME: Need to sort out use of lmfit parameters and new_params, below will not work currently for loaded
             # parameters as master_params not created from new_params yet. If possible use the json
             # import/export within lmfit.
@@ -676,12 +695,12 @@ def fit_sub_pattern(
                 " ".join(map(str, [("Final fit solving for all parms...")]))
             )
 
-            if any(x == step for x in [20, 21, 22, 25, 26, 27]):
+            if any(x == step[-1] for x in [20, 21, 22, 25, 26, 27]):
                 # if we are on the first go round of the fitting.
                 max_n_f_eval = default_max_f_eval
-            elif any(x == step for x in [23, 28]):
+            elif any(x == step[-1] for x in [23, 28]):
                 max_n_f_eval = 2 * default_max_f_eval
-            elif any(x == step for x in [24, 29]):
+            elif any(x == step[-1] for x in [24, 29]):
                 max_n_f_eval = np.inf
             else:
                 raise ValueError("The value of step here is not possible. Oops.")
@@ -719,9 +738,11 @@ def fit_sub_pattern(
                                 master_params,
                                 param_str,
                                 comp,
-                                settings_as_class.subfit_orders["peak"][k][
-                                    comp_names[cp]
-                                ],
+                                sc.SeriesValues(
+                                    settings_as_class.subfit_orders["peak"][k][
+                                        comp_names[cp]
+                                    ]
+                                ),
                             )
 
             fout = lmm.fit_model(
@@ -758,7 +779,7 @@ def fit_sub_pattern(
                         )
                     )
                 )
-                step = 0
+                step.append(0)
                 # clear previous_params so we can't get back here
                 previous_params = None
             elif (
@@ -778,32 +799,38 @@ def fit_sub_pattern(
                         )
                     )
                 )
-                step = 0
+                step.append(0)
                 # clear previous_params so we can't get back here
                 previous_params = None
             elif fout.success == 1:
                 # it worked, errors are not massive, carry on
-                step = step + 100
+                step.append(step[-1] + 100)
                 master_params = fout.params
-            elif step == 24 and fout.success == 0:
+            elif step[-1] == 24 and fout.success == 0:
                 err_str = "Oh Dear. It should not be possible to get here. Something has gone very wrong with the fitting."
                 logger.critical(" ".join(map(str, [(err_str)])))
-                raise ValueError(err_str)
-            elif step == 29 and fout.success == 0:
-                step = 0  # go back to the start, discard PreviousParams and do the chunks for this data set.
-            elif any(x == step for x in [20, 25]) and fout.success == 0:
-                step = step - 7
+                # raise ValueError(err_str)
+                step.append(step[-1] - 1000)
+            elif step[-1] == 29 and fout.success == 0:
+                step.append(
+                    0
+                )  # go back to the start, discard PreviousParams and do the chunks for this data set.
+            elif any(x == step[-1] for x in [20, 25]) and fout.success == 0:
+                step.append(step[-1] - 7)
                 iterations = np.max((iterations, 3))
-            elif any(x == step for x in [21, 22, 23, 26, 27, 28]) and fout.success == 0:
-                step = step - 9
-                if any(x == step for x in [23, 28]):
+            elif (
+                any(x == step[-1] for x in [21, 22, 23, 26, 27, 28])
+                and fout.success == 0
+            ):
+                step.append(step[-1] - 9)
+                if any(x == step[-1] for x in [23, 28]):
                     iterations = np.max((iterations, 3))
-            else:
-                err_str = "The value of step here is not possible. Oops."
+            else:  # step is 24
+                err_str = "The value of step here should not be achievable. Oops. \n The data is not fitting. Discard."
                 logger.critical(" ".join(map(str, [(err_str)])))
-                raise ValueError(err_str)
+                step.append(step[-1] - 200)
 
-        if step < 0:
+        if step[-1] < 0:
             # the fit is void and we need to exit.
             # make sure all the height values are nan so that we dont propagate rubbish
             comp_list, comp_names = pf.peak_components()
@@ -829,7 +856,7 @@ def fit_sub_pattern(
     # if step < 0:
     #     new_params.update({"FitProperties": fit_stats})
     # else:
-    if step > 0:
+    if step[-1] > 0:
         logger.effusive(" ".join(map(str, [("Final Coefficients")])))
         logger.effusive(" ".join(map(str, [(fout.fit_report(show_correl=False))])))
         # Record some stats
@@ -867,12 +894,14 @@ def fit_sub_pattern(
     t_end = time.time()
     t_elapsed = t_end - t_start
     chunks_time = chunks_end - chunks_start
+    step_str = json.dumps(step)
+    step_str = step_str.replace("\n", "")
     # get the rest of the fit stats from the lmfit output.
-    if step > 0:
+    if step[-1] > 0:
         fit_stats = {
             "time-elapsed": t_elapsed,
             "chunks-time": chunks_time,
-            "status": step,
+            "status": step_str,
             "sum-residuals-squared": np.sum(fout.residual**2),
             "function-evaluations": fout.nfev,
             "n-variables": fout.nvarys,
@@ -883,11 +912,38 @@ def fit_sub_pattern(
             "aic": fout.aic,
             "bic": fout.bic,
         }
+
+        # Store values related to the data.
+        # Will be used by WriteFitMovie to keep colour scales consistent.
+        new_params.update(
+            {
+                "DataProperties": {
+                    "max": np.max(data_as_class.intensity),
+                    "min": np.min(data_as_class.intensity),
+                }
+            }
+        )
+        new_params.update(
+            {
+                "ModelProperties": {
+                    "max": np.max(fout.best_fit),
+                    "min": np.min(fout.best_fit),
+                }
+            }
+        )
+        new_params.update(
+            {
+                "ResidualProperties": {
+                    "max": np.max(data_as_class.intensity - fout.best_fit),
+                    "min": np.min(data_as_class.intensity - fout.best_fit),
+                }
+            }
+        )
     else:
         fit_stats = {
             "time-elapsed": t_elapsed,
             "chunks-time": chunks_time,
-            "status": step,
+            "status": step_str,
             "sum-residuals-squared": np.nan,
             "function-evaluations": np.nan,
             "n-variables": np.nan,
@@ -898,26 +954,32 @@ def fit_sub_pattern(
             "aic": np.nan,
             "bic": np.nan,
         }
+        # Store values related to the data.
+        # Will be used by WriteFitMovie to keep colour scales consistent.
+        new_params.update(
+            {
+                "DataProperties": {
+                    "max": np.max(data_as_class.intensity),
+                    "min": np.min(data_as_class.intensity),
+                }
+            }
+        )
+        new_params.update({"ModelProperties": {"max": np.nan, "min": np.nan}})
+        new_params.update({"ResidualProperties": {"max": np.nan, "min": np.nan}})
 
     new_params.update({"FitProperties": fit_stats})
-    new_params.update(
-        {
-            "DataProperties": {
-                "max": np.max(data_as_class.intensity),
-                "min": np.min(data_as_class.intensity),
-            }
-        }
-    )
 
     # add peak names to new_params
     new_params.update({"PeakLabel": io.peak_string(settings_as_class.subfit_orders)})
 
     # Plot results to check
     view = 0
-    if (save_fit == 1 or view == 1 or logger.is_below_level("EFFUSIVE")) and step > 0:
+    if (save_fit == 1 or view == 1 or logger.is_below_level("EFFUSIVE")) and step[
+        -1
+    ] > 0:
         logger.effusive(" ".join(map(str, [("Plotting results for fit...")])))
 
-        orientation = "vertical"
+        orientation = data_as_class.plot_orientation
         if orientation == "vertical":
             fig = plt.figure(figsize=(4, 6))  # default figure size is [6.4, 4.8]
         else:
@@ -925,6 +987,7 @@ def fit_sub_pattern(
         fig = plot_FitAndModel(
             settings_as_class,
             data_as_class,
+            modelresult=fout,
             param_lmfit=master_params,
             params_dict=new_params,
             figure=fig,
@@ -982,12 +1045,14 @@ def fit_sub_pattern(
 def plot_FitAndModel(
     settings_as_class,
     data_as_class,
+    modelresult=None,
     param_lmfit=None,
     params_dict=None,
     figure=None,
     debug=False,
     orientation="vertical",
     plot_type="scatter",
+    plot_ColourRange=None,
 ):
     """
     Generates the figure for the fitted data.
@@ -1002,6 +1067,8 @@ def plot_FitAndModel(
         DESCRIPTION.
     data_as_class : TYPE
         DESCRIPTION.
+    modelresult : TYPE, optional
+        DESCRIPTION. The default is None.
     param_lmfit : TYPE, optional
         DESCRIPTION. The default is None.
     params_dict : TYPE, optional
@@ -1027,44 +1094,52 @@ def plot_FitAndModel(
     else:
         figure.clear(True)
 
-    if param_lmfit == None and params_dict == None:
-        err_str = "No data has been passed."
-        raise ValueError(err_str)
-    elif param_lmfit == None:
-        # initiate the model parameter set
-        param_lmfit = lmm.initiate_all_params_for_fit(
-            settings_as_class,
-            data_as_class,
-            values=params_dict,
-            debug=debug,
-        )
-    elif params_dict == None:
-        # make params dict from lmfit object
-        params_dict = lmm.params_to_new_params(
-            param_lmfit, orders=settings_as_class.subfit_orders
-        )
+    if modelresult:
+        full_fit_intens = modelresult.best_fit
     else:
-        pass
-        # all the required data are present in the required format.
+        if param_lmfit == None and params_dict == None:
+            err_str = "No data has been passed."
+            raise ValueError(err_str)
+        elif param_lmfit == None:
+            # initiate the model parameter set
+            param_lmfit = lmm.initiate_all_params_for_fit(
+                settings_as_class,
+                data_as_class,
+                values=params_dict,
+                debug=debug,
+            )
+        elif params_dict == None:
+            # make params dict from lmfit object
+            params_dict = lmm.params_to_new_params(
+                param_lmfit, orders=settings_as_class.subfit_orders
+            )
+        else:
+            pass
+            # all the required data are present in the required format.
 
-    y_lims = [data_as_class.azm_start, data_as_class.azm_end]
-    gmodel = Model(
-        lmm.peaks_model,
-        independent_vars=["two_theta", "azimuth"],
-        data_class=data_as_class,
-        orders=settings_as_class.subfit_orders,
-        start_end=[data_as_class.azm_start, data_as_class.azm_end],
-    )
-    full_fit_intens = gmodel.eval(
-        params=param_lmfit,
-        two_theta=data_as_class.tth.flatten(),
-        azimuth=data_as_class.azm.flatten(),
-    )
+        gmodel = Model(
+            lmm.peaks_model,
+            independent_vars=["two_theta", "azimuth"],
+            data_class=data_as_class,
+            orders=settings_as_class.subfit_orders,
+            start_end=[data_as_class.azm_start, data_as_class.azm_end],
+        )
+        full_fit_intens = gmodel.eval(
+            params=param_lmfit,
+            two_theta=data_as_class.tth.flatten(),
+            azimuth=data_as_class.azm.flatten(),
+        )
 
     azi_plot = np.unique(data_as_class.azm.flatten())
     if data_as_class.continuous_azm:
         # if there are lots and lots of data make the list shorter
-        azi_plot = np.array(list(range(np.int_(y_lims[0]), np.int_(y_lims[1]), 2)))
+        azi_plot = np.array(
+            list(
+                range(
+                    np.int_(data_as_class.azm_start), np.int_(data_as_class.azm_end), 2
+                )
+            )
+        )
     peeks = len(params_dict["peak"])
     fit_centroid = []
     for i in range(peeks):
@@ -1088,5 +1163,6 @@ def plot_FitAndModel(
         fit_centroid=[azi_plot, fit_centroid],
         orientation=orientation,
         plot_type=plot_type,
+        plot_ColourRange=plot_ColourRange,
     )
     return figure

@@ -52,11 +52,13 @@ import os
 import pickle
 import re
 import sys
-from copy import deepcopy
+from copy import copy, deepcopy
 
+import fabio
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
+import pyFAI
 from matplotlib import image
 
 # import pyFAI
@@ -67,20 +69,52 @@ import cpf.logger_functions as lg
 from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
-
-# from matplotlib import gridspec
-# from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
-# from pyFAI.io import ponifile
-# from matplotlib import cm, colors
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.input_types.XYFunctions")
 
 # plot the data as an image (TRue) or a scatter plot (false).
 # FIXME: the plot as image (im_show) does not work. The fitted data has to be reshaped
 # into an image.
 plot_as_image = True
+
+
+def csv_to_image(image_name):
+    # then it is a text file, assume there are less than 20 header rows.
+    # assume the we do not know the delimiters.
+    done = 0
+    n = 0
+    while done == 0:
+        if os.path.splitext(image_name)[1] == ".csv":
+            import csv
+
+            im = []
+            with open(image_name, "r", encoding="utf-8-sig") as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    for i in range(len(row)):
+                        if row[i] == "":
+                            row[i] = np.nan
+                        else:
+                            row[i] = float(row[i])
+                        # row[row == ""] = 0
+                    im.append(row)
+
+            im = np.array(im)
+            done = 1
+        else:
+            try:
+                im = np.loadtxt(image_name, skiprows=n)
+                done = 1
+            except:
+                done = 0
+                n += 1
+                if n > 20:
+                    # issue an error
+                    err_str = "There seems to be more than 20 header rows in the data file. Is this correct?"
+                    raise ValueError(err_str)
+    return im
 
 
 class XYDetector:
@@ -93,6 +127,8 @@ class XYDetector:
 
         self.calibration = None
         self.detector = None
+
+        self.plot_orientation = "vertical"
 
         self.intensity = None
         self.tth = None
@@ -125,12 +161,55 @@ class XYDetector:
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
         """
-        Makes a "deep" copy of an XY Instance, using copy.deepcopy()
-        :return: deepcopy of self.
+        Makes an independent copy of a XYDetector Instance.
+
+        range_bounds and azi_bounds restrict the extent of the data if needed.
+        The range resturictions should be applied upon copying (if required) for memory efficieny.
+        Laternatively run:
+        data_class.duplicate()
+        date_calss.set_limit2(range_bounds=[...], azi_bounds=[...])
+
+        Parameters
+        ----------
+        range_bounds : dict or array, optional
+            Limits for the two theta range. The default is [-np.inf, np.inf].
+        azi_bounds : dict or array, optional
+            Limits for the azimuth range. The default is [-np.inf, np.inf].
+
+        Returns
+        -------
+        new : XYDetector Instance.
+            Copy of XYDetector with independedent data values
+
         """
-        new = deepcopy(self)
+
+        new = copy(self)
+
+        local_mask = np.where(
+            (self.tth >= range_bounds[0])
+            & (self.tth <= range_bounds[1])
+            & (self.azm >= azi_bounds[0])
+            & (self.azm <= azi_bounds[1])
+        )
+
+        new.intensity = deepcopy(self.intensity[local_mask])
+        new.tth = deepcopy(self.tth[local_mask])
+        new.azm = deepcopy(self.azm[local_mask])
+        if "dspace" in dir(self):
+            new.dspace = deepcopy(self.dspace[local_mask])
+
+        if "x" in dir(self):
+            if self.x is not None:
+                new.x = deepcopy(self.x[local_mask])
+        if "y" in dir(self):
+            if self.y is not None:
+                new.y = deepcopy(self.y[local_mask])
+        if "z" in dir(self):
+            if self.z is not None:
+                new.z = deepcopy(self.z[local_mask])
+
         return new
 
     def get_calibration(self, file_name=None, settings=None):
@@ -476,66 +555,28 @@ class XYDetector:
                 )
         return required_list
 
+    # add common functions
+    _get_d_space = _AngleDispersive_common._get_d_space
+    conversion = _AngleDispersive_common.conversion
+    bins = _AngleDispersive_common.bins
+    set_limits = _AngleDispersive_common.set_limits
+    test_azims = _AngleDispersive_common.test_azims
 
-def csv_to_image(image_name):
-    # then it is a text file, assume there are less than 20 header rows.
-    # assume the we do not know the delimiters.
-    done = 0
-    n = 0
-    while done == 0:
-        if os.path.splitext(image_name)[1] == ".csv":
-            import csv
+    # add masking functions to detetor class.
+    get_mask = _masks.get_mask
+    set_mask = _masks.set_mask
+    mask_apply = _masks.mask_apply
+    mask_restore = _masks.mask_restore
+    mask_remove = _masks.mask_remove
 
-            im = []
-            with open(image_name, "r", encoding="utf-8-sig") as f:
-                reader = csv.reader(f)
-                for row in reader:
-                    for i in range(len(row)):
-                        if row[i] == "":
-                            row[i] = np.nan
-                        else:
-                            row[i] = float(row[i])
-                        # row[row == ""] = 0
-                    im.append(row)
-
-            im = np.array(im)
-            done = 1
-        else:
-            try:
-                im = np.loadtxt(image_name, skiprows=n)
-                done = 1
-            except:
-                done = 0
-                n += 1
-                if n > 20:
-                    # issue an error
-                    err_str = "There seems to be more than 20 header rows in the data file. Is this correct?"
-                    raise ValueError(err_str)
-    return im
-
-
-# add common function.
-XYDetector._get_d_space = _AngleDispersive_common._get_d_space
-XYDetector.conversion = _AngleDispersive_common.conversion
-XYDetector.bins = _AngleDispersive_common.bins
-XYDetector.set_limits = _AngleDispersive_common.set_limits
-XYDetector.test_azims = _AngleDispersive_common.test_azims
-
-# add masking functions to detetor class.
-XYDetector.get_mask = _masks.get_mask
-XYDetector.set_mask = _masks.set_mask
-XYDetector.mask_apply = _masks.mask_apply
-XYDetector.mask_restore = _masks.mask_restore
-XYDetector.mask_remove = _masks.mask_remove
-
-# these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
-# Each of these methods remains here because they are called by higher-level functions:
-XYDetector.plot_masked = _Plot_AngleDispersive.plot_masked
-XYDetector.plot_fitted = _Plot_AngleDispersive.plot_fitted
-XYDetector.plot_collected = _Plot_AngleDispersive.plot_collected
-XYDetector.plot_calibrated = _Plot_AngleDispersive.plot_calibrated
-# this function is added because it requires access to self:
-XYDetector.dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks
+    # these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
+    # Each of these methods remains here because they are called by higher-level functions:
+    plot_masked = _Plot_AngleDispersive.plot_masked
+    plot_fitted = _Plot_AngleDispersive.plot_fitted
+    plot_collected = _Plot_AngleDispersive.plot_collected
+    plot_calibrated = _Plot_AngleDispersive.plot_calibrated
+    # this function is added because it requires access to self:
+    dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks
 
 
 class OrthogonalDetector:

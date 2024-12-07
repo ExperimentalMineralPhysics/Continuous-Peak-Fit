@@ -5,15 +5,19 @@ Created on Tue Jul  6 05:44:13 2021
 @author: simon
 """
 
-import logging
+# Enables modern type hinting features on older Python versions
+from __future__ import annotations
+
 import os
 import re
 from copy import deepcopy
+from pathlib import Path
 
 import numpy as np
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+from cpf.logger_functions import CPFLogger
+
+logger = CPFLogger("cpf.IO_functions")
 
 
 # Needed for JSON to save fitted parameters.
@@ -576,7 +580,7 @@ def title_file_names(settings_for_fit=None, num=0, image_name=None, string=True)
 
 
 def make_outfile_name(
-    base_filename,
+    base_filename: list | Path | str,
     directory=None,
     additional_text=None,
     extension=None,
@@ -596,25 +600,35 @@ def make_outfile_name(
     :return:
     """
 
-    # if the file type is h5 the name arrives as a list of bits
+    # If the file type is h5 the name arrives as a list of bits
     if isinstance(base_filename, list):
-        # root_name = base_filename[0]
+        # Get the file name and file extension
+        logger.debug(f"Received h5 file type with base filename {base_filename}")
         filename = title_file_names(image_name=base_filename, string=False)
-
-        # get the file extension
-        _, ending = os.path.splitext(base_filename[0])
-        ending = ending[1:]
+        ending = Path(base_filename[0]).suffix[1:]  # Get file extension and remove dot
+    elif isinstance(base_filename, (str, Path)):
+        # Convert to a Path object and get the file name and file extension
+        logger.debug(f"Received file with base filename {base_filename}")
+        base_filename = (
+            Path(base_filename) if isinstance(base_filename, str) else base_filename
+        )
+        ending = base_filename.suffix[1:]  # Remove leading dot from file extension
+        filename = base_filename.stem  # Take last level of the file path
     else:
-        filename, ending = os.path.splitext(base_filename)
-        ending = ending[1:]
+        logger.error(f"Unexpected type passed in for base_filename parameter")
+        raise ValueError
 
-    # strip directory if it is in the name and there is a new directory
+    # Strip directory if it is in the name and there is a new directory
     if directory or directory == "":
-        # base_filename = os.path.basename(base_filename)
-        filename = os.path.basename(filename)
+        filename = Path(filename).stem
 
-    if filename[-1:] == "_":  # if the base file name ends in an '_' remove it.
-        filename = filename[0:-1]
+    # Remove trailing "_" from base filename if present
+    filename = filename[0:-1] if filename.endswith("_") else filename
+
+    # assume here that the only illicit symbol in the file name is *, from
+    # ESRF compound detector. Replace with text. If any other illicit characters
+    # are present it is going to look very strange.
+    filename = licit_filename(filename, replacement="multi")
 
     # check the iteration is not in the file ending.
     # another way to do this would be to check in the file ending in the input file is empty.
@@ -686,7 +700,7 @@ def number_to_string(number, replace=".", withthis="pt"):
     return number
 
 
-def licit_filename(fname, replacement="=="):
+def licit_filename(fname, replacement="==", exclude_dir=True):
     """
     This makes sure that a file name generated from a string is licit.
     It replaces the illegal characters [<>:/\|?*] with a replacement character
@@ -694,7 +708,10 @@ def licit_filename(fname, replacement="=="):
 
     after https://gist.github.com/AaronLaw/a936bebfbbd691fc954252444767e6de -- Find NTFS illegal characters in black list and rename filename.
     """
-    blacklist = r"[<>:/\|?*]"
+    blacklist = r"[<>:|?*]"
+    # the file name might include a directory link...
+    if exclude_dir == False:
+        blacklist += r"\/"
 
     fname = re.sub(blacklist, replacement, fname)
 

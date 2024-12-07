@@ -11,9 +11,9 @@ import numpy as np
 
 import cpf.IO_functions as IO
 import cpf.XRD_FitPattern as fp
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.h5_functions")
 
 
 # copied from internet somewhere August 2022

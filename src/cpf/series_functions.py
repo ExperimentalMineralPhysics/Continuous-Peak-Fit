@@ -26,9 +26,10 @@ import numpy.ma as ma
 from scipy.interpolate import CubicSpline, make_interp_spline
 
 import cpf.peak_functions as pf
+import cpf.series_constraints as sc
+from cpf.logger_functions import CPFLogger
 
-# from cpf.XRD_FitPattern import logger
-from cpf.logger_functions import logger
+logger = CPFLogger("cpf.series_functions")
 
 
 def coefficient_types():
@@ -220,7 +221,7 @@ def params_get_type(orders, comp, peak=0):
 def get_number_coeff(orders, comp, peak=0, azimuths=None):
     """
     Gets the expected number of coefficients from orders.
-    IF independent this needs the azimuths as well.
+    If independent this needs the azimuths as well.
     :param orders:
     :param comp:
     :param peak:
@@ -240,10 +241,13 @@ def get_number_coeff(orders, comp, peak=0, azimuths=None):
             n_param = len(np.unique(azimuths[~ma.array(azimuths).mask]))
 
     elif comp == "bg" or comp == "background" or comp == "f":
-        n_param = np.max(orders["background"][peak]) * 2 + 1
+        n_param = sc.BiggestValue(orders["background"][peak]) * 2 + 1
 
     else:  # everything else.
-        n_param = np.max(orders["peak"][peak][pf.expand_component_string(comp)]) * 2 + 1
+        n_param = (
+            sc.BiggestValue(orders["peak"][peak][pf.expand_component_string(comp)]) * 2
+            + 1
+        )
 
     return n_param
 

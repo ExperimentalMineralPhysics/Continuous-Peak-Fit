@@ -3,7 +3,6 @@ __all__ = ["Requirements", "WriteOutput"]
 
 import json
 import os
-from cpf.logging import CPFLogger
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,6 +13,7 @@ from moviepy.video.io.bindings import mplfig_to_npimage
 import cpf.IO_functions as IO
 from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
+from cpf.logging import CPFLogger
 from cpf.XRD_FitSubpattern import plot_FitAndModel
 
 logger = CPFLogger("cpf.output_formatters.WriteFitMovie")

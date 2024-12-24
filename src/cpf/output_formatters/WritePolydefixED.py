@@ -5,7 +5,6 @@ import datetime
 import json
 import os
 import re
-from cpf.logging import CPFLogger
 
 import numpy as np
 
@@ -13,6 +12,7 @@ import cpf.IO_functions as IO
 
 # import cpf.PeakFunctions as ff
 import cpf.series_functions as sf
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.output_formatters.WritePolydefixED")
 

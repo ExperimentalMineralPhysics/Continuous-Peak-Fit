@@ -25,9 +25,10 @@ Modifications:
 
 import copy
 import math
-from cpf.logging import CPFLogger
 
 import numpy as Numeric
+
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.input_types.Mca")
 

@@ -9,11 +9,10 @@ Modifications:
         - spline function and option to align the called data.
 """
 
-from cpf.logging import CPFLogger
-
 import numpy as Numeric
 
 from cpf.input_types import Mca
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.input_types.Med")
 

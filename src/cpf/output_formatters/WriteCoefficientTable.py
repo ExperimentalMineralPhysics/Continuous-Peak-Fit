@@ -4,13 +4,13 @@ __all__ = ["Requirements", "WriteOutput"]
 import json
 import os
 from itertools import product
-from cpf.logging import CPFLogger
 
 import numpy as np
 
 # import cpf.XRD_FitPattern as XRD_FP
 import cpf.IO_functions as IO
 import cpf.peak_functions as pf
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.output_formatters.WriteCoefficientTable")
 

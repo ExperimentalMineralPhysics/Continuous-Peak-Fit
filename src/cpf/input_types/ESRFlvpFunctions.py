@@ -12,7 +12,6 @@ import json
 import re
 import sys
 from copy import copy, deepcopy
-from cpf.logging import CPFLogger
 
 import fabio
 import matplotlib.pyplot as plt
@@ -29,6 +28,7 @@ from pyFAI.goniometer import MultiGeometry
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.input_types.ESRFlvpFunctions")
 

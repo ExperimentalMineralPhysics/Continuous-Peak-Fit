@@ -4,7 +4,6 @@ __all__ = ["Requirements", "WriteOutput"]
 # import cpf.PeakFunctions as pf
 import json
 import os
-from cpf.logging import CPFLogger
 
 import numpy as np
 from lmfit.model import load_modelresult
@@ -12,6 +11,7 @@ from lmfit.model import load_modelresult
 import cpf.IO_functions as IO
 import cpf.lmfit_model as lmm
 import cpf.output_formatters.convert_fit_to_crystallographic as cfc
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.output_formatters.WriteDifferentialStrain")
 

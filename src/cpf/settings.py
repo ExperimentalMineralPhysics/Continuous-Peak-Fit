@@ -126,8 +126,8 @@ class Settings:
         self.fit_min_data_intensity = 0
         self.fit_min_peak_intensity = "0.25*std"
 
-        self.fit_track = False
-        self.fit_propagate = True
+        self.fit_track: bool = False
+        self.fit_propagate: bool = True
 
         self.cascade_bin_type: Optional[int] = (
             0  # set default type - number data per bin
@@ -136,7 +136,7 @@ class Settings:
         self.cascade_number_bins: Optional[int] = 900  # set default value
         self.cascade_track: bool = False
         self.cascade_histogram_type: Literal["data"] = "data"
-        self.cascade_histogram_bins = None
+        self.cascade_histogram_bins: Optional[int] = None
 
         # output requirements
         self.output_directory: Optional[Path] = Path(".")

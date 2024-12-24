@@ -140,8 +140,7 @@ class Settings:
 
         # output requirements
         self.output_directory: Optional[Path] = Path(".")
-        self.output_types: Optional[list[str]] = None
-        # output_settings is populated with additional requirements for each type (if any)
+        self.output_types: list[str] = []
         self.output_settings: dict = {}
 
         # initiate the subpattern settings.
@@ -370,7 +369,6 @@ class Settings:
             self.fit_bin_type = self.settings_from_file.AziBinType
 
         if "Output_type" in dir(self.settings_from_file):
-            # self.output_types = get_output_options(fit_settings.Output_type)
             self.set_output_types(out_type_list=self.settings_from_file.Output_type)
 
         self.validate_settings_file()
@@ -404,13 +402,13 @@ class Settings:
             )
 
         # validate fit_orders and bounds
-        if self.fit_orders != None:
+        if self.fit_orders:
             self.validate_fit_orders()
-        if self.fit_bounds != None:
+        if self.fit_bounds:
             self.validate_fit_bounds()
 
         # validate output types
-        if self.output_types != None:
+        if self.output_types:
             self.validate_output_types()
 
     def check_files_exist(
@@ -474,10 +472,10 @@ class Settings:
         check that the orders of the fit contain all the needed parameters
         """
 
-        if self.fit_orders is None and orders is None:
+        if not self.fit_orders and orders is None:
             raise ValueError("There are no fit orders.")
 
-        if self.fit_orders is None:
+        if not self.fit_orders:
             raise ValueError("No values for 'fit_orders' were provided")
 
         # enable orders as the variable to check over -- then it is possible to validate orders that are not in the class.
@@ -929,7 +927,7 @@ class Settings:
         check the peak fitting bounds in the input file are valid.
         """
 
-        if self.fit_bounds is None:
+        if not self.fit_bounds:
             raise ValueError("There are no fit bounds.")
 
         required = ("background", "d-space", "height", "profile", "width")
@@ -976,13 +974,13 @@ class Settings:
 
     def set_output_types(
         self,
-        out_type_list=None,
+        out_type_list: list[str] = [],
         report: bool = False,
     ):
         """
         set output types in settings class given a list of output types
         """
-        if out_type_list is not None:
+        if out_type_list:
             self.output_types = get_output_options(out_type_list)
 
     def validate_output_types(self, report=False):
@@ -1209,7 +1207,7 @@ class Settings:
         logger.info(" ".join(map(str, [("Done writing", filename)])))
 
 
-def get_output_options(output_type):
+def get_output_options(output_type: list[str]):
     """
     Check if input is string or list of strings
     :param output_type: string or list of strings

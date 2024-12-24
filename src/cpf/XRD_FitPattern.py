@@ -464,7 +464,7 @@ def order_search(
     )
 
     # force it to write the required output type.
-    settings_for_fit.set_output_types(out_type_list="DifferentialStrain")
+    settings_for_fit.set_output_types(out_type_list=["DifferentialStrain"])
 
     # search over the first file only
     settings_for_fit.set_data_files(keep=0)

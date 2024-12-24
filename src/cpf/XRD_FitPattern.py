@@ -9,15 +9,15 @@ import logging
 import os
 import sys
 from importlib import import_module
+from os import cpu_count
 from pathlib import Path
 from types import ModuleType
 from typing import Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pathos.pools as mp
 import proglog
-from pathos.multiprocessing import cpu_count
+from pathos.pools import ParallelPool
 
 from cpf import output_formatters
 from cpf.BrightSpots import SpotProcess
@@ -665,13 +665,11 @@ def execute(
 
     # if parallel processing start the pool
     if parallel is True:
-        # p = mp.Pool(processes=mp.cpu_count())
-        p = mp.ParallelPool(nodes=cpu_count())
-        # p = mp.Pool()
+        pool = ParallelPool(nodes=cpu_count())
 
         # Since we may have already closed the pool, try to restart it
         try:
-            p.restart()
+            pool.restart()
         except AssertionError:
             pass
 
@@ -941,7 +939,7 @@ def execute(
         # write output files
         if mode == "fit" or mode == "search":
             if parallel is True:
-                tmp = p.map(parallel_processing, parallel_pile)
+                tmp = pool.map(parallel_processing, parallel_pile)
                 for i in range(len(settings_for_fit.fit_orders)):
                     fitted_param.append(tmp[i][0])
                     lmfit_models.append(tmp[i][1])
@@ -988,7 +986,7 @@ def execute(
         )
 
     if parallel is True:
-        p.clear()
+        pool.clear()
 
 
 def parallel_processing(p):

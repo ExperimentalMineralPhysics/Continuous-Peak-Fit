@@ -53,6 +53,7 @@ import pickle
 import re
 import sys
 from copy import copy, deepcopy
+from logging import getLogger
 
 import fabio
 import matplotlib.pyplot as plt
@@ -70,9 +71,8 @@ from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
-from cpf.logger_functions import CPFLogger
 
-logger = CPFLogger("cpf.input_types.XYFunctions")
+logger = getLogger("cpf.input_types.XYFunctions")
 
 # plot the data as an image (TRue) or a scatter plot (false).
 # FIXME: the plot as image (im_show) does not work. The fitted data has to be reshaped

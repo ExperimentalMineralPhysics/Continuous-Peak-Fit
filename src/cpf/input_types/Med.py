@@ -9,12 +9,13 @@ Modifications:
         - spline function and option to align the called data.
 """
 
+from logging import getLogger
+
 import numpy as Numeric
 
 from cpf.input_types import Mca
-from cpf.logger_functions import CPFLogger
 
-logger = CPFLogger("cpf.input_types.Med")
+logger = getLogger("cpf.input_types.Med")
 
 # FIX ME: DMF Need to rationalise this code and keep what's needed.
 # FIX ME: where do we stand on licensing? has this been published?

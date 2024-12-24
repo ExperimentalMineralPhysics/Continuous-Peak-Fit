@@ -2,15 +2,16 @@
 # -*- coding: utf-8 -*-
 
 
+from logging import getLogger
+
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 from matplotlib import cm, colors, gridspec, tri
 
 from cpf.histograms import histogram2d
-from cpf.logger_functions import CPFLogger
 
-logger = CPFLogger("cpf.input_types._Plot_AngleDispersive")
+logger = getLogger("cpf.input_types._Plot_AngleDispersive")
 
 
 class _Plot_AngleDispersive:

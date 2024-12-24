@@ -3,6 +3,9 @@ __all__ = ["Requirements", "WriteOutput"]
 # import datetime
 import json
 import os
+
+# import cpf.PeakFunctions as ff
+from logging import getLogger
 from pathlib import Path
 
 # import re
@@ -11,10 +14,7 @@ import numpy as np
 import cpf.IO_functions as IO
 import cpf.output_formatters.WriteMultiFit as WriteMultiFit
 
-# import cpf.PeakFunctions as ff
-from cpf.logger_functions import CPFLogger
-
-logger = CPFLogger("cpf.output_formatters.WritePolydefix")
+logger = getLogger("cpf.output_formatters.WritePolydefix")
 
 
 def Requirements():

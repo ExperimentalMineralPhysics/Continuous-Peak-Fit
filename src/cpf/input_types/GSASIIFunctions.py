@@ -10,6 +10,7 @@ import copy
 import math
 import os
 import sys
+from logging import getLogger
 
 import matplotlib.cm as cm
 import matplotlib.path as mlp
@@ -20,9 +21,7 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 from scipy.optimize import curve_fit
 
-from cpf.logger_functions import CPFLogger
-
-logger = CPFLogger("cpf.input_types.GSASIIFunctions")
+logger = getLogger("cpf.input_types.GSASIIFunctions")
 
 np.set_printoptions(threshold=sys.maxsize)
 

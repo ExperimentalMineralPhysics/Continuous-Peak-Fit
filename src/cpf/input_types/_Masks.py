@@ -30,13 +30,13 @@ Need functions that can:
 Remove mask functions from these class files and put in separate common file.
 """
 
+from logging import getLogger
+
 import numpy as np
 import numpy.ma as ma
 from PIL import Image, ImageDraw
 
-from cpf.logger_functions import CPFLogger
-
-logger = CPFLogger("cpf.input_types._Masks")
+logger = getLogger("cpf.input_types._Masks")
 
 
 class _masks:

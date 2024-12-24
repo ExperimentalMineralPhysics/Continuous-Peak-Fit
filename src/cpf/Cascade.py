@@ -14,8 +14,12 @@ It needs to do a few things.
     b. max
     c. mean of the 90th+ percentiles.
 
-    To be consistent with the philosophy of the code, the bins for the aximuths should be determined by a combination of width and the number of data contained. By keeping the number of data constant we will have more points at large two theta than at small two theta.
-    - this will need a switch in the input file somewhere. (Azibins needs another call e.g. AziNum?)
+    To be consistent with the philosophy of the code, the bins for the aximuths should
+    be determined by a combination of width and the number of data contained. By
+    keeping the number of data constant we will have more points at large two theta
+    than at small two theta.
+    - this will need a switch in the input file somewhere. (Azibins needs another call
+      e.g. AziNum?)
 
 2. Plot the outputs as a cascade plot.
 
@@ -309,7 +313,8 @@ def execute(
                 params = []
 
             # Track the position of the peak centroid
-            # FIXME: This is crude - the range doesn't change width. so can't account for massive change in stress.
+            # FIXME: This is crude - the range doesn't change width. so can't account
+            # for massive change in stress.
             # But does it need to?
             tth_range = settings_for_fit.subfit_orders["range"]
             if settings_for_fit.cascade_track is True and "previous_fit" in locals():

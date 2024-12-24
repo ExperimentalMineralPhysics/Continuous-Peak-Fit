@@ -6,7 +6,6 @@ __all__ = ["execute", "write_output"]
 
 import json
 import logging
-import os
 import sys
 from importlib import import_module
 from os import cpu_count
@@ -638,7 +637,6 @@ def execute(
     if settings_for_fit.calibration_data:
         data_to_fill = Path(settings_for_fit.calibration_data).resolve()
     else:
-        # data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
         data_to_fill = settings_for_fit.image_list[0]
 
     new_data.fill_data(
@@ -711,7 +709,6 @@ def execute(
             ax = fig.add_subplot(1, 1, 1)
             ax_o1 = plt.subplot(111)
             new_data.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity")
-            # plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
             plt.title(title_file_names(settings_for_fit=settings_for_fit, num=j))
             plt.show()
             if mode == "view":
@@ -721,7 +718,7 @@ def execute(
 
         # Get previous fit (if it exists and is required)
         if (
-            os.path.isfile(temporary_data_file)
+            Path(temporary_data_file).is_file()
             and settings_for_fit.fit_propagate is True
             and mode == "fit"
         ):
@@ -996,7 +993,7 @@ def parallel_processing(p):
 
 if __name__ == "__main__":
     # Load settings fit settings file.
-    sys.path.append(os.getcwd())
+    sys.path.append(str(Path().cwd()))
     settings_file = sys.argv[1]
     logger.info(" ".join(map(str, [(settings_file)])))
     # Safely exit the program

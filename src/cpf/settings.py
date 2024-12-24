@@ -7,18 +7,15 @@ __all__ = ["settings", "get_output_options", "detector_factory"]
 
 import importlib.util
 import json
-import os
 from copy import copy, deepcopy
-from glob import glob
 from pathlib import Path
-from typing import Optional
+from typing import Any, Literal, Optional
 
 import numpy as np
 
 import cpf.input_types as input_types
 import cpf.output_formatters as output_formatters
 from cpf.IO_functions import (
-    file_list,
     image_list,
     json_numpy_serializer,
 )
@@ -59,11 +56,11 @@ class Settings:
 
     def __init__(
         self,
-        settings_file: Optional[str | Path] = None,
+        settings_file: Optional[Path] = None,
         out_type=None,
         report: bool = False,
         debug: bool = False,
-        mode: str = "fit",
+        mode: Literal["fit"] = "fit",
     ):
         """
         Initialise the cpf settings class.
@@ -104,22 +101,22 @@ class Settings:
         self.file_label: Optional[str] = None
 
         # calibration type: dioptas etc.
-        self.calibration_type = None
+        self.calibration_type: str = ""
         # file on which the calibration was done
-        self.calibration_data = None
+        self.calibration_data: Optional[Path] = None
         # mask file for data
-        self.calibration_mask = None
+        self.calibration_mask: Optional[Path] = None
         # file with the calibration in it.
-        self.calibration_parameters = None
+        self.calibration_parameters: Optional[Path] = None
         # FIXME: these are optional and should probalably be burried in an optional dictionary.
         self.calibration_detector = None
         self.calibration_pixel_size = None
 
-        self.fit_bin_type = None
-        self.fit_per_bin = None
-        self.fit_number_bins = None
+        self.fit_bin_type: Optional[int] = None
+        self.fit_per_bin: Optional[int] = None
+        self.fit_number_bins: Optional[int] = None
         self.fit_orders = None
-        self.fit_bounds = {
+        self.fit_bounds: dict[str, list[Any]] = {
             "background": ["0.95*min", "1.05*max"],
             "d-space": ["min", "max"],
             "height": [0, "1.05*max"],
@@ -132,15 +129,17 @@ class Settings:
         self.fit_track = False
         self.fit_propagate = True
 
-        self.cascade_bin_type = 0  # set default type - number data per bin
-        self.cascade_per_bin = 50  # set default value
-        self.cascade_number_bins = 900  # set default value
-        self.cascade_track = False
-        self.cascade_histogram_type = "data"
+        self.cascade_bin_type: Optional[int] = (
+            0  # set default type - number data per bin
+        )
+        self.cascade_per_bin: Optional[int] = 50  # set default value
+        self.cascade_number_bins: Optional[int] = 900  # set default value
+        self.cascade_track: bool = False
+        self.cascade_histogram_type: Literal["data"] = "data"
         self.cascade_histogram_bins = None
 
         # output requirements
-        self.output_directory = "."
+        self.output_directory: Optional[Path] = Path(".")
         self.output_types: Optional[list[str]] = None
         # output_settings is populated with additional requirements for each type (if any)
         self.output_settings: dict = {}
@@ -240,7 +239,7 @@ class Settings:
         """
 
         # store all the settings from file in a mocule class.
-        module_name, _ = os.path.splitext(os.path.basename(self.settings_file))
+        module_name = self.settings_file.stem
         spec = importlib.util.spec_from_file_location(module_name, self.settings_file)
         self.settings_from_file = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.settings_from_file)
@@ -1160,7 +1159,9 @@ class Settings:
         self.subfit_order_position = number_subpattern
         self.subfit_orders = self.fit_orders[number_subpattern]
 
-    def save_settings(self, filename="settings.json", filepath="./"):
+    def save_settings(
+        self, filename: str = "settings.json", filepath: Path = Path(".")
+    ):
         """
         Saves the settings class to file.
 
@@ -1189,7 +1190,7 @@ class Settings:
             )
         )
 
-        fnam = os.path.join(filepath, filename)
+        fnam = filepath / filename
         with open(fnam, "w") as TempFile:
             # Write a JSON string into the file.
             json.dump(

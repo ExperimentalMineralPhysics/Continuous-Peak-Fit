@@ -66,7 +66,7 @@ from matplotlib import image
 from PIL import Image
 
 import cpf.h5_functions as h5_functions
-import cpf.logger_functions as lg
+import cpf.logging as lg
 from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks

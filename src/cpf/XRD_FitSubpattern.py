@@ -20,7 +20,7 @@ import cpf.peak_functions as pf
 import cpf.series_constraints as sc
 import cpf.series_functions as sf
 from cpf.fitsubpattern_chunks import fit_chunks, fit_series
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.XRD_FitSubpattern")
 

@@ -17,7 +17,7 @@ import cpf.IO_functions as io
 import cpf.lmfit_model as lmm
 import cpf.series_constraints as sc
 import cpf.series_functions as sf
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.fitsubpattern_chunks")
 

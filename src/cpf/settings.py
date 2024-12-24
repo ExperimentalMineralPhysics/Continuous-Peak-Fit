@@ -24,7 +24,7 @@ from cpf.IO_functions import (
 )
 
 # , get_output_options, detector_factory, register_default_formats
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 from cpf.series_functions import (
     coefficient_type_as_number,
     coefficient_type_as_string,

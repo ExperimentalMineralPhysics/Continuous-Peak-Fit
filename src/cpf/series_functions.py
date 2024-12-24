@@ -27,7 +27,7 @@ from scipy.interpolate import CubicSpline, make_interp_spline
 
 import cpf.peak_functions as pf
 import cpf.series_constraints as sc
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.series_functions")
 

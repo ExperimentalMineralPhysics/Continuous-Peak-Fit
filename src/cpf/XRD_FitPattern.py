@@ -29,7 +29,7 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 from cpf.settings import Settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 

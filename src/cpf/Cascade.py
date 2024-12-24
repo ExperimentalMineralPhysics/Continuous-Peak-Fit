@@ -36,7 +36,6 @@ __all__ = ["initiate", "set_range", "execute"]
 
 import json
 import logging
-import os.path
 from os import cpu_count
 from pathlib import Path
 from typing import Literal, Optional
@@ -63,6 +62,7 @@ from cpf.IO_functions import (
     title_file_names,
 )
 from cpf.logging import CPFLogger
+from cpf.settings import Settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 
 logger = CPFLogger("cpf.Cascade")
@@ -141,8 +141,8 @@ def set_range(*args, **kwargs):
 
 
 def execute(
-    settings_file=None,
-    settings_class=None,
+    settings_file: Optional[Path] = None,
+    settings_class: Optional[Settings] = None,
     inputs=None,
     debug: bool = False,
     save_all: bool = False,
@@ -186,11 +186,13 @@ def execute(
         overwrite=True,
     )
 
+    data_to_fill: Path
     if settings_for_fit.calibration_data:
-        data_to_fill = os.path.abspath(settings_for_fit.calibration_data)
+        data_to_fill = settings_for_fit.calibration_data.resolve()
     else:
-        # data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
         data_to_fill = settings_for_fit.image_list[0]
+        if not isinstance(data_to_fill, Path):
+            data_to_fill = Path(data_to_fill)
     new_data.fill_data(
         data_to_fill,
         settings=settings_for_fit,
@@ -266,7 +268,7 @@ def execute(
 
         # Get previous fit (if it exists and is required)
         if (
-            os.path.isfile(temporary_data_file)
+            Path(temporary_data_file).is_file()
             and settings_for_fit.fit_propagate is True
         ):  # and mode == "fit":
             # Read JSON data from file
@@ -570,7 +572,7 @@ def read_saved_chunks(
             extension=".json",
             overwrite=True,
         )
-        if os.path.isfile(filename):
+        if Path(filename).is_file():
             # Read JSON data from file
             with open(filename) as json_data:
                 fit = json.load(json_data)
@@ -635,7 +637,7 @@ def plot_cascade_chunks(
 
     # get file times
     modified_time_s = np.array(
-        [os.path.getmtime(file) for file in settings_class.image_list]
+        [Path(file).stat().st_mtime for file in settings_class.image_list]
     )
     modified_time_s -= float(modified_time_s[0])
 
@@ -961,7 +963,7 @@ def plot_peak_count(
 
     # get file times
     modified_time_s = np.array(
-        [os.path.getmtime(file) for file in settings_class.image_list]
+        [Path(file).stat().st_mtime for file in settings_class.image_list]
     )
     modified_time_s -= float(modified_time_s[0])
 
@@ -1073,9 +1075,9 @@ def execute2(
     new_data = settings_for_fit.data_class
 
     if settings_for_fit.calibration_data:
-        data_to_fill = os.path.abspath(settings_for_fit.calibration_data)
+        data_to_fill = settings_for_fit.calibration_data.resolve()
     else:
-        data_to_fill = os.path.abspath(settings_for_fit.image_list[0])
+        data_to_fill = settings_for_fit.image_list[0].resolve()
 
     new_data.fill_data(
         data_to_fill,
@@ -1124,7 +1126,7 @@ def execute2(
             ax = fig.add_subplot(1, 1, 1)
             ax_o1 = plt.subplot(111)
             new_data.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity")
-            plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
+            plt.title(settings_for_fit.datafile_list[j].stem)
             plt.show()
             plt.close()
 
@@ -1160,7 +1162,7 @@ def execute2(
         frame.data = frame.data.astype(np.float32)
         # corrections like dark/flat/normalise would be added here
         peaksearch(
-            os.path.basename(settings_for_fit.datafile_list[j]),
+            settings_for_fit.datafile_list[j].stem,
             frame,
             corrector,
             threshold,

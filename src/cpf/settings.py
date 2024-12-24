@@ -90,9 +90,9 @@ class Settings:
 
         """
 
-        self.datafile_list: Optional[list[str | Path]] = None
+        self.datafile_list: list[str | Path] = []
         self.datafile_number: int = 0
-        self.image_list: Optional[list[str | Path]] = None
+        self.image_list: list[str | Path] = []
         self.image_number: int = 0
         self.datafile_directory = Path(".")
 
@@ -101,7 +101,7 @@ class Settings:
         self.file_label: Optional[str] = None
 
         # calibration type: dioptas etc.
-        self.calibration_type: str = ""
+        self.calibration_type: Literal["Dioptas", ""] = ""
         # file on which the calibration was done
         self.calibration_data: Optional[Path] = None
         # mask file for data
@@ -109,13 +109,13 @@ class Settings:
         # file with the calibration in it.
         self.calibration_parameters: Optional[Path] = None
         # FIXME: these are optional and should probalably be burried in an optional dictionary.
-        self.calibration_detector = None
+        self.calibration_detector: Literal["Pilatus1M", ""] = ""
         self.calibration_pixel_size = None
 
         self.fit_bin_type: Optional[int] = None
         self.fit_per_bin: Optional[int] = None
         self.fit_number_bins: Optional[int] = None
-        self.fit_orders = None
+        self.fit_orders: list[dict[str, Any]] = []
         self.fit_bounds: dict[str, list[Any]] = {
             "background": ["0.95*min", "1.05*max"],
             "d-space": ["min", "max"],
@@ -269,9 +269,9 @@ class Settings:
 
         # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
         if "datafile_Basename" in dir(self.settings_from_file):
-            self.datafile_basename = self.settings_from_file.datafile_Basename
+            self.datafile_basename: str = self.settings_from_file.datafile_Basename
         if "datafile_Ending" in dir(self.settings_from_file):
-            self.datafile_ending = self.settings_from_file.datafile_Ending
+            self.datafile_ending: str = self.settings_from_file.datafile_Ending
 
         # add output directory if listed.
         # change if listed among the inputs
@@ -285,15 +285,21 @@ class Settings:
             self.calibration_type = self.settings_from_file.Calib_type
         if "Calib_param" in dir(self.settings_from_file):
             self.calibration_parameters = self.settings_from_file.Calib_param
+            if isinstance(self.calibration_parameters, str):
+                self.calibration_parameters = Path(self.calibration_parameters)
 
         if "Calib_data" in dir(self.settings_from_file):
             self.calibration_data = self.settings_from_file.Calib_data
+            if isinstance(self.calibration_data, str):
+                self.calibration_data = Path(self.calibration_data)
         if "Calib_mask" in dir(self.settings_from_file):
             self.calibration_mask = self.settings_from_file.Calib_mask
+            if isinstance(self.calibration_mask, str):
+                self.calibration_mask = Path(self.calibration_mask)
         if "Calib_detector" in dir(self.settings_from_file):
             self.calibration_detector = self.settings_from_file.Calib_detector
         if "Calib_pixels" in dir(self.settings_from_file):
-            self.calibration_pixel_size = self.settings_from_file.Calib_pixels
+            self.calibration_pixel_size: int = self.settings_from_file.Calib_pixels
 
         # load the data class.
         self.data_class = detector_factory(fit_settings=self)
@@ -1217,7 +1223,7 @@ def get_output_options(output_type):
     return output_mod_type
 
 
-def detector_factory(fit_settings=None):
+def detector_factory(fit_settings: Settings):
     """
     Factory function to provide appropriate class for data dependent on type.
     *should* support any option that is named *Functions and contains *Detector as class.

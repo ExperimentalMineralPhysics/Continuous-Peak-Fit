@@ -34,7 +34,7 @@ dependencies = [
     "imaged11",
     "lmfit",
     "matplotlib",
-    "moviepy<2",
+    "moviepy<2",     # v2 introduced breaking changes to cpf.output_formatters.WriteFitMovie
     "numpy<2",       # Locked to <2 to give dependencies time to catch up
     "opencv-python",
     "pandas",

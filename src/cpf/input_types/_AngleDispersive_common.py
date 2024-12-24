@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 
 
-from logging import getLogger
+from cpf.logging import CPFLogger
 
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 
-logger = getLogger("cpf.input_types._AngelDispersive_common")
+logger = CPFLogger("cpf.input_types._AngelDispersive_common")
 
 
 class _AngleDispersive_common:

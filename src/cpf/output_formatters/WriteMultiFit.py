@@ -3,14 +3,14 @@ __all__ = ["Requirements", "WriteOutput"]
 # import cpf.PeakFunctions as ff
 import json
 import os
-from logging import getLogger
+from cpf.logging import CPFLogger
 
 import numpy as np
 
 import cpf.IO_functions as IO
 import cpf.series_functions as sf
 
-logger = getLogger("cpf.output_formatters.WriteMultiFit")
+logger = CPFLogger("cpf.output_formatters.WriteMultiFit")
 
 
 def Requirements():

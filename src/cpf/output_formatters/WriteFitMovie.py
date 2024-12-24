@@ -3,7 +3,7 @@ __all__ = ["Requirements", "WriteOutput"]
 
 import json
 import os
-from logging import getLogger
+from cpf.logging import CPFLogger
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,7 +16,7 @@ from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
 from cpf.XRD_FitSubpattern import plot_FitAndModel
 
-logger = getLogger("cpf.output_formatters.WriteFitMovie")
+logger = CPFLogger("cpf.output_formatters.WriteFitMovie")
 
 
 def Requirements():

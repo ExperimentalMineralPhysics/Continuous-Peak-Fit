@@ -8,7 +8,7 @@ import os
 import re
 import sys
 from copy import copy, deepcopy
-from logging import getLogger
+from cpf.logging import CPFLogger
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,7 +20,7 @@ from cpf.input_types import Med, med_detectors
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
 
-logger = getLogger("cpf.input_types.MedFunctions")
+logger = CPFLogger("cpf.input_types.MedFunctions")
 
 
 class MedDetector:

@@ -4,7 +4,7 @@ __all__ = ["Requirements", "WriteOutput"]
 import json
 import os
 from itertools import product
-from logging import getLogger
+from cpf.logging import CPFLogger
 
 import numpy as np
 
@@ -12,7 +12,7 @@ import numpy as np
 import cpf.IO_functions as IO
 import cpf.peak_functions as pf
 
-logger = getLogger("cpf.output_formatters.WriteCoefficientTable")
+logger = CPFLogger("cpf.output_formatters.WriteCoefficientTable")
 
 
 def Requirements():

@@ -293,10 +293,7 @@ def execute(
                 previous_fit = json.load(json_data)
 
         # Switch to save the first fit in each sequence.
-        if j == 0 or save_all is True:
-            save_figs = 1
-        else:
-            save_figs = 0
+        save_figs = True if (j == 0 or save_all is True) else False
 
         # Pass each sub-pattern to Fit_Subpattern for fitting in turn.
         all_fitted_chunks = []

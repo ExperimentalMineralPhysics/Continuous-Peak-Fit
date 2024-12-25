@@ -14,12 +14,17 @@ import numpy as np
 from lmfit import Model
 from lmfit.model import save_modelresult  # , load_modelresult
 
-import cpf.IO_functions as io
 import cpf.lmfit_model as lmm
 import cpf.peak_functions as pf
 import cpf.series_constraints as sc
 import cpf.series_functions as sf
 from cpf.fitsubpattern_chunks import fit_chunks, fit_series
+from cpf.IO_functions import (
+    any_errors_huge,
+    any_terms_null,
+    make_outfile_name,
+    peak_string,
+)
 from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.XRD_FitSubpattern")
@@ -279,10 +284,8 @@ def fit_sub_pattern(
     if previous_params:
         # check if the previous fit was 'good' i.e. constrains no 'null' values.
         # N.B. null values in json file are read in as None
-        clean = io.any_terms_null(previous_params, val_to_find=None)
-        clean = io.any_errors_huge(
-            previous_params, large_errors=large_errors, clean=clean
-        )
+        clean = any_terms_null(previous_params, val_to_find=None)
+        clean = any_errors_huge(previous_params, large_errors=large_errors, clean=clean)
         if clean == 0:
             # the previous fit has problems so discard it
             logger.moreinfo(
@@ -759,7 +762,7 @@ def fit_sub_pattern(
             if (
                 fout.success == 1
                 and previous_params != None
-                and io.any_errors_huge(
+                and any_errors_huge(
                     lmm.params_to_new_params(
                         master_params, orders=settings_as_class.subfit_orders
                     ),
@@ -785,7 +788,7 @@ def fit_sub_pattern(
             elif (
                 fout.success == 1
                 and previous_params != None
-                and io.any_terms_null(master_params, val_to_find=None) == 0
+                and any_terms_null(master_params, val_to_find=None) == 0
             ):
                 logger.moreinfo(
                     " ".join(
@@ -970,7 +973,7 @@ def fit_sub_pattern(
     new_params.update({"FitProperties": fit_stats})
 
     # add peak names to new_params
-    new_params.update({"PeakLabel": io.peak_string(settings_as_class.subfit_orders)})
+    new_params.update({"PeakLabel": peak_string(settings_as_class.subfit_orders)})
 
     # Plot results to check
     view = 0
@@ -994,7 +997,7 @@ def fit_sub_pattern(
             orientation=orientation,
             plot_type="scatter",
         )
-        title_str = io.peak_string(settings_as_class.subfit_orders) + "\n final fit"
+        title_str = peak_string(settings_as_class.subfit_orders) + "\n final fit"
         if "note" in settings_as_class.subfit_orders:
             title_str = title_str + " " + settings_as_class.subfit_orders["note"]
 
@@ -1006,7 +1009,7 @@ def fit_sub_pattern(
             plt.show()
         # save figures without overwriting old names
         if save_fit:
-            filename = io.make_outfile_name(
+            filename = make_outfile_name(
                 settings_as_class.subfit_filename,
                 directory=settings_as_class.output_directory,
                 orders=settings_as_class.subfit_orders,
@@ -1020,7 +1023,7 @@ def fit_sub_pattern(
 
     # Save lmfit structure
     if save_fit:
-        filename = io.make_outfile_name(
+        filename = make_outfile_name(
             settings_as_class.subfit_filename,
             directory=settings_as_class.output_directory,
             orders=settings_as_class.subfit_orders,

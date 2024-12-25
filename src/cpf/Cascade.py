@@ -49,12 +49,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import proglog
 from pathos.pools import ParallelPool
-
-# import plotly.graph_objects as go
-# import pandas as pd
 from scipy.signal import find_peaks
 
-import cpf.IO_functions as IO
 import cpf.XRD_FitPattern as XRD_FitPattern
 from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
@@ -567,7 +563,7 @@ def read_saved_chunks(
     # for f in range(settings_class.image_number):
     for f in logger.iter_bar(iteration=range(settings_class.image_number)):
         settings_class.set_subpattern(f, 0)
-        filename = IO.make_outfile_name(
+        filename = make_outfile_name(
             settings_class.subfit_filename,
             directory=settings_class.output_directory,
             additional_text="chunks",
@@ -692,7 +688,7 @@ def plot_cascade_chunks(
                 # loop over the number of peaks in each fit_orders
                 print(
                     "Making cascade plot for "
-                    + IO.peak_string(settings_class.fit_orders[j], peak=k)
+                    + peak_string(settings_class.fit_orders[j], peak=k)
                 )
                 if all_data[0][j]["h"][k]:
                     # if there is some data in the array plot it.
@@ -721,7 +717,7 @@ def plot_cascade_chunks(
                         if not all_data[0][j]["h"][l]:
                             pk = "all"
                     # make the figure title
-                    ttlstr = IO.peak_string(settings_class.fit_orders[j], peak=pk)
+                    ttlstr = peak_string(settings_class.fit_orders[j], peak=pk)
                     plt.title(ttlstr)
                     plt.xlabel(r"Azimuth (deg)")
                     plt.ylabel(y_label_str)
@@ -741,7 +737,7 @@ def plot_cascade_chunks(
                     cb.set_label(r"Intensity")
 
                     # Save the figure
-                    filename = IO.make_outfile_name(
+                    filename = make_outfile_name(
                         settings_class.datafile_basename,
                         directory=settings_class.output_directory,
                         additional_text="CascadePlot",
@@ -924,7 +920,7 @@ def peak_count(
                     if not all_data[0][j]["h"][l]:
                         pk = "all"
                 # make the figure title
-                ttlstr = IO.peak_string(settings_class.subfit_orders, peak=pk)
+                ttlstr = peak_string(settings_class.subfit_orders, peak=pk)
                 peak_labels.append(ttlstr)
 
     return all_peaks, all_properties, count, peak_labels
@@ -1006,7 +1002,7 @@ def plot_peak_count(
     plt.legend()
 
     # Save the plot
-    filename = IO.make_outfile_name(
+    filename = make_outfile_name(
         "PeakCountTime",
         directory=settings_class.output_directory,
         additional_text="prominence" + str(prominence),

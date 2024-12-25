@@ -13,10 +13,10 @@ import numpy.ma as ma
 from lmfit import Model, Parameters
 
 import cpf.histograms as hist
-import cpf.IO_functions as io
 import cpf.lmfit_model as lmm
 import cpf.series_constraints as sc
 import cpf.series_functions as sf
+from cpf.IO_functions import make_outfile_name, peak_string
 from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.fitsubpattern_chunks")
@@ -389,7 +389,7 @@ def fit_chunks(
     out_vals["bg"] = [[] for _ in range(bg_length)]
     out_vals["bg_err"] = [[] for _ in range(bg_length)]
 
-    out_vals["peak"] = io.peak_string(settings_as_class.subfit_orders)
+    out_vals["peak"] = peak_string(settings_as_class.subfit_orders)
 
     for j in range(len(chunks)):
         # logger.info(" ".join(map(str, [('\nFitting to data chunk ' + str(j + 1) + ' of ' + str(len(chunks)) + '\n')])))
@@ -619,7 +619,7 @@ def fit_chunks(
                     plt.title(
                         (
                             (
-                                io.peak_string(settings_as_class.subfit_orders)
+                                peak_string(settings_as_class.subfit_orders)
                                 + "; azimuth = %.1f"
                             )
                             % azichunks[j]
@@ -839,10 +839,10 @@ def fit_series(
             except:
                 pass
 
-        fig.suptitle(io.peak_string(orders) + "; Fits to Chunks")
+        fig.suptitle(peak_string(orders) + "; Fits to Chunks")
 
         if save_fit:
-            filename = io.make_outfile_name(
+            filename = make_outfile_name(
                 settings_as_class.subfit_filename,
                 directory=settings_as_class.output_directory,
                 additional_text="ChunksFit",

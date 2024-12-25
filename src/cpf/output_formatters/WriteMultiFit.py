@@ -6,8 +6,8 @@ import os
 
 import numpy as np
 
-import cpf.IO_functions as IO
 import cpf.series_functions as sf
+from cpf.IO_functions import make_outfile_name, replace_null_terms
 from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.output_formatters.WriteMultiFit")
@@ -81,7 +81,7 @@ def WriteOutput(
         # filename = filename+'.json'
         settings_class.set_subpattern(z, 0)
 
-        filename = IO.make_outfile_name(
+        filename = make_outfile_name(
             # diff_files[z],
             # directory=FitSettings.Output_directory,
             settings_class.subfit_filename,  # diff_files[z],
@@ -93,7 +93,7 @@ def WriteOutput(
         # Read JSON data from file
         with open(filename) as json_data:
             data_to_write = json.load(json_data)
-            data_to_write = IO.replace_null_terms(
+            data_to_write = replace_null_terms(
                 data_to_write, val_to_find=None, replace_with=0
             )
 
@@ -112,7 +112,7 @@ def WriteOutput(
         if differential_only is not False:
             base = base + "_DiffOnly"
 
-        out_file = IO.make_outfile_name(
+        out_file = make_outfile_name(
             # diff_files[z],
             # directory=FitSettings.Output_directory,
             base,  # diff_files[z],

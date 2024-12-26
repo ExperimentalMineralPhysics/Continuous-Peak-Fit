@@ -69,22 +69,28 @@ logger = CPFLogger("cpf.Cascade")
 
 
 def initialise_logger(
-    settings_file: Optional[str | Path] = None,
-    report: str | bool = False,
+    settings_file: Optional[Path],
+    report: Literal["DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"]
+    | bool = False,
 ):
+    """
+    Helper function to set up the CPFLogger instance with the desired stream and file handlers
+    """
     # Start the logger with the desired outputs
     logger.handlers.clear()
     format = "%(asctime)s [%(levelname)s] %(message)s"
     formatter = logging.Formatter(format)
-    if isinstance(report, (str)):
-        # Fail gracefully
+    level = report.upper() if isinstance(report, (str,)) else "INFO"
+
+    # Create a log file if a level name or True is provided
+    if isinstance(report, (str,)) or report is True:
+        # Fail gracefully if no settings file was provided
         if settings_file is None:
             raise ValueError(
                 "Settings file needs to be specified in order to create a log file."
             )
 
         # Set the logging level and log file name
-        level = report.upper()
         log_name = make_outfile_name(settings_file, extension=".log", overwrite=True)
 
         # Create and add the file handler
@@ -92,8 +98,6 @@ def initialise_logger(
         fh.setFormatter(formatter)
         fh.setLevel(level)
         logger.addHandler(fh)
-    else:
-        level = "INFO"
 
     # Create the stream handler
     sh = logging.StreamHandler()

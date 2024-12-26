@@ -11,7 +11,7 @@ class CPFLogger(logging.Logger):
         self,
         name: str,
         level: str | int = "INFO",
-        format: Optional[str] = "%(asctime)s [%(levelname)s] %(message)s",
+        format: str = "%(asctime)s [%(levelname)s] %(message)s",
         log_dir: Optional[str] = None,
     ):
         # Inherit the properties of the Logger class this is derived from
@@ -24,24 +24,27 @@ class CPFLogger(logging.Logger):
         self.setLevel(level)
 
         # Set the format to use
-        formatter = logging.Formatter(format) if isinstance(format, str) else None
+        formatter = logging.Formatter(format) if format else None
 
         # Set up the stream handler (logs to the console)
-        sh = logging.StreamHandler()
-        sh.setFormatter(formatter)
-        sh.setLevel(level)
-        self.addHandler(sh)
+        handlers: list[logging.StreamHandler | logging.FileHandler] = []
+        handlers.append(logging.StreamHandler())
 
         # Set up file handler if a file path is given
         if log_dir is not None:
-            fh = logging.FileHandler(
-                filename=log_dir,
-                encoding="utf-8",
-                mode="a",  # Append to existing log file
+            handlers.append(
+                logging.FileHandler(
+                    filename=log_dir,
+                    encoding="utf-8",
+                    mode="a",  # Append to existing log file
+                )
             )
-            fh.setFormatter(formatter)
-            fh.setLevel(level)
-            self.addHandler(fh)
+
+        # Apply format and levels to handlers and add them to current logger
+        for handler in handlers:
+            handler.setFormatter(formatter)
+            handler.setLevel(level)
+            self.addHandler(handler)
 
     """
     Define logging levels here

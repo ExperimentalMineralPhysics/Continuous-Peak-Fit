@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-import re
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
@@ -189,7 +188,6 @@ class _AngleDispersive_common():
             (self.azm >= azi_bounds[0]) & 
             (self.azm <= azi_bounds[1])
         )
-        
         self.intensity = self.intensity[local_mask]
         self.tth = self.tth[local_mask]
         self.azm = self.azm[local_mask]
@@ -255,46 +253,3 @@ def equalObs(x, nbin):
     x = np.sort(x)
     return np.interp(np.linspace(0, nlen, nbin + 1), np.arange(nlen), np.sort(x))
 
-
-
-
-def DetermineDataType(rawData, numType="float", minimumPrecision=32):
-    """
-    A function to return the data type for the diffraction data. 
-    The data can be any format when it is read in, but should be a float
-    for the data fitting because the lmfit model inherits the data type from 
-    the data. 
-   
-    
-    Parameters
-    ----------
-    rawData : array
-        Diffraction data array.
-    dtype : string, optional
-        Data type without numerical precision. The default is "float".
-    minimumPrecision : number, optional
-        Minimum numerical precision to be applied to the data. If the numerical
-        precision does not matter, set to 0. The default is 32.
-
-    Returns
-    -------
-    DataType : string
-        A numpy data type to be applied to the data arrays. 
-
-    """
-    
-    precision = re.findall("\d+", rawData.dtype.name)[0]
-    # force minimum precision    
-    if precision < minimumPrecision:
-        precision = minimumPrecision
-        
-    DataType = np.dtype(numType+precision)
-    
-    try:
-        DataType = np.dtype(DataType)
-    except:
-        err_str = "The datatype, %s, is not a recognised data type" % DataType
-        logger.critical(err_str)
-        raise TypeError(err_str)
-    
-    return DataType

@@ -92,55 +92,7 @@ def image_list(fit_parameters, fit_settings):
 
     # iterate for h5 files.
     image_list = []
-    if "h5_data_key" in fit_parameters:
-        
-        h5_data_key = fit_settings.h5_data_key
-
-        if "h5_key_names" in fit_parameters:
-            h5_key_names = fit_settings.h5_key_names
-        else:
-            h5_key_names = []
-
-        if "h5_iterate_key" in fit_parameters:
-            h5_iterate_key = fit_settings.h5_iterate_key
-        else:
-            h5_key_start = 0
-        # h5_key_start = fit_settings.h5_key_start
-
-        if "h5_key_end" in fit_parameters:
-            h5_key_end = fit_settings.h5_key_end
-        else:
-            h5_key_end = -1
-        #  h5_key_end   = fit_settings.h5_key_end
-        if isinstance(h5_key_end, int):
-            h5_key_end = [h5_key_end]
-
-        if "h5_key_step" in fit_parameters:
-            h5_key_step = fit_settings.h5_key_step
-        else:
-            h5_key_step = 1
-        # h5_key_step  = fit_settings.h5_key_step
-
-        if "h5_process" in fit_parameters:
-            h5_process = fit_settings.h5_data
-        else:
-            h5_process = "iterate"
-        # h5_data      = fit_settings.h5_data
-
-        for i in range(n_diff_files):
-            h5_list = h5_functions.get_new_image_keys(
-                diff_files[i],
-                h5_data_key,
-                h5_key_names,
-                key_start=h5_key_start,
-                key_end=deepcopy(h5_key_end),
-                key_step=h5_key_step,
-                bottom_level=h5_process,
-            )
-            # N.B. deepcopying of h5_key_end is needed otherwise it is reset for subsequent h5 files.
-
-
-    elif "h5_key_list" in fit_parameters:
+    if "h5_key_list" in fit_parameters:
 
         # FIX ME: all this code should be moved to settings and validation.
         h5_key_list = fit_settings.h5_key_list

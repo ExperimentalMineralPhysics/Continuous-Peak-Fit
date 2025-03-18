@@ -4,10 +4,9 @@
 datafile_directory = './'
 datafile_Basename  = 'BCC1_2GPa_10s_001_'
 datafile_Ending    = '.tif'
-datafile_StartNum  = 10
-datafile_EndNum    = 1
+datafile_StartNum  = 1
+datafile_EndNum    = 10
 datafile_NumDigit  = 5
-datafile_Step      = -4
 
 # Calibration and masking.
 Calib_type     = "Dioptas"
@@ -40,21 +39,16 @@ fit_orders = [
               "profile": 0,
               "profile_fixed": 0.1,
               "width": 0,
-              # "width_fixed": 0.035,
               "symmetry": 2
             }, {
               "phase": "Fe-BCC",
               "hkl": 110,
               "d-space": 3,
-              #"d-space-constraints": {"0": "<peak0", "1" "=0", "2": ">peak0"}
               "height": 16,
-              #"height-constraints": {"all": "<peak0"},
               "height-type": "spline-cubic",
               "profile": 0,
               #"profile_fixed": 1,
               "width": 0,
-              # "width_fixed": 0.035,
-              #"width-constraints": {"all": "=0.035"}
               "symmetry": 2
             }],
           "PeakPositionSelection": [[1, -170.5,   11.19],
@@ -150,10 +144,6 @@ fit_orders = [
 
 #Number of bins for initial fitting.
 AziBins = 90
-
-
-cascade_number_bins = 10
-
 
 #Output settings
 Output_directory   = './results/'

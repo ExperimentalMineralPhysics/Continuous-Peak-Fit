@@ -9,7 +9,6 @@ from itertools import product
 import cpf.IO_functions as IO
 import cpf.peak_functions as pf
 from cpf.XRD_FitPattern import logger
-import pandas as pd
 
 
 def Requirements():
@@ -27,7 +26,7 @@ def Requirements():
 
 
 # def WriteOutput(FitSettings, parms_dict, **kwargs):
-def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwargs):
+def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     # writes some of the fitted coeficients to a table.
     # More general version of WriteDifferentialStrain.
     # Focused on d-spacing coefficents but generalisible to all coefficients.
@@ -50,7 +49,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
     elif "coefs_vals_write" in setting_class.output_settings:
         coefs_vals_write = setting_class.output_settings["coefs_vals_write"]
     else:
-        coefs_vals_write = "all"
+        coefs_vals_write = "all"    
+
 
     #make filename for output
     base = setting_class.datafile_basename
@@ -58,7 +58,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
         logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
     out_file = IO.make_outfile_name(
-        base, directory=setting_class.output_directory, extension=extension, overwrite=True, additional_text="all_coefficients",
+        base, directory=setting_class.output_directory, extension=".dat", overwrite=True, additional_text="all_coefficients",
     )
 
     # get number of coefficients.
@@ -81,7 +81,6 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
                 ind = coefs_vals_write[1][w]
                 if ind != "background":
                     max_coef[ind] = np.max(
-                        # [max_coef[ind], np.max(setting_class.fit_orders[y]["peak"][x][ind])]
                         [max_coef[ind], np.max(2*setting_class.fit_orders[y]["peak"][x][ind])+1]
                     )
                 else:
@@ -105,15 +104,13 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
     text_file.write("# \n")
 
     # write header
-    headers = []
     col_width = 17
     dp = col_width - 7
-    text_file.write(("# {0:<" + str(col_width + 10) + "}").format("Data File" + ","))
+    text_file.write(("# {0:<" + str(col_width + 5) + "}").format("Data File" + ","))
     text_file.write(("{0:<" + str(col_width) + "}").format("Peak" + ","))
-    headers.append("Data File")
-    headers.append("Peak")
     
     #parmeter header list
+    
     for w in range(len(max_coef)):
         ind = coefs_vals_write[1][w]
         if ind != "background" and ind != "symmetry":
@@ -124,14 +121,10 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
                 text_file.write(
                     ("{0:>" + str(col_width) + "}").format(ind + "_" + str(v)+ " err,")
                 )
-                headers.append(ind + "_" + str(v))
-                headers.append(ind + "_" + str(v)+ "err")
         elif ind == "symmetry":
             text_file.write(
                 ("{0:>" + str(col_width) + "}").format(ind + ",")
             )
-            
-            headers.append(ind)
         else:
             for u in range(len(setting_class.fit_orders[y][ind])):
                 
@@ -142,16 +135,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
                         text_file.write(
                             ("{0:>" + str(col_width) + "}").format(ind + str(u) + "_" + str(v) + " err,")
                         )
-                        headers.append(ind + str(u) + "_" + str(v))
-                        headers.append(ind + str(u) + "_" + str(v)+ "err")
 
     text_file.write("\n")
-    
-    #make panda data frame to populate
-    print(headers)
-    stop
-    df = pd.DataFrame(columns=
-                      [])
 
 
 
@@ -194,9 +179,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
         setting_class.set_subpattern(lists[z,0],lists[z,1])
         data_to_write = fits[lists[z,0]][lists[z,1]]
         
-        # print(data_to_write["peak"])
-        # print(lists)
-        # stop
+        
         if len(data_to_write["peak"]) > lists[z,2]:
             
             out_name = IO.make_outfile_name(

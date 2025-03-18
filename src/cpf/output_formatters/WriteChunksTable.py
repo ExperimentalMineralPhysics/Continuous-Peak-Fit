@@ -5,7 +5,6 @@ import cpf.IO_functions as IO
 from cpf.XRD_FitPattern import logger
 from cpf.Cascade import read_saved_chunks
 import pandas as pd
-import glob
 
 def Requirements():
     # List non-universally required parameters for writing this output type.
@@ -28,23 +27,12 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
     # Focused on d-spacing coefficents but generalisible to all coefficients.
 
     if setting_class is None and setting_file is None:
-        
-        file_list = glob.glob("./results/*chunks.json")
-        file_number = len(file_list)
-        
         raise ValueError(
             "Either the settings file or the setting class need to be specified."
         )
     elif setting_class is None:
         import cpf.XRD_FitPattern.initiate as initiate
         setting_class = initiate(setting_file)
-    else:
-        file_list = setting_class.image_list
-        file_number = len(file_list)
-        fits = len(setting_class.fit_orders)
-        pks = []
-        for j in range(fits):
-            pks.append(len(setting_class.fit_orders[j]["peak"]))
 
     #get what to write
     if 'coefs_write' in kwargs:
@@ -76,11 +64,11 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
     azm = []
     tbl = []
     tbl_errs = []
-    for i in range(file_number):
-        for j in range(fits):
-            for k in range(pks[j]):
+    for i in range(setting_class.image_number):
+        for j in range(len(setting_class.fit_orders)):
+            for k in range(len(setting_class.fit_orders[j]["peak"])):
                 azm.append([
-                    IO.make_outfile_name(file_list[i],directory="",overwrite=True), 
+                    IO.make_outfile_name(setting_class.image_list[i],directory="",overwrite=True), 
                     IO.peak_string(setting_class.fit_orders[j], peak=k), 
                     all_azis[i][j],
                     # all_fits[i][j]["d"][k], 
@@ -89,7 +77,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
                     # all_fits[i][j]["p"][k] 
                     ])
                 tbl.append([
-                    IO.make_outfile_name(file_list[i],directory="",overwrite=True), 
+                    IO.make_outfile_name(setting_class.image_list[i],directory="",overwrite=True), 
                     IO.peak_string(setting_class.fit_orders[j], peak=k), 
                     #all_azis[i][j], 
                     all_fits[i][j]["d"][k], 
@@ -98,7 +86,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
                     all_fits[i][j]["p"][k] 
                     ])
                 tbl_errs.append([
-                    IO.make_outfile_name(file_list[i],directory="",overwrite=True), 
+                    IO.make_outfile_name(setting_class.image_list[i],directory="",overwrite=True), 
                     IO.peak_string(setting_class.fit_orders[j], peak=k), 
                     #all_azis[i][j], 
                     all_fits[i][j]["d_err"][k], 

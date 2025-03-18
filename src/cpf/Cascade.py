@@ -115,28 +115,6 @@ def set_range(*args, **kwargs):
     XRD_FitPattern.set_range(*args, **kwargs)
     
 
-def write_output(*args, **kwargs):
-    """
-    :param setting_file:
-    :param inputs:
-    :param debug:
-    :param refine:
-    :param save_all:
-    :param propagate:
-    :param iterations:
-    :param track:
-    :param parallel:
-    :param subpattern:
-    :param kwargs:
-    :return:
-    """
-
-    # pass everything through to XRD_FitPattern.set_range
-    XRD_FitPattern.write_output(*args, **kwargs)
-    
-
-
-
 
 def execute(
     setting_file=None,
@@ -532,9 +510,6 @@ def read_saved_chunks(
 
     print("Finished reading chunk files")
     return all_azis, all_fits
-
-    
-
 
 def get_chunks_range(chunks, series="h"):
     

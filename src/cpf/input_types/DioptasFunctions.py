@@ -271,21 +271,9 @@ class DioptasDetector:
         #     # If there are more, then it will only read 1.
         #     im = np.array(im_all["/entry1/instrument/detector/data"])
         else:
-            try:
-                im_all = fabio.open(image_name)
-                print(f"This file contains {im_all.nframes} with a combined shape of {im_all.shape}")
-                if im_all.nframes == 1:
-                    im = np.squeeze(im_all.data) # squeeze to make sure 1st dimension is not 1.
-                else:
-                    err_str = "".join(["There is more than 1 image in the file.\n",
-                                     "If the image is a 'hdf5' type then use the hdf5 input functions.\n",
-                                     "Multiimage Tiffs are not currently implemented in continuous peak fit."])
-                    raise ValueError(err_str)
-            except:
-                err_str = "".join(["The image type is not recognsed by Fabio.\n",
-                                "It might be that the image type is a 'hdf5' or 'nxs' file type.\n",
-                                "In which case call the images using the hdf5 functions."])
-                raise ValueError(err_str)
+            im_all = fabio.open(image_name)
+            im = im_all.data
+
         # Convert the input data from integer to float because the lmfit model values
         # inherits integer properties from the data.
         #

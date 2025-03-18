@@ -167,8 +167,8 @@ class ESRFlvpDetector():
         # self.dspace = None
         self.x = None
         self.y = None
-        self.azm_start =    0
-        self.azm_end   =  360
+        self.azm_start = -180
+        self.azm_end   =  180
         self.tth_start = None
         self.tth_end   = None
         # Moving image plate that be integrated into single image: so contonuous data.
@@ -189,7 +189,7 @@ class ESRFlvpDetector():
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
-        
+
     def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
         """
         Makes an independent copy of a ESRFlvpDetector Instance. 
@@ -296,13 +296,6 @@ class ESRFlvpDetector():
             Orientation of the detector from the file name.
         """
         pos = float(frame.split(".")[-2].split("_")[-1])+0.5
-        
-        def get_pos(i):        
-            if (i)>180:
-                return np.deg2rad((float(imgs_[i].split(".")[-2].split("_")[-1])+0.5)-360)
-            else:            
-                return np.deg2rad(float(imgs_[i].split(".")[-2].split("_")[-1])+0.5)
-
         if pos>self.azm_end:
             pos=pos-360
         elif pos <= self.azm_start:
@@ -471,6 +464,8 @@ class ESRFlvpDetector():
             ax[-1].set_xlabel("Rot3 (°)")
             plt.tight_layout()
             
+            
+
     # @staticmethod
     def import_image(self, image_name=None, settings=None, mask=None, dtype=None, debug=False):
         """
@@ -520,8 +515,7 @@ class ESRFlvpDetector():
         
         # if mask is False and ma.is_masked(self.intensity) == True:
         #     mask =self.intensity.mask
-        import time
-        st = time.time()
+            
         if self.intensity is None:
             self.intensity = ma.array([np.flipud(fabio.open(f).data) for f in frames], dtype=dtype)
             self.intensity = ma.array(self.intensity, mask=self.get_mask(mask, self.intensity))
@@ -535,7 +529,7 @@ class ESRFlvpDetector():
         # ESRF and LVP beamline multidetector objects. 
         # I (SAH) do not believe this is the same feature as the Dioptas and Fit2D 
         # adjustment required in the Dioptas class. 
-        print("image import took", time.time()-st, "seconds")
+        
         if max(angles) - min(angles) >= 45:
             self.azm_blocks = 45
         
@@ -650,8 +644,6 @@ class ESRFlvpDetector():
         # set default for data type. 
         # Fabio defaults to float64 if nothing is set.
         # Float32 or float16 take up much less memoary than flost64.
-        # N.B. Float 16 does not have sufficient precision to be used.
-        # Float32 is the minimum
         array_dtype = np.float32
 
         #get ordered list of images
@@ -672,7 +664,6 @@ class ESRFlvpDetector():
         #create emmpty arrays
         self.tth = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
         self.azm = ma.zeros([len(frames), self.detector.ais[0].detector.shape[0], self.detector.ais[0].detector.shape[1]], dtype=array_dtype)
-        
         if make_zyx:
             # the x, y, z, arrays are not usually needed. 
             # but if created can fill the memory.
@@ -727,7 +718,9 @@ class ESRFlvpDetector():
                
         self.azm_start = np.floor(self.azm.min() / self.azm_blocks) * self.azm_blocks
         self.azm_end = np.ceil(self.azm.max() / self.azm_blocks) * self.azm_blocks
-          
+        
+        
+  
         
     def get_requirements(self, parameter_settings=None):
         """

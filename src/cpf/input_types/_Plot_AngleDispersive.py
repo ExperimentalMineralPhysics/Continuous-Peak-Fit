@@ -9,7 +9,7 @@ from matplotlib import gridspec, cm, colors, tri
 from cpf.histograms import histogram2d
 from cpf.XRD_FitPattern import logger
 import cpf.logger_functions as lg
-from cpf.histograms import histogram1d
+
 
 class _Plot_AngleDispersive():
     """
@@ -55,61 +55,6 @@ class _Plot_AngleDispersive():
             disp_ticks = list(range(int(disp_lims[0]), int(disp_lims[1] + 1), int(block)))
             
         return disp_ticks
-    
-    
-    
-    def plot_integrated(self, fig_plot=None):
-        """
-        Plot all the information needed to mask the data well.
-        :param fig:
-        :return:
-        """
-    
-        # x_plots = 1
-        # y_plots = 1
-        # spec = gridspec.GridSpec(
-        #     ncols=x_plots,
-        #     nrows=y_plots,
-        #     wspace=0.5,
-        #     hspace=0.5,
-        # )
-    
-    
-        if fig_plot == None:
-            #make a figure
-            fig_plot, axis_plot = plt.subplots()
-    
-        p, i, a = histogram1d(self.tth, self.intensity, self.azm)
-
-        return p, i, a
-
-        axis_plot.plot(p,i)
-        
-        
-        
-        # def histogram1d(tth,
-        #               intensity,
-        #               azi=None,
-        #               dspace = None,
-        #               histogram_type = "data",
-        #               bin_n = None,
-        #               debug=False
-        #         ):--> 
-        # return np.array(position), np.array(intens), np.array(azm)
-            
-            
-            
-        # self.plot_calibrated(
-        #     fig_plot=fig_plot,
-        #     axis_plot=ax1,
-        #     show="unmasked_intensity",
-        #     x_axis="default",
-        #     limits=[0, 100],
-        # )
-        axis_plot.xlabel("tth")
-        axis_plot.ylabel("Intensity")
-        axis_plot.set_title("Integrated Data")
-
     
     
     

@@ -390,8 +390,8 @@ class settings:
             files_to_check = [files_to_check]
 
         for j in range(len(files_to_check)):
-            q = glob.iglob(files_to_check[j])
-            if not q:#glob.glob(files_to_check[j]):
+            # logger.info(" ".join(map(str, [(files_to_check[j])])))
+            if not glob.glob(files_to_check[j]):
                 # use glob.glob for a file search to account for compund detectors of ESRFlvp detectors
                 raise ImportError(
                     "The file " + files_to_check[j] + " is not found but is required."
@@ -1003,7 +1003,7 @@ class settings:
             json.dump(
                 "This is a temporary file with no content",
                 TempFile,
-                sort_get_image_key_strings=False,
+                sort_keys=False,
                 indent=2,
                 default=json_numpy_serializer,
             )

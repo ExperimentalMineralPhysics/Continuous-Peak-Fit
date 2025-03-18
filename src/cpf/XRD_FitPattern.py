@@ -523,7 +523,8 @@ def write_output(
     use_bounds=False,
     differential_only=False,
     debug=False,
-    report=False
+    report=False,
+    **kwargs
 ):
     """
     :param debug:
@@ -556,6 +557,7 @@ def write_output(
                 setting_file=setting_file,
                 differential_only=differential_only,
                 debug=debug,
+                **kwargs
             )
 
 
@@ -672,7 +674,18 @@ def execute(
             plt.title(title_file_names(settings_for_fit=settings_for_fit, num=j))
             plt.show()
             if mode == "view":
-                sys.exit("Plotted data.")
+                
+                filename = make_outfile_name(
+                    settings_for_fit.image_list[j],
+                    directory=settings_for_fit.output_directory,
+                    extension=".png",
+                    overwrite=True,
+                )
+
+                fig.savefig(filename)
+                
+                # sys.exit("Plotted data.")
+                print("Plotted data.")
             else:
                 plt.close()
 
@@ -791,6 +804,31 @@ def execute(
                 # if debug:
                 plt.show()
                 # plt.close()
+                
+            elif mode == "view":
+                fig = plt.figure()
+                ax = fig.add_subplot(1, 1, 1)
+                ax_o1 = plt.subplot(111)
+                sub_data.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity", rastered="scatter")
+                plt.suptitle(peak_string(settings_for_fit.subfit_orders) + "; calibrated")
+
+                filename = make_outfile_name(
+                    settings_for_fit.image_list[j],
+                    directory=settings_for_fit.output_directory,
+                    additional_text="range",
+                    orders=settings_for_fit.subfit_orders,
+                    extension=".png",
+                    overwrite=True,
+                )
+
+                fig.savefig(filename)
+
+                plt.show()
+                if mode == "view":
+                    print("Plotted data.")
+                else:
+                    plt.close()
+
 
             elif mode == "set-guess":
 

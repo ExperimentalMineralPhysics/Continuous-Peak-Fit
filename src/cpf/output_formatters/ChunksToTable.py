@@ -2,8 +2,8 @@ __all__ = ["Requirements", "WriteOutput"]
 
 import os
 import cpf.IO_functions as IO
-from cpf.XRD_FitPattern import logger
-from cpf.Cascade import read_saved_chunks
+#from cpf.XRD_FitPattern import logger
+#from cpf.Cascade import read_saved_chunks
 import pandas as pd
 import glob
 
@@ -29,7 +29,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
 
     if setting_class is None and setting_file is None:
         
-        file_list = glob.glob("./results/*chunks.json")
+        file_list = glob.glob("./*chunks.json")
         file_number = len(file_list)
         
         raise ValueError(
@@ -61,7 +61,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
     #make filename for output
     base = setting_class.datafile_basename
     if base is None:
-        logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
+        # logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
     out_file = IO.make_outfile_name(
         base, directory=setting_class.output_directory, extension=".dat", overwrite=True, additional_text="chunkfits",

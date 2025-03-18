@@ -26,7 +26,7 @@ def Requirements():
 
 
 # def WriteOutput(FitSettings, parms_dict, **kwargs):
-def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
+def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwargs):
     # writes some of the fitted coeficients to a table.
     # More general version of WriteDifferentialStrain.
     # Focused on d-spacing coefficents but generalisible to all coefficients.
@@ -49,8 +49,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     elif "coefs_vals_write" in setting_class.output_settings:
         coefs_vals_write = setting_class.output_settings["coefs_vals_write"]
     else:
-        coefs_vals_write = "all"    
-
+        coefs_vals_write = "all"
 
     #make filename for output
     base = setting_class.datafile_basename
@@ -65,20 +64,20 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     num_subpatterns = len(setting_class.fit_orders)
     peak_properties = pf.peak_components(full=True)
     if coefs_vals_write == "all":
-        coefs_vals_write = peak_properties
+        coefs_vals_write = peak_properties[1]
     max_coef = {}
-    for w in range(len(coefs_vals_write[1])):
-        ind = coefs_vals_write[1][w]
+    for w in range(len(coefs_vals_write)):
+        ind = coefs_vals_write[w]
         if ind != "background":
-            max_coef[coefs_vals_write[1][w]] = 0
+            max_coef[coefs_vals_write[w]] = 0
         else:
-            max_coef[coefs_vals_write[1][w]] = [0]
+            max_coef[coefs_vals_write[w]] = [0]
     max_coefs = 0
     for y in range(num_subpatterns):
         for x in range(len(setting_class.fit_orders[y]["peak"])):
 
-            for w in range(len(coefs_vals_write[1])):
-                ind = coefs_vals_write[1][w]
+            for w in range(len(coefs_vals_write)):
+                ind = coefs_vals_write[w]
                 if ind != "background":
                     max_coef[ind] = np.max(
                         [max_coef[ind], np.max(2*setting_class.fit_orders[y]["peak"][x][ind])+1]
@@ -104,15 +103,17 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     text_file.write("# \n")
 
     # write header
+    headers = []
     col_width = 17
     dp = col_width - 7
-    text_file.write(("# {0:<" + str(col_width + 5) + "}").format("Data File" + ","))
+    text_file.write(("# {0:<" + str(col_width + 10) + "}").format("Data File" + ","))
     text_file.write(("{0:<" + str(col_width) + "}").format("Peak" + ","))
+    headers.append("Data File")
+    headers.append("Peak")
     
     #parmeter header list
-    
     for w in range(len(max_coef)):
-        ind = coefs_vals_write[1][w]
+        ind = coefs_vals_write[w]
         if ind != "background" and ind != "symmetry":
             for v in range(max_coef[ind]):
                 text_file.write(
@@ -121,10 +122,14 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                 text_file.write(
                     ("{0:>" + str(col_width) + "}").format(ind + "_" + str(v)+ " err,")
                 )
+                headers.append(ind + "_" + str(v))
+                headers.append(ind + "_" + str(v)+ "err")
         elif ind == "symmetry":
             text_file.write(
                 ("{0:>" + str(col_width) + "}").format(ind + ",")
             )
+            
+            headers.append(ind)
         else:
             for u in range(len(setting_class.fit_orders[y][ind])):
                 
@@ -135,6 +140,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                         text_file.write(
                             ("{0:>" + str(col_width) + "}").format(ind + str(u) + "_" + str(v) + " err,")
                         )
+                        headers.append(ind + str(u) + "_" + str(v))
+                        headers.append(ind + str(u) + "_" + str(v)+ "err")
 
     text_file.write("\n")
 
@@ -209,8 +216,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
             
             
         
-            for w in range(len(coefs_vals_write[1])):
-                ind = coefs_vals_write[1][w]
+            for w in range(len(coefs_vals_write)):
+                ind = coefs_vals_write[w]
                 ind_err = ind+"_err"
                 
                 if ind != "background" and ind != "symmetry":   

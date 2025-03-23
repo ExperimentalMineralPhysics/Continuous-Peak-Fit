@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from moviepy.editor import VideoClip
-from moviepy.video.io.bindings import mplfig_to_npimage
 
 from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
@@ -22,6 +21,32 @@ from cpf.logging import CPFLogger
 from cpf.XRD_FitSubpattern import plot_FitAndModel
 
 logger = CPFLogger("cpf.output_formatters.WriteFitMovie")
+
+
+def mplfig_to_npimage(fig):
+    """
+    Converts a matplotlib figure to a RGB frame after updating the canvas.
+
+    This is our own implementation of a function that was removed from MoviePy >=2,
+    which we only make use of once in WriteOutput. This should fix the incompatibility
+    with MoviePy >=2.
+
+    Credits: https://github.com/Zulko/moviepy/issues/2297#issuecomment-2609419770
+    """
+
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+
+    canvas = FigureCanvasAgg(fig)
+    canvas.draw()  # update/draw the elements
+
+    # get the width and the height to resize the matrix
+    l, b, w, h = canvas.figure.bbox.bounds
+    w, h = int(w), int(h)
+
+    #  exports the canvas to a memory view and then to a numpy nd.array
+    mem_view = canvas.buffer_rgba()  # Update to Matplotlib 3.8
+    image = np.asarray(mem_view)
+    return image[:, :, :3]  # Return only RGB, not alpha.
 
 
 def Requirements():

@@ -34,7 +34,7 @@ dependencies = [
     "imaged11",
     "lmfit",
     "matplotlib",
-    "moviepy",
+    "moviepy>=2",
     "numpy<2",       # Locked to <2 to give dependencies time to catch up
     "opencv-python",
     "pandas",

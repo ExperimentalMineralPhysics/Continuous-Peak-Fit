@@ -7,6 +7,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 from moviepy.editor import VideoClip
 
 from cpf.BrightSpots import SpotProcess
@@ -33,8 +34,6 @@ def mplfig_to_npimage(fig):
 
     Credits: https://github.com/Zulko/moviepy/issues/2297#issuecomment-2609419770
     """
-
-    from matplotlib.backends.backend_agg import FigureCanvasAgg
 
     canvas = FigureCanvasAgg(fig)
     canvas.draw()  # update/draw the elements

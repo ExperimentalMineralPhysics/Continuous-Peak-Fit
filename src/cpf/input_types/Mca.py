@@ -28,7 +28,7 @@ import math
 
 import numpy as Numeric
 
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.input_types.Mca")
 

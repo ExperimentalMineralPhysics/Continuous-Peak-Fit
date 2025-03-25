@@ -8,10 +8,15 @@ import os
 import numpy as np
 from lmfit.model import load_modelresult
 
-import cpf.IO_functions as IO
 import cpf.lmfit_model as lmm
 import cpf.output_formatters.convert_fit_to_crystallographic as cfc
-from cpf.logger_functions import CPFLogger
+from cpf.IO_functions import (
+    lmfit_fix_int_data_type,
+    make_outfile_name,
+    peak_string,
+    replace_null_terms,
+)
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.output_formatters.WriteDifferentialStrain")
 
@@ -85,7 +90,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=True, **kwargs):
     if base is None:
         logger.info(" ".join(("No base filename, using input filename instead.")))
         base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
-    out_file = IO.make_outfile_name(
+    out_file = make_outfile_name(
         base,
         directory=settings_class.output_directory,
         extension=".dat",
@@ -160,7 +165,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=True, **kwargs):
     for z in range(settings_class.image_number):
         settings_class.set_subpattern(z, 0)
 
-        filename = IO.make_outfile_name(
+        filename = make_outfile_name(
             settings_class.subfit_filename,
             directory=settings_class.output_directory,
             extension=".json",
@@ -172,14 +177,14 @@ def WriteOutput(settings_class=None, settings_file=None, debug=True, **kwargs):
             with open(filename) as json_data:
                 fit = json.load(json_data)
 
-            fit = IO.replace_null_terms(fit)
+            fit = replace_null_terms(fit)
 
             all_fits.append(fit)
 
             # calculate the required parameters.
             num_subpatterns = len(fit)
             for y in range(num_subpatterns):
-                out_name = IO.make_outfile_name(
+                out_name = make_outfile_name(
                     settings_class.subfit_filename,
                     directory="",
                     overwrite=True,
@@ -187,11 +192,11 @@ def WriteOutput(settings_class=None, settings_file=None, debug=True, **kwargs):
                 # logger.info(" ".join(('  Incorporating ' + subfilename)))
                 logger.info(
                     " ".join(
-                        ["  Incorporating: %s,%s" % (out_name, IO.peak_string(fit[y]))]
+                        ["  Incorporating: %s,%s" % (out_name, peak_string(fit[y]))]
                     )
                 )
                 # try reading an lmfit object file.
-                savfilename = IO.make_outfile_name(
+                savfilename = make_outfile_name(
                     settings_class.subfit_filename,
                     directory=settings_class.output_directory,
                     orders=fit[y],
@@ -204,7 +209,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=True, **kwargs):
                             savfilename, funcdefs={"peaks_model": lmm.peaks_model}
                         )
                     except:
-                        IO.lmfit_fix_int_data_type(savfilename)
+                        lmfit_fix_int_data_type(savfilename)
                         try:
                             gmodel = load_modelresult(
                                 savfilename, funcdefs={"peaks_model": lmm.peaks_model}
@@ -251,7 +256,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=True, **kwargs):
                         )
 
                     # peak
-                    out_peak = IO.peak_string(fit[y], peak=[x])
+                    out_peak = peak_string(fit[y], peak=[x])
                     width_hkl = np.max((width_hkl, len(out_peak)))
 
                     # %%% get converted values.

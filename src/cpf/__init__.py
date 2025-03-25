@@ -33,7 +33,7 @@ from . import (
     h5_functions,
     input_types,
     lmfit_model,
-    logger_functions,
+    logging,
     output_formatters,
     peak_functions,
     series_constraints,

@@ -9,7 +9,7 @@ This file contains a list of the default energy dispersive detectors that contin
 
 New detectors can either be added to this list or added via a csv file. For details see ...
 """
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.input_types.med_detectors")
 

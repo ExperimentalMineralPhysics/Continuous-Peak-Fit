@@ -52,7 +52,7 @@ import numpy as np
 import scipy.ndimage as ndimage
 import scipy.signal as signal
 
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.Cosmics")
 

@@ -2,7 +2,7 @@ __all__ = ["fourier_to_crystallographic"]
 
 import numpy as np
 
-import cpf.IO_functions as IO
+from cpf.IO_functions import replace_null_terms
 
 
 def fourier_to_crystallographic(
@@ -84,7 +84,7 @@ def fourier_to_crystallographic(
         raise ValueError("The coefficients need to be a list of dictionaries.")
 
     # catch 'null' terms in fits
-    coefficients = IO.replace_null_terms(coefficients)
+    coefficients = replace_null_terms(coefficients)
 
     # %% differential coefficients, errors and covarience
 

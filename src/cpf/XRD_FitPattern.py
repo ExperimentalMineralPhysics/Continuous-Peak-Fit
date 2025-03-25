@@ -6,18 +6,17 @@ __all__ = ["execute", "write_output"]
 
 import json
 import logging
-import os
 import sys
 from importlib import import_module
+from os import cpu_count
 from pathlib import Path
 from types import ModuleType
-from typing import Optional, Union
+from typing import Literal, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pathos.pools as mp
 import proglog
-from pathos.multiprocessing import cpu_count
+from pathos.pools import ParallelPool
 
 from cpf import output_formatters
 from cpf.BrightSpots import SpotProcess
@@ -29,7 +28,7 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 from cpf.settings import Settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 
@@ -40,6 +39,44 @@ np.set_printoptions(threshold=sys.maxsize)
 
 
 logger = CPFLogger("cpf.XRD_FitPattern")
+
+
+def initialise_logger(
+    settings_file: Optional[Path],
+    report: Literal["DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"]
+    | bool = False,
+):
+    """
+    Helper function to set up the CPFLogger instance with the desired stream and file handlers
+    """
+    # Start the logger with the desired outputs
+    logger.handlers.clear()
+    format = "%(asctime)s [%(levelname)s] %(message)s"
+    formatter = logging.Formatter(format)
+    level = report.upper() if isinstance(report, (str,)) else "INFO"
+
+    # Create a log file if a level name or True is provided
+    if isinstance(report, (str,)) or report is True:
+        # Fail gracefully if no settings file was provided
+        if settings_file is None:
+            raise ValueError(
+                "Settings file needs to be specified in order to create a log file."
+            )
+
+        # Set the logging level and log file name
+        log_name = make_outfile_name(settings_file, extension=".log", overwrite=True)
+
+        # Create and add the file handler
+        fh = logging.FileHandler(log_name, mode="a", encoding="utf-8")
+        fh.setFormatter(formatter)
+        fh.setLevel(level)
+        logger.addHandler(fh)
+
+    # Create the stream handler
+    sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    sh.setLevel(level)
+    logger.addHandler(sh)
 
 
 def register_default_formats() -> dict[str, ModuleType]:
@@ -60,42 +97,8 @@ def register_default_formats() -> dict[str, ModuleType]:
 output_methods_modules = register_default_formats()
 
 
-def initialise_logger(
-    settings_file: Optional[str | Path] = None,
-    report: str | bool = False,
-):
-    # Start the logger with the desired outputs
-    logger.handlers.clear()
-    format = "%(asctime)s [%(levelname)s] %(message)s"
-    formatter = logging.Formatter(format)
-    if isinstance(report, (str)):
-        # Fail gracefully
-        if settings_file is None:
-            raise ValueError(
-                "Settings file needs to be specified in order to create a log file."
-            )
-
-        # Set the logging level and log file name
-        level = report.upper()
-        log_name = make_outfile_name(settings_file, extension=".log", overwrite=True)
-
-        # Create and add the file handler
-        fh = logging.FileHandler(log_name, mode="a", encoding="utf-8")
-        fh.setFormatter(formatter)
-        fh.setLevel(level)
-        logger.addHandler(fh)
-    else:
-        level = "INFO"
-
-    # Create the stream handler
-    sh = logging.StreamHandler()
-    sh.setFormatter(formatter)
-    sh.setLevel(level)
-    logger.addHandler(sh)
-
-
 def initiate(
-    settings_file: Optional[Union[str, Path]] = None,
+    settings_file: Optional[str | Path] = None,
     inputs=None,
     out_type=None,
     report: str | bool = False,
@@ -194,7 +197,7 @@ def view(
 
 
 def set_range(
-    settings_file: Optional[Union[str, Path]] = None,
+    settings_file: Optional[str | Path] = None,
     settings_class: Optional[Settings] = None,
     inputs=None,
     debug: bool = False,
@@ -248,7 +251,7 @@ def set_range(
 
 
 def initial_peak_position(
-    settings_file: Optional[Union[str, Path]] = None,
+    settings_file: Optional[str | Path] = None,
     settings_class: Optional[Settings] = None,
     inputs=None,
     debug: bool = False,
@@ -423,7 +426,7 @@ class PointBuilder:
 
 
 def order_search(
-    settings_file: Optional[Union[str, Path]] = None,
+    settings_file: Optional[str | Path] = None,
     settings_class: Optional[Settings] = None,
     inputs=None,
     debug: bool = False,
@@ -465,7 +468,7 @@ def order_search(
     )
 
     # force it to write the required output type.
-    settings_for_fit.set_output_types(out_type_list="DifferentialStrain")
+    settings_for_fit.set_output_types(out_type_list=["DifferentialStrain"])
 
     # search over the first file only
     settings_for_fit.set_data_files(keep=0)
@@ -513,7 +516,7 @@ def order_search(
 
 
 def write_output(
-    settings_file: Optional[Union[str, Path]] = None,
+    settings_file: Optional[str | Path] = None,
     settings_class: Optional[Settings] = None,
     # fit_settings=None,
     # fit_parameters=None,
@@ -586,7 +589,7 @@ def write_output(
 
 
 def execute(
-    settings_file: Optional[Union[str, Path]] = None,
+    settings_file: Optional[Path] = None,
     settings_class=None,
     # fit_settings=None,
     # fit_parameters=None,
@@ -619,6 +622,7 @@ def execute(
     :return:
     """
 
+    # Set up the logger with the desired format and handlers
     initialise_logger(settings_file=settings_file, report=report)
 
     if settings_class is None:
@@ -638,7 +642,6 @@ def execute(
     if settings_for_fit.calibration_data:
         data_to_fill = Path(settings_for_fit.calibration_data).resolve()
     else:
-        # data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
         data_to_fill = settings_for_fit.image_list[0]
 
     new_data.fill_data(
@@ -665,13 +668,11 @@ def execute(
 
     # if parallel processing start the pool
     if parallel is True:
-        # p = mp.Pool(processes=mp.cpu_count())
-        p = mp.ParallelPool(nodes=cpu_count())
-        # p = mp.Pool()
+        pool = ParallelPool(nodes=cpu_count())
 
         # Since we may have already closed the pool, try to restart it
         try:
-            p.restart()
+            pool.restart()
         except AssertionError:
             pass
 
@@ -713,7 +714,6 @@ def execute(
             ax = fig.add_subplot(1, 1, 1)
             ax_o1 = plt.subplot(111)
             new_data.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity")
-            # plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
             plt.title(title_file_names(settings_for_fit=settings_for_fit, num=j))
             plt.show()
             if mode == "view":
@@ -723,7 +723,7 @@ def execute(
 
         # Get previous fit (if it exists and is required)
         if (
-            os.path.isfile(temporary_data_file)
+            Path(temporary_data_file).is_file()
             and settings_for_fit.fit_propagate is True
             and mode == "fit"
         ):
@@ -750,10 +750,7 @@ def execute(
                     del previous_fit
 
         # Switch to save the first fit in each sequence.
-        if j == 0 or save_all is True:
-            save_figs = 1
-        else:
-            save_figs = 0
+        save_figs = True if (j == 0 or save_all is True) else False
 
         # Pass each sub-pattern to Fit_Subpattern for fitting in turn.
         fitted_param = []
@@ -941,7 +938,7 @@ def execute(
         # write output files
         if mode == "fit" or mode == "search":
             if parallel is True:
-                tmp = p.map(parallel_processing, parallel_pile)
+                tmp = pool.map(parallel_processing, parallel_pile)
                 for i in range(len(settings_for_fit.fit_orders)):
                     fitted_param.append(tmp[i][0])
                     lmfit_models.append(tmp[i][1])
@@ -988,7 +985,7 @@ def execute(
         )
 
     if parallel is True:
-        p.clear()
+        pool.clear()
 
 
 def parallel_processing(p):
@@ -998,8 +995,8 @@ def parallel_processing(p):
 
 if __name__ == "__main__":
     # Load settings fit settings file.
-    sys.path.append(os.getcwd())
-    settings_file = sys.argv[1]
+    sys.path.append(str(Path().cwd()))
+    settings_file = Path(sys.argv[1])
     logger.info(" ".join(map(str, [(settings_file)])))
     # Safely exit the program
     for handler in logging.getLogger().handlers:

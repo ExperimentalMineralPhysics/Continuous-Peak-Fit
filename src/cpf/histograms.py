@@ -9,7 +9,7 @@ import numpy as np
 import numpy.ma as ma
 import pyFAI.engines.histogram_engine as he
 
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.histograms")
 

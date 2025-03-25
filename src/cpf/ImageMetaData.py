@@ -5,7 +5,7 @@ import sys
 from PIL import Image
 from PIL.ExifTags import TAGS
 
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.ImageMetaData")
 

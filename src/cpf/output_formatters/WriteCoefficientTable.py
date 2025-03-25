@@ -7,10 +7,9 @@ from itertools import product
 
 import numpy as np
 
-# import cpf.XRD_FitPattern as XRD_FP
-import cpf.IO_functions as IO
 import cpf.peak_functions as pf
-from cpf.logger_functions import CPFLogger
+from cpf.IO_functions import make_outfile_name
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.output_formatters.WriteCoefficientTable")
 
@@ -61,7 +60,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
             " ".join(map(str, [("No base filename, using input filename instead.")]))
         )
         base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
-    out_file = IO.make_outfile_name(
+    out_file = make_outfile_name(
         base,
         directory=settings_class.output_directory,
         extension=".dat",
@@ -157,7 +156,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
     for z in range(settings_class.image_number):
         settings_class.set_subpattern(z, 0)
 
-        filename = IO.make_outfile_name(
+        filename = make_outfile_name(
             settings_class.subfit_filename,  # diff_files[z],
             directory=settings_class.output_directory,  # directory=FitSettings.Output_directory,
             extension=".json",
@@ -190,7 +189,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
         data_to_write = fits[lists[z, 0]][lists[z, 1]]
 
         if len(data_to_write["peak"]) > lists[z, 2]:
-            out_name = IO.make_outfile_name(
+            out_name = make_outfile_name(
                 settings_class.subfit_filename,
                 directory="",
                 extension=".json",

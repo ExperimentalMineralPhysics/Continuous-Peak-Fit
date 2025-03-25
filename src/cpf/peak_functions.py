@@ -18,7 +18,7 @@ __all__ = [
 
 import numpy as np
 
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.peak_functions")
 

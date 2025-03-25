@@ -9,9 +9,9 @@ import hdf5plugin  # have to import it to read the files. not sure why
 import matplotlib.pyplot as plt
 import numpy as np
 
-import cpf.IO_functions as IO
 import cpf.XRD_FitPattern as fp
-from cpf.logger_functions import CPFLogger
+from cpf.IO_functions import licit_filename, make_outfile_name, title_file_names
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.h5_functions")
 
@@ -464,7 +464,7 @@ def get_image_key_strings(
         if len(key_str) != 0:
             lbl_str = key_str + sep1 + lbl_str
 
-        lbl_str = IO.licit_filename(lbl_str)
+        lbl_str = licit_filename(lbl_str)
 
         out.append(lbl_str)
 
@@ -589,7 +589,7 @@ def plot_images(
         plt.imshow(np.log10(im_data))
         # plt.imshow(np.log10(im_data[0,:,:]))
         # plt.title(IO.make_outfile_name(os.path.split(settings_for_fit.image_list[n][0])[1],additional_text=settings_for_fit.image_list[n][1][2]))
-        plt.title(IO.title_file_names(settings_for_fit=settings_for_fit, num=i))
+        plt.title(title_file_names(settings_for_fit=settings_for_fit, num=i))
         plt.show()
 
 
@@ -636,7 +636,7 @@ def save_images(
         n = image_num[i]
         im_data = get_images(settings_class=settings_for_fit, image_num=n)
 
-        fnam = IO.make_outfile_name(
+        fnam = make_outfile_name(
             settings_for_fit.image_list[n][0],
             additional_text=settings_for_fit.image_list[n][1][2],
             directory=settings_for_fit.output_directory,

@@ -6,8 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 
-import cpf.logger_functions as lg
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.input_types._AngelDispersive_common")
 

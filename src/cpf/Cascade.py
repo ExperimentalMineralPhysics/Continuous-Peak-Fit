@@ -14,8 +14,12 @@ It needs to do a few things.
     b. max
     c. mean of the 90th+ percentiles.
 
-    To be consistent with the philosophy of the code, the bins for the aximuths should be determined by a combination of width and the number of data contained. By keeping the number of data constant we will have more points at large two theta than at small two theta.
-    - this will need a switch in the input file somewhere. (Azibins needs another call e.g. AziNum?)
+    To be consistent with the philosophy of the code, the bins for the aximuths should
+    be determined by a combination of width and the number of data contained. By
+    keeping the number of data constant we will have more points at large two theta
+    than at small two theta.
+    - this will need a switch in the input file somewhere. (Azibins needs another call
+      e.g. AziNum?)
 
 2. Plot the outputs as a cascade plot.
 
@@ -36,22 +40,17 @@ __all__ = ["initiate", "set_range", "execute"]
 
 import json
 import logging
-import os.path
+from os import cpu_count
 from pathlib import Path
 from typing import Literal, Optional
 
 import matplotlib.colors as colours
 import matplotlib.pyplot as plt
 import numpy as np
-import pathos.pools as mp
 import proglog
-from pathos.multiprocessing import cpu_count
-
-# import plotly.graph_objects as go
-# import pandas as pd
+from pathos.pools import ParallelPool
 from scipy.signal import find_peaks
 
-import cpf.IO_functions as IO
 import cpf.XRD_FitPattern as XRD_FitPattern
 from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
@@ -62,29 +61,36 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
+from cpf.settings import Settings
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 
 logger = CPFLogger("cpf.Cascade")
 
 
 def initialise_logger(
-    settings_file: Optional[str | Path] = None,
-    report: str | bool = False,
+    settings_file: Optional[Path],
+    report: Literal["DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"]
+    | bool = False,
 ):
+    """
+    Helper function to set up the CPFLogger instance with the desired stream and file handlers
+    """
     # Start the logger with the desired outputs
     logger.handlers.clear()
     format = "%(asctime)s [%(levelname)s] %(message)s"
     formatter = logging.Formatter(format)
-    if isinstance(report, (str)):
-        # Fail gracefully
+    level = report.upper() if isinstance(report, (str,)) else "INFO"
+
+    # Create a log file if a level name or True is provided
+    if isinstance(report, (str,)) or report is True:
+        # Fail gracefully if no settings file was provided
         if settings_file is None:
             raise ValueError(
                 "Settings file needs to be specified in order to create a log file."
             )
 
         # Set the logging level and log file name
-        level = report.upper()
         log_name = make_outfile_name(settings_file, extension=".log", overwrite=True)
 
         # Create and add the file handler
@@ -92,8 +98,6 @@ def initialise_logger(
         fh.setFormatter(formatter)
         fh.setLevel(level)
         logger.addHandler(fh)
-    else:
-        level = "INFO"
 
     # Create the stream handler
     sh = logging.StreamHandler()
@@ -141,8 +145,8 @@ def set_range(*args, **kwargs):
 
 
 def execute(
-    settings_file=None,
-    settings_class=None,
+    settings_file: Optional[Path] = None,
+    settings_class: Optional[Settings] = None,
     inputs=None,
     debug: bool = False,
     save_all: bool = False,
@@ -186,11 +190,13 @@ def execute(
         overwrite=True,
     )
 
+    data_to_fill: Path
     if settings_for_fit.calibration_data:
-        data_to_fill = os.path.abspath(settings_for_fit.calibration_data)
+        data_to_fill = settings_for_fit.calibration_data.resolve()
     else:
-        # data_to_fill = os.path.abspath(settings_for_fit.datafile_list[0])
         data_to_fill = settings_for_fit.image_list[0]
+        if not isinstance(data_to_fill, Path):
+            data_to_fill = Path(data_to_fill)
     new_data.fill_data(
         data_to_fill,
         settings=settings_for_fit,
@@ -212,13 +218,11 @@ def execute(
 
     # if parallel processing start the pool
     if parallel is True:
-        # p = mp.Pool(processes=mp.cpu_count())
-        p = mp.ParallelPool(nodes=cpu_count())
-        # p = mp.Pool()
+        pool = ParallelPool(nodes=cpu_count())
 
         # Since we may have already closed the pool, try to restart it
         try:
-            p.restart()
+            pool.restart()
         except AssertionError:
             pass
 
@@ -268,7 +272,7 @@ def execute(
 
         # Get previous fit (if it exists and is required)
         if (
-            os.path.isfile(temporary_data_file)
+            Path(temporary_data_file).is_file()
             and settings_for_fit.fit_propagate is True
         ):  # and mode == "fit":
             # Read JSON data from file
@@ -289,10 +293,7 @@ def execute(
                 previous_fit = json.load(json_data)
 
         # Switch to save the first fit in each sequence.
-        if j == 0 or save_all is True:
-            save_figs = 1
-        else:
-            save_figs = 0
+        save_figs = True if (j == 0 or save_all is True) else False
 
         # Pass each sub-pattern to Fit_Subpattern for fitting in turn.
         all_fitted_chunks = []
@@ -309,7 +310,8 @@ def execute(
                 params = []
 
             # Track the position of the peak centroid
-            # FIXME: This is crude - the range doesn't change width. so can't account for massive change in stress.
+            # FIXME: This is crude - the range doesn't change width. so can't account
+            # for massive change in stress.
             # But does it need to?
             tth_range = settings_for_fit.subfit_orders["range"]
             if settings_for_fit.cascade_track is True and "previous_fit" in locals():
@@ -439,7 +441,7 @@ def execute(
         # write output files
         if mode != "set-range":
             if parallel is True:
-                tmp = p.map(parallel_processing, parallel_pile)
+                tmp = pool.map(parallel_processing, parallel_pile)
                 for i in range(len(settings_for_fit.fit_orders)):
                     # fitted_param.append(tmp[i][0])
                     # lmfit_models.append(tmp[i][1])
@@ -493,7 +495,7 @@ def execute(
                     )
 
     if parallel is True:
-        p.close()
+        pool.close()
 
     # plot the fits
     plot_cascade_chunks(
@@ -565,14 +567,14 @@ def read_saved_chunks(
     # for f in range(settings_class.image_number):
     for f in logger.iter_bar(iteration=range(settings_class.image_number)):
         settings_class.set_subpattern(f, 0)
-        filename = IO.make_outfile_name(
+        filename = make_outfile_name(
             settings_class.subfit_filename,
             directory=settings_class.output_directory,
             additional_text="chunks",
             extension=".json",
             overwrite=True,
         )
-        if os.path.isfile(filename):
+        if Path(filename).is_file():
             # Read JSON data from file
             with open(filename) as json_data:
                 fit = json.load(json_data)
@@ -637,7 +639,7 @@ def plot_cascade_chunks(
 
     # get file times
     modified_time_s = np.array(
-        [os.path.getmtime(file) for file in settings_class.image_list]
+        [Path(file).stat().st_mtime for file in settings_class.image_list]
     )
     modified_time_s -= float(modified_time_s[0])
 
@@ -690,7 +692,7 @@ def plot_cascade_chunks(
                 # loop over the number of peaks in each fit_orders
                 print(
                     "Making cascade plot for "
-                    + IO.peak_string(settings_class.fit_orders[j], peak=k)
+                    + peak_string(settings_class.fit_orders[j], peak=k)
                 )
                 if all_data[0][j]["h"][k]:
                     # if there is some data in the array plot it.
@@ -719,7 +721,7 @@ def plot_cascade_chunks(
                         if not all_data[0][j]["h"][l]:
                             pk = "all"
                     # make the figure title
-                    ttlstr = IO.peak_string(settings_class.fit_orders[j], peak=pk)
+                    ttlstr = peak_string(settings_class.fit_orders[j], peak=pk)
                     plt.title(ttlstr)
                     plt.xlabel(r"Azimuth (deg)")
                     plt.ylabel(y_label_str)
@@ -739,7 +741,7 @@ def plot_cascade_chunks(
                     cb.set_label(r"Intensity")
 
                     # Save the figure
-                    filename = IO.make_outfile_name(
+                    filename = make_outfile_name(
                         settings_class.datafile_basename,
                         directory=settings_class.output_directory,
                         additional_text="CascadePlot",
@@ -922,7 +924,7 @@ def peak_count(
                     if not all_data[0][j]["h"][l]:
                         pk = "all"
                 # make the figure title
-                ttlstr = IO.peak_string(settings_class.subfit_orders, peak=pk)
+                ttlstr = peak_string(settings_class.subfit_orders, peak=pk)
                 peak_labels.append(ttlstr)
 
     return all_peaks, all_properties, count, peak_labels
@@ -963,7 +965,7 @@ def plot_peak_count(
 
     # get file times
     modified_time_s = np.array(
-        [os.path.getmtime(file) for file in settings_class.image_list]
+        [Path(file).stat().st_mtime for file in settings_class.image_list]
     )
     modified_time_s -= float(modified_time_s[0])
 
@@ -1004,7 +1006,7 @@ def plot_peak_count(
     plt.legend()
 
     # Save the plot
-    filename = IO.make_outfile_name(
+    filename = make_outfile_name(
         "PeakCountTime",
         directory=settings_class.output_directory,
         additional_text="prominence" + str(prominence),
@@ -1075,9 +1077,9 @@ def execute2(
     new_data = settings_for_fit.data_class
 
     if settings_for_fit.calibration_data:
-        data_to_fill = os.path.abspath(settings_for_fit.calibration_data)
+        data_to_fill = settings_for_fit.calibration_data.resolve()
     else:
-        data_to_fill = os.path.abspath(settings_for_fit.image_list[0])
+        data_to_fill = settings_for_fit.image_list[0].resolve()
 
     new_data.fill_data(
         data_to_fill,
@@ -1126,7 +1128,7 @@ def execute2(
             ax = fig.add_subplot(1, 1, 1)
             ax_o1 = plt.subplot(111)
             new_data.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity")
-            plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
+            plt.title(settings_for_fit.datafile_list[j].stem)
             plt.show()
             plt.close()
 
@@ -1162,7 +1164,7 @@ def execute2(
         frame.data = frame.data.astype(np.float32)
         # corrections like dark/flat/normalise would be added here
         peaksearch(
-            os.path.basename(settings_for_fit.datafile_list[j]),
+            settings_for_fit.datafile_list[j].stem,
             frame,
             corrector,
             threshold,

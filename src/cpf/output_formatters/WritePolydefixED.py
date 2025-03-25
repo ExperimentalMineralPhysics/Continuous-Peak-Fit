@@ -8,11 +8,9 @@ import re
 
 import numpy as np
 
-import cpf.IO_functions as IO
-
-# import cpf.PeakFunctions as ff
 import cpf.series_functions as sf
-from cpf.logger_functions import CPFLogger
+from cpf.IO_functions import make_outfile_name, replace_null_terms
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.output_formatters.WritePolydefixED")
 
@@ -93,7 +91,7 @@ def WriteOutput(
     # out_file = IO.make_outfile_name(
     #     base, directory=FitSettings.Output_directory, extension=".exp", overwrite=True
     # )
-    out_file = IO.make_outfile_name(
+    out_file = make_outfile_name(
         base,
         directory=settings_class.output_directory,  # directory=FitSettings.Output_directory,
         extension=".exp",
@@ -181,7 +179,7 @@ def WriteOutput(
                 # filename = os.path.splitext(os.path.basename(diff_files[0]))[0]
                 # filename = filename+'.json'
 
-                filename = IO.make_outfile_name(
+                filename = make_outfile_name(
                     settings_class.datafile_list[0],
                     directory=settings_class.output_directory,
                     extension=".json",
@@ -405,7 +403,7 @@ def WriteOutput(
     for z in range(settings_class.datafile_number):
         settings_class.set_subpattern(z, 0)
 
-        filename = IO.make_outfile_name(
+        filename = make_outfile_name(
             settings_class.subfit_filename,
             directory=settings_class.output_directory,
             extension=".json",
@@ -459,14 +457,14 @@ def WriteOutput(
                 coef_type = sf.params_get_type(fit[x], "d", peak=y)
                 peak_d = sf.coefficient_expand(
                     np.array(az),
-                    IO.replace_null_terms(fit[x]["peak"][y]["d-space"]),
+                    replace_null_terms(fit[x]["peak"][y]["d-space"]),
                     coeff_type=coef_type,
                 )
                 # peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
                 coef_type = sf.params_get_type(fit[x], "h", peak=y)
                 peak_i = sf.coefficient_expand(
                     np.array(az_used) * sym,
-                    IO.replace_null_terms(fit[x]["peak"][y]["height"]),
+                    replace_null_terms(fit[x]["peak"][y]["height"]),
                     coeff_type=coef_type,
                 )
                 n = -1

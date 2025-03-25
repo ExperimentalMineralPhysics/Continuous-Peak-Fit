@@ -65,12 +65,11 @@ from matplotlib import image
 from PIL import Image
 
 import cpf.h5_functions as h5_functions
-import cpf.logger_functions as lg
 from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.input_types.XYFunctions")
 
@@ -364,7 +363,7 @@ class XYDetector:
         if self.calibration["x_dim"] != 0:
             im = im.T
 
-        if lg.make_logger_output(level="DEBUG"):
+        if logger.is_below_level(level="DEBUG"):
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
             ax.imshow(im)

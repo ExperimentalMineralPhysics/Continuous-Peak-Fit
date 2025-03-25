@@ -20,7 +20,7 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 from scipy.optimize import curve_fit
 
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.input_types.GSASIIFunctions")
 

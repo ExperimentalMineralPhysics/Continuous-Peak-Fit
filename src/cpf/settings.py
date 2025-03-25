@@ -7,24 +7,21 @@ __all__ = ["settings", "get_output_options", "detector_factory"]
 
 import importlib.util
 import json
-import os
 from copy import copy, deepcopy
-from glob import glob
 from pathlib import Path
-from typing import Optional
+from typing import Any, Literal, Optional
 
 import numpy as np
 
 import cpf.input_types as input_types
 import cpf.output_formatters as output_formatters
 from cpf.IO_functions import (
-    file_list,
     image_list,
     json_numpy_serializer,
 )
 
 # , get_output_options, detector_factory, register_default_formats
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 from cpf.series_functions import (
     coefficient_type_as_number,
     coefficient_type_as_string,
@@ -59,11 +56,11 @@ class Settings:
 
     def __init__(
         self,
-        settings_file: Optional[str | Path] = None,
+        settings_file: Optional[Path] = None,
         out_type=None,
         report: bool = False,
         debug: bool = False,
-        mode: str = "fit",
+        mode: Literal["fit"] = "fit",
     ):
         """
         Initialise the cpf settings class.
@@ -93,9 +90,9 @@ class Settings:
 
         """
 
-        self.datafile_list: Optional[list[str | Path]] = None
+        self.datafile_list: list[str | Path] = []
         self.datafile_number: int = 0
-        self.image_list: Optional[list[str | Path]] = None
+        self.image_list: list[str | Path] = []
         self.image_number: int = 0
         self.datafile_directory = Path(".")
 
@@ -104,22 +101,22 @@ class Settings:
         self.file_label: Optional[str] = None
 
         # calibration type: dioptas etc.
-        self.calibration_type = None
+        self.calibration_type: Literal["Dioptas", ""] = ""
         # file on which the calibration was done
-        self.calibration_data = None
+        self.calibration_data: Optional[Path] = None
         # mask file for data
-        self.calibration_mask = None
+        self.calibration_mask: Optional[Path] = None
         # file with the calibration in it.
-        self.calibration_parameters = None
+        self.calibration_parameters: Optional[Path] = None
         # FIXME: these are optional and should probalably be burried in an optional dictionary.
-        self.calibration_detector = None
+        self.calibration_detector: Literal["Pilatus1M", ""] = ""
         self.calibration_pixel_size = None
 
-        self.fit_bin_type = None
-        self.fit_per_bin = None
-        self.fit_number_bins = None
-        self.fit_orders = None
-        self.fit_bounds = {
+        self.fit_bin_type: Optional[int] = None
+        self.fit_per_bin: Optional[int] = None
+        self.fit_number_bins: Optional[int] = None
+        self.fit_orders: list[dict[str, Any]] = []
+        self.fit_bounds: dict[str, list[Any]] = {
             "background": ["0.95*min", "1.05*max"],
             "d-space": ["min", "max"],
             "height": [0, "1.05*max"],
@@ -129,20 +126,21 @@ class Settings:
         self.fit_min_data_intensity = 0
         self.fit_min_peak_intensity = "0.25*std"
 
-        self.fit_track = False
-        self.fit_propagate = True
+        self.fit_track: bool = False
+        self.fit_propagate: bool = True
 
-        self.cascade_bin_type = 0  # set default type - number data per bin
-        self.cascade_per_bin = 50  # set default value
-        self.cascade_number_bins = 900  # set default value
-        self.cascade_track = False
-        self.cascade_histogram_type = "data"
-        self.cascade_histogram_bins = None
+        self.cascade_bin_type: Optional[int] = (
+            0  # set default type - number data per bin
+        )
+        self.cascade_per_bin: Optional[int] = 50  # set default value
+        self.cascade_number_bins: Optional[int] = 900  # set default value
+        self.cascade_track: bool = False
+        self.cascade_histogram_type: Literal["data"] = "data"
+        self.cascade_histogram_bins: Optional[int] = None
 
         # output requirements
-        self.output_directory = "."
-        self.output_types: Optional[list[str]] = None
-        # output_settings is populated with additional requirements for each type (if any)
+        self.output_directory: Optional[Path] = Path(".")
+        self.output_types: list[str] = []
         self.output_settings: dict = {}
 
         # initiate the subpattern settings.
@@ -240,7 +238,7 @@ class Settings:
         """
 
         # store all the settings from file in a mocule class.
-        module_name, _ = os.path.splitext(os.path.basename(self.settings_file))
+        module_name = self.settings_file.stem
         spec = importlib.util.spec_from_file_location(module_name, self.settings_file)
         self.settings_from_file = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.settings_from_file)
@@ -270,9 +268,9 @@ class Settings:
 
         # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
         if "datafile_Basename" in dir(self.settings_from_file):
-            self.datafile_basename = self.settings_from_file.datafile_Basename
+            self.datafile_basename: str = self.settings_from_file.datafile_Basename
         if "datafile_Ending" in dir(self.settings_from_file):
-            self.datafile_ending = self.settings_from_file.datafile_Ending
+            self.datafile_ending: str = self.settings_from_file.datafile_Ending
 
         # add output directory if listed.
         # change if listed among the inputs
@@ -286,15 +284,21 @@ class Settings:
             self.calibration_type = self.settings_from_file.Calib_type
         if "Calib_param" in dir(self.settings_from_file):
             self.calibration_parameters = self.settings_from_file.Calib_param
+            if isinstance(self.calibration_parameters, str):
+                self.calibration_parameters = Path(self.calibration_parameters)
 
         if "Calib_data" in dir(self.settings_from_file):
             self.calibration_data = self.settings_from_file.Calib_data
+            if isinstance(self.calibration_data, str):
+                self.calibration_data = Path(self.calibration_data)
         if "Calib_mask" in dir(self.settings_from_file):
             self.calibration_mask = self.settings_from_file.Calib_mask
+            if isinstance(self.calibration_mask, str):
+                self.calibration_mask = Path(self.calibration_mask)
         if "Calib_detector" in dir(self.settings_from_file):
             self.calibration_detector = self.settings_from_file.Calib_detector
         if "Calib_pixels" in dir(self.settings_from_file):
-            self.calibration_pixel_size = self.settings_from_file.Calib_pixels
+            self.calibration_pixel_size: int = self.settings_from_file.Calib_pixels
 
         # load the data class.
         self.data_class = detector_factory(fit_settings=self)
@@ -365,7 +369,6 @@ class Settings:
             self.fit_bin_type = self.settings_from_file.AziBinType
 
         if "Output_type" in dir(self.settings_from_file):
-            # self.output_types = get_output_options(fit_settings.Output_type)
             self.set_output_types(out_type_list=self.settings_from_file.Output_type)
 
         self.validate_settings_file()
@@ -399,13 +402,13 @@ class Settings:
             )
 
         # validate fit_orders and bounds
-        if self.fit_orders != None:
+        if self.fit_orders:
             self.validate_fit_orders()
-        if self.fit_bounds != None:
+        if self.fit_bounds:
             self.validate_fit_bounds()
 
         # validate output types
-        if self.output_types != None:
+        if self.output_types:
             self.validate_output_types()
 
     def check_files_exist(
@@ -469,10 +472,10 @@ class Settings:
         check that the orders of the fit contain all the needed parameters
         """
 
-        if self.fit_orders is None and orders is None:
+        if not self.fit_orders and orders is None:
             raise ValueError("There are no fit orders.")
 
-        if self.fit_orders is None:
+        if not self.fit_orders:
             raise ValueError("No values for 'fit_orders' were provided")
 
         # enable orders as the variable to check over -- then it is possible to validate orders that are not in the class.
@@ -924,7 +927,7 @@ class Settings:
         check the peak fitting bounds in the input file are valid.
         """
 
-        if self.fit_bounds is None:
+        if not self.fit_bounds:
             raise ValueError("There are no fit bounds.")
 
         required = ("background", "d-space", "height", "profile", "width")
@@ -971,13 +974,13 @@ class Settings:
 
     def set_output_types(
         self,
-        out_type_list=None,
+        out_type_list: list[str] = [],
         report: bool = False,
     ):
         """
         set output types in settings class given a list of output types
         """
-        if out_type_list is not None:
+        if out_type_list:
             self.output_types = get_output_options(out_type_list)
 
     def validate_output_types(self, report=False):
@@ -1160,7 +1163,9 @@ class Settings:
         self.subfit_order_position = number_subpattern
         self.subfit_orders = self.fit_orders[number_subpattern]
 
-    def save_settings(self, filename="settings.json", filepath="./"):
+    def save_settings(
+        self, filename: str = "settings.json", filepath: Path = Path(".")
+    ):
         """
         Saves the settings class to file.
 
@@ -1189,7 +1194,7 @@ class Settings:
             )
         )
 
-        fnam = os.path.join(filepath, filename)
+        fnam = filepath / filename
         with open(fnam, "w") as TempFile:
             # Write a JSON string into the file.
             json.dump(
@@ -1202,7 +1207,7 @@ class Settings:
         logger.info(" ".join(map(str, [("Done writing", filename)])))
 
 
-def get_output_options(output_type):
+def get_output_options(output_type: list[str]):
     """
     Check if input is string or list of strings
     :param output_type: string or list of strings
@@ -1216,7 +1221,7 @@ def get_output_options(output_type):
     return output_mod_type
 
 
-def detector_factory(fit_settings=None):
+def detector_factory(fit_settings: Settings):
     """
     Factory function to provide appropriate class for data dependent on type.
     *should* support any option that is named *Functions and contains *Detector as class.

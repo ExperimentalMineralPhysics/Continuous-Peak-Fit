@@ -9,6 +9,7 @@ from itertools import product
 import cpf.IO_functions as IO
 import cpf.peak_functions as pf
 from cpf.XRD_FitPattern import logger
+import pandas as pd
 
 
 def Requirements():
@@ -26,12 +27,22 @@ def Requirements():
 
 
 # def WriteOutput(FitSettings, parms_dict, **kwargs):
-def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwargs):
+def WriteOutput(setting_class=None, setting_file=None, debug=False, writefile=True, *args, **kwargs):
     # writes some of the fitted coeficients to a table.
     # More general version of WriteDifferentialStrain.
     # Focused on d-spacing coefficents but generalisible to all coefficients.
 
-
+    #define defaults
+    dp = 6 #how many decimal points to write out
+    col_width = 15 # default column width for csv file.
+    
+    ## output file version
+    # 1: ?
+    # 2: ?
+    # 3: rewritten as panda data frame - to force columns to line up.   
+    version = 3
+        
+    
     ordering_of_output = "peak"
 
     if setting_class is None and setting_file is None:
@@ -50,6 +61,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
         coefs_vals_write = setting_class.output_settings["coefs_vals_write"]
     else:
         coefs_vals_write = "all"
+    if isinstance(coefs_vals_write, str):
+        coefs_vals_write = [coefs_vals_write]
 
     #make filename for output
     base = setting_class.datafile_basename
@@ -63,7 +76,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
     # get number of coefficients.
     num_subpatterns = len(setting_class.fit_orders)
     peak_properties = pf.peak_components(full=True)
-    if coefs_vals_write == "all":
+    if coefs_vals_write == ["all"]:
         coefs_vals_write = peak_properties[1]
     max_coef = {}
     for w in range(len(coefs_vals_write)):
@@ -90,25 +103,9 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
                             [max_coef[ind][v], 2*setting_class.fit_orders[y][ind][v]+1]
                         )
                 
-
-    text_file = open(out_file, "w")
-    logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
-
-    text_file.write(
-        "# Summary of fits produced by continuous_peak_fit for input file: %s.\n"
-        % setting_class.settings_file
-    )
-    text_file.write("# For more information: http://www.github.com/me/something\n")
-    text_file.write("# File version: %i \n" % 2)
-    text_file.write("# \n")
-
-    # write header
+    # store headers
     headers = []
-    col_width = 17
-    dp = col_width - 7
-    text_file.write(("# {0:<" + str(col_width + 10) + "}").format("Data File" + ","))
-    text_file.write(("{0:<" + str(col_width) + "}").format("Peak" + ","))
-    headers.append("Data File")
+    headers.append("DataFile")
     headers.append("Peak")
     
     #parmeter header list
@@ -116,37 +113,16 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
         ind = coefs_vals_write[w]
         if ind != "background" and ind != "symmetry":
             for v in range(max_coef[ind]):
-                text_file.write(
-                    ("{0:>" + str(col_width) + "}").format(ind + "_" + str(v)+ ",")
-                )
-                text_file.write(
-                    ("{0:>" + str(col_width) + "}").format(ind + "_" + str(v)+ " err,")
-                )
-                headers.append(ind + "_" + str(v))
-                headers.append(ind + "_" + str(v)+ "err")
+                headers.append(ind + str(v))
+                headers.append(ind + str(v)+ "err")
         elif ind == "symmetry":
-            text_file.write(
-                ("{0:>" + str(col_width) + "}").format(ind + ",")
-            )
-            
             headers.append(ind)
         else:
             for u in range(len(setting_class.fit_orders[y][ind])):
                 
                 for v in range(max_coef[ind][u]):
-                        text_file.write(
-                            ("{0:>" + str(col_width) + "}").format(ind + str(u) + "_" + str(v) + ",")
-                        )
-                        text_file.write(
-                            ("{0:>" + str(col_width) + "}").format(ind + str(u) + "_" + str(v) + " err,")
-                        )
                         headers.append(ind + str(u) + "_" + str(v))
                         headers.append(ind + str(u) + "_" + str(v)+ "err")
-
-    text_file.write("\n")
-
-
-
 
     # read all the data. 
     fits=[]
@@ -180,8 +156,12 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
     else:
         lists=lists[np.lexsort((lists[:, 0], ))]
     
+    
+    RowsList = []
     #print the data.
     for z in range(len(lists)):
+    
+        RowLst = {}   
     
         setting_class.set_subpattern(lists[z,0],lists[z,1])
         data_to_write = fits[lists[z,0]][lists[z,1]]
@@ -207,15 +187,9 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
                 out_peak = out_peak + " (" + str(setting_class.fit_orders[lists[z,1]]["peak"][lists[z,2]]["hkl"]) + ")"
             else:
                 out_peak = out_peak + " " + str([lists[z,2]])
-            # write numbers to file
-            dp = col_width - 7
-            text_file.write(
-                ("{0:<" + str(col_width + 7) + "}").format(out_name + ",")
-            )
-            text_file.write(("{0:<" + str(col_width) + "}").format(out_peak + ","))
+            RowLst["DataFile"] = out_name
+            RowLst["Peak"] = out_peak
             
-            
-        
             for w in range(len(coefs_vals_write)):
                 ind = coefs_vals_write[w]
                 ind_err = ind+"_err"
@@ -226,48 +200,79 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
                             data_to_write["peak"][lists[z,2]][ind][v] = np.nan
                         if data_to_write["peak"][lists[z,2]][ind_err][v] is None:  # catch  'null' as an error
                             data_to_write["peak"][lists[z,2]][ind_err][v] = np.nan   
-                        text_file.write(
-                            ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
-                                data_to_write["peak"][lists[z,2]][ind][v]
-                            )
-                        )
+                        RowLst[ind+str(v)] = data_to_write["peak"][lists[z,2]][ind][v]
                         try:
-                            text_file.write(
-                                ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
-                                    data_to_write["peak"][lists[z,2]][ind_err][v]
-                                )
-                            )
+                            RowLst[ind+str(v)+"err"] = data_to_write["peak"][lists[z,2]][ind_err][v]
                         except:
-                            text_file.write(("{0:<" + str(col_width) + "}").format("None" + ","))
-                            
+                            RowLst[ind+str(v)+"err"] = "None"
+                
+                        
+                        
                                 
                 elif ind == "symmetry":
                     if data_to_write["peak"][lists[z,2]][ind] is None:  # catch  'null' as an error
                         data_to_write["peak"][lists[z,2]][ind] = np.nan
-                    text_file.write(
-                        ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
-                            data_to_write["peak"][lists[z,2]][ind]
-                        )
-                    )
+                    RowLst[ind] = data_to_write["peak"][lists[z,2]][ind]
+                    
+                    
                 else: #background
                     for u in range(len(data_to_write[ind])):
                         for v in range(len(data_to_write[ind][u])):
                             if data_to_write[ind][u][v] is None:  # catch  'null' as an error
                                 data_to_write[ind][u][v] = np.nan
                             if data_to_write[ind_err][u][v] is None:  # catch  'null' as an error
-                                data_to_write[ind_err][u][v] = np.nan   
-                            
-                            text_file.write(
-                                ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
-                                    data_to_write[ind][u][v]
-                                )
-                            )
-                            text_file.write(
-                                ("{0:" + str(col_width - 1) + "." + str(dp) + "f},").format(
-                                    data_to_write[ind_err][u][v]
-                                )
-                            )
+                                data_to_write[ind_err][u][v] = np.nan 
+                            RowLst[ind+str(u)+"_"+str(v)] = data_to_write[ind][u][v]
+                            try:
+                                RowLst[ind+str(u)+"_"+str(v)+"err"] = data_to_write[ind_err][u][v]
+                            except:
+                                RowLst[ind+str(u)+"_"+str(v)+"err"] = "None"
         
+            RowsList.append(RowLst)
+            # text_file.write("\n")
+   
+    # make data frame using headers - so columns are in good order.
+    df = pd.DataFrame(RowsList,columns=headers)
+    # keep unmodificed version of the dataframe to output
+    out = df    
+    
+    if writefile == True:
+        ## format dateframe for writing to file neatly. 
+        #make strings in DateFile and Peak columns all the same length
+        len_datafile = np.max(df["DataFile"].str.len())
+        len_peaks    = np.max(df["Peak"].str.len())
+        df_tmp = df["DataFile"].str.pad(np.max([len_datafile, col_width]),side='left',fillchar=' ')
+        df["DataFile"] = df_tmp
+        df_tmp = df["Peak"].str.pad(np.max([len_peaks, col_width]),side='left',fillchar=' ')
+        df["Peak"] = df_tmp
         
-            text_file.write("\n")
-    text_file.close()
+        # rename the columns so that the headers are the same width as the columns
+        class NewClass(object): pass
+        columns = NewClass()
+        for i in range(len(headers)):
+            if headers[i] == "DataFile":
+                setattr(columns, headers[i], headers[i].rjust(np.max([len_datafile, col_width])))
+            elif headers[i] == "Peak":
+                setattr(columns, headers[i], headers[i].rjust(np.max([len_peaks, col_width])))
+            else:
+                setattr(columns, headers[i], headers[i].rjust(col_width))
+        columns = columns.__dict__
+        df.rename(columns=columns, inplace=True)
+            
+        # write data frame to csv file
+        with open(out_file, 'w') as f:
+            logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
+    
+            f.write(
+                "# continuous_peak_fit : Table of all coefficients from fits for input file: %s.\n"
+                % setting_class.settings_file
+            )
+            f.write("# For more information: http://www.github.com/me/something\n")
+            f.write("# File version: %i \n" % version)
+            f.write("# \n")
+            
+            df.to_csv(f, index=False, header=True,
+                      na_rep = "".ljust(col_width),
+                      float_format = lambda x: f"{x:{str(col_width)}d}" if isinstance(x, (int, np.integer)) else (f"{x:{str(col_width)}.{str(dp)}f}" if np.abs(x) > 0.1 else f"{x:{str(col_width)}.{str(dp)}e}"))
+    
+    return out

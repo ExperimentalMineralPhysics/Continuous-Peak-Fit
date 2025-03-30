@@ -23,9 +23,9 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",       # pip install works for 3.9.19
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",      # pip install works for 3.11.9
+    "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
     "fabio",
@@ -34,7 +34,7 @@ dependencies = [
     "imaged11",
     "lmfit",
     "matplotlib",
-    "moviepy",
+    "moviepy>=2",
     "numpy<2",       # Locked to <2 to give dependencies time to catch up
     "opencv-python",
     "pandas",
@@ -48,7 +48,7 @@ dependencies = [
 optional-dependencies.dev = [
     "bump2version", # For version control
     "ipykernel",    # For Jupyter Notebook interactive development
-    "pre-commit",   # For running code checks with
+    "pre-commit",   # For running code checks
     "pytest",       # For running unit tests on code
 ]
 urls.Repository = "https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit"
@@ -59,7 +59,7 @@ namespaces = false
 
 [tool.ruff]
 lint.select = [
-    "I", # isort implementation
+    "I", # Sort imports using 'isort' rules
 ]
 
 [tool.pyproject-fmt]

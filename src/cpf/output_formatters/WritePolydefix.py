@@ -1,18 +1,14 @@
 __all__ = ["Requirements", "WriteOutput"]
 
-# import datetime
 import json
 import os
 from pathlib import Path
 
-# import re
 import numpy as np
 
-import cpf.IO_functions as IO
 import cpf.output_formatters.WriteMultiFit as WriteMultiFit
-
-# import cpf.PeakFunctions as ff
-from cpf.logger_functions import CPFLogger
+from cpf.IO_functions import make_outfile_name
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.output_formatters.WritePolydefix")
 
@@ -177,7 +173,7 @@ def WriteOutput(
                     )[0]
                 )
 
-        out_file = IO.make_outfile_name(
+        out_file = make_outfile_name(
             fnam,
             directory=settings_class.output_directory,  # directory=FitSettings.Output_directory,
             extension=".exp",
@@ -268,7 +264,7 @@ def WriteOutput(
                     # filename = os.path.splitext(os.path.basename(diff_files[0]))[0]
                     # filename = filename+'.json'
 
-                    filename = IO.make_outfile_name(
+                    filename = make_outfile_name(
                         settings_class.subfit_filename,  # diff_files[z],
                         directory=settings_class.output_directory,  # directory=FitSettings.Output_directory,
                         # diff_files[0],

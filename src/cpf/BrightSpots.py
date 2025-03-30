@@ -42,7 +42,7 @@ __version__ = "0.1"
 
 import numpy as np
 
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.BrightSpots")
 

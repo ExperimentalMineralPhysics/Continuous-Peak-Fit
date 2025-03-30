@@ -7,16 +7,45 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from moviepy.editor import VideoClip
-from moviepy.video.io.bindings import mplfig_to_npimage
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from moviepy.video.VideoClip import VideoClip
 
-import cpf.IO_functions as IO
 from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
-from cpf.logger_functions import CPFLogger
+from cpf.IO_functions import (
+    figure_suptitle_space,
+    make_outfile_name,
+    peak_string,
+    title_file_names,
+)
+from cpf.logging import CPFLogger
 from cpf.XRD_FitSubpattern import plot_FitAndModel
 
 logger = CPFLogger("cpf.output_formatters.WriteFitMovie")
+
+
+def mplfig_to_npimage(fig):
+    """
+    Converts a matplotlib figure to a RGB frame after updating the canvas.
+
+    This is our own implementation of a function that was removed from MoviePy >=2,
+    which we only make use of once in WriteOutput. This should fix the incompatibility
+    with MoviePy >=2.
+
+    Credits: https://github.com/Zulko/moviepy/issues/2297#issuecomment-2609419770
+    """
+
+    canvas = FigureCanvasAgg(fig)
+    canvas.draw()  # update/draw the elements
+
+    # get the width and the height to resize the matrix
+    l, b, w, h = canvas.figure.bbox.bounds
+    w, h = int(w), int(h)
+
+    #  exports the canvas to a memory view and then to a numpy nd.array
+    mem_view = canvas.buffer_rgba()  # Update to Matplotlib 3.8
+    image = np.asarray(mem_view)
+    return image[:, :, :3]  # Return only RGB, not alpha.
 
 
 def Requirements():
@@ -106,7 +135,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
     for z in range(settings_class.image_number):
         settings_class.set_subpattern(z, 0)
         # read fit file
-        json_file = IO.make_outfile_name(
+        json_file = make_outfile_name(
             settings_class.subfit_filename,  # diff_files[z],
             directory=settings_class.output_directory,
             extension=".json",
@@ -148,10 +177,10 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
 
         settings_class.set_subpattern(0, z)
 
-        addd = IO.peak_string(settings_class.subfit_orders, fname=True)
+        addd = peak_string(settings_class.subfit_orders, fname=True)
         if settings_class.file_label != None:
             addd = addd + settings_class.file_label
-        out_file = IO.make_outfile_name(
+        out_file = make_outfile_name(
             base,
             directory=settings_class.output_directory,
             extension=file_types[0],
@@ -194,7 +223,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
                 sub_data = SpotProcess(sub_data, settings_class)
 
             # read fit file
-            json_file = IO.make_outfile_name(
+            json_file = make_outfile_name(
                 settings_class.subfit_filename,  # diff_files[z],
                 directory=settings_class.output_directory,
                 extension=".json",
@@ -219,13 +248,13 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
                 },
             )
             title_str = (
-                IO.peak_string(settings_class.subfit_orders)
+                peak_string(settings_class.subfit_orders)
                 + "; "
                 + str(y[int(t * fps)])
                 + "/"
                 + str(settings_class.image_number)
                 + "\n"
-                + IO.title_file_names(
+                + title_file_names(
                     settings_class,
                     num=y[int(t * fps)],
                     image_name=settings_class.subfit_filename,
@@ -234,7 +263,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
             if "note" in settings_class.subfit_orders:
                 title_str = title_str + " " + settings_class.subfit_orders["note"]
             plt.suptitle(title_str)
-            IO.figure_suptitle_space(fig, topmargin=0.4)
+            figure_suptitle_space(fig, topmargin=0.4)
 
             # return the figure
             return mplfig_to_npimage(fig)

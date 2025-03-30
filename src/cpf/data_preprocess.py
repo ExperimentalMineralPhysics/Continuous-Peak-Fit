@@ -41,7 +41,7 @@ from skimage import filters, morphology, restoration
 
 import cpf.settings as Settings
 from cpf.Cosmics import cosmicsimage
-from cpf.logger_functions import CPFLogger
+from cpf.logging import CPFLogger
 
 logger = CPFLogger("cpf.data_preprocess")
 

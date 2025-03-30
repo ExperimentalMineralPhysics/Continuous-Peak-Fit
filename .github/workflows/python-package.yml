@@ -29,6 +29,11 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y libcairo2-dev
+      - name: Install OpenCL dependencies (MacOS only)
+        if: runner.os == 'macOS'
+        run: |
+          brew install pocl  # Portable OpenCL (pocl)
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v3
         with:

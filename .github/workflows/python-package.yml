@@ -29,11 +29,15 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y libcairo2-dev
-      - name: Install OpenCL dependencies (MacOS only)
+      # - name: Install OpenCL dependencies (MacOS only)
+      #   if: runner.os == 'macOS'
+      #   run: |
+      #     brew install pocl  # Portable OpenCL (pocl)
+      - name: Disable OpenCL for pyFAI and silx (MacOS only)
         if: runner.os == 'macOS'
         run: |
-          brew install pocl  # Portable OpenCL (pocl)
-
+          echo "PYFAI_NO_OPENCL=1" >> $GITHUB_ENV
+          echo "SILX_OPENCL=0" >> $GITHUB_ENV
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v3
         with:

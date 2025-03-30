@@ -28,6 +28,7 @@ def test_execute(test_params: tuple[str, str]):
     # Set things up for the function
     os.chdir(dataset)
     assert Path(input_file).exists()
+    os.mkdir("results")
 
     # Run the function
     execute(Path(input_file))

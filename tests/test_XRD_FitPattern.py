@@ -33,6 +33,6 @@ def test_execute(test_params: tuple[str, str]):
     # Run the function
     execute(Path(input_file))
 
-    # Execute doesn't return a helpful value at the moment, so we can assert True
-    # at the end of the function to check that it ran through to completion.
+    # 'execute()' doesn't return a helpful value at the moment, so we can assert True
+    # at the end of the function for now to check that it ran to completion.
     assert True

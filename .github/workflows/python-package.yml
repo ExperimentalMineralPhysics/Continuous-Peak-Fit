@@ -25,15 +25,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Cairo library (Ubuntu only)
+        # Cairo library needs to be manually installed on Ubuntu in order for
+        # pyCairo to be installed
         if: runner.os == 'Linux'
         run: |
           sudo apt update
           sudo apt install -y libcairo2-dev
-      # - name: Install OpenCL dependencies (MacOS only)
-      #   if: runner.os == 'macOS'
-      #   run: |
-      #     brew install pocl  # Portable OpenCL (pocl)
       - name: Disable OpenCL for pyFAI and silx (MacOS only)
+        # There is currently an error with getting device IDs in pyOpenCL on MacOS
+        # $ pyopencl._cl.LogicError: clGetDeviceIDs failed: INVALID_VALUE
+        # Disabling the use of OpenCL seems to work for now
         if: runner.os == 'macOS'
         run: |
           echo "PYFAI_NO_OPENCL=1" >> $GITHUB_ENV

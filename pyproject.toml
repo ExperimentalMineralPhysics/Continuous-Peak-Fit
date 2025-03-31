@@ -67,3 +67,6 @@ column_width = 120
 indent = 4
 keep_full_version = true
 max_supported_python = "3.11" # Latest version in security stage
+
+[tool.pytest.ini_options]
+pythonpath = [ "Example1-Fe", "Example2-MgO" ]

@@ -169,14 +169,14 @@ def check_num_azimuths(peeks, azimu, orders):
     for y in range(peeks):
         # loop over parameters
         for param in choice_list:
-            coeff_type = sf.params_get_type(orders, param, peak=y)
+            coeff_type = sf.coefficient_type_as_number(sf.params_get_type(orders, param, peak=y))
             if coeff_type != 5:  # if parameters are not independent
                 max_coeff = np.max(
                     [max_coeff, sf.get_number_coeff(orders, param, peak=y)]
                 )
     param = "background"
     for y in range(np.max([len(orders["background"])])):
-        coeff_type = sf.params_get_type(orders, param, peak=y)
+        coeff_type = sf.coefficient_type_as_number(sf.params_get_type(orders, param, peak=y))
         if coeff_type != 5:  # if parameters are not independent
             max_coeff = np.max([max_coeff, sf.get_number_coeff(orders, "background")])
     if max_coeff > len(np.unique(azimu)):

@@ -312,14 +312,10 @@ class XYDetector:
         if dtype==None:
             if self.intensity is None and np.size(self.intensity) > 2:
                 # self.intensity has been set before. Inherit the dtype.
-                dtype = self.intensity.dtype  
-            elif "int" in im[0].dtype.name:
-                #the type is either int or uint - convert to float
-                # using same bit precision 
-                precision = re.findall("\d+", im[0].dtype.name)[0]
-                dtype = np.dtype("float"+precision)
+                dtype = self.intensity.dtype
+            else:
+                dtype = self.GetDataType(im[0], minimumPrecision=False)
         im = ma.array(im, dtype=dtype)
-        
         
         if self.calibration["x_dim"] != 0:
             im = im.T
@@ -740,3 +736,7 @@ class OrthogonalDetector():
         for i in range(len(self.calibration["y"])-1):
             calibrated_y += y_array * self.calibration["y"][i+1] * (i+1)
         return calibrated_y
+    
+    
+
+DioptasDetector.GetDataType  = _AngleDispersive_common.GetDataType

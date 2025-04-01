@@ -273,7 +273,7 @@ class DioptasDetector:
         else:
             try:
                 im_all = fabio.open(image_name)
-                print(f"This file contains {im_all.nframes} with a combined shape of {im_all.shape}")
+                print(f"This file contains {im_all.nframes} frame(s) with a combined shape of {im_all.shape}")
                 if im_all.nframes == 1:
                     im = np.squeeze(im_all.data) # squeeze to make sure 1st dimension is not 1.
                 else:
@@ -293,12 +293,9 @@ class DioptasDetector:
         if dtype==None:
             if self.intensity is None and np.size(self.intensity) > 2:
                 # self.intensity has been set before. Inherit the dtype.
-                dtype = self.intensity.dtype  
-            elif "int" in im[0].dtype.name:
-                #the type is either int or uint - convert to float
-                # using same bit precision 
-                precision = re.findall("\d+", im[0].dtype.name)[0]
-                dtype = np.dtype("float"+precision)
+                dtype = self.intensity.dtype                  
+            else:
+                dtype = self.GetDataType(im[0], minimumPrecision=False)
         im = ma.array(im, dtype=dtype)
 
         # Dioptas flips the images to match the orientations in Fit2D
@@ -499,6 +496,7 @@ DioptasDetector.conversion   = _AngleDispersive_common.conversion
 DioptasDetector.bins         = _AngleDispersive_common.bins
 DioptasDetector.set_limits   = _AngleDispersive_common.set_limits
 DioptasDetector.test_azims   = _AngleDispersive_common.test_azims
+DioptasDetector.GetDataType  = _AngleDispersive_common.GetDataType
 
 #add masking functions to detetor class.
 DioptasDetector.get_mask     = _masks.get_mask

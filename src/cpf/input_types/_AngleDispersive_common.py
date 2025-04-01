@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
+import re
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
@@ -230,6 +231,51 @@ class _AngleDispersive_common():
 
 
 
+    
+    
+    
+    def GetDataType(self, rawData, numType="float", minimumPrecision=32):
+        """
+        A function to return the data type for the diffraction data. 
+        The data can be any format when it is read in, but should be a float
+        for the data fitting because the lmfit model inherits the data type from 
+        the data. 
+       
+        
+        Parameters
+        ----------
+        rawData : array
+            Diffraction data array.
+        numType : string, optional
+            Data type to make, without numerical precision. The default is "float".
+        minimumPrecision : number, optional
+            Minimum numerical precision to be applied to the data. If the numerical
+            precision does not matter, set to False. The default is 32.
+    
+        Returns
+        -------
+        DataType : string
+            A numpy data type to be applied to the data arrays. 
+    
+        """
+        precision = re.findall("\d+", rawData.dtype.name)[0]
+        # force minimum precision
+        if minimumPrecision != False: 
+            if precision < minimumPrecision:
+                precision = minimumPrecision
+        else:
+            pass
+            
+        try:
+            DataType = np.dtype(numType+precision)
+        except:
+            err_str = f"The datatype, {DataType}, is not a recognised data type"
+            logger.critical(err_str)
+            raise TypeError(err_str)
+        
+        return DataType
+    
+    
 
 def equalObs(x, nbin):
     """

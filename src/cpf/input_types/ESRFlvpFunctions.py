@@ -517,11 +517,26 @@ class ESRFlvpDetector():
         #     mask =self.intensity.mask
             
         if self.intensity is None:
+            
+            # Convert the input data from integer to float because the lmfit model values
+            # inherits integer properties from the data.
+            #
+            # Allow option for the data type to be set.
+            if dtype==None:
+                if self.intensity.size > 2:
+                    # self.intensity has been set before. Inherit the dtype.
+                    dtype = self.intensity.dtype                
+                else:
+                    tmp_image = ma.array(fabio.open(frames[0]).data)
+                    dtype = self.GetDataType(tmp_image[0], minimumPrecision=False)
+                
             self.intensity = ma.array([np.flipud(fabio.open(f).data) for f in frames], dtype=dtype)
             self.intensity = ma.array(self.intensity, mask=self.get_mask(mask, self.intensity))
         else:
+            #inherit the data type from previosuly.
             dtype_tmp = self.intensity.dtype
             self.intensity.data[:] = ma.array([np.flipud(fabio.open(f).data) for f in frames], dtype = dtype_tmp)
+            
         # 13th June 2024 - Note on flipud: the flipud command is included to invert the short axis of the detector intensity. 
         # If I flip the data then the 'spots' in the reconstructed data are spot like, rather than incoherent 
         #intensity diffraction peaks. 
@@ -532,21 +547,6 @@ class ESRFlvpDetector():
         
         if max(angles) - min(angles) >= 45:
             self.azm_blocks = 45
-        
-        # Convert the input data from integer to float because the lmfit model values
-        # inherits integer properties from the data.
-        #
-        # Allow option for the data type to be set.
-        if dtype==None:
-            if self.intensity.size > 2:
-                # self.intensity has been set before. Inherit the dtype.
-                dtype = self.intensity.dtype  
-            elif "int" in self.intensity[0].dtype.name:
-                #the type is either int or uint - convert to float
-                # using same bit precision 
-                precision = re.findall("\d+", self.intensity[0].dtype.name)[0]
-                dtype = np.dtype("float"+precision)  
-        # im = ma.array(im, dtype=dtype)
         
         # apply mask to the intensity array
         # print("mask", mask)
@@ -644,6 +644,8 @@ class ESRFlvpDetector():
         # set default for data type. 
         # Fabio defaults to float64 if nothing is set.
         # Float32 or float16 take up much less memoary than flost64.
+        # N.B. Float 16 does not have sufficient precision to be used.
+        # Float32 is the minimum
         array_dtype = np.float32
 
         #get ordered list of images

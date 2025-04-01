@@ -336,13 +336,16 @@ class MedDetector:
         if dtype==None:
             if self.intensity is None and np.size(self.intensity) > 2:
                 # self.intensity has been set before. Inherit the dtype.
-                dtype = self.intensity.dtype  
-            elif "int" in im_all[0].dtype.name:
-                #the type is either int or uint - convert to float
-                # using same bit precision 
-                precision = re.findall("\d+", im_all[0].dtype.name)[0]
-                dtype = np.dtype("float"+precision)
+                dtype = self.intensity.dtype    
+        # elif "int" in im_all[0].dtype.name:
+        #     #the type is either int or uint - convert to float
+        #     # using same bit precision 
+        #     precision = re.findall("\d+", im_all[0].dtype.name)[0]
+        #     dtype = np.dtype("float"+precision)            
+            else:
+                dtype = self.GetDataType(im_all[0], minimumPrecision=False)
         im_all = ma.array(im_all, dtype=dtype)
+        
 
         # apply mask to the intensity array
         if mask == None and ma.is_masked(self.intensity) == False:
@@ -1027,7 +1030,8 @@ class MedDetector:
 
 
 # add common functions. 
-MedDetector.set_limits   = _AngleDispersive_common.set_limits
+MedDetector.set_limits    = _AngleDispersive_common.set_limits
+MedDetector.GetDataType   = _AngleDispersive_common.GetDataType
 
 #add masking functions to detetor class.
 MedDetector.get_mask     = _masks.get_mask

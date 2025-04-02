@@ -50,6 +50,9 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
 
     """
 
+    # FIXME: make so that it can iterate over each range and make a movie of each selected range.
+
+
     if not "file_types" in kwargs:
         file_types = ".mp4"
     # make sure file_types is a list.
@@ -154,7 +157,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
            # nothing is done here.
            pass
             
-        fig = plt.figure()
+        fig = plt.figure(figsize=(6, 8))
         ax = fig.add_subplot(1, 1, 1)
         data_class.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity", limits=deepcopy(lims))
         plt.title(IO.title_file_names(settings_for_fit=setting_class, num=int(t*fps)))

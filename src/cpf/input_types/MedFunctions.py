@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm, colors, gridspec
 from cpf.input_types import Med, med_detectors
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
+from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.input_types._Masks import _masks
 from cpf.XRD_FitPattern import logger
 
@@ -58,6 +59,9 @@ class MedDetector:
         self.tth_start = None
         self.tth_end   = None
         self.DispersionType = "EnergyDispersive"
+        self.Dispersionlabel = "Energy"
+        self.DispersionUnits = "keV"
+        
         # separate detectors around the ring so not continuous
         self.continuous_azm = False
 
@@ -908,7 +912,7 @@ class MedDetector:
             plot_x = self.tth
         else:
             plot_x = self.tth
-        label_x = "Energy (keV)"
+        label_x = f"{self.Dispersionlabel} ({self.DispersionUnits})"
 
         if data is not None:
             plot_i = data
@@ -1039,3 +1043,7 @@ MedDetector.set_mask     = _masks.set_mask
 MedDetector.mask_apply   = _masks.mask_apply
 MedDetector.mask_restore = _masks.mask_restore
 MedDetector.mask_remove  = _masks.mask_remove
+
+
+
+MedDetector.plot_integrated  = _Plot_AngleDispersive.plot_integrated

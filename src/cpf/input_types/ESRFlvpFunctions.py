@@ -174,6 +174,8 @@ class ESRFlvpDetector():
         # Moving image plate that be integrated into single image: so contonuous data.
         # basically the data can be treated as having a single claibration. 
         self.DispersionType = "AngleDispersive"
+        self.Dispersionlabel = r"2$\theta$"
+        self.DispersionUnits = r"$^\circ$"
         self.continuous_azm = True
 
         self.azm_blocks = 2
@@ -840,5 +842,6 @@ ESRFlvpDetector.plot_integrated  = _Plot_AngleDispersive.plot_integrated
 ESRFlvpDetector.plot_fitted      = _Plot_AngleDispersive.plot_fitted
 ESRFlvpDetector.plot_collected   = _Plot_AngleDispersive.plot_collected
 ESRFlvpDetector.plot_calibrated  = _Plot_AngleDispersive.plot_calibrated
+ESRFlvpDetector.plot_integrated  = _Plot_AngleDispersive.plot_integrated
 #this function is added because it requires access to self:
 ESRFlvpDetector.dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks    

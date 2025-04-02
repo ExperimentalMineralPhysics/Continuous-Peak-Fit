@@ -52,6 +52,8 @@ class DioptasDetector:
         self.tth_start = None
         self.tth_end   = None
         self.DispersionType = "AngleDispersive"
+        self.Dispersionlabel = r"2$\theta$"
+        self.DispersionUnits = r"$^\circ$"
         self.continuous_azm = True
         
         self.azm_blocks = 45
@@ -511,5 +513,6 @@ DioptasDetector.plot_masked      = _Plot_AngleDispersive.plot_masked
 DioptasDetector.plot_fitted      = _Plot_AngleDispersive.plot_fitted
 DioptasDetector.plot_collected   = _Plot_AngleDispersive.plot_collected
 DioptasDetector.plot_calibrated  = _Plot_AngleDispersive.plot_calibrated
+DioptasDetector.plot_integrated  = _Plot_AngleDispersive.plot_integrated
 #this function is added because it requires access to self:
 DioptasDetector.dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks

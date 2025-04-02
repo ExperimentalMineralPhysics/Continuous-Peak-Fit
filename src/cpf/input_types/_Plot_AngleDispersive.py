@@ -9,7 +9,7 @@ from matplotlib import gridspec, cm, colors, tri
 from cpf.histograms import histogram2d
 from cpf.XRD_FitPattern import logger
 import cpf.logger_functions as lg
-
+from cpf.histograms import histogram1d
 
 class _Plot_AngleDispersive():
     """
@@ -55,6 +55,29 @@ class _Plot_AngleDispersive():
             disp_ticks = list(range(int(disp_lims[0]), int(disp_lims[1] + 1), int(block)))
             
         return disp_ticks
+    
+    
+    
+    def plot_integrated(self, fig_plot=None, axis_plot=None, show=None):
+        """
+        Makes a plot of the integrated data. 
+        
+        :param fig:
+        :return:
+        """
+    
+        if fig_plot == None:
+            #make a figure
+            fig_plot, axis_plot = plt.subplots()
+    
+        p, i, a = histogram1d(self.tth, self.intensity, self.azm)
+
+        axis_plot.plot(p,i)
+                
+        axis_plot.set_xlabel(f"{self.Dispersionlabel} ({self.DispersionUnits})")
+        axis_plot.set_ylabel("Intensity")
+        axis_plot.set_title("Integrated Data")
+
     
     
     
@@ -488,7 +511,7 @@ class _Plot_AngleDispersive():
         show="default",
         x_axis="default",
         y_axis="default",
-        x_label = r"2$\theta$ ($^\circ$)",
+        # x_label = r"2$\theta$ ($^\circ$)",
         y_label = "Azimuth ($^\circ$)",
         data=None,
         limits=[1, 99.9],
@@ -533,7 +556,7 @@ class _Plot_AngleDispersive():
         else: # if x_axis is "default" or "tth"
             plot_x = self.tth
         # plot_y = self.azm
-        label_x = x_label
+        label_x = f"{self.Dispersionlabel} ({self.DispersionUnits})"
         
         if y_axis == "intensity":
             # plot y rather than azimuth on the y axis

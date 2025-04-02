@@ -106,6 +106,8 @@ class XYDetector:
         self.tth_end   = None
         # Single image plate detector so contonuous data.
         self.DispersionType = "EnergyDispersive"
+        self.Dispersionlabel = r"2$\theta$"
+        self.DispersionUnits = r"$^\circ$"
         self.continuous_azm = False
 
         self.azm_blocks = 45 # SAH: June 2024. I am not sure what this does in this class. 
@@ -739,4 +741,6 @@ class OrthogonalDetector():
     
     
 
-DioptasDetector.GetDataType  = _AngleDispersive_common.GetDataType
+XYDetector.plot_integrated  = _Plot_AngleDispersive.plot_integrated
+
+XYDetector.GetDataType  = _AngleDispersive_common.GetDataType

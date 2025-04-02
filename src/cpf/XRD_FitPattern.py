@@ -217,16 +217,19 @@ def view(
 
     write_output(setting_file = setting_file, out_type="CollectionMovie")
 
-    # execute(
-    #     setting_class=settings_for_fit,
-    #     debug=debug,
-    #     refine=refine,
-    #     save_all=save_all,
-    #     iterations=iterations,
-    #     parallel=parallel,
-    #     mode="view",
-    #     report=True,
-    # )
+
+
+
+    execute(
+        setting_class=settings_for_fit,
+        debug=debug,
+        refine=refine,
+        save_all=save_all,
+        iterations=iterations,
+        parallel=parallel,
+        mode="view",
+        report=True,
+    )
 
 
 def set_range(
@@ -687,7 +690,24 @@ def execute(
 
                 fig.savefig(filename)
                 
-                # sys.exit("Plotted data.")
+            fig = plt.figure()
+            ax = fig.add_subplot(1, 1, 1)
+            ax_o1 = plt.subplot(111)
+            new_data.plot_integrated(fig_plot=fig, axis_plot=ax, show="intensity")
+            # plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
+            plt.title(title_file_names(settings_for_fit=settings_for_fit, num=j))
+            plt.show()
+            if mode == "view":
+                
+                filename = make_outfile_name(
+                    settings_for_fit.image_list[j],
+                    directory=settings_for_fit.output_directory,
+                    extension="integrated.png",
+                    overwrite=True,
+                )
+ 
+                fig.savefig(filename)     
+                
                 print("Plotted data.")
             else:
                 plt.close()

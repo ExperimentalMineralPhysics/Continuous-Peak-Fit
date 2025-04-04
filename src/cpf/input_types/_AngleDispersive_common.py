@@ -100,13 +100,21 @@ class _AngleDispersive_common():
         # determine how to divide the data into bins and how many.
         if cascade:
             bt = orders_class.cascade_bin_type
-            if bt == 1:
+            if bt == None:
+                # force a default
+                bt = 0
+                b_num = 50
+            elif bt == 1:
                 b_num = orders_class.cascade_number_bins
             else:
                 b_num = orders_class.cascade_per_bin
         else:
             bt = orders_class.fit_bin_type
-            if bt == 1:
+            if bt == None:
+                # force a default
+                bt = 1
+                b_num = 90
+            elif bt == 1:
                 b_num = orders_class.fit_number_bins
             else:
                 b_num = orders_class.fit_per_bin
@@ -146,7 +154,11 @@ class _AngleDispersive_common():
             logger.debug(" ".join(map(str, [("total data", np.sum(n))])))
         # display bin boundaries and frequency per bin
         logger.debug(" ".join(map(str, [("bin boundaries:", bin_boundaries)])))
-        logger.debug(" ".join(map(str, [("expected number of data per bin", orders_class.cascade_per_bin)])))
+        if bt == 1:
+            logger.debug(" ".join(map(str, [("expected number of chunks", b_num)])))
+        else:
+            logger.debug(" ".join(map(str, [("expected number of data per chunkbin", b_num)])))
+            
 
         # fit the data to the bins
         chunks = []

@@ -397,7 +397,6 @@ def fit_sub_pattern(
                         min_peak_intensity = min_peak_intensity.strip("std").strip("*")
                         if min_peak_intensity == "":
                             min_peak_intensity = 1
-                        print(min_peak_intensity)
                         min_peak_intensity = float(min_peak_intensity) * std
     
                     else:

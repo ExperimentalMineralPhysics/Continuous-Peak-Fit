@@ -202,7 +202,7 @@ def fit_sub_pattern(
     histogram_bins = None,
     cascade=False,
     min_data_intensity = 1,
-    min_peak_intensity = "0.25*std",
+    min_peak_intensity = "std",
     large_errors = 300
 ):
     """
@@ -339,7 +339,12 @@ def fit_sub_pattern(
                 logger.moreinfo(" ".join(map(str, [("Not sufficient intensity in the data to proceed with fitting (I_max < %s)." % min_data_intensity)])))
                 #set step to -21 so that it is still negative at the end
                 step.append(-21) #get to the end and void the fit
-                fout=master_params
+                # void so send empty parameter set to out.
+                fout=lmm.initiate_all_params_for_fit(
+                    settings_as_class,
+                    data_as_class,
+                    debug=debug,
+                )
             
             if step[-1] >= 0 and not previous_params:
                 # There is no previous fit -- Fit data in azimuthal chunks
@@ -392,6 +397,7 @@ def fit_sub_pattern(
                         min_peak_intensity = min_peak_intensity.strip("std").strip("*")
                         if min_peak_intensity == "":
                             min_peak_intensity = 1
+                        print(min_peak_intensity)
                         min_peak_intensity = float(min_peak_intensity) * std
     
                     else:
@@ -404,7 +410,12 @@ def fit_sub_pattern(
                     logger.moreinfo(" ".join(map(str, [("Not sufficient intensity in the chunked peaks to proceed with fitting (h_max < %s)." % min_peak_intensity)])))
                     #set step to -11 so that it is still negative at the end
                     step.append(-11) #get to the end and void the fit
-                    fout=master_params
+                    # void so send empty parameter set to out.
+                    fout=lmm.initiate_all_params_for_fit(
+                        settings_as_class,
+                        data_as_class,
+                        debug=debug,
+                    )
 
             elif step[-1] >= 0 and previous_params:
                 logger.moreinfo(" ".join(map(str, [("Using previously fitted parameters and propagating fit")])))

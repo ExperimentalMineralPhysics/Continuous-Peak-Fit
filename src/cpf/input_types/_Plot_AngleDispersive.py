@@ -225,8 +225,8 @@ class _Plot_AngleDispersive():
                 limits = plot_ColourRange
         else:
             limits = {
-                "max": np.max([self.intensity.max(), model.max()]),
-                "min": np.min([self.intensity.min(), model.min()]),
+                "max": np.nanmax([self.intensity.max(), model.max()]),
+                "min": np.nanmin([self.intensity.min(), model.min()]),
             }
     
         tight=False
@@ -621,6 +621,12 @@ class _Plot_AngleDispersive():
                 cb_extend = "min"
             else:
                 cb_extend = "neither"
+        if np.isnan(IMax) and np.isnan(IMin):
+            IMax = 1
+            IMin = -1
+        elif IMax == IMin:
+            IMax+=1
+            IMin-=1
         if location == None:
             if y_lims is None:
                 location = "right"

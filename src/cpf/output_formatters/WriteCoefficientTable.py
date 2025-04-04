@@ -92,8 +92,12 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, writefile=Tr
             for w in range(len(coefs_vals_write)):
                 ind = coefs_vals_write[w]
                 if ind != "background" and ind != "symmetry":
+                    if isinstance(setting_class.fit_orders[y]["peak"][x][ind], list):
+                        coef_tmp = [ x for x in setting_class.fit_orders[y]["peak"][x][ind] if type(x)==int ]
+                    else:                        
+                        coef_tmp = setting_class.fit_orders[y]["peak"][x][ind]
                     max_coef[ind] = np.max(
-                        [max_coef[ind], np.max(2*setting_class.fit_orders[y]["peak"][x][ind])+1]
+                        [max_coef[ind], 2*np.max(coef_tmp)+1]
                     )
                 elif ind == "symmetry":
                     # symmetry might not be present in the fitting files.

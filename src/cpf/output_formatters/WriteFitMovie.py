@@ -131,12 +131,18 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     for y in range(len(data_fit)):   
         tmp1 = pd.DataFrame(data_range[y], index=list(range(len(data_range[y]))))
         tmp2 = pd.DataFrame(model_range[y], index=list(range(len(model_range[y]))))
-        Imax.append(np.max([tmp1["max"].max(),tmp2["max"].max()]))
-        Imin.append(np.min([tmp1["min"].min(),tmp2["min"].min()]))
+        Imax.append(np.nanmax([tmp1["max"].max(),tmp2["max"].max()]))
+        Imin.append(np.nanmin([tmp1["min"].min(),tmp2["min"].min()]))
         tmp3 = pd.DataFrame(resid_range[y], index=list(range(len(resid_range[y]))))
-        Rmax.append(tmp3["max"].max())
-        Rmin.append(tmp3["min"].min())
-        
+        if np.isnan(tmp3["max"].max()):
+            Rmax.append(Imax[-1])
+        else:
+            Rmax.append(tmp3["max"].max())
+        if np.isnan(tmp3["min"].min()):
+            Rmin.append(Imin[-1])
+        else:
+            Rmin.append(tmp3["min"].min())
+    
     duration = (setting_class.image_number)/fps
     
     for z in range(len(setting_class.fit_orders)):

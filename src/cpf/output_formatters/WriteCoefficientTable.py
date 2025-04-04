@@ -63,6 +63,9 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, writefile=Tr
         coefs_vals_write = "all"
     if isinstance(coefs_vals_write, str):
         coefs_vals_write = [coefs_vals_write]
+    if coefs_vals_write == ["all"]:
+        peak_properties = pf.peak_components(full=True)
+        coefs_vals_write = peak_properties[1]
 
     #make filename for output
     base = setting_class.datafile_basename
@@ -75,9 +78,6 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, writefile=Tr
 
     # get number of coefficients.
     num_subpatterns = len(setting_class.fit_orders)
-    peak_properties = pf.peak_components(full=True)
-    if coefs_vals_write == ["all"]:
-        coefs_vals_write = peak_properties[1]
     max_coef = {}
     for w in range(len(coefs_vals_write)):
         ind = coefs_vals_write[w]
@@ -91,10 +91,18 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, writefile=Tr
 
             for w in range(len(coefs_vals_write)):
                 ind = coefs_vals_write[w]
-                if ind != "background":
+                if ind != "background" and ind != "symmetry":
                     max_coef[ind] = np.max(
                         [max_coef[ind], np.max(2*setting_class.fit_orders[y]["peak"][x][ind])+1]
                     )
+                elif ind == "symmetry":
+                    # symmetry might not be present in the fitting files.
+                    try:
+                        max_coef[ind] = np.max(
+                            [max_coef[ind], np.max(2*setting_class.fit_orders[y]["peak"][x][ind])+1]
+                        )
+                    except:
+                        pass                    
                 else:
                     for v in range(len(setting_class.fit_orders[y][ind])):
                         if v > len(max_coef[ind])-1:
@@ -210,10 +218,12 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, writefile=Tr
                         
                                 
                 elif ind == "symmetry":
-                    if data_to_write["peak"][lists[z,2]][ind] is None:  # catch  'null' as an error
-                        data_to_write["peak"][lists[z,2]][ind] = np.nan
-                    RowLst[ind] = data_to_write["peak"][lists[z,2]][ind]
-                    
+                    try:
+                        if data_to_write["peak"][lists[z,2]][ind] is None:  # catch  'null' as an error
+                            data_to_write["peak"][lists[z,2]][ind] = np.nan
+                        RowLst[ind] = data_to_write["peak"][lists[z,2]][ind]
+                    except:
+                        pass
                     
                 else: #background
                     for u in range(len(data_to_write[ind])):

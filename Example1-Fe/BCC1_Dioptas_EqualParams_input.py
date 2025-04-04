@@ -43,14 +43,14 @@ Output_ElasticProperties = 'Properties_Fe-BCC.txt'
 # define ranges and peaks
 fit_orders = [
     {
-        "range": [[11.0, 11.7]],
+        "range": [11.0, 11.7],
         "background": [2, 0],
-        "background-type": "spline-cubic",
+        "background_type": "spline-cubic",
         "peak": [{
             "phase": "Other",
             "hkl": '000',
             "d-space": 2,
-            "d-space-type": "fourier",
+            "d-space_type": "fourier",
             "height": 1,
             "profile": 0,
             "width": 0,
@@ -60,7 +60,7 @@ fit_orders = [
               "hkl": 110,
               "d-space": [3, "1stOrderEqualPeak0"],
               "height": 16,
-              "height-type": "spline-cubic",
+              "height_type": "spline-cubic",
               "profile": [0, "0thOrderEqualPeak0"],
               #"profile_fixed": 1,
               "width": [0, "allEqualPeak0"],

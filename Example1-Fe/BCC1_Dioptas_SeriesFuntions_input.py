@@ -42,14 +42,14 @@ Output_ElasticProperties = 'Properties_Fe-BCC.txt'
 # define ranges and peaks
 fit_orders = [
     {
-        "range": [[11.0, 11.7]],
+        "range": [11.0, 11.7],
         "background": [2, 0],
-        "background-type": "spline-cubic",
+        "background_type": "spline-cubic",
         "peak": [{
             "phase": "Other",
             "hkl": '000',
             "d-space": [0,2], # restricted fourier series. 
-            "d-space-type": "fourier",
+            "d-space_type": "fourier",
             "height": 1,
             "profile": 0,
             "width": 0,
@@ -59,7 +59,7 @@ fit_orders = [
             "hkl": 110,
             "d-space": 3,
             "height": 16,
-            "height-type": "spline-cubic",
+            "height_type": "spline-cubic",
             "profile": 0,
             "width": 0,
             "symmetry": 2
@@ -95,10 +95,10 @@ fit_orders = [
             "phase": "Fe-BCC",
             "hkl": 200,
             "d-space": 3,
-            "height-type": "spline_linear",
+            "height_type": "spline_linear",
             "height": 8,
             "profile": 0,
-            "profile_fixed": 1,
+            "profile_fixed": [1],
             "width": 0,
             "symmetry": 2
             }],
@@ -112,7 +112,7 @@ fit_orders = [
             "hkl": 211,
             "d-space": 3,
             "height": 8,
-            "height-type": "quadratic",
+            "height_type": "quadratic",
             "profile": 1,
             "profile_fixed": [0.5, 0.25, 0.25],
             "width": 0,
@@ -120,14 +120,14 @@ fit_orders = [
             }],
     },
     {
-        "range": [[23.1, 23.5]],
+        "range": [23.1, 23.5],
         "imax":25,
         "background": [2, 2],
         "peak": [{
             "phase": "Fe-BCC",
             "hkl": 220,
             "d-space": 2,
-            "d-space-type":"spline_cubic_open",
+            "d-space_type":"spline_cubic_open",
             "height": 8,
             "profile": 0,
             "width": 0,
@@ -151,10 +151,10 @@ fit_orders = [
             "d-space": [0,1,3], # restricted fourier series. 
             "height": 1,
             "profile": 0,
-            "profile-type":"spline_cubic_open",
-            "profile_fixed": 0.5,
+            "profile_type":"spline_cubic_open",
+            "profile_fixed": [0.5],
             "width": 0,
-            "width-type":"quadratic",
+            "width_type":"quadratic",
             "symmetry": 2
             }],
     }

@@ -41,7 +41,7 @@ Output_ElasticProperties = 'Properties_Fe-BCC.txt'
 # define ranges and peaks
 fit_orders = [
     {
-        "range": [[11.0, 11.7]],
+        "range": [11.0, 11.7],
         "background": [2, 0],
         "peak": [{
             "phase": "Other",
@@ -93,7 +93,7 @@ fit_orders = [
             "d-space": 3,
             "height": 8,
             "profile": 0,
-            "profile_fixed": 1,
+            "profile_fixed": [1],
             "width": 0,
             "symmetry": 2
             }],
@@ -114,7 +114,7 @@ fit_orders = [
             }],
     },
     {
-        "range": [[23.1, 23.5]],
+        "range": [23.1, 23.5],
         "imax":25,
         "background": [2, 2],
         "peak": [{
@@ -144,7 +144,7 @@ fit_orders = [
             "d-space": 2,
             "height": 1,
             "profile": 0,
-            "profile_fixed": 0.5,
+            "profile_fixed": [0.5],
             "width": 0,
             "symmetry": 2
             }],

@@ -46,12 +46,14 @@ The sample in these examples is BCC iron at c. 2 GPa.
 5. **'BCC1_Dioptas_ConstrainedParams_input.py' -- parameter constraint test**
     This example demonstrates foring the coeficcients in two peaks in the same range to have the same values. It is only applicable to ranges with more than 1 peak.
 
-6. **'BCC1_Dioptas_PeakShape_input.py' -- test of different peak shape test**
+6. **'BCC1_Dioptas_h5_input.py' -- test of h5 file functions**
+    Implemented. No test file though.
+
+8. **'BCC1_Dioptas_ImPrepare_input.py' -- test of different image pre-filtering functions**
+    Partially implemented. Not completed. No test file
+
+8. **'BCC1_Dioptas_PeakShape_input.py' -- test of different peak shape test**
     Not implmented
-
-7. **'BCC1_Dioptas_ImPrepare_input.py' -- test of different image pre-filtering functions**
-    Not completed. 
-
 
 Example 2: Angle dispersive X-ray diffraction
 =====================================

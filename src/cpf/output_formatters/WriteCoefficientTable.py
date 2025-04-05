@@ -119,6 +119,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, writefile=Tr
     headers = []
     headers.append("DataFile")
     headers.append("Peak")
+    headers.append("Range_start")
+    headers.append("Range_end")
     
     #parmeter header list
     for w in range(len(max_coef)):
@@ -201,6 +203,9 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, writefile=Tr
                 out_peak = out_peak + " " + str([lists[z,2]])
             RowLst["DataFile"] = out_name
             RowLst["Peak"] = out_peak
+            
+            RowLst["Range_start"] = data_to_write["range"][0][0]
+            RowLst["Range_end"] = data_to_write["range"][0][1]
             
             for w in range(len(coefs_vals_write)):
                 ind = coefs_vals_write[w]

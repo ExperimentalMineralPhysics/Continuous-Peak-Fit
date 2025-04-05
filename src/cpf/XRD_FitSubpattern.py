@@ -725,7 +725,7 @@ def fit_sub_pattern(
         {
             "range": [
                 [data_as_class.tth.min(), data_as_class.tth.max()],
-                data_as_class.conversion(np.array(data_as_class.tth.min(), data_as_class.tth.max())),
+                data_as_class.conversion([data_as_class.tth.min(), data_as_class.tth.max()]),
             ]
         }
     )
@@ -958,7 +958,7 @@ def plot_FitAndModel(settings_as_class, data_as_class, modelresult=None,
                 )
             )
         else:
-            fit_centroid.append(np.zeros(azi_plot.shape))
+            fit_centroid.append(np.full(azi_plot.shape, np.nan)) #np.zeros(azi_plot.shape))
 
     # plot the data and the fit
     data_as_class.plot_fitted(

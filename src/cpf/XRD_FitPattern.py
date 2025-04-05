@@ -755,7 +755,7 @@ def execute(
             tth_range = np.array(settings_for_fit.subfit_orders["range"])
             if settings_for_fit.fit_track is True and "previous_fit" in locals():
                 clean = any_terms_null(params, val_to_find=None)
-                if clean == 0:
+                if not clean:
                     # the previous fit has problems so discard it
                     logger.moreinfo(" ".join(map(str, [("Tracking peak centre but propagated fit has problems. Not sensible to track the centre of the fit for this step.")])))
                     params = []
@@ -766,9 +766,7 @@ def execute(
                         # FIXME: replace with caluculation of mean d-spacing.
 
                     cent = new_data.conversion(np.mean(mid), reverse=True)
-                    
                     move_by = cent - np.mean(tth_range)
-                    move_by = move_by[0] #this is needed to turn move_by from array to float
 
                     # update tth_range and settings 
                     tth_range = tth_range + move_by

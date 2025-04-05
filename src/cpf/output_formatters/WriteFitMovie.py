@@ -99,6 +99,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     data_range  = [ [] for i in range(len(setting_class.fit_orders))]
     model_range = [ [] for i in range(len(setting_class.fit_orders))]
     resid_range = [ [] for i in range(len(setting_class.fit_orders))]
+    dispersion_range = [ [] for i in range(len(setting_class.fit_orders))]
     for z in range(setting_class.image_number):
         setting_class.set_subpattern(z, 0)
         # read fit file
@@ -111,6 +112,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
         with open(json_file) as json_data:
             data_fit = json.load(json_data)
         for y in range(len(data_fit)):
+            dispersion_range[y].append(data_fit[y]["range"][0])
             data_range[y].append(data_fit[y]["DataProperties"])
             try:
                 # try to see if model range is in the json file. If it is not 
@@ -190,7 +192,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
             # restrict data to the right part.           
             sub_data = data_class.duplicate()
             setting_class.set_subpattern(y[int(t*fps)], z)
-            sub_data.set_limits(range_bounds=setting_class.subfit_orders["range"])
+            sub_data.set_limits(range_bounds=dispersion_range[z][y[int(t*fps)]])
 
             # Mask the subpattern by intensity if called for
             if (
@@ -217,7 +219,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
                                    params_dict=data_fit, 
                                    figure=fig,
                                    plot_ColourRange={"max": Imax[z], "min": Imin[z], "rmin": Rmin[z], "rmax": Rmax[z]})
-            title_str = (IO.peak_string(setting_class.subfit_orders)+"; " + str(y[int(t*fps)]) +"/" + 
+            title_str = (IO.peak_string(setting_class.subfit_orders)+"; " + str(y[int(t*fps)]+1) +"/" + 
                             str(setting_class.image_number) + "\n" +
                             IO.title_file_names(setting_class, num=y[int(t*fps)], image_name=setting_class.subfit_filename)
                             )

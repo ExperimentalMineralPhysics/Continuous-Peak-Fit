@@ -589,6 +589,8 @@ class MedDetector:
         :param reverse:
         :return:
         """
+        e_in = np.array(e_in)
+        
         # convert energy into d-spacing.
         if azm is not None:
             e_in = np.array([[azm, e_in]])
@@ -637,7 +639,7 @@ class MedDetector:
                 )
             dspc_out = np.array(dspc_out)
 
-        return dspc_out
+        return np.squeeze(np.array(dspc_out))
 
 
     def bins(self, orders_class, **kwargs):

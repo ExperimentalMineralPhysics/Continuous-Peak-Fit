@@ -61,6 +61,7 @@ class _AngleDispersive_common():
         :param azm:
         :return:
         """
+        tth_in = np.array(tth_in)
         
         if isinstance(tth_in, list):
             tth_in = np.array(tth_in)
@@ -83,7 +84,7 @@ class _AngleDispersive_common():
             
         if a==True:
             dspc_out = list(dspc_out)
-        return dspc_out
+        return np.squeeze(np.array(dspc_out))
     
     
 

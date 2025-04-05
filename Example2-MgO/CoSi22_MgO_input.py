@@ -10,20 +10,18 @@ datafile_Ending    = ".med"
 datafile_Files     = [#6, 9, 11, 13, 15, 17, 
                       19, 21, 23, 25, 27, 29, 31, 
                       33, 35, 37, 39, 41, 43, 45, 47, 49, 51, 53, 55, 57, 59,
-                      61, 63, 65, 67, #69, #71, 73
-                      ]
+                      61, 63, 65, 67]
 datafile_NumDigit  = 4
 
 # Calibration and masking.
 Calib_type     = 'Med'
 Calib_detector = '10-element'
-#Calib_detector = 'W2010_10element_moved.txt'
 Calib_data     = "COSI_021_0001.med"
 Calib_param    = 'COSI_021_0001.med'
 Calib_mask     = [5,10]
 
 # Fitting properties for peaks.
-fit_track = True
+fit_track = False
 fit_propagate = True
 fit_bounds = {
               "background": ['0.9*min', 'max'],
@@ -57,7 +55,7 @@ fit_orders = [
             }],
         },
         {
-          "range": [51.8, 53.3],
+          "range": [51.2, 53.3],
           "background": [3],
           "background_type": "independent",
           "peak": [{
@@ -73,7 +71,7 @@ fit_orders = [
             }],
         },
         {
-          "range": [73.0, 75.5],
+          "range": [72.0, 75.5],
           "background": [3],
           "background_type": "independent",
           "peak": [{
@@ -90,7 +88,7 @@ fit_orders = [
         },
         # MgO(311) is overlapped and ignored.
         {
-          "range": [89.5, 91.7],
+          "range": [88.5, 91.7],
           "background": [3,3],
           "background_type": "independent",
           "peak": [{

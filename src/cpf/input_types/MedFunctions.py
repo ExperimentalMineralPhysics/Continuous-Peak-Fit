@@ -443,8 +443,8 @@ class MedDetector:
         mask_array = self.get_mask(mask, debug=debug)
         self.mask_apply(mask_array, debug=debug)
         
-        self.azm_start = np.around(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        self.azm_end   = np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        self.azm_start = np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        self.azm_end   =  np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
         self.tth_start = np.min(self.tth.flatten()) #not two theta but energy but needs same name for consistecy.
         self.tth_end   = np.max(self.tth.flatten()) #not two theta but energy but needs same name for consistecy.
 

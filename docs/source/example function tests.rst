@@ -61,13 +61,14 @@ Example 2: Angle dispersive X-ray diffraction
 The sample in these examples is MgO at c. 4 GPa. 
 The data was collected at the X17B2 beamline at the NSLS, using the 10-element detector of Weidner et al (2010). 
 
-1. **'BCC1_MED_input.py' -- basic test**
+1. **'Co22_MgO_input.py' -- basic test**
     This function tests the basic fitting and outputs with no constraints on the fit. The series are all the default Fourier series. 
 
+2. **'Co22_MgO_Track_input.py' -- track centrod test**
+    Run fitting tracking the centroid.
 
+3. **'Co22_MgO_Reverse_input.py' -- run backwards test**
+    Run fitting in reverse order. 
 
-
-CoSi_22_MgO_TfromTC_input.py
-CoSi_22_MgO_input_start17down.py
-CoSi_22_MgO_input_start19.py
-CoSi_22_MgO_input_start19_fourier.py
+4. **'Co22_MgO_DetectorPosition_input.py' -- detctor position test**
+    Set detector positions from data file, rather than using defaults and fit. 

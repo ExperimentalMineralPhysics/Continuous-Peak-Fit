@@ -230,6 +230,10 @@ class ESRFlvpDetector():
         new.azm       = deepcopy(self.azm[local_mask])
         if "dspace" in dir(self):
             new.dspace = deepcopy(self.dspace[local_mask])
+            
+        #set nee range.
+        new.tth_start = range_bounds[0]
+        new.tth_end   = range_bounds[1]
         
         if "x" in dir(self): 
             if self.x is not None:
@@ -721,7 +725,9 @@ class ESRFlvpDetector():
         # in a separate function?
                
         self.azm_start = np.floor(self.azm.min() / self.azm_blocks) * self.azm_blocks
-        self.azm_end = np.ceil(self.azm.max() / self.azm_blocks) * self.azm_blocks
+        self.azm_end   = np.ceil(self.azm.max() / self.azm_blocks) * self.azm_blocks
+        self.tth_start = np.min(self.tth.flatten())
+        self.tth_end   = np.max(self.tth.flatten())
         
         
   

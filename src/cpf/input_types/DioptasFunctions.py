@@ -108,6 +108,10 @@ class DioptasDetector:
         if "dspace" in dir(self):
             new.dspace = deepcopy(self.dspace[local_mask])
         
+        #set nee range.
+        new.tth_start = range_bounds[0]
+        new.tth_end   = range_bounds[1]
+        
         if "x" in dir(self): 
             if self.x is not None:
                 new.x = deepcopy(self.x[local_mask])
@@ -407,9 +411,10 @@ class DioptasDetector:
         self.mask_apply(mask_array, debug=debug)
 
         self.azm_start = np.around(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        self.azm_end = np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-
-
+        self.azm_end   = np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        self.tth_start = np.min(self.tth.flatten())
+        self.tth_end   = np.max(self.tth.flatten())
+        
 
     @staticmethod
     def detector_check(calibration_data, settings=None):

@@ -115,6 +115,10 @@ class MedDetector:
         new.tth       = deepcopy(self.tth[local_mask])
         new.azm       = deepcopy(self.azm[local_mask])
         
+        #set nee range.
+        new.tth_start = range_bounds[0]
+        new.tth_end   = range_bounds[1]
+        
         new.intensity = new.intensity[new.intensity.mask==False]
         new.tth       = new.tth[new.tth.mask==False]
         new.azm       = new.azm[new.azm.mask==False]
@@ -440,8 +444,9 @@ class MedDetector:
         self.mask_apply(mask_array, debug=debug)
         
         self.azm_start = np.around(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        self.azm_end = np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        
+        self.azm_end   = np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        self.tth_start = np.min(self.tth.flatten()) #not two theta but energy but needs same name for consistecy.
+        self.tth_end   = np.max(self.tth.flatten()) #not two theta but energy but needs same name for consistecy.
 
 
     @staticmethod

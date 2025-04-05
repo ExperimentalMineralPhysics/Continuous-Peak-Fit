@@ -760,6 +760,8 @@ def execute(
                     logger.moreinfo(" ".join(map(str, [("Tracking peak centre but propagated fit has problems. Not sensible to track the centre of the fit for this step.")])))
                     params = []
                 else:
+                    #if tacking things start from positon of previous fit positions 
+                    tth_range = previous_fit[i]["range"][0]
                     mid = []
                     for k in range(len(params["peak"])):
                         mid.append(params["peak"][k]["d-space"][0])

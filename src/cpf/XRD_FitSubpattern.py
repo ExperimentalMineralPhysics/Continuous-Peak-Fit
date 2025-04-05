@@ -724,8 +724,8 @@ def fit_sub_pattern(
     new_params.update(
         {
             "range": [
-                [data_as_class.tth.min(), data_as_class.tth.max()],
-                data_as_class.conversion([data_as_class.tth.min(), data_as_class.tth.max()]),
+                [data_as_class.tth_start, data_as_class.tth_end],
+                data_as_class.conversion([data_as_class.tth_start, data_as_class.tth_end]),
             ]
         }
     )

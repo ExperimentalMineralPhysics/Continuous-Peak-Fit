@@ -18,7 +18,6 @@ Calib_detector = 'Pilatus1M'
 Calib_data     = "CeO2_Pil207_E30_2Nov2016_001.tif"
 Calib_param    = "CeO2_cal_Dioptas.poni"
 Calib_mask     = "DiffractionMask_Dioptas.mask"
-Calib_pixels = 172
 
 #Output settings
 Output_directory   = 'results'

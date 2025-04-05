@@ -717,6 +717,7 @@ def execute(
             os.path.isfile(temporary_data_file)
             and settings_for_fit.fit_propagate is True
             and mode == "fit"
+            and j != 0 #not the first data in series.
         ):
             # Read JSON data from file
             logger.moreinfo(" ".join(map(str, [("Loading previous fit results from %s" % temporary_data_file)])))

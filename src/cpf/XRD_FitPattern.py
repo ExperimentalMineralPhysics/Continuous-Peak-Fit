@@ -626,14 +626,18 @@ def execute(
     initialise_logger(settings_file=settings_file, report=report)
 
     if settings_class is None:
-        settings_for_fit = initiate(settings_file, inputs=inputs, report=report)
+        settings_for_fit = initiate(
+            settings_file=settings_file,
+            inputs=inputs,
+            report=report,
+        )
     else:
         settings_for_fit = settings_class
     new_data = settings_for_fit.data_class
 
     # Define locally required names
     temporary_data_file = make_outfile_name(
-        "PreviousFit_JSON",
+        base_filename="PreviousFit_JSON",
         directory=settings_for_fit.output_directory,
         extension=".dat",
         overwrite=True,

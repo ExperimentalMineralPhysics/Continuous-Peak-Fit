@@ -521,6 +521,9 @@ class ESRFlvpDetector():
         
         # if mask is False and ma.is_masked(self.intensity) == True:
         #     mask =self.intensity.mask
+        if lg.make_logger_output(level="moreinfo"):  
+            import time
+            st = time.time()
             
         if self.intensity is None:
             
@@ -550,7 +553,10 @@ class ESRFlvpDetector():
         # ESRF and LVP beamline multidetector objects. 
         # I (SAH) do not believe this is the same feature as the Dioptas and Fit2D 
         # adjustment required in the Dioptas class. 
-        
+        if lg.make_logger_output(level="moreinfo"):  
+            logger.moreinfo(" ".join(map(str, [f"Image import took {time.time()-st} seconds"] )) )
+            # print("image import took", time.time()-st, "seconds")
+            
         if max(angles) - min(angles) >= 45:
             self.azm_blocks = 45
         

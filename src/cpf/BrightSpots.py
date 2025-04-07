@@ -55,9 +55,9 @@ def SpotProcess(sub_data, settings_for_fit):
                 if isinstance(settings_for_fit.subfit_orders["imax"]["limit"], str):
                     imax = np.percentile(sub_data.intensity.compressed(), float(settings_for_fit.subfit_orders["imax"]["limit"].strip('%')))
                 else:
-                    imax = int(settings_for_fit.subfit_orders["imax"]["limit"])
+                    imax = settings_for_fit.subfit_orders["imax"]["limit"]
         else:
-            imax = int(settings_for_fit.subfit_orders["imax"])
+            imax = settings_for_fit.subfit_orders["imax"]
             
     if "imin" in settings_for_fit.subfit_orders:
         if isinstance(settings_for_fit.subfit_orders["imin"], str):
@@ -67,9 +67,9 @@ def SpotProcess(sub_data, settings_for_fit):
                 if isinstance(settings_for_fit.subfit_orders["imin"]["limit"], str):
                     imax = np.percentile(sub_data.intensity.compressed(), float(settings_for_fit.subfit_orders["imin"]["limit"].strip('%')))
                 else:
-                    imax = int(settings_for_fit.subfit_orders["imin"]["limit"])
+                    imax = settings_for_fit.subfit_orders["imin"]["limit"]
         else:
-            imin = int(settings_for_fit.subfit_orders["imin"])
+            imin = settings_for_fit.subfit_orders["imin"]
             
     sub_data.set_mask(intensity_bounds=[imin, imax])#(i_min=imin, i_max=imax)
 

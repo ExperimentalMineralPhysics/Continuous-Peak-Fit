@@ -885,4 +885,7 @@ def clean_errs(error_values, outliers=5):
 
     error_values[s>outliers] = np.nanmedian(error_values) + outliers * err_stdev 
 
+    #remove nan values from error_values
+    error_values[np.isnan(error_values)] = np.nanmedian(error_values) + outliers * err_stdev * 10
+
     return error_values

@@ -928,11 +928,17 @@ def coefficient_fit(
     new_errs = errs[idx]
     # FIX ME: what happens if all new_errs is None?
     # DMF: I've fudged this for now to test Example 1 from start
+    # SAH : I have removed this (April 2025). I dont think that it is needed any more. 
     # try:
     #     new_errs[np.isnan(new_errs)] = 1000 * np.nanmax(new_errs)
     # except TypeError:
     #     new_errs[:] = 0.5  # Need to talk to Simon about this!!!
-    new_errs = new_errs.astype("float64")
+    # new_errs = new_errs.astype("float64")
+    
+    #replace any Nans in the errors with a large value. 
+    # this is instead of setting the nan_policy to "omit" which generates its own set of errors. 
+    new_errs[np.isnan(new_errs)] = 1000 * np.nanmax(new_errs)
+    
     out = f_model.fit(
         ydata[idx],
         inp_param,

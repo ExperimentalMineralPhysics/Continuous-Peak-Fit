@@ -929,7 +929,7 @@ def coefficient_fit(
     # FIX ME: what happens if all new_errs is None?
     # DMF: I've fudged this for now to test Example 1 from start
     # try:
-    #     new_errs[new_errs is None] = 1000 * new_errs[new_errs is not None].max()
+    #     new_errs[np.isnan(new_errs)] = 1000 * np.nanmax(new_errs)
     # except TypeError:
     #     new_errs[:] = 0.5  # Need to talk to Simon about this!!!
     new_errs = new_errs.astype("float64")
@@ -942,7 +942,7 @@ def coefficient_fit(
         method=fit_method,
         weights=1/new_errs,
         # comp_str=param_str,
-        nan_policy="omit", #"propagate",
+        nan_policy="propagate", #"omit", #
         max_nfev = max_nfev
     )
     return out

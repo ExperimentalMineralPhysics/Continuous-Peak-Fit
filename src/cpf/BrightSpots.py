@@ -49,11 +49,11 @@ def SpotProcess(sub_data, settings_for_fit):
     imin = -np.inf
     if "imax" in settings_for_fit.subfit_orders:
         if isinstance(settings_for_fit.subfit_orders["imax"], str):
-            imax = np.percentile(sub_data.intensity.flatten(), float(settings_for_fit.subfit_orders["imax"].strip('%')))
+            imax = np.percentile(sub_data.intensity.compressed(), float(settings_for_fit.subfit_orders["imax"].strip('%')))
         elif isinstance(settings_for_fit.subfit_orders["imax"], dict):
-            if np.max(sub_data.intensity.flatten()) > settings_for_fit.subfit_orders["imax"]["abovebelow"]:
+            if np.max(sub_data.intensity.compressed()) > settings_for_fit.subfit_orders["imax"]["abovebelow"]:
                 if isinstance(settings_for_fit.subfit_orders["imax"]["limit"], str):
-                    imax = np.percentile(sub_data.intensity.flatten(), float(settings_for_fit.subfit_orders["imax"]["limit"].strip('%')))
+                    imax = np.percentile(sub_data.intensity.compressed(), float(settings_for_fit.subfit_orders["imax"]["limit"].strip('%')))
                 else:
                     imax = int(settings_for_fit.subfit_orders["imax"]["limit"])
         else:
@@ -61,11 +61,11 @@ def SpotProcess(sub_data, settings_for_fit):
             
     if "imin" in settings_for_fit.subfit_orders:
         if isinstance(settings_for_fit.subfit_orders["imin"], str):
-            imin = np.percentile(sub_data.intensity.flatten(), float(settings_for_fit.subfit_orders["imin"].strip('%')))
+            imin = np.percentile(sub_data.intensity.compressed(), float(settings_for_fit.subfit_orders["imin"].strip('%')))
         elif isinstance(settings_for_fit.subfit_orders["imin"], dict):
-            if np.max(sub_data.intensity.flatten()) > settings_for_fit.subfit_orders["imin"]["abovebelow"]:
+            if np.max(sub_data.intensity.compressed()) > settings_for_fit.subfit_orders["imin"]["abovebelow"]:
                 if isinstance(settings_for_fit.subfit_orders["imin"]["limit"], str):
-                    imax = np.percentile(sub_data.intensity.flatten(), float(settings_for_fit.subfit_orders["imin"]["limit"].strip('%')))
+                    imax = np.percentile(sub_data.intensity.compressed(), float(settings_for_fit.subfit_orders["imin"]["limit"].strip('%')))
                 else:
                     imax = int(settings_for_fit.subfit_orders["imin"]["limit"])
         else:

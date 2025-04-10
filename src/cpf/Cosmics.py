@@ -17,7 +17,7 @@ I pimped this a bit to suit my needs :
     This feature is mainly for pretty-image production. It is optional, requires one more parameter (a CCD saturation
     level in ADU), and uses some
     nicely robust morphology operations and object extraction.
-    
+
     - Scipy image analysis allows to "label" the actual cosmic ray hits (i.e. group the pixels into local islands).
     A bit special, but I use this in the scope of visualizing a PSF construction.
 But otherwise the core is really a 1-to-1 implementation of L.A.Cosmic, and uses the same parameters.
@@ -43,16 +43,18 @@ Malte Tewes, January 2010
 Copied from Dioptas (https://github.com/Dioptas) on 17th May 2021.
 """
 
-
 __version__ = "0.4"
 
-import os
-import numpy as np
 import math
-import scipy.signal as signal
-import scipy.ndimage as ndimage
-from cpf.XRD_FitPattern import logger
+import os
 
+import numpy as np
+import scipy.ndimage as ndimage
+import scipy.signal as signal
+
+from cpf.logging import CPFLogger
+
+logger = CPFLogger("cpf.Cosmics")
 
 # We define the laplacian kernel to be used
 laplkernel = np.array([[0.0, -1.0, 0.0], [-1.0, 4.0, -1.0], [0.0, -1.0, 0.0]])
@@ -250,7 +252,9 @@ class cosmicsimage:
             mask = self.mask
 
         if verbose:
-            logger.info(" ".join(map(str, [("     Cleaning cosmic affected pixels ...")])))
+            logger.info(
+                " ".join(map(str, [("     Cleaning cosmic affected pixels ...")]))
+            )
 
         # So... mask is a 2D array containing False and True, where True means "here is a cosmic"
         # We want to loop through these cosmics one by one.
@@ -295,7 +299,9 @@ class cosmicsimage:
             else:
                 # i.e. no good pixels : Shit, a huge cosmic, we will have to
                 # improvise ...
-                logger.info(" ".join(map(str, [("OH NO, I HAVE A HUUUUUUUGE COSMIC !!!!!")])))
+                logger.info(
+                    " ".join(map(str, [("OH NO, I HAVE A HUUUUUUUGE COSMIC !!!!!")]))
+                )
                 replacementvalue = self.guessbackgroundlevel()
 
             # We update the cleanarray,
@@ -351,7 +357,9 @@ class cosmicsimage:
         satstarscenters = np.logical_and(largestruct, satpixels)
 
         if verbose:
-            logger.info(" ".join(map(str, [("     Building mask of saturated stars ...")])))
+            logger.info(
+                " ".join(map(str, [("     Building mask of saturated stars ...")]))
+            )
 
         # BUILDING THE MASK
         # The subtility is that we want to include all saturated pixels connected to these saturated stars...
@@ -377,7 +385,9 @@ class cosmicsimage:
         # tofits(dilsatlabels, "test.fits")
 
         if verbose:
-            logger.info(" ".join(map(str, [("     We have %i saturated stars." % nsat)])))
+            logger.info(
+                " ".join(map(str, [("     We have %i saturated stars." % nsat)]))
+            )
 
         # The ouput, False for now :
         outmask = np.zeros(self.rawarray.shape)
@@ -452,7 +462,11 @@ class cosmicsimage:
             verbose = self.verbose
 
         if verbose:
-            logger.info(" ".join(map(str, [("     Convolving image with Laplacian kernel ...")])))
+            logger.info(
+                " ".join(
+                    map(str, [("     Convolving image with Laplacian kernel ...")])
+                )
+            )
 
         # We subsample, convolve, clip negative values, and rebin to original
         # size
@@ -475,7 +489,11 @@ class cosmicsimage:
         )
 
         if verbose:
-            logger.info(" ".join(map(str, [("     Calculating Laplacian signal to noise ratio ...")])))
+            logger.info(
+                " ".join(
+                    map(str, [("     Calculating Laplacian signal to noise ratio ...")])
+                )
+            )
 
         # Laplacian signal to noise ratio :
         s = lplus / (2.0 * noise)  # the 2.0 is from the 2x2 subsampling
@@ -485,14 +503,18 @@ class cosmicsimage:
         sp = s - ndimage.filters.median_filter(s, size=5, mode="mirror")
 
         if verbose:
-            logger.info(" ".join(map(str, [("     Selecting candidate cosmic rays ...")])))
+            logger.info(
+                " ".join(map(str, [("     Selecting candidate cosmic rays ...")]))
+            )
 
         # Candidate cosmic rays (this will include stars + HII regions)
         candidates = sp > self.sigclip
         nbcandidates = np.sum(candidates)
 
         if verbose:
-            logger.info(" ".join(map(str, [("       %5i candidate pixels" % nbcandidates)])))
+            logger.info(
+                " ".join(map(str, [("       %5i candidate pixels" % nbcandidates)]))
+            )
 
         # At this stage we use the saturated stars to mask the candidates, if
         # available :
@@ -503,10 +525,24 @@ class cosmicsimage:
             nbcandidates = np.sum(candidates)
 
             if verbose:
-                logger.info(" ".join(map(str, [("       %5i candidate pixels not part of saturated stars" % nbcandidates)])))
+                logger.info(
+                    " ".join(
+                        map(
+                            str,
+                            [
+                                (
+                                    "       %5i candidate pixels not part of saturated stars"
+                                    % nbcandidates
+                                )
+                            ],
+                        )
+                    )
+                )
 
         if verbose:
-            logger.info(" ".join(map(str, [("     Building fine structure image ...")])))
+            logger.info(
+                " ".join(map(str, [("     Building fine structure image ...")]))
+            )
 
         # We build the fine structure image :
         m3 = ndimage.filters.median_filter(self.cleanarray, size=3, mode="mirror")
@@ -521,7 +557,11 @@ class cosmicsimage:
         f = f.clip(min=0.01)
 
         if verbose:
-            logger.info(" ".join(map(str, [("     Removing suspected compact bright objects ...")])))
+            logger.info(
+                " ".join(
+                    map(str, [("     Removing suspected compact bright objects ...")])
+                )
+            )
 
         # Now we have our better selection of cosmics :
         cosmics = np.logical_and(candidates, sp / f > self.objlim)
@@ -530,13 +570,28 @@ class cosmicsimage:
         nbcosmics = np.sum(cosmics)
 
         if verbose:
-            logger.info(" ".join(map(str, [("       %5i remaining candidate pixels" % nbcosmics)])))
+            logger.info(
+                " ".join(
+                    map(str, [("       %5i remaining candidate pixels" % nbcosmics)])
+                )
+            )
 
         # What follows is a special treatment for neighbors, with more relaxed
         # constains.
 
         if verbose:
-            logger.info(" ".join(map(str, [("     Finding neighboring pixels affected by cosmic rays ...")])))
+            logger.info(
+                " ".join(
+                    map(
+                        str,
+                        [
+                            (
+                                "     Finding neighboring pixels affected by cosmic rays ..."
+                            )
+                        ],
+                    )
+                )
+            )
 
         # We grow these cosmics a first time to determine the immediate
         # neighborhod  :
@@ -573,7 +628,11 @@ class cosmicsimage:
         nbfinal = np.sum(finalsel)
 
         if verbose:
-            logger.info(" ".join(map(str, [("       %5i pixels detected as cosmics" % nbfinal)])))
+            logger.info(
+                " ".join(
+                    map(str, [("       %5i pixels detected as cosmics" % nbfinal)])
+                )
+            )
 
         # Now the replacement of the cosmics...
         # we outsource this to the function clean(), as for some purposes the cleaning might not even be needed.
@@ -607,17 +666,17 @@ class cosmicsimage:
         """
         if verbose == None:
             verbose = self.verbose
-        
+
         if verbose :
             print "Finding holes ..."
         m3 = ndimage.filters.median_filter(self.cleanarray, size=3, mode='mirror')
         h = (m3 - self.cleanarray).clip(min=0.0)
-        
+
         tofits("h.fits", h)
         sys.exit()
-        
+
         # The holes are the peaks in this image that are not stars
-    
+
         #holes = h > 300
         """
         """
@@ -625,20 +684,20 @@ class cosmicsimage:
         conved = -signal.convolve2d(subsam, laplkernel, mode="same", boundary="symm")
         cliped = conved.clip(min=0.0)
         lplus = rebin2x2(conved)
-        
+
         tofits("lplus.fits", lplus)
-        
+
         m5 = ndimage.filters.median_filter(self.cleanarray, size=5, mode='mirror')
         m5clipped = m5.clip(min=0.00001)
         noise = (1.0/self.gain) * np.sqrt(self.gain*m5clipped + self.readnoise*self.readnoise)
- 
+
         s = lplus / (2.0 * noise) # the 2.0 is from the 2x2 subsampling
         # This s is called sigmap in the original lacosmic.cl
-        
+
         # We remove the large structures (s prime) :
         sp = s - ndimage.filters.median_filter(s, size=5, mode='mirror')
-        
-        holes = sp > self.sigclip   
+
+        holes = sp > self.sigclip
         """
         """
         # We have to kick out pixels on saturated stars :
@@ -646,10 +705,10 @@ class cosmicsimage:
             if verbose:
                 print "Masking saturated stars ..."
             holes = np.logical_and(np.logical_not(self.satstars), holes)
-        
+
         if verbose:
             print "%i hole pixels found" % np.sum(holes)
-        
+
         # We update the mask with the holes we have found :
         self.mask = np.logical_or(self.mask, holes)
         """
@@ -671,7 +730,19 @@ class cosmicsimage:
             logger.info(" ".join(map(str, [("Iteration %i" % i)])))
 
             iterres = self.lacosmiciteration(verbose=verbose)
-            logger.info(" ".join(map(str, [("%i cosmic pixels (%i new)" % (iterres["niter"], iterres["nnew"]))])))
+            logger.info(
+                " ".join(
+                    map(
+                        str,
+                        [
+                            (
+                                "%i cosmic pixels (%i new)"
+                                % (iterres["niter"], iterres["nnew"])
+                            )
+                        ],
+                    )
+                )
+            )
 
             # self.clean(mask = iterres["mask"]) # No, we want clean to operate on really clean pixels only !
             # Thus we always apply it on the full mask, as lacosmic does :
@@ -713,7 +784,7 @@ def subsample(a):  # this is more a generic function then a method ...
     # Ouuwww this is slow ...
     outarray = np.zeros((a.shape[0]*2, a.shape[1]*2), dtype=np.float64)
     for i in range(a.shape[0]):
-        for j in range(a.shape[1]): 
+        for j in range(a.shape[1]):
             outarray[2*i,2*j] = a[i,j]
             outarray[2*i+1,2*j] = a[i,j]
             outarray[2*i,2*j+1] = a[i,j]
@@ -761,4 +832,3 @@ def rebin2x2(a):
         raise RuntimeError("I want even image shapes !")
 
     return rebin(a, inshape / 2)
-

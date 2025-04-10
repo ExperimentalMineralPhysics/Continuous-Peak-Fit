@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Functions describing the fourier or spline series used as parameter sets for the 
+Functions describing the fourier or spline series used as parameter sets for the
 peak shape and background properties.
 """
 
@@ -23,10 +23,13 @@ __all__ = [
 
 import numpy as np
 import numpy.ma as ma
-from scipy.interpolate import make_interp_spline, CubicSpline
+from scipy.interpolate import CubicSpline, make_interp_spline
+
 import cpf.peak_functions as pf
 import cpf.series_constraints as sc
-from cpf.XRD_FitPattern import logger
+from cpf.logging import CPFLogger
+
+logger = CPFLogger("cpf.series_functions")
 
 
 def coefficient_types():
@@ -159,34 +162,34 @@ def get_series_mean(param, param_str, comp=None):
     :param comp: component to add to base string to select parameters
     :return: weighted mean of parameters
     """
-    
+
     # if comp is not None:
     #     new_str = param_str + "_" + comp
     # else:
     #     new_str = param_str
-    
-    # FIX ME: here we need to be able to discard the outliers. 
+
+    # FIX ME: here we need to be able to discard the outliers.
     # We should use the medaian and the mean deviation from the median...
-    
-    if get_series_type(param, param_str, comp=comp)==0:
-        #if it is a Fourier series just get the first value. 
-        mean = (param[param_str+"_"+comp+"0"].value)
+
+    if get_series_type(param, param_str, comp=comp) == 0:
+        # if it is a Fourier series just get the first value.
+        mean = param[param_str + "_" + comp + "0"].value
     else:
         # get a mean of all the coefficients
         mean_tmp = []
         done = 0
         n = 0
-        while done==0:
+        while done == 0:
             try:
-                mean_tmp.append(param[param_str+"_"+comp+str(n)].value)
-                n = n+1
+                mean_tmp.append(param[param_str + "_" + comp + str(n)].value)
+                n = n + 1
             except:
                 # now we have run out of coefficients. So get the mean and then leave the loop.
                 mean = np.mean(mean_tmp)
                 done = 1
-    
+
     return mean
-    
+
 
 def params_get_type(orders, comp, peak=0):
     """
@@ -241,13 +244,15 @@ def get_number_coeff(orders, comp, peak=0, azimuths=None):
         n_param = sc.BiggestValue(orders["background"][peak]) * 2 + 1
 
     else:  # everything else.
-        n_param = sc.BiggestValue(orders["peak"][peak][pf.expand_component_string(comp)]) * 2 + 1
+        n_param = (
+            sc.BiggestValue(orders["peak"][peak][pf.expand_component_string(comp)]) * 2
+            + 1
+        )
 
     return n_param
 
 
 def get_order_from_coeff(n_coeff, parm_num=0, azimuths=None):
-
     if parm_num == 5:  # independent
         if azimuths is None:
             raise ValueError(
@@ -311,7 +316,12 @@ def fourier_order(params):
 
 
 def coefficient_expand(
-    azimuth, param=None, coeff_type="fourier", comp_str=None, start_end=[0, 360], **params
+    azimuth,
+    param=None,
+    coeff_type="fourier",
+    comp_str=None,
+    start_end=[0, 360],
+    **params,
 ):
     """
     Expand the coefficients to give one value for each azimuth.
@@ -335,7 +345,7 @@ def coefficient_expand(
             start_end=start_end,
             bc_type="natural",
             kind="linear",
-            **params
+            **params,
         )
     elif coeff_type == 2:
         out = spline_expand(
@@ -345,7 +355,7 @@ def coefficient_expand(
             start_end=start_end,
             bc_type="natural",
             kind="quadratic",
-            **params
+            **params,
         )
     elif coeff_type == 3:
         out = spline_expand(
@@ -355,7 +365,7 @@ def coefficient_expand(
             start_end=start_end,
             bc_type="periodic",
             kind="cubic",
-            **params
+            **params,
         )
     elif coeff_type == 4:
         out = spline_expand(
@@ -365,7 +375,7 @@ def coefficient_expand(
             start_end=start_end,
             bc_type="natural",
             kind="cubic",
-            **params
+            **params,
         )
     elif coeff_type == 5:
         out = spline_expand(
@@ -375,7 +385,7 @@ def coefficient_expand(
             start_end=start_end,
             bc_type="natural",
             kind="independent",
-            **params
+            **params,
         )
     else:
         raise ValueError(
@@ -395,7 +405,7 @@ def spline_expand(
     start_end=[0, 360],
     bc_type="periodic",
     kind="cubic",
-    **params
+    **params,
 ):
     """Calculate Spline interpolation given input coefficients.
     :param kind:
@@ -471,7 +481,9 @@ def spline_expand(
 
 
 # fourier expansion function
-def fourier_expand(azimuth, inp_param=None, comp_str=None, start_end=[0, 360], **params):
+def fourier_expand(
+    azimuth, inp_param=None, comp_str=None, start_end=[0, 360], **params
+):
     """Calculate Fourier expansion given input coefficients
     :param azimuth: arr data array float
     :param inp_param: list of Fourier coefficients float
@@ -508,20 +520,22 @@ def fourier_expand(azimuth, inp_param=None, comp_str=None, start_end=[0, 360], *
         fout[:] = inp_param[0]
     # essentially d_0, h_0 or w_0
 
-    azm_tmp = np.deg2rad((azimuth - start_end[0]) / (start_end[-1] - start_end[0]) * 360)
+    azm_tmp = np.deg2rad(
+        (azimuth - start_end[0]) / (start_end[-1] - start_end[0]) * 360
+    )
     if not isinstance(inp_param, np.float64) and np.size(inp_param) > 1:
         for i in range(1, int((len(inp_param) - 1) / 2) + 1):
             # len(param)-1 should never be odd because of initial a_0 parameter
-            #try:
+            # try:
             # try/except is a ctch for expanding a fourier series that has failed and has nones as coefficient values.
             # azm_tmp stretches the azimuths between the max and min of start_end. In XRD cases this should have no effect
-            #but is added for consistency with the spline functions
+            # but is added for consistency with the spline functions
             fout = (
                 fout
                 + inp_param[(2 * i) - 1] * np.sin((azm_tmp) * i)
                 + inp_param[2 * i] * np.cos((azm_tmp) * i)
             )  # single col array
-            #except:
+            # except:
             #    pass
     return np.squeeze(fout)
 

@@ -4,7 +4,7 @@ and a number of support classes.
 
 Author:
    Mark Rivers
-   
+
 Created:
    Sept. 16, 2002.  Based on my earlier IDL code.
 
@@ -23,13 +23,18 @@ Modifications:
      - removed import of CARSmath Xrf and fitPeaks
 """
 
-import numpy as Numeric
 import copy
 import math
-from cpf.XRD_FitPattern import logger
+
+import numpy as Numeric
+
+from cpf.logging import CPFLogger
+
+logger = CPFLogger("cpf.input_types.Mca")
 
 # FIX ME: DMF Need to rationalise this code and keep what's needed.
 # FIX ME: where do we stand on licensing? has this been published?
+
 
 ########################################################################
 class McaBackground:
@@ -1406,6 +1411,7 @@ class Mca(object):
 #         spread_fp.write('\n')
 #         spread_fp.close()
 
+
 #######################################################################
 def write_ascii_file(file, data, calibration, elapsed, presets, rois, environment):
     """
@@ -1658,7 +1664,11 @@ def read_ascii_file(file):
                             rois[d][i].label = str.strip(labels[d])
                     break
             else:
-                logger.info(" ".join(map(str, [("Unknown tag = " + tag + " in file: " + file + ".")])))
+                logger.info(
+                    " ".join(
+                        map(str, [("Unknown tag = " + tag + " in file: " + file + ".")])
+                    )
+                )
 
     # Make sure DATA array is defined, else this was not a valid data file
     if data == None:
@@ -1801,6 +1811,7 @@ def read_ascii_file(file):
 #   if (len(params[5]) > 0):
 #      peak.label = params[5]
 #   return peak
+
 
 ########################################################################
 def write_peaks(file, peaks, background=None):

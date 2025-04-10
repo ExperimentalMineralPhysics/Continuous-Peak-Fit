@@ -3,7 +3,7 @@
 """
 Functions describing the peak shape and properties.
 
-Ideally if a new peak shape is needed it would be 
+Ideally if a new peak shape is needed it would be
 possible to define it here and it would propagate through the code.
 But this is not implemented and might not be possible...
 """
@@ -17,7 +17,10 @@ __all__ = [
 ]
 
 import numpy as np
-from cpf.XRD_FitPattern import logger
+
+from cpf.logging import CPFLogger
+
+logger = CPFLogger("cpf.peak_functions")
 
 
 def peak_components(full=False, include_profile=True):

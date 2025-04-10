@@ -8,9 +8,11 @@ from moviepy.editor import VideoClip
 from moviepy.video.io.bindings import mplfig_to_npimage
 from copy import deepcopy
 
-import cpf.IO_functions as IO
-from cpf.XRD_FitPattern import logger
+# import cpf.IO_functions as IO
+from cpf.IO_functions import make_outfile_name, title_file_names
+from cpf.logging import CPFLogger
 
+logger = CPFLogger("cpf.output_types.WriteCollectionMovie")
 
 
 def Requirements():
@@ -27,7 +29,7 @@ def Requirements():
     return RequiredParams, OptionalParams
 
 
-def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
+def WriteOutput(settings_class=None, setting_file=None, debug=False, **kwargs):
     """
     Writes a *.mov file of raw data.
     
@@ -67,33 +69,33 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
         
     
 
-    if setting_class is None and setting_file is None:
+    if settings_class is None and setting_file is None:
         raise ValueError(
             "Either the settings file or the setting class need to be specified."
         )
-    elif setting_class is None:
+    elif settings_class is None:
         import cpf.XRD_FitPattern.initiate as initiate
 
-        setting_class = initiate(setting_file)
+        settings_class = initiate(setting_file)
 
     #make the base file name
     if setting_file:
-        base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
+        base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
     else:
-        base = setting_class.datafile_basename
+        base = settings_class.datafile_basename
     if base is None or len(base) == 0:
         logger.info(" ".join(map(str, [("No base filename, trying ending without extension instead.")])))
-        base = setting_class.datafile_ending
+        base = settings_class.datafile_ending
     if base is None:
         logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
-        base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
+        base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
         
     # make the data class.     
-    data_to_fill = setting_class.image_list[0]
-    data_class = setting_class.data_class
+    data_to_fill = settings_class.image_list[0]
+    data_class = settings_class.data_class
     data_class.fill_data(
         data_to_fill,
-        settings=setting_class,
+        settings=settings_class,
         debug=debug,
     )
     
@@ -105,9 +107,9 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
     # to plot maximum inentsity set prctl=100
     prctl = 99.9
     
-    for z in range(setting_class.image_number):
+    for z in range(settings_class.image_number):
         # read data file
-        data_class.import_image(setting_class.image_list[z])
+        data_class.import_image(settings_class.image_list[z])
         Ipctl.append(np.percentile(data_class.intensity[data_class.intensity.mask==False], prctl))
         Imin.append(np.min(data_class.intensity))
         
@@ -116,19 +118,19 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
             "rmax": np.max(Ipctl),
             "rmin": np.min(Imin)}
         
-    duration = (setting_class.image_number)/fps
+    duration = (settings_class.image_number)/fps
     
-    y = list(range(setting_class.image_number))
+    y = list(range(settings_class.image_number))
     
-    # setting_class.set_subpattern(0, z)
+    # settings_class.set_subpattern(0, z)
 
 
-    # addd = IO.peak_string(setting_class.subfit_orders, fname=True)
-    # if setting_class.file_label != None:
-    #     addd = addd + setting_class.file_label
-    out_file = IO.make_outfile_name(
+    # addd = IO.peak_string(settings_class.subfit_orders, fname=True)
+    # if settings_class.file_label != None:
+    #     addd = addd + settings_class.file_label
+    out_file = make_outfile_name(
         base, 
-        directory=setting_class.output_directory, 
+        directory=settings_class.output_directory, 
         extension=file_types[0], 
         overwrite=True,
     )
@@ -145,14 +147,14 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
         #logger.info(" ".join(map(str, [(t, int(t*fps), y[int(t*fps)])])))
                     
         # Get diffraction pattern to process.
-        data_class.import_image(setting_class.image_list[y[int(t*fps)]])
+        data_class.import_image(settings_class.image_list[y[int(t*fps)]])
                   
         
-        if setting_class.datafile_preprocess is not None:
+        if settings_class.datafile_preprocess is not None:
             # needed because image preprocessing adds to the mask and is different for each image.
             data_class.mask_restore()
-            if "cosmics" in setting_class.datafile_preprocess:
-                pass#data_class = cosmicsimage_preprocess(data_class, setting_class)
+            if "cosmics" in settings_class.datafile_preprocess:
+                pass#data_class = cosmicsimage_preprocess(data_class, settings_class)
         else:
            # nothing is done here.
            pass
@@ -160,7 +162,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, **kwargs):
         fig = plt.figure(figsize=(6, 8))
         ax = fig.add_subplot(1, 1, 1)
         data_class.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity", limits=deepcopy(lims))
-        plt.title(IO.title_file_names(settings_for_fit=setting_class, num=int(t*fps)))
+        plt.title(title_file_names(settings_for_fit=settings_class, num=int(t*fps)))
         
         #return the figure            
         return mplfig_to_npimage(fig)

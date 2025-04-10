@@ -1,0 +1,53 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Python package
+
+on:
+  push:
+    branches:
+      - master # Should run whenever a PR is merged to 'master' branch
+  pull_request:
+    branches:
+      - master
+      - "**" # Should run whenever we push to a PR, regardless of which branch it targets
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-2019, windows-2022]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Cairo library (Ubuntu only)
+        # Cairo library needs to be manually installed on Ubuntu in order for
+        # pyCairo to be installed
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt install -y libcairo2-dev
+      - name: Disable OpenCL for pyFAI and silx (MacOS only)
+        # There is currently an error with getting device IDs in pyOpenCL on MacOS
+        # $ pyopencl._cl.LogicError: clGetDeviceIDs failed: INVALID_VALUE
+        # Disabling the use of OpenCL seems to work for now
+        if: runner.os == 'macOS'
+        run: |
+          echo "PYFAI_NO_OPENCL=1" >> $GITHUB_ENV
+          echo "SILX_OPENCL=0" >> $GITHUB_ENV
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          python -m pip install .[dev]
+      - name: Run 'pytest' tests
+        run: |
+          pytest

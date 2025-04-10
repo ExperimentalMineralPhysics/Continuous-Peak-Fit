@@ -4,16 +4,21 @@ Support for Multi-Element Detectors (Med).
 Author:        Mark Rivers
 Created:       Sept. 18, 2002.  Based on earlier IDL code.
 Modifications:
-    Edited by SAH (June 2019) to suit analysis code. 
+    Edited by SAH (June 2019) to suit analysis code.
     Stripped out parts that are not required:
-        - spline function and option to align the called data. 
+        - spline function and option to align the called data.
 """
-from cpf.input_types import Mca
+
 import numpy as Numeric
-from cpf.XRD_FitPattern import logger
+
+from cpf.input_types import Mca
+from cpf.logging import CPFLogger
+
+logger = CPFLogger("cpf.input_types.Med")
 
 # FIX ME: DMF Need to rationalise this code and keep what's needed.
 # FIX ME: where do we stand on licensing? has this been published?
+
 
 #########################################################################
 class Med(Mca.Mca):
@@ -344,7 +349,7 @@ class Med(Mca.Mca):
             data[i, :] = self.mcas[i].get_data()
         if align != 0:
             logger.info(" ".join(map(str, [("This option has been removed")])))
-            stop
+
         #         ref_energy = self.mcas[0].get_energy()
         #         for i in range(self.n_detectors):
         #            energy = self.mcas[i].get_energy()

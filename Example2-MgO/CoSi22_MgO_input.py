@@ -5,26 +5,48 @@
 
 # properties of the data files.
 datafile_directory = "."
-datafile_Basename  = "COSI_022_"
-datafile_Ending    = ".med"
-datafile_Files     = [#6, 9, 11, 13, 15, 17, 
-                      19, 21, 23, 25, 27, 29, 31, 
-                      33, 35, 37, 39, 41, 43, 45, 47, 49, 51, 53, 55, 57, 59,
-                      61, 63, 65, 67]
-datafile_NumDigit  = 4
+datafile_Basename = "COSI_022_"
+datafile_Ending = ".med"
+datafile_Files = [  # 6, 9, 11, 13, 15, 17,
+    19,
+    21,
+    23,
+    25,
+    27,
+    29,
+    31,
+    33,
+    35,
+    37,
+    39,
+    41,
+    43,
+    45,
+    47,
+    49,
+    51,
+    53,
+    55,
+    57,
+    59,
+    61,
+    63,
+    65,
+    67,  # 69, #71, 73
+]
+datafile_NumDigit = 4
 
 # Calibration and masking.
-Calib_type     = 'Med'
-Calib_detector = '10-element'
-Calib_data     = "COSI_021_0001.med"
-Calib_param    = 'COSI_021_0001.med'
-Calib_mask     = [5,10]
+Calib_type = "Med"
+Calib_detector = "10-element"
+Calib_data = "COSI_021_0001.med"
+Calib_param = "COSI_021_0001.med"
+Calib_mask = [5, 10]
 
 # Fitting properties for peaks.
 fit_track = False
 fit_propagate = True
-fit_bounds = {
-              "background": ['0.9*min', 'max'],
+fit_bounds = {"background": ['0.9*min', 'max'],
               "d-space":    ['min', 'max'],
               "height":     [ 0,    '1.2*max'],
               "profile":    [ 0,     1],
@@ -104,4 +126,3 @@ fit_orders = [
             }],
         },
     ]
-

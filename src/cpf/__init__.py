@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = [
     "settings",
     "XRD_FitPattern",
@@ -16,32 +18,31 @@ __all__ = [
     "Cascade",
     "h5_functions",
     "IO_functions",
-    "fitsubpattern_chunks"
-    "data_preprocess"
+    "fitsubpattern_chunks" "data_preprocess",
 ]
 
-from . import XRD_FitPattern
-from . import XRD_FitSubpattern
-from . import fitsubpattern_chunks
-from . import settings
-from . import peak_functions
-from . import series_functions
-from . import series_constraints
-from . import IO_functions
-from . import h5_functions
-from . import lmfit_model
-from . import Cosmics
-from . import BrightSpots
-from . import Cascade
-from . import data_preprocess
-from . import logger_functions
-
-from . import input_types
-from . import output_formatters
+from . import (
+    BrightSpots,
+    Cascade,
+    Cosmics,
+    IO_functions,
+    XRD_FitPattern,
+    XRD_FitSubpattern,
+    data_preprocess,
+    fitsubpattern_chunks,
+    h5_functions,
+    input_types,
+    lmfit_model,
+    logging,
+    output_formatters,
+    peak_functions,
+    series_constraints,
+    series_functions,
+    settings,
+)
 
 
 def generate_inputs():
-
     try:
         fp = open("Example_MultiPeak_Inputs.py", "r")
         fp.close()

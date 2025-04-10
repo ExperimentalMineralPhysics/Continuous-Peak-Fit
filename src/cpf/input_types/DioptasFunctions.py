@@ -4,24 +4,26 @@
 __all__ = ["DioptasDetector"]
 
 
-import sys
 import re
-from copy import deepcopy, copy
+import sys
+from copy import copy, deepcopy
+
+import fabio
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
-import matplotlib.pyplot as plt
-import fabio
 import pyFAI
-from pyFAI.io import ponifile
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
-#from PIL import Image
-from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+from pyFAI.io import ponifile
+
+import cpf.h5_functions as h5_functions
+from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
-from cpf import IO_functions
-import cpf.h5_functions as h5_functions
-from cpf.XRD_FitPattern import logger
-import cpf.logger_functions as lg
+from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+from cpf.logging import CPFLogger
+
+logger = CPFLogger("cpf.input_types.DioptasFunctions")
 
 
 class DioptasDetector:
@@ -40,7 +42,7 @@ class DioptasDetector:
         self.detector = None
 
         self.plot_orientation = "vertical"
-        
+
         self.intensity = None
         self.tth = None
         self.azm = None
@@ -48,37 +50,35 @@ class DioptasDetector:
         self.x = None
         self.y = None
         self.azm_start = -180
-        self.azm_end   =  180
+        self.azm_end = 180
         self.tth_start = None
-        self.tth_end   = None
+        self.tth_end = None
         self.DispersionType = "AngleDispersive"
         self.Dispersionlabel = r"2$\theta$"
         self.DispersionUnits = r"$^\circ$"
         self.continuous_azm = True
-        
+
         self.azm_blocks = 45
-        
+
         self.calibration = None
         self.conversion_constant = None
         self.detector = None
-        
+
         if settings_class:
             self.get_calibration(settings=settings_class)
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
-
-
     def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
         """
-        Makes an independent copy of a DioptasDetector Instance. 
-        
-        range_bounds and azi_bounds restrict the extent of the data if needed. 
+        Makes an independent copy of a DioptasDetector Instance.
+
+        range_bounds and azi_bounds restrict the extent of the data if needed.
         The range resturictions should be applied upon copying (if required) for memory efficieny.
         Laternatively run:
         data_class.duplicate()
         date_calss.set_limit2(range_bounds=[...], azi_bounds=[...])
-                
+
         Parameters
         ----------
         range_bounds : dict or array, optional
@@ -92,19 +92,19 @@ class DioptasDetector:
             Copy of DioptasDetector with independedent data values
 
         """
-        
+
         new = copy(self)
-        
+
         local_mask = np.where(
-            (self.tth >= range_bounds[0]) & 
-            (self.tth <= range_bounds[1]) &
-            (self.azm >= azi_bounds[0]) & 
-            (self.azm <= azi_bounds[1])
+            (self.tth >= range_bounds[0])
+            & (self.tth <= range_bounds[1])
+            & (self.azm >= azi_bounds[0])
+            & (self.azm <= azi_bounds[1])
         )
-        
+
         new.intensity = deepcopy(self.intensity[local_mask])
-        new.tth       = deepcopy(self.tth[local_mask])
-        new.azm       = deepcopy(self.azm[local_mask])
+        new.tth = deepcopy(self.tth[local_mask])
+        new.azm = deepcopy(self.azm[local_mask])
         if "dspace" in dir(self):
             new.dspace = deepcopy(self.dspace[local_mask])
         
@@ -115,24 +115,23 @@ class DioptasDetector:
         if "x" in dir(self): 
             if self.x is not None:
                 new.x = deepcopy(self.x[local_mask])
-        if "y" in dir(self): 
+        if "y" in dir(self):
             if self.y is not None:
                 new.y = deepcopy(self.y[local_mask])
-        if "z" in dir(self): 
+        if "z" in dir(self):
             if self.z is not None:
                 new.z = deepcopy(self.z[local_mask])
-        
-        return new
 
+        return new
 
     def get_calibration(self, file_name=None, settings=None):
         """
-        Opens the file with the calibration data in it and updates 
-        DioptasClass.calibration and 
+        Opens the file with the calibration data in it and updates
+        DioptasClass.calibration and
         DioptasClass.conversion_constant
-        
-        Either file_name or settings should be set. 
-        
+
+        Either file_name or settings should be set.
+
         Parameters
         ----------
         file_name : string, optional
@@ -155,19 +154,19 @@ class DioptasDetector:
         pf.read_from_file(parms_file)
 
         self.calibration = pf
-        self.conversion_constant = pf.wavelength * 1e10 #in angstroms
+        self.conversion_constant = pf.wavelength * 1e10  # in angstroms
 
-
-
-    def get_detector(self, settings=None, calibration_file=None, diffraction_data=None, debug=False):
+    def get_detector(
+        self, settings=None, calibration_file=None, diffraction_data=None, debug=False
+    ):
         """
-        Takes the detector information from the settings class, or the 
-        calibration *.json file and creates a detector-type instance which converts 
-        the x,y,azimith of the diffraction data pixels into two-theta vs. 
+        Takes the detector information from the settings class, or the
+        calibration *.json file and creates a detector-type instance which converts
+        the x,y,azimith of the diffraction data pixels into two-theta vs.
         azimuth.
-        
-        Either settings or the file_name are required. 
-        
+
+        Either settings or the file_name are required.
+
         Parameters
         ----------
         file_name : string, optional
@@ -186,12 +185,14 @@ class DioptasDetector:
 
         """
         if self.calibration == None:
-            self.get_calibration(settings=settings, file_name=calibration_file, debug=debug)
-        
+            self.get_calibration(
+                settings=settings, file_name=calibration_file, debug=debug
+            )
+
         if self.calibration:
-            #use the poni file/calibration to make the detector
+            # use the poni file/calibration to make the detector
             self.detector = AzimuthalIntegrator(
-                detector=self.calibration.detector, 
+                detector=self.calibration.detector,
                 dist=self.calibration.dist,
                 poni1=self.calibration.poni1,
                 poni2=self.calibration.poni2,
@@ -200,15 +201,16 @@ class DioptasDetector:
                 rot3=self.calibration.rot3,
                 wavelength=self.calibration.wavelength,
             )
-            
-            if (self.detector.detector.get_name() == "Detector" and 
-                "detector_config" in self.calibration.as_dict()):
-                
+
+            if (
+                self.detector.detector.get_name() == "Detector"
+                and "detector_config" in self.calibration.as_dict()
+            ):
                 config = self.calibration.as_dict()["detector_config"]
-                
+
                 if config["max_shape"] == None:
-                    # open the file to get the shape of the data.     
-                    if diffraction_data is not None: 
+                    # open the file to get the shape of the data.
+                    if diffraction_data is not None:
                         im_all = fabio.open(diffraction_data)
                     elif settings.calibration_data is not None:
                         im_all = fabio.open(settings.calibration_data)
@@ -216,24 +218,24 @@ class DioptasDetector:
                         im_all = fabio.open(settings.image_list[0])
                     if im_all:
                         config["max_shape"] = im_all.shape
-                        
-                #make sure the pixel sizes are correct
+
+                # make sure the pixel sizes are correct
                 self.detector.detector.set_config(config)
-                            
-        
-   
+
     # @staticmethod
-    def import_image(self, image_name=None, settings=None, mask=None, dtype=None, debug=False):
+    def import_image(
+        self, image_name=None, settings=None, mask=None, dtype=None, debug=False
+    ):
         """
-        Import the data image into the intensity array.        
+        Import the data image into the intensity array.
         Apply new mask to the data (if given) otherwise use previous mask
-    
+
         Parameters
         ----------
         image_name : string, optional
             Name of the image set to import. Either this or settings are required.
         settings : settings class, optional
-            Cpf setting class that constins the image set to import. 
+            Cpf setting class that constins the image set to import.
             Either this or imagename is required.
         mask : array, optional
             Mask array to apply to data. The default is None.
@@ -241,21 +243,21 @@ class DioptasDetector:
             Data type string, to force the data type and bit depth. The default is None.
         debug : boolian, optional
             True/Flase to display debuging information. The default is False.
-    
+
         Raises
         ------
         ValueError
             If there is no image_name of the settings.subpattern is not set.
-    
+
         Returns
         -------
         Im : masked array
             Masked image intensity array.
-    
+
         """
         # FIX ME: nxs files need to be checked. But they should be read like h5 files.
 
-        #check inputs
+        # check inputs
         if image_name == None and settings.subpattern == None:
             raise ValueError("Settings are given but no subpattern is set.")
 
@@ -263,10 +265,10 @@ class DioptasDetector:
             self.get_detector(settings)
 
         if image_name == None:
-            #load the data for the chosen subpattern.
+            # load the data for the chosen subpattern.
             image_name = settings.subfit_filename
-            
-        #read image
+
+        # read image
         if isinstance(image_name, list):
             # then it is a h5 type file
             im = h5_functions.get_images(image_name)
@@ -296,7 +298,7 @@ class DioptasDetector:
         # inherits integer properties from the data.
         #
         # Allow option for the data type to be set.
-        if dtype==None:
+        if dtype == None:
             if self.intensity is None and np.size(self.intensity) > 2:
                 # self.intensity has been set before. Inherit the dtype.
                 dtype = self.intensity.dtype                  
@@ -308,7 +310,7 @@ class DioptasDetector:
         # Therefore implemented here to be consistent with Dioptas.
         im = np.array(im)[::-1]
 
-        if lg.make_logger_output(level="DEBUG"):
+        if logger.is_below_level(level="DEBUG"):
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
             ax.imshow(im)
@@ -325,26 +327,23 @@ class DioptasDetector:
             self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
             return ma.array(im, mask=mask)
         else:
-            #apply mask from intensities
+            # apply mask from intensities
             self.intensity = ma.array(im, mask=self.intensity.mask)
             return ma.array(im)
 
-        
-
     def fill_data(
-        self, diff_file=None, settings=None, mask=None, make_zyx=False, 
-        debug=False
+        self, diff_file=None, settings=None, mask=None, make_zyx=False, debug=False
     ):
         """
         Initiates the data arrays.
-        Creates the intensity, two theta and azimuth arrays from the 
+        Creates the intensity, two theta and azimuth arrays from the
         Detector and the data.
-        
-        If diffraction data is provided this makes the intensity array otherwise 
+
+        If diffraction data is provided this makes the intensity array otherwise
         the intensity array is filled with zeros.
 
         It must be called after setting the detector but before import_data.
-        
+
         Parameters
         ----------
         diff_file : string, optional
@@ -353,11 +352,11 @@ class DioptasDetector:
             cpf settings class containing the calibration file name.
             The default is None.
         mask : string or dirctionarry, optional
-            Filename or dictionary of instructions to make data mask. 
+            Filename or dictionary of instructions to make data mask.
             The default is None.
         make_zyx : boolian, optional
             Switch to make x,y,z arrays for the pixels. These arrats are not
-            used by default. They exist incase ever needed. 
+            used by default. They exist incase ever needed.
             The default is False.
         debug : True/False, optional
             Additional output, used for debugging.
@@ -368,45 +367,51 @@ class DioptasDetector:
         None.
         """
 
-        #check inputs
+        # check inputs
         if diff_file != None:
             pass
-        elif settings != None: # and diff_file == None
-            #load the data for the chosen subpattern.
+        elif settings != None:  # and diff_file == None
+            # load the data for the chosen subpattern.
             if settings.subfit_filename != None:
                 diff_file = settings.subfit_filename
             else:
                 raise ValueError("Settings are given but no subpattern is set.")
         else:
             raise ValueError("No diffraction file or settings have been given.")
-            
-        if mask==None:
-            if settings.calibration_mask:# in settings.items():
+
+        if mask == None:
+            if settings.calibration_mask:  # in settings.items():
                 mask = settings.calibration_mask
-        
+
         if self.detector == None:
             self.get_detector(settings=settings)
 
-        #get the intensities (without mask)
+        # get the intensities (without mask)
         self.intensity = self.import_image(diff_file)
-        # FIXME: (June 2024) because of how self.detector is instanciated the 
-        # shape might not be correct (or recognised). Hence the check here and 
+        # FIXME: (June 2024) because of how self.detector is instanciated the
+        # shape might not be correct (or recognised). Hence the check here and
         # inclusion of the shape in the array getting.
 
         if tuple(self.intensity.shape) != tuple(self.detector.detector.max_shape):
             # cast both shapes to tuples to prevent list != tuple error.
-            raise ValueError("The pixel size of the data and the detector are not the same")
-            
-        self.tth = ma.array(np.rad2deg(self.detector.twoThetaArray(self.detector.detector.max_shape)))
-        self.azm = ma.array(np.rad2deg(self.detector.chiArray(self.detector.detector.max_shape)))
+            raise ValueError(
+                "The pixel size of the data and the detector are not the same"
+            )
+
+        self.tth = ma.array(
+            np.rad2deg(self.detector.twoThetaArray(self.detector.detector.max_shape))
+        )
+        self.azm = ma.array(
+            np.rad2deg(self.detector.chiArray(self.detector.detector.max_shape))
+        )
         # self.dspace = self._get_d_space()
         if make_zyx:
-            zyx = self.detector.calc_pos_zyx() 
+            zyx = self.detector.calc_pos_zyx()
             self.z = zyx[0]
-            self.y = zyx[1] 
-            self.x = zyx[2] 
-        
-        #get and apply mask
+            self.y = zyx[1]
+            self.x = zyx[2]
+
+        # get and apply mask
         mask_array = self.get_mask(mask, self.intensity)
         self.mask_apply(mask_array, debug=debug)
 
@@ -440,8 +445,6 @@ class DioptasDetector:
             )
         # FIX ME: check the detector type is valid.
         return detector
-    
-
 
     def get_requirements(self, parameter_settings=None):
         """
@@ -487,7 +490,20 @@ class DioptasDetector:
                 if par in required_list:
                     logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    logger.info(" ".join(map(str, [("The settings file requires a parameter called  '", par, "'")])))
+                    logger.info(
+                        " ".join(
+                            map(
+                                str,
+                                [
+                                    (
+                                        "The settings file requires a parameter called  '",
+                                        par,
+                                        "'",
+                                    )
+                                ],
+                            )
+                        )
+                    )
                     all_present = 0
             if all_present == 0:
                 sys.exit(
@@ -496,28 +512,27 @@ class DioptasDetector:
                 )
         return required_list
 
+    # add common function.
+    _get_d_space = _AngleDispersive_common._get_d_space
+    conversion = _AngleDispersive_common.conversion
+    bins = _AngleDispersive_common.bins
+    set_limits = _AngleDispersive_common.set_limits
+    test_azims = _AngleDispersive_common.test_azims
+    GetDataType  = _AngleDispersive_common.GetDataType
 
-# add common function. 
-DioptasDetector._get_d_space = _AngleDispersive_common._get_d_space
-DioptasDetector.conversion   = _AngleDispersive_common.conversion
-DioptasDetector.bins         = _AngleDispersive_common.bins
-DioptasDetector.set_limits   = _AngleDispersive_common.set_limits
-DioptasDetector.test_azims   = _AngleDispersive_common.test_azims
-DioptasDetector.GetDataType  = _AngleDispersive_common.GetDataType
+    # add masking functions to detetor class.
+    get_mask = _masks.get_mask
+    set_mask = _masks.set_mask
+    mask_apply = _masks.mask_apply
+    mask_restore = _masks.mask_restore
+    mask_remove = _masks.mask_remove
 
-#add masking functions to detetor class.
-DioptasDetector.get_mask     = _masks.get_mask
-DioptasDetector.set_mask     = _masks.set_mask
-DioptasDetector.mask_apply   = _masks.mask_apply
-DioptasDetector.mask_restore = _masks.mask_restore
-DioptasDetector.mask_remove  = _masks.mask_remove
-
-#these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
-#Each of these methods remains here because they are called by higher-level functions: 
-DioptasDetector.plot_masked      = _Plot_AngleDispersive.plot_masked
-DioptasDetector.plot_fitted      = _Plot_AngleDispersive.plot_fitted
-DioptasDetector.plot_collected   = _Plot_AngleDispersive.plot_collected
-DioptasDetector.plot_calibrated  = _Plot_AngleDispersive.plot_calibrated
-DioptasDetector.plot_integrated  = _Plot_AngleDispersive.plot_integrated
-#this function is added because it requires access to self:
-DioptasDetector.dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks
+    # these methods are all called from _Plot_AngleDispersive as they are shared with other detector types.
+    # Each of these methods remains here because they are called by higher-level functions:
+    plot_masked = _Plot_AngleDispersive.plot_masked
+    plot_fitted = _Plot_AngleDispersive.plot_fitted
+    plot_collected = _Plot_AngleDispersive.plot_collected
+    plot_calibrated = _Plot_AngleDispersive.plot_calibrated
+    plot_integrated  = _Plot_AngleDispersive.plot_integrated
+    # this function is added because it requires access to self:
+    dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks

@@ -1,14 +1,16 @@
 __all__ = ["Requirements", "WriteOutput"]
 
+# import cpf.PeakFunctions as ff
+import json
 import os
 
 import numpy as np
 
-# import cpf.PeakFunctions as ff
-import json
-import cpf.IO_functions as IO
 import cpf.series_functions as sf
-from cpf.XRD_FitPattern import logger
+from cpf.IO_functions import make_outfile_name, replace_null_terms
+from cpf.logging import CPFLogger
+
+logger = CPFLogger("cpf.output_formatters.WriteMultiFit")
 
 
 def Requirements():
@@ -28,21 +30,24 @@ def Requirements():
 
 # def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
 def WriteOutput(
-    setting_class=None, setting_file=None, differential_only=False, debug=True, **kwargs
+    settings_class=None,
+    settings_file=None,
+    differential_only=False,
+    debug=True,
+    **kwargs,
 ):
-
     # writes output from multifit in the form of *.fit files required for polydefix.
     # writes a separate file for each diffraction pattern.
     # uses the parameters in the json files to do so.
 
-    if setting_class is None and setting_file is None:
+    if settings_class is None and settings_file is None:
         raise ValueError(
             "Either the settings file or the setting class need to be specified."
         )
-    elif setting_class is None:
-        import cpf.XRD_FitPattern.initiate as initiate
+    elif settings_class is None:
+        from cpf.XRD_FitPattern import initiate
 
-        setting_class = initiate(setting_file)
+        settings_class = initiate(settings_file)
 
     # FitParameters = dir(FitSettings)
 
@@ -63,25 +68,24 @@ def WriteOutput(
     # Num_Azi = float(Num_Azi)
     # Num_Azi = FitSettings.Output_NumAziWrite
     Num_Azi = 90
-    if "Output_NumAziWrite" in setting_class.output_settings:
-        Num_Azi = setting_class.output_settings["Output_NumAziWrite"]
+    if "Output_NumAziWrite" in settings_class.output_settings:
+        Num_Azi = settings_class.output_settings["Output_NumAziWrite"]
 
     # wavelength = parms_dict["conversion_constant"]
-    # wavelength = setting_class.data_class.calibration["conversion_constant"]
-    wavelength = setting_class.data_class.conversion_constant
+    # wavelength = settings_class.data_class.calibration["conversion_constant"]
+    wavelength = settings_class.data_class.conversion_constant
 
-    for z in range(setting_class.image_number):
-
+    for z in range(settings_class.image_number):
         # read file to write output for
         # filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
         # filename = filename+'.json'
-        setting_class.set_subpattern(z, 0)
+        settings_class.set_subpattern(z, 0)
 
-        filename = IO.make_outfile_name(
+        filename = make_outfile_name(
             # diff_files[z],
             # directory=FitSettings.Output_directory,
-            setting_class.subfit_filename,  # diff_files[z],
-            directory=setting_class.output_directory,  # directory=FitSettings.Output_directory,
+            settings_class.subfit_filename,  # diff_files[z],
+            directory=settings_class.output_directory,  # directory=FitSettings.Output_directory,
             extension=".json",
             overwrite=True,
         )  # overwrite =false to get the file name without incrlemeting it.
@@ -89,24 +93,30 @@ def WriteOutput(
         # Read JSON data from file
         with open(filename) as json_data:
             data_to_write = json.load(json_data)
-            data_to_write = IO.replace_null_terms(data_to_write, val_to_find=None, replace_with=0)
+            data_to_write = replace_null_terms(
+                data_to_write, val_to_find=None, replace_with=0
+            )
 
         # create output file name from passed name
-        base = setting_class.subfit_filename
+        base = settings_class.subfit_filename
         if base is None:
-            logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
-            base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
+            logger.info(
+                " ".join(
+                    map(str, [("No base filename, using input filename instead.")])
+                )
+            )
+            base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
         # if not base:
         #     logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
         #     base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
         if differential_only is not False:
             base = base + "_DiffOnly"
 
-        out_file = IO.make_outfile_name(
+        out_file = make_outfile_name(
             # diff_files[z],
             # directory=FitSettings.Output_directory,
             base,  # diff_files[z],
-            directory=setting_class.output_directory,  # directory=FitSettings.Output_directory,
+            directory=settings_class.output_directory,  # directory=FitSettings.Output_directory,
             extension=".fit",
             overwrite=True,
         )
@@ -154,7 +164,6 @@ def WriteOutput(
         # print num_subpatterns
 
         for j in range(num_subpatterns):
-
             text_file.write("# Sub-patterns        %i\n" % j)
 
             # number of peaks
@@ -429,7 +438,7 @@ def WriteTestCase(FitSettings, parms_dict, differential_only=False):
 
     Azimuths = 360.0
 
-    WriteMultiFit.WriteOutput(file_name, Fouriers_to_write, Azimuths)
+    WriteOutput(file_name, Fouriers_to_write, Azimuths)
 
     # Write the fits to a temporary file
     TempFilename = open("Fit_previous_JSON.dat", "w")

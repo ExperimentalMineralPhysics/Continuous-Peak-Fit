@@ -1,11 +1,14 @@
 __all__ = ["Requirements", "WriteOutput"]
 
 import os
-import cpf.IO_functions as IO
-from cpf.XRD_FitPattern import logger
-from cpf.Cascade import read_saved_chunks
+from cpf.IO_functions import make_outfile_name, peak_string
+# from cpf.Cascade import read_saved_chunks
 import pandas as pd
 import glob
+from cpf.logging import CPFLogger
+
+logger = CPFLogger("cpf.output_types.WriteChunksTable")
+
 
 def Requirements():
     # List non-universally required parameters for writing this output type.
@@ -91,7 +94,7 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
     if base is None:
         logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
         base = os.path.splitext(os.path.split(setting_class.settings_file)[1])[0]
-    out_file = IO.make_outfile_name(
+    out_file = make_outfile_name(
         base, directory=setting_class.output_directory, extension=".dat", overwrite=True, additional_text="chunkfits",
     )
 
@@ -108,8 +111,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
         for j in range(fits):
             for k in range(pks[j]):
                 azm.append([
-                    IO.make_outfile_name(file_list[i],directory="",overwrite=True), 
-                    IO.peak_string(setting_class.fit_orders[j], peak=k), 
+                    make_outfile_name(file_list[i],directory="",overwrite=True), 
+                    peak_string(setting_class.fit_orders[j], peak=k), 
                     all_azis[i][j],
                     # all_fits[i][j]["d"][k], 
                     # all_fits[i][j]["h"][k], 
@@ -117,8 +120,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
                     # all_fits[i][j]["p"][k] 
                     ])
                 tbl.append([
-                    IO.make_outfile_name(file_list[i],directory="",overwrite=True), 
-                    IO.peak_string(setting_class.fit_orders[j], peak=k), 
+                    make_outfile_name(file_list[i],directory="",overwrite=True), 
+                    peak_string(setting_class.fit_orders[j], peak=k), 
                     #all_azis[i][j], 
                     all_fits[i][j]["d"][k], 
                     all_fits[i][j]["h"][k], 
@@ -126,8 +129,8 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
                     all_fits[i][j]["p"][k] 
                     ])
                 tbl_errs.append([
-                    IO.make_outfile_name(file_list[i],directory="",overwrite=True), 
-                    IO.peak_string(setting_class.fit_orders[j], peak=k), 
+                    make_outfile_name(file_list[i],directory="",overwrite=True), 
+                    peak_string(setting_class.fit_orders[j], peak=k), 
                     #all_azis[i][j], 
                     all_fits[i][j]["d_err"][k], 
                     all_fits[i][j]["h_err"][k], 

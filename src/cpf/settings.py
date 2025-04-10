@@ -1,37 +1,43 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
 __all__ = ["settings", "get_output_options", "detector_factory"]
 
-import os
-import glob
-from copy import deepcopy, copy
-import numpy as np
 import importlib.util
+import json
+from copy import copy, deepcopy
+from pathlib import Path
+from typing import Any, Literal, Optional
+
+import numpy as np
+
 import cpf.input_types as input_types
 import cpf.output_formatters as output_formatters
 from cpf.IO_functions import (
-    file_list,
     image_list,
     json_numpy_serializer,
-)  # , get_output_options, detector_factory, register_default_formats
-from cpf.series_functions import coefficient_type_as_number, get_number_coeff, coefficient_types, coefficient_type_as_string
-import json
-from cpf.XRD_FitPattern import logger
+)
 
-
+# , get_output_options, detector_factory, register_default_formats
+from cpf.logging import CPFLogger
+from cpf.series_functions import (
+    coefficient_type_as_number,
+    coefficient_type_as_string,
+    coefficient_types,
+    get_number_coeff,
+)
 # import logging
-# # Configure the logging module
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format='%(asctime)s [%(levelname)s] %(message)s',
-#     datefmt='%Y-%m-%d %H:%M:%S'
-# )
 
+# logger = logging.getLogger(__name__)
+logger = CPFLogger("cpf.settings")
 
+# from cpf.XRD_FitPattern import logger
 
-class settings:
-    """Settings class definitions.
+class Settings:
+    """
+    Settings class definitions.
     The settings class is contains all the variables/informtion needed to execute
     continuous peak fit.
     """
@@ -39,25 +45,26 @@ class settings:
     """
     # Need to end up with:
         self.inputfile -- name of the input file.
-        
+
         self.datafilelist -- list of file names to process
-        
-        self.datafile... --- 
-        
+
+        self.datafile... ---
+
         self.orders -- dirctionary of the orders for fitting. needs to be ediatable. (e.g. add more, remove some)
-        self.limits -- dictionary of the limits for the fitted functions. 
-        
+        self.limits -- dictionary of the limits for the fitted functions.
+
         self.outputs -- list of output processes to run
-        
+
     """
+    print(logger.handlers)
 
     def __init__(
         self,
-        settings_file=None,
+        settings_file: Optional[Path] = None,
         out_type=None,
-        report=False,
-        debug=False,
-        mode="fit",
+        report: bool = False,
+        debug: bool = False,
+        mode: Literal["fit"] = "fit",
     ):
         """
         Initialise the cpf settings class.
@@ -87,33 +94,33 @@ class settings:
 
         """
 
-        self.datafile_list = None
-        self.datafile_number = 0
-        self.image_list = None
-        self.image_number = 0
-        self.datafile_directory = "."
+        self.datafile_list: list[str | Path] = []
+        self.datafile_number: int = 0
+        self.image_list: list[str | Path] = []
+        self.image_number: int = 0
+        self.datafile_directory = Path(".")
 
         self.datafile_preprocess = None
 
-        self.file_label = None
+        self.file_label: Optional[str] = None
 
         # calibration type: dioptas etc.
-        self.calibration_type = None
+        self.calibration_type: Literal["Dioptas", ""] = ""
         # file on which the calibration was done
-        self.calibration_data = None
+        self.calibration_data: Optional[Path] = None
         # mask file for data
-        self.calibration_mask = None
+        self.calibration_mask: Optional[Path] = None
         # file with the calibration in it.
-        self.calibration_parameters = None
+        self.calibration_parameters: Optional[Path] = None
         # FIXME: these are optional and should probalably be burried in an optional dictionary.
-        self.calibration_detector = None
+        self.calibration_detector: Literal["Pilatus1M", ""] = ""
         self.calibration_pixel_size = None
 
-        self.fit_bin_type = None
-        self.fit_per_bin = None
-        self.fit_number_bins = None
-        self.fit_orders = None
-        self.fit_bounds = {
+        self.fit_bin_type: Optional[int] = None
+        self.fit_per_bin: Optional[int] = None
+        self.fit_number_bins: Optional[int] = None
+        self.fit_orders: list[dict[str, Any]] = []
+        self.fit_bounds: dict[str, list[Any]] = {
             "background": ["0.95*min", "1.05*max"],
             "d-space": ["min", "max"],
             "height": [0, "1.05*max"],
@@ -123,21 +130,22 @@ class settings:
         self.fit_min_data_intensity = 0
         self.fit_min_peak_intensity = "0.25*std"
 
-        self.fit_track = False
-        self.fit_propagate = True
+        self.fit_track: bool = False
+        self.fit_propagate: bool = True
 
-        self.cascade_bin_type = 0      # set default type - number data per bin
-        self.cascade_per_bin = 50      # set default value
-        self.cascade_number_bins = 900 # set default value
-        self.cascade_track = False
-        self.cascade_histogram_type = "data"
-        self.cascade_histogram_bins = None 
-        
+        self.cascade_bin_type: Optional[int] = (
+            0  # set default type - number data per bin
+        )
+        self.cascade_per_bin: Optional[int] = 50  # set default value
+        self.cascade_number_bins: Optional[int] = 900  # set default value
+        self.cascade_track: bool = False
+        self.cascade_histogram_type: Literal["data"] = "data"
+        self.cascade_histogram_bins: Optional[int] = None
+
         # output requirements
-        self.output_directory = "."
-        self.output_types = None
-        # output_settings is populated with additional requirements for each type (if any)
-        self.output_settings = dict()
+        self.output_directory: Optional[Path] = Path(".")
+        self.output_types: list[str] = []
+        self.output_settings: dict = {}
 
         # initiate the subpattern settings.
         # set to save diggging through self.fit_orders and carring values around
@@ -176,7 +184,7 @@ class settings:
 
     def populate(
         self,
-        settings_file=None,
+        settings_file: Optional[str | Path] = None,
         out_type=None,
         report=False,
         debug=False,
@@ -199,16 +207,22 @@ class settings:
             Verbose outputs to find errors.
 
         """
+        
+        print("settings populate", logger.handlers)
 
         # Fail gracefully
         if settings_file is None:
             raise ValueError("The settings file needs to be specified.")
 
-        if settings_file is not None:
-            self.settings_file = settings_file
-
-            if not str.endswith(self.settings_file, ".py"):
-                self.settings_file = self.settings_file + ".py"
+        # Convert to a Path object
+        if isinstance(settings_file, str):
+            try:
+                settings_file = Path(settings_file)
+            except Exception as error:
+                raise error
+        self.settings_file = settings_file
+        if not self.settings_file.suffix == ".py":
+            self.settings_file = self.settings_file.with_suffix(".py")
 
         self.check_files_exist(self.settings_file)
         self.read_settings_file()
@@ -230,7 +244,7 @@ class settings:
         """
 
         # store all the settings from file in a mocule class.
-        module_name, _ = os.path.splitext(os.path.basename(self.settings_file))
+        module_name = self.settings_file.stem
         spec = importlib.util.spec_from_file_location(module_name, self.settings_file)
         self.settings_from_file = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.settings_from_file)
@@ -240,44 +254,63 @@ class settings:
 
         # add data directory and data files
         self.datafile_directory = self.settings_from_file.datafile_directory
+        if isinstance(self.datafile_directory, str):  # Convert to Path object
+            self.datafile_directory = Path(self.datafile_directory)
+
         (
             self.datafile_list,
             self.datafile_number,
             self.image_list,
             self.image_number,
         ) = image_list(dir(self.settings_from_file), self.settings_from_file)
+        # Convert datafile list entries to Path objects, if they exist
+        if len(self.datafile_list) > 0:
+            try:
+                self.datafile_list = [
+                    Path(file) for file in self.datafile_list if isinstance(file, str)
+                ]
+            except Exception as error:
+                raise error
 
         # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
         if "datafile_Basename" in dir(self.settings_from_file):
-            self.datafile_basename = self.settings_from_file.datafile_Basename
+            self.datafile_basename: str = self.settings_from_file.datafile_Basename
         if "datafile_Ending" in dir(self.settings_from_file):
-            self.datafile_ending  = self.settings_from_file.datafile_Ending
-        
-        #add output directory if listed. 
+            self.datafile_ending: str = self.settings_from_file.datafile_Ending
+
+        # add output directory if listed.
         # change if listed among the inputs
         if "Output_directory" in dir(self.settings_from_file):
             self.output_directory = self.settings_from_file.Output_directory
+            if isinstance(self.output_directory, str):
+                self.output_directory = Path(self.output_directory)
 
         # Load the detector class here to access relevant functions and check required parameters are present
         if "Calib_type" in dir(self.settings_from_file):
             self.calibration_type = self.settings_from_file.Calib_type
         if "Calib_param" in dir(self.settings_from_file):
             self.calibration_parameters = self.settings_from_file.Calib_param
+            if isinstance(self.calibration_parameters, str):
+                self.calibration_parameters = Path(self.calibration_parameters)
 
         if "Calib_data" in dir(self.settings_from_file):
             self.calibration_data = self.settings_from_file.Calib_data
+            if isinstance(self.calibration_data, str):
+                self.calibration_data = Path(self.calibration_data)
         if "Calib_mask" in dir(self.settings_from_file):
             self.calibration_mask = self.settings_from_file.Calib_mask
+            if isinstance(self.calibration_mask, str):
+                self.calibration_mask = Path(self.calibration_mask)
         if "Calib_detector" in dir(self.settings_from_file):
             self.calibration_detector = self.settings_from_file.Calib_detector
         if "Calib_pixels" in dir(self.settings_from_file):
-            self.calibration_pixel_size = self.settings_from_file.Calib_pixels
+            self.calibration_pixel_size: int = self.settings_from_file.Calib_pixels
 
         # load the data class.
         self.data_class = detector_factory(fit_settings=self)
 
         if "Image_prepare" in dir(self.settings_from_file):
-            logging.warning(
+            logger.warning(
                 "'Image_prepare' is depreciated nomenclature. Has been replased by 'image_preprocess'"
             )
             self.settings_from_file.image_preprocess = (
@@ -310,9 +343,13 @@ class settings:
         if "cascade_bin_type" in dir(self.settings_from_file):
             self.cascade_bin_type = self.settings_from_file.cascade_bin_type
         if "cascade_historgram_type" in dir(self.settings_from_file):
-            self.cascade_historgram_type = self.settings_from_file.cascade_historgram_type
+            self.cascade_historgram_type = (
+                self.settings_from_file.cascade_historgram_type
+            )
         if "cascade_historgram_bins" in dir(self.settings_from_file):
-            self.cascade_historgram_bins = self.settings_from_file.cascade_historgram_bins
+            self.cascade_historgram_bins = (
+                self.settings_from_file.cascade_historgram_bins
+            )
 
         # organise the fits
         if "fit_orders" in dir(self.settings_from_file):
@@ -338,7 +375,6 @@ class settings:
             self.fit_bin_type = self.settings_from_file.AziBinType
 
         if "Output_type" in dir(self.settings_from_file):
-            # self.output_types = get_output_options(fit_settings.Output_type)
             self.set_output_types(out_type_list=self.settings_from_file.Output_type)
 
         self.validate_settings_file()
@@ -372,46 +408,59 @@ class settings:
             )
 
         # validate fit_orders and bounds
-        if self.fit_orders != None:
+        if self.fit_orders:
             self.validate_fit_orders()
-        if self.fit_bounds != None:
+        if self.fit_bounds:
             self.validate_fit_bounds()
 
         # validate output types
-        if self.output_types != None:
+        if self.output_types:
             self.validate_output_types()
 
-    def check_files_exist(self, files_to_check, write=False):
+
+    def check_files_exist(
+        self,
+        files_to_check: list[Path] | Path,
+        write: bool = False,
+    ):
         """
         Check if a file exists. If not issue an error
         """
 
-        if isinstance(files_to_check, str):
+        # Validate input
+        if isinstance(files_to_check, (list, Path)) is False:
+            raise TypeError("Input is of an unsupported type")
+
+        if isinstance(files_to_check, Path):
             files_to_check = [files_to_check]
 
         for j in range(len(files_to_check)):
             # q = glob.iglob(files_to_check[j])
             # if not q:#glob.glob(files_to_check[j]):
-            if not glob.iglob(files_to_check[j]):
+            if not Path('.').glob(files_to_check[j]):
                 # use glob.glob for a file search to account for compund detectors of ESRFlvp detectors
                 raise ImportError(
-                    "The file " + files_to_check[j] + " is not found but is required."
+                    f"The file {files_to_check[j]} is not found but is required."
                 )
             else:
                 if write == True:
-                    logger.info(" ".join(map(str, [(files_to_check[j] + " exists.")])))
+                    logger.info(" ".join(map(str, [(f"{files_to_check[j]} exists.")])))
 
-    def check_directory_exists(self, directory, write=False):
+    def check_directory_exists(
+        self,
+        directory: Path,
+        write: bool = False,
+    ):
         """
         Check if a directory exists. If not issue an error
         """
-        if os.path.exists(directory) is False:
-            raise ImportError(
-                "The directory " + directory + " is not found but is required."
+        if directory.exists() is False:
+            raise FileNotFoundError(
+                f"The directory {directory.name!r} is not found but is required."
             )
         else:
             if write == True:
-                logger.info(" ".join(map(str, [(directory + " exists.")])))
+                logger.info(" ".join(map(str, [(f"{directory.name!r} exists.")])))
 
     def validate_datafiles(self):
         """
@@ -421,16 +470,24 @@ class settings:
         self.check_files_exist(self.datafile_list, write=False)
         logger.info(" ".join(map(str, [("All the data files exist.")])))
 
-    def validate_fit_orders(self, report=False, peak=None, orders=None):
+    def validate_fit_orders(
+        self,
+        report: bool = False,
+        peak=None,
+        orders=None,
+    ):
         """
         check that the orders of the fit contain all the needed parameters
         """
 
-        if not self.fit_orders and not orders:
+        if not self.fit_orders and orders is None:
             raise ValueError("There are no fit orders.")
 
+        if not self.fit_orders:
+            raise ValueError("No values for 'fit_orders' were provided")
+
         # enable orders as the variable to check over -- then it is possible to validate orders that are not in the class.
-        if not orders:
+        if orders is None:
             orders = self.fit_orders
             order_str = "fit_orders"
         else:
@@ -443,8 +500,8 @@ class settings:
             validate = peak
 
         # check the peak fitting options in the input file are not illicit.
-        missing = []
-        extras = []
+        missing: list = []
+        extras: list = []
 
         for i in validate:
             # FIX ME: we should check for incorrect or unneeded options
@@ -464,7 +521,20 @@ class settings:
                     and len(orders[i]["range"]) == 1
                     and len(orders[i]["range"][0]) == 2
                 ):
-                    logger.warning(" ".join(map(str, [("  input fix: subpattern " + str(i) + ": range is a now a simple list.")])))
+                    logger.warning(
+                        " ".join(
+                            map(
+                                str,
+                                [
+                                    (
+                                        "  input fix: subpattern "
+                                        + str(i)
+                                        + ": range is a now a simple list."
+                                    )
+                                ],
+                            )
+                        )
+                    )
                     self.fit_orders[i]["range"] = self.fit_orders[i]["range"][0]
                 # check if range is valid
                 if (
@@ -504,7 +574,23 @@ class settings:
                 # bascially -- check if it is old nomlencature (*-*) and replace (with *_*)
                 for l in range(len(comp_modifications)):
                     if "background" + "-" + comp_modifications[l] in self.fit_orders[i]:
-                        logger.warning(" ".join(map(str, [("  input fix: subpattern %s: 'background-%s' replaced with 'background_%s'" % (str(i), comp_modifications[l], comp_modifications[l]))])))
+                        logger.warning(
+                            " ".join(
+                                map(
+                                    str,
+                                    [
+                                        (
+                                            "  input fix: subpattern %s: 'background-%s' replaced with 'background_%s'"
+                                            % (
+                                                str(i),
+                                                comp_modifications[l],
+                                                comp_modifications[l],
+                                            )
+                                        )
+                                    ],
+                                )
+                            )
+                        )
                         self.fit_orders[i][
                             "background" + "_" + comp_modifications[l]
                         ] = self.fit_orders[i].pop(
@@ -512,18 +598,17 @@ class settings:
                         )
                 if "background_type" in self.fit_orders[i]:
                     status = self.validate_order_type(
-                            self.fit_orders[i]["background_type"],
-                            peak_set=i,
-                            peak=0,
-                            component="background",
-                            report=report,
+                        self.fit_orders[i]["background_type"],
+                        peak_set=i,
+                        peak=0,
+                        component="background",
+                        report=report,
                     )
                     if isinstance(status, str):
                         missing.append(status)
                 else:
                     status = 0
-                            
-                            
+
             # check peaks
             if "peak" not in orders[i]:
                 missing.append(order_str + " " + str(i) + "has no " + "'peak'")
@@ -561,8 +646,26 @@ class settings:
                                 comp_list[k] + "-" + comp_modifications[l]
                                 in self.fit_orders[i]["peak"][j]
                             ):
-                                logger.warning(" ".join(map(str, [("  input fix: subpattern %s %s: '%s-%s' replaced with '%s_%s'" 
-                                                                % (str(i), str(j), comp_list[k], comp_modifications[l], comp_list[k],comp_modifications[l]))])))
+                                logger.warning(
+                                    " ".join(
+                                        map(
+                                            str,
+                                            [
+                                                (
+                                                    "  input fix: subpattern %s %s: '%s-%s' replaced with '%s_%s'"
+                                                    % (
+                                                        str(i),
+                                                        str(j),
+                                                        comp_list[k],
+                                                        comp_modifications[l],
+                                                        comp_list[k],
+                                                        comp_modifications[l],
+                                                    )
+                                                )
+                                            ],
+                                        )
+                                    )
+                                )
                                 self.fit_orders[i]["peak"][j][
                                     comp_list[k] + "_" + comp_modifications[l]
                                 ] = self.fit_orders[i]["peak"][j].pop(
@@ -572,11 +675,11 @@ class settings:
                         # validate component types
                         if comp_list[k] + "_type" in self.fit_orders[i]["peak"][j]:
                             status = self.validate_order_type(
-                                    self.fit_orders[i]["peak"][j][comp_list[k] + "_type"],
-                                    peak_set=i,
-                                    peak=j,
-                                    component=comp_list[k],
-                                    report=report,
+                                self.fit_orders[i]["peak"][j][comp_list[k] + "_type"],
+                                peak_set=i,
+                                peak=j,
+                                component=comp_list[k],
+                                report=report,
                             )
                             if isinstance(status, str):
                                 missing.append(status)
@@ -593,12 +696,15 @@ class settings:
                                 )
                                 for m in range(len(mssng)):
                                     missing.append(mssng[m])
-                                    
-                        # check if phase and hkl are present. If neither then add them to make a label. 
-                        if not "hkl" in self.fit_orders[i]["peak"][j] and not "phase" in self.fit_orders[i]["peak"][j]:
+
+                        # check if phase and hkl are present. If neither then add them to make a label.
+                        if (
+                            not "hkl" in self.fit_orders[i]["peak"][j]
+                            and not "phase" in self.fit_orders[i]["peak"][j]
+                        ):
                             self.fit_orders[i]["peak"][j]["phase"] = "Region"
-                            self.fit_orders[i]["peak"][j]["hkl"] = i+1
-                            
+                            self.fit_orders[i]["peak"][j]["hkl"] = i + 1
+
                 if "PeakPositionSelection" in self.fit_orders[i]:
                     mssng = self.validate_position_selection(peak_set=i, report=report)
                     for m in range(len(mssng)):
@@ -608,10 +714,23 @@ class settings:
 
         # report missing bits and bobs
         if len(missing) > 0:
-            logger.error(" ".join(map(str, [("Input problems that will prevent execution: ")])))
+            logger.error(
+                " ".join(map(str, [("Input problems that will prevent execution: ")]))
+            )
             for i in range(len(missing)):
                 logger.error(" ".join(map(str, [(missing[i])])))
-            logger.error(" ".join(map(str, [("The problems listed above will prevent the data fitting and need to be rectified before execution")])))
+            logger.error(
+                " ".join(
+                    map(
+                        str,
+                        [
+                            (
+                                "The problems listed above will prevent the data fitting and need to be rectified before execution"
+                            )
+                        ],
+                    )
+                )
+            )
             if not report:
                 raise ValueError(
                     "The problems listed above will prevent the data fitting."
@@ -619,8 +738,14 @@ class settings:
         else:
             logger.info(" ".join(map(str, [("fit_orders appears to be correct")])))
 
-
-    def validate_order_type(self, comp_type, peak_set, peak, component, report=False):
+    def validate_order_type(
+        self,
+        comp_type,
+        peak_set,
+        peak,
+        component,
+        report: bool = False,
+    ):
         """
         Checks that a set component type is valid -- i.e. it exists in PeakFunctions.
         """
@@ -630,22 +755,47 @@ class settings:
             if comp_type in coefficient_types():
                 status = 0
             else:
-                status = "subpattern " + str(peak_set) + ", peak" + str(peak) + " " + component + ": the series type is not recognised"
+                status = (
+                    "subpattern "
+                    + str(peak_set)
+                    + ", peak"
+                    + str(peak)
+                    + " "
+                    + component
+                    + ": the series type is not recognised"
+                )
         elif isinstance(comp_type, int):
             try:
                 coefficient_type_as_string(comp_type)
                 status = 0
             except:
-                status = "subpattern " + str(peak_set) + ", peak" + str(peak) + " " + component + ": the series type is not recognised"
-                    
+                status = (
+                    "subpattern "
+                    + str(peak_set)
+                    + ", peak"
+                    + str(peak)
+                    + " "
+                    + component
+                    + ": the series type is not recognised"
+                )
+
         return status
 
-    def validate_order_fixed(self, peak_set, peak, component, report=False):
+    def validate_order_fixed(
+        self,
+        peak_set,
+        peak,
+        component,
+        report: bool = False,
+    ):
         """
         Checks that a fixed component set is the same size of the orders that govern it.
 
         FIXME: This should possibly override one of the settings but I am not sure which.
         """
+
+        if self.fit_orders is None:
+            raise ValueError("No values were provided for 'fit_orders'")
 
         # get coefficient type and number of coefficients expected
         if component + "_type" in self.fit_orders[peak_set]["peak"][peak]:
@@ -682,8 +832,19 @@ class settings:
                 self.fit_orders[peak_set]["peak"][peak][component + "_fixed"] = [
                     self.fit_orders[peak_set]["peak"][peak][component + "_fixed"]
                 ]
-                logger.warning(" ".join(map(str, [("    subpattern %s, peak %s: %s_fixed changed to a list" 
-                                                % (str(peak_set), str(peak), component))])))
+                logger.warning(
+                    " ".join(
+                        map(
+                            str,
+                            [
+                                (
+                                    "    subpattern %s, peak %s: %s_fixed changed to a list"
+                                    % (str(peak_set), str(peak), component)
+                                )
+                            ],
+                        )
+                    )
+                )
 
             # validate
             if not num_coeffs == len(
@@ -700,10 +861,17 @@ class settings:
                 )
         return out
 
-    def validate_position_selection(self, peak_set=0, report=False):
+    def validate_position_selection(
+        self,
+        peak_set: int | list[int] = 0,
+        report: bool = False,
+    ):
         """
         Checks that the multiple peak position selections have the right number of parts.
         """
+        if self.fit_orders is None:
+            raise ValueError("No values were provided for 'fit_orders'")
+
         if isinstance(peak_set, int):
             peak_set = [peak_set]
 
@@ -711,7 +879,6 @@ class settings:
         for i in range(len(peak_set)):
             # if PeakPositionSelection - there might be more than one peak
             if "PeakPositionSelection" in self.fit_orders[i]:
-
                 # how many peaks in list
                 tthguesses = np.array(self.fit_orders[i]["PeakPositionSelection"])
 
@@ -760,7 +927,10 @@ class settings:
 
         return miss
 
-    def validate_fit_bounds(self, report=False):
+    def validate_fit_bounds(
+        self,
+        report: bool = False,
+    ):
         """
         check the peak fitting bounds in the input file are valid.
         """
@@ -768,7 +938,7 @@ class settings:
         if not self.fit_bounds:
             raise ValueError("There are no fit bounds.")
 
-        required = ["background", "d-space", "height", "profile", "width"]
+        required = ("background", "d-space", "height", "profile", "width")
 
         # check all are present
         missing = []
@@ -778,7 +948,7 @@ class settings:
                 missing.append("fit_bounds is missing a " + comp)
             elif (
                 not isinstance(self.fit_bounds[comp], list)
-                and len(self.fit_bounds[comp]) != 2
+                and len(self.fit_bounds[comp]) != 2  # type: ignore  # Ignoring hard-to-fix type checking for now
             ):
                 missing.append("fit_bounds has an incorrectly formatted " + comp)
 
@@ -808,13 +978,18 @@ class settings:
             else:
                 logger.error(" ".join(map(str, [(err_str)])))
         else:
+            print("here")
             logger.info(" ".join(map(str, [("fit_bounds appears to be correct")])))
 
-    def set_output_types(self, out_type_list=None, report=False):
+    def set_output_types(
+        self,
+        out_type_list: list[str] = [],
+        report: bool = False,
+    ):
         """
         set output types in settings class given a list of output types
         """
-        if out_type_list is not None:
+        if out_type_list:
             self.output_types = get_output_options(out_type_list)
 
     def validate_output_types(self, report=False):
@@ -869,11 +1044,29 @@ class settings:
             logger.warning(" ".join(map(str, [("Missing output settings:")])))
             for i in range(len(missing)):
                 logger.warning(" ".join(map(str, [(missing[i])])))
-            logger.warning(" ".join(map(str, [("The issues listed above may prevent outputs being written correctly")])))
+            logger.warning(
+                " ".join(
+                    map(
+                        str,
+                        [
+                            (
+                                "The issues listed above may prevent outputs being written correctly"
+                            )
+                        ],
+                    )
+                )
+            )
         else:
-            logger.info(" ".join(map(str, [("The output settings appear to be in order")])))
+            logger.info(
+                " ".join(map(str, [("The output settings appear to be in order")]))
+            )
 
-    def set_data_files(self, start=0, end=None, keep=None):
+    def set_data_files(
+        self,
+        start=0,
+        end=None,
+        keep=None,
+    ):
         """
         Cut the number of data files.
 
@@ -948,9 +1141,9 @@ class settings:
                     orders_s = deepcopy(tmp_order)
                     if search_parameter != "background":
                         orders_s["peak"][search_peak][search_parameter] = search[k]
-                        orders_s["peak"][search_peak][
-                            search_parameter + "_type"
-                        ] = search_series[j]
+                        orders_s["peak"][search_peak][search_parameter + "_type"] = (
+                            search_series[j]
+                        )
                     else:
                         orders_s["background"][search_peak] = search[k]
                     if len(tmp_order) > 1:
@@ -979,11 +1172,12 @@ class settings:
         self.subfit_order_position = number_subpattern
         self.subfit_orders = self.fit_orders[number_subpattern]
 
-
-    def save_settings(self, filename="settings.json", filepath="./"):
+    def save_settings(
+        self, filename: str = "settings.json", filepath: Path = Path(".")
+    ):
         """
         Saves the settings class to file.
-        
+
         Parameters
         ----------
         filename : String
@@ -996,9 +1190,20 @@ class settings:
         None.
 
         """
-        logger.warning(" ".join(map(str, [("Caution: save_settings writes a temporary file with no content")])))
-        
-        fnam = os.path.join(filepath, filename)
+        logger.warning(
+            " ".join(
+                map(
+                    str,
+                    [
+                        (
+                            "Caution: save_settings writes a temporary file with no content"
+                        )
+                    ],
+                )
+            )
+        )
+
+        fnam = filepath / filename
         with open(fnam, "w") as TempFile:
             # Write a JSON string into the file.
             json.dump(
@@ -1010,7 +1215,8 @@ class settings:
             )
         logger.info(" ".join(map(str, [("Done writing", filename)])))
 
-def get_output_options(output_type):
+
+def get_output_options(output_type: list[str]):
     """
     Check if input is string or list of strings
     :param output_type: string or list of strings
@@ -1023,8 +1229,7 @@ def get_output_options(output_type):
         output_mod_type = output_type
     return output_mod_type
 
-
-def detector_factory(fit_settings=None):
+def detector_factory(fit_settings: Settings):
     """
     Factory function to provide appropriate class for data dependent on type.
     *should* support any option that is named *Functions and contains *Detector as class.
@@ -1047,4 +1252,4 @@ def detector_factory(fit_settings=None):
 
 
 if __name__ == "__main__":
-    settings = settings()
+    Settings

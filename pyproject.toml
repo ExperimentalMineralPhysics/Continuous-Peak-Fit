@@ -1,61 +1,72 @@
 [build-system]
 build-backend = "setuptools.build_meta"
 requires = [
-  "setuptools",
+    "setuptools",
 ]
 
 [project]
 name = "continuous-peak-fit"
 version = "0.0.1.dev1"
-description="Fits azimuth/time dependency of peaks with Fourier Series descriptions."
+description = "Fits azimuth/time dependency of peaks with Fourier Series descriptions."
 readme = "README.md"
 keywords = [
-  "",
+    "",
 ]
 license.file = "LICENSE.txt"
 authors = [
-    {name = "Simon Hunt", email = "simon.hunt@manchester.ac.uk"},
-    {name = "Danielle Fenech"},
+    { name = "Simon Hunt", email = "simon.hunt@manchester.ac.uk" },
+    { name = "Danielle Fenech" },
 ]
-requires-python = ">= 3.9"
+requires-python = ">=3.9"
 classifiers = [
-  "Development Status :: 3 - Alpha",
-  "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10", # pip install works for 3.10.14
-  "Programming Language :: Python :: 3.11", # pip install works for 3.11.9
-  "Programming Language :: Python :: 3.12",
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
-  "fabio",
-  "h5py",
-  "hdf5plugin",
-  "ImageD11",
-  "lmfit",
-  "matplotlib",
-  "moviepy",
-  "numpy<2", # Locked to <2 to give dependencies time to catch up
-  "opencv-python",
-  "pandas",
-  "pathos",
-  "pillow",
-  "pycairo",
-  "pyFAI",
-  "pyopencl", # NOTE: ImageD11 mentions using pyopengl
-  "scipy",
+    "fabio",
+    "h5py",
+    "hdf5plugin",
+    "imaged11",
+    "lmfit",
+    "matplotlib",
+    "moviepy>=2",
+    "numpy<2",       # Locked to <2 to give dependencies time to catch up
+    "opencv-python",
+    "pandas",
+    "pathos",
+    "pillow",
+    "pycairo",
+    "pyfai",
+    "pyopencl",      # NOTE: ImageD11 mentions using pyopengl
+    "scipy",
 ]
-[project.optional-dependencies]
-dev = [
-  "bump2version", # For version control
-  "ipykernel", # For Jupyter Notebook interactive development
-  "pre-commit", # For running code checks with
-  "pytest", # For running unit tests on code
+optional-dependencies.dev = [
+    "bump2version", # For version control
+    "ipykernel",    # For Jupyter Notebook interactive development
+    "pre-commit",   # For running code checks
+    "pytest",       # For running unit tests on code
 ]
-[project.urls]
-Repository = "https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit"
+urls.Repository = "https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = [ "src" ]
 namespaces = false
+
+[tool.ruff]
+lint.select = [
+    "I", # Sort imports using 'isort' rules
+]
+
+[tool.pyproject-fmt]
+column_width = 120
+indent = 4
+keep_full_version = true
+max_supported_python = "3.11" # Latest version in security stage
+
+[tool.pytest.ini_options]
+pythonpath = [ "Example1-Fe", "Example2-MgO" ]

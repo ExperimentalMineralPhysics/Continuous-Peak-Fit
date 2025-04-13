@@ -1,27 +1,28 @@
 from __future__ import annotations
 
 __all__ = [
-    "settings",
-    "XRD_FitPattern",
-    "XRD_FitSubpattern",
-    "input_types",
-    "peak_functions",
-    "series_functions",
-    "lmfit_model",
-    "output_formatters",
-    "XRD_FitPattern",
-    "XRD_FitSubpattern",
-    "ImageMetaData",
-    "generate_inputs",
-    "Cosmics",
     "BrightSpots",
     "Cascade",
+    "Cosmics",
+    "data_preprocess",
+    "fitsubpattern_chunks",
+    "generate_inputs",
     "h5_functions",
+    "ImageMetaData",
+    "input_types",
     "IO_functions",
-    "fitsubpattern_chunks" "data_preprocess",
+    "lmfit_model",
+    "output_formatters",
+    "peak_functions",
+    "series_functions",
+    "settings",
+    "XRD_FitPattern",
+    "XRD_FitPattern",
+    "XRD_FitSubpattern",
+    "XRD_FitSubpattern",
 ]
 
-from . import (
+from cpf import (
     BrightSpots,
     Cascade,
     Cosmics,

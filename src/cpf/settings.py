@@ -28,12 +28,14 @@ from cpf.series_functions import (
     coefficient_types,
     get_number_coeff,
 )
+
 # import logging
 
 # logger = logging.getLogger(__name__)
 logger = CPFLogger("cpf.settings")
 
 # from cpf.XRD_FitPattern import logger
+
 
 class Settings:
     """
@@ -207,7 +209,7 @@ class Settings:
             Verbose outputs to find errors.
 
         """
-        
+
         print("settings populate", logger.handlers)
 
         # Fail gracefully
@@ -417,7 +419,6 @@ class Settings:
         if self.output_types:
             self.validate_output_types()
 
-
     def check_files_exist(
         self,
         files_to_check: list[Path] | Path,
@@ -437,7 +438,7 @@ class Settings:
         for j in range(len(files_to_check)):
             # q = glob.iglob(files_to_check[j])
             # if not q:#glob.glob(files_to_check[j]):
-            if not Path('.').glob(files_to_check[j]):
+            if not Path(".").glob(str(files_to_check[j])):
                 # use glob.glob for a file search to account for compund detectors of ESRFlvp detectors
                 raise ImportError(
                     f"The file {files_to_check[j]} is not found but is required."
@@ -1228,6 +1229,7 @@ def get_output_options(output_type: list[str]):
     else:
         output_mod_type = output_type
     return output_mod_type
+
 
 def detector_factory(fit_settings: Settings):
     """

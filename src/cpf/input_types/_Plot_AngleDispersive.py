@@ -92,7 +92,7 @@ class _Plot_AngleDispersive:
         axis_plot.plot(p,i)
                 
         axis_plot.set_xlabel(f"{self.Dispersionlabel} ({self.DispersionUnits})")
-        axis_plot.set_ylabel("Intensity (a.u.)")
+        axis_plot.set_ylabel(f"{self.Observationslabel} ({self.ObservationsUnits})")
         axis_plot.set_title("Integrated Data")
     
     
@@ -543,7 +543,7 @@ class _Plot_AngleDispersive:
         x_axis="default",
         y_axis="default",
         # x_label = r"2$\theta$ ($^\circ$)",
-        y_label = "Azimuth ($^\circ$)",
+        y_label = True, #"Azimuth ($^\circ$)",
         data=None,
         limits=[1, 99.9],
         y_lims=None,
@@ -606,12 +606,15 @@ class _Plot_AngleDispersive:
             plot_y = self.intensity
             # organise colour scale as azimuth
             plot_i = self.azm
-            label_y = "Intensity (a.u.)"
+            label_y = f"{self.Observationslabel} ({self.ObservationsUnits})"
             y_ticks = False
         else:  # if y_axis is "default" or "azimuth"
             plot_y = self.azm
             plot_i = self.intensity
-            label_y = y_label
+            if y_label == None:
+                label_y = None# label_y = y_label
+            else:
+                label_y = f"{self.Azimuthlabel} ({self.AzimuthUnits})"
             if y_lims == None:
                 y_lims = [self.azm_start, self.azm_end]
                 # y_lims = [self.azm.min(), self.azm.max()]

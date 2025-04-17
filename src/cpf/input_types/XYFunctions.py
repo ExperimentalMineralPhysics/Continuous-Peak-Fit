@@ -499,6 +499,10 @@ class XYDetector:
         self.azm_end = (
             np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
         )
+        
+        self.Dispersionlabel = self.detector.calibration["x_label"]
+        self.DispersionUnits = self.detector.calibration["x_unit"]
+            
 
     @staticmethod
     def detector_check(calibration_data, settings=None):
@@ -602,9 +606,31 @@ class OrthogonalDetector:
         max_shape=None,
         debug=False,
     ):
-        self.calibration = calibration
+        self.calib = calibration
         self.max_shape = max_shape
 
+        # initiate a bunch of defaults. 
+        self.calibration = {}
+
+        self.calibration["x_dim"] = 0
+        self.calibration["x"] = None
+        self.calibration["x_start"] = np.nan
+        self.calibration["x_end"] = np.nan
+        self.calibration["x_scale"] = "linear"
+        self.calibration["y"] = None
+        self.calibration["y_start"] = np.nan
+        self.calibration["y_end"] = np.nan
+        self.calibration["y_scale"] = "linear"
+        self.calibration["rotation"] = 0  # in degrees
+
+        self.calibration["x_unit"] = "degrees"
+        self.calibration["x_label"] = "two theta"
+        self.calibration["y_unit"] = "degrees"
+        self.calibration["y_label"] = "azimuth"
+
+        self.calibration["conversion_constant"] = 1
+
+        # if given a calibration then load it.
         if calibration:
             self.load_calibration(
                 calibration=calibration, diffraction_data=diffraction_data
@@ -630,26 +656,6 @@ class OrthogonalDetector:
         None.
 
         """
-
-        self.calibration = {}
-
-        self.calibration["x_dim"] = 0
-        self.calibration["x"] = None
-        self.calibration["x_start"] = np.nan
-        self.calibration["x_end"] = np.nan
-        self.calibration["x_scale"] = "linear"
-        self.calibration["y"] = None
-        self.calibration["y_start"] = np.nan
-        self.calibration["y_end"] = np.nan
-        self.calibration["y_scale"] = "linear"
-        self.calibration["rotation"] = 0  # in degrees
-
-        self.calibration["x_unit"] = "degrees"
-        self.calibration["x_label"] = "two theta"
-        self.calibration["y_unit"] = "degrees"
-        self.calibration["y_label"] = "azimuth"
-
-        self.calibration["conversion_constant"] = 1
 
         # fill in the calibration if it exists.
         if calibration:

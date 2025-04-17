@@ -752,7 +752,8 @@ def execute(
                 filename = make_outfile_name(
                     settings_for_fit.image_list[j],
                     directory=settings_for_fit.output_directory,
-                    extension="integrated.png",
+                    additional_text = "integrated",
+                    extension=".png",
                     overwrite=True,
                 )
  

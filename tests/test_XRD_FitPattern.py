@@ -11,7 +11,12 @@ from pytest import mark
 # Run the same test on different datasets and input files
 execute_test_matrix = (
     # Dataset | Input file
-    ("Example1-Fe", "BCC1_MultiPeak_input_Dioptas.py"),
+    ("Example1-Fe", "BCC1_Dioptas_EmptyRanges_input.py"),
+    ("Example1-Fe", "BCC1_Dioptas_EqualParams_input.py"),
+    ("Example1-Fe", "BCC1_Dioptas_input.py"),
+    ("Example1-Fe", "BCC1_Dioptas_MultiPeak_input.py"),
+    ("Example1-Fe", "BCC1_Dioptas_SeriesFunctions_input.py"),
+    ("Example1-Fe", "BCC1_Dioptas_SymmFixed_input.py"),
 )
 
 

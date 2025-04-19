@@ -47,6 +47,7 @@ class CPFLogger(logging.Logger):
             self.addHandler(handler)
 
         print(self.handlers)
+
     """
     Define logging levels here
     """
@@ -267,41 +268,3 @@ class CPFLogger(logging.Logger):
             self.log(getattr(CPFLogger, level.upper()), " ".join(map(str, [text[i]])))
         if space is True:  # Add space after message
             self.log(getattr(CPFLogger, level.upper()), " ".join(map(str, [("")])))
-
-
-# Basic test to check that logger properties are correct
-def run_test(level: str | int = "INFO"):
-    # Assign the logger to a variable
-    logger = CPFLogger("CPFLogger")
-    logger.setLevel(level)
-    print(f"Logger currently set to level {logger.getEffectiveLevel()}")
-
-    if len(logger.handlers) > 0:
-        print("This logger instance has the following handlers:")
-    for h in logger.handlers:
-        print(h)
-
-    # Print it at different levels
-    logger.debug("Printing at the DEBUG level")
-    logger.moreinfo("Printing at the MOREINFO level")
-    logger.effusive("Printing at the EFFUSIVE level")
-    logger.info("Printing at the INFO level")
-    logger.warning("Printing at the WARNING level")
-    logger.error("Printing at the ERROR level")
-    logger.critical("Printing at the CRITICAL level")
-
-    print(f"Current effective level: {logger.getEffectiveLevel()}")
-    print(f"DEBUG attribute: {getattr(CPFLogger, 'DEBUG')}")
-    print(f"EFFUSIVE attribute: {getattr(CPFLogger, 'EFFUSIVE')}")
-    print(f"MOREINFO attribute: {getattr(CPFLogger, 'MOREINFO')}")
-    print(f"INFO attribute: {getattr(CPFLogger, 'INFO')}")
-    print(f"WARNING attribute: {getattr(CPFLogger, 'WARNING')}")
-    print(f"ERROR attribute: {getattr(CPFLogger, 'ERROR')}")
-    print(f"CRITICAL attribute: {getattr(CPFLogger, 'CRITICAL')}")
-
-
-if __name__ == "__main__":
-    """
-    A simple way of running the test
-    """
-    run_test(level="INFO")

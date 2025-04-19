@@ -7,7 +7,6 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.backends.backend_agg import FigureCanvasAgg
 from moviepy.video.VideoClip import VideoClip
 
 from cpf.BrightSpots import SpotProcess
@@ -19,33 +18,10 @@ from cpf.IO_functions import (
     title_file_names,
 )
 from cpf.logging import CPFLogger
+from cpf.util.output_formatters import mplfig_to_npimage
 from cpf.XRD_FitSubpattern import plot_FitAndModel
 
 logger = CPFLogger("cpf.output_formatters.WriteFitMovie")
-
-
-def mplfig_to_npimage(fig):
-    """
-    Converts a matplotlib figure to a RGB frame after updating the canvas.
-
-    This is our own implementation of a function that was removed from MoviePy >=2,
-    which we only make use of once in WriteOutput. This should fix the incompatibility
-    with MoviePy >=2.
-
-    Credits: https://github.com/Zulko/moviepy/issues/2297#issuecomment-2609419770
-    """
-
-    canvas = FigureCanvasAgg(fig)
-    canvas.draw()  # update/draw the elements
-
-    # get the width and the height to resize the matrix
-    l, b, w, h = canvas.figure.bbox.bounds
-    w, h = int(w), int(h)
-
-    #  exports the canvas to a memory view and then to a numpy nd.array
-    mem_view = canvas.buffer_rgba()  # Update to Matplotlib 3.8
-    image = np.asarray(mem_view)
-    return image[:, :, :3]  # Return only RGB, not alpha.
 
 
 def Requirements():
@@ -129,10 +105,10 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
     )
 
     # get the intensity ranges from the data fits.
-    data_range  = [[] for i in range(len(settings_class.fit_orders))]
+    data_range = [[] for i in range(len(settings_class.fit_orders))]
     model_range = [[] for i in range(len(settings_class.fit_orders))]
     resid_range = [[] for i in range(len(settings_class.fit_orders))]
-    dispersion_range = [ [] for i in range(len(settings_class.fit_orders))]
+    dispersion_range = [[] for i in range(len(settings_class.fit_orders))]
     for z in range(settings_class.image_number):
         settings_class.set_subpattern(z, 0)
 
@@ -167,8 +143,8 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
     for y in range(len(data_fit)):
         tmp1 = pd.DataFrame(data_range[y], index=list(range(len(data_range[y]))))
         tmp2 = pd.DataFrame(model_range[y], index=list(range(len(model_range[y]))))
-        Imax.append(np.nanmax([tmp1["max"].max(),tmp2["max"].max()]))
-        Imin.append(np.nanmin([tmp1["min"].min(),tmp2["min"].min()]))
+        Imax.append(np.nanmax([tmp1["max"].max(), tmp2["max"].max()]))
+        Imin.append(np.nanmin([tmp1["min"].min(), tmp2["min"].min()]))
         tmp3 = pd.DataFrame(resid_range[y], index=list(range(len(resid_range[y]))))
         if np.isnan(tmp3["max"].max()):
             Rmax.append(Imax[-1])
@@ -178,9 +154,9 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
             Rmin.append(Imin[-1])
         else:
             Rmin.append(tmp3["min"].min())
-    
-    duration = (settings_class.image_number)/fps
-    
+
+    duration = (settings_class.image_number) / fps
+
     for z in range(len(settings_class.fit_orders)):
         y = list(range(settings_class.image_number))
 
@@ -221,8 +197,8 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
 
             # restrict data to the right part.
             sub_data = data_class.duplicate()
-            settings_class.set_subpattern(y[int(t*fps)], z)
-            sub_data.set_limits(range_bounds=dispersion_range[z][y[int(t*fps)]])
+            settings_class.set_subpattern(y[int(t * fps)], z)
+            sub_data.set_limits(range_bounds=dispersion_range[z][y[int(t * fps)]])
 
             # Mask the subpattern by intensity if called for
             if (

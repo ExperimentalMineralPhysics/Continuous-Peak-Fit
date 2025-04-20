@@ -1,57 +1,23 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
+import os
+from typing import Literal, Optional, cast
 
 import lmfit
 
 
 class CPFLogger(logging.Logger):
-    def __init__(
-        self,
-        name: str,
-        level: str | int = "INFO",
-        format: str = "%(asctime)s [%(levelname)s] %(message)s",
-        log_dir: Optional[str] = None,
-    ):
-        # Inherit the properties of the Logger class this is derived from
-        super().__init__(name, level)
-
-        # Clear all pre-existing handlers
-        self.handlers.clear()
-
-        # Set the default logging level
-        self.setLevel(level)
-
-        # Set the format to use
-        formatter = logging.Formatter(format) if format else None
-
-        # Set up the stream handler (logs to the console)
-        handlers: list[logging.StreamHandler | logging.FileHandler] = []
-        handlers.append(logging.StreamHandler())
-
-        # Set up file handler if a file path is given
-        if log_dir is not None:
-            handlers.append(
-                logging.FileHandler(
-                    filename=log_dir,
-                    encoding="utf-8",
-                    mode="a",  # Append to existing log file
-                )
-            )
-
-        # Apply format and levels to handlers and add them to current logger
-        for handler in handlers:
-            handler.setFormatter(formatter)
-            handler.setLevel(level)
-            self.addHandler(handler)
-
-        print(self.handlers)
+    """
+    This class contains the additional attributes that will be grafted onto whichever
+    logger class the Python session will be run with.
+    """
 
     """
     Define logging levels here
     """
 
+    NOTSET = logging.NOTSET
     DEBUG = logging.DEBUG
     INFO = logging.INFO
     WARNING = logging.WARNING
@@ -60,44 +26,107 @@ class CPFLogger(logging.Logger):
     EFFUSIVE = 13
     MOREINFO = 17
 
+    levels = {
+        "DEBUG": DEBUG,
+        "INFO": INFO,
+        "WARNING": WARNING,
+        "ERROR": ERROR,
+        "CRITICAL": CRITICAL,
+        "EFFUSIVE": EFFUSIVE,
+        "MOREINFO": MOREINFO,
+    }
+
     def debug(self, msg, *args, **kwargs):
-        levelNum = self.DEBUG
-        if self.isEnabledFor(levelNum):
-            self._log(levelNum, msg, args, **kwargs)
+        self.check_level()
+        if self.isEnabledFor(self.DEBUG):
+            self._log(self.DEBUG, msg, args, **kwargs)
 
     def info(self, msg, *args, **kwargs):
-        levelNum = self.INFO
-        if self.isEnabledFor(levelNum):
-            self._log(levelNum, msg, args, **kwargs)
+        self.check_level()
+        if self.isEnabledFor(self.INFO):
+            self._log(self.INFO, msg, args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
-        levelNum = self.WARNING
-        if self.isEnabledFor(levelNum):
-            self._log(levelNum, msg, args, **kwargs)
+        self.check_level()
+        if self.isEnabledFor(self.WARNING):
+            self._log(self.WARNING, msg, args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
-        levelNum = self.ERROR
-        if self.isEnabledFor(levelNum):
-            self._log(levelNum, msg, args, **kwargs)
+        self.check_level()
+        if self.isEnabledFor(self.ERROR):
+            self._log(self.ERROR, msg, args, **kwargs)
 
     def critical(self, msg, *args, **kwargs):
-        levelNum = self.CRITICAL
-        if self.isEnabledFor(levelNum):
-            self._log(levelNum, msg, args, **kwargs)
+        self.check_level()
+        if self.isEnabledFor(self.CRITICAL):
+            self._log(self.CRITICAL, msg, args, **kwargs)
 
     def moreinfo(self, msg, *args, **kwargs):
-        levelNum = self.MOREINFO
-        if self.isEnabledFor(levelNum):
-            self._log(levelNum, msg, args, **kwargs)
+        self.check_level()
+        if self.isEnabledFor(self.MOREINFO):
+            self._log(self.MOREINFO, msg, args, **kwargs)
 
     def effusive(self, msg, *args, **kwargs):
-        levelNum = self.EFFUSIVE
-        if self.isEnabledFor(levelNum):
-            self._log(levelNum, msg, args, **kwargs)
+        self.check_level()
+        if self.isEnabledFor(self.EFFUSIVE):
+            self._log(self.EFFUSIVE, msg, args, **kwargs)
 
     """
-    Helper functions
+    Helper functions and attributes
     """
+    formatter: Optional[logging.Formatter] = None
+
+    def set_formatter(
+        self,
+        format: Optional[str] = "%(asctime)s [%(levelname)s] %(message)s",
+    ):
+        """
+        Set the formatter to be used by the logger.
+        """
+        if format is not None:
+            self.formatter = logging.Formatter(format)
+
+    def add_stream_handler(
+        self,
+    ):
+        # Remove all existing StreamHandlers
+        for handler in self.handlers[:]:
+            if isinstance(handler, logging.StreamHandler):
+                self.removeHandler(handler)
+                # print(f"Removed stream handler {handler.name}")  # DEBUG MESSAGE
+                handler.close()
+        new_handler = logging.StreamHandler()
+        new_handler.setFormatter(self.formatter)
+        new_handler.setLevel(logging.NOTSET)  # Let the logger decide what to log
+        self.addHandler(new_handler)
+
+    def add_file_handler(
+        self,
+        file_name: str,
+    ):
+        # Remove all existing FileHandlers
+        for handler in self.handlers[:]:  # Iterate over a copy to avoid mutation issues
+            if isinstance(handler, logging.FileHandler):
+                self.removeHandler(handler)
+                # print(f"Removed file handler {handler.name}")  # DEBUG MESSAGE
+                handler.close()
+        # Create and attach a new FileHandler
+        new_handler = logging.FileHandler(file_name, mode="a", encoding="utf-8")
+        new_handler.setFormatter(self.formatter)
+        new_handler.setLevel(logging.NOTSET)  # Let the logger decide what to log
+        self.addHandler(new_handler)
+
+    def check_level(self):
+        """
+        Checks to see if the current logger level has been changed from its previous one.
+        If it has, sets the logger level to the new value. This is run before every logger
+        call to ensure the logger is dynamically updated.
+        """
+        current_level = self.levels[os.environ["CPF_LOG_LEVEL"]]
+        if self.level != current_level:
+            self.level = current_level
+            self.setLevel(self.level)
+            # print(f"Logger {self.name} is now {self.level}")  # DEBUG MESSAGE
 
     def is_below_level(self, level: str = "DEBUG") -> bool:
         """
@@ -105,7 +134,7 @@ class CPFLogger(logging.Logger):
         returning False and True respectively.
         """
 
-        return self.getEffectiveLevel() <= getattr(self, level)
+        return self.getEffectiveLevel() <= self.levels[level]
 
     def log_lmfit_obj(
         self,
@@ -268,3 +297,88 @@ class CPFLogger(logging.Logger):
             self.log(getattr(CPFLogger, level.upper()), " ".join(map(str, [text[i]])))
         if space is True:  # Add space after message
             self.log(getattr(CPFLogger, level.upper()), " ".join(map(str, [("")])))
+
+
+def set_global_log_level(
+    level: str,
+):
+    """
+    This function sets an environment variable that stores the desired level of the
+    logger in memory for as long as the current Python session is live, and can be
+    updated in real-time when used as part of a Jupyter Notebook session. With this,
+    it should be possible to switch log levels in between runs without having to
+    restart the Python kernel.
+    """
+    level = level.upper()  # Standardise as uppercase
+    if level not in CPFLogger.levels.keys():
+        raise ValueError("Unrecognised logger level specified")
+    os.environ["CPF_LOG_LEVEL"] = level
+    print(f"Global logger level has been set to {level}")  # DEBUG
+
+
+def configure_logger():
+    """
+    Comprehensively adds the attributes of CPFLogger class defined above to whatever
+    logger object is currently being configured. When in a Python console or Jupyter
+    Notebook, a Logger instance will be instantiated by default, so if another logger
+    of our own is set up, we will get duplicate logs. By dynamically grafting the
+    CPFLogger's attributes onto the existing Logger object, this avoids that issue.
+
+    This method was inspired by the answers to Stack Overflow post
+    http://stackoverflow.com/q/2183233/2988730, especially
+    http://stackoverflow.com/a/13638084/2988730
+    """
+
+    # Set the global log level to INFO for now
+    print("Performing initial loggger setup")
+    set_global_log_level("INFO")
+
+    # Add the additional attributes from the CPFLogger to the logger class being used
+    # Overwrite what is already present
+    for attribute, value in CPFLogger.__dict__.items():
+        # Skip modification of built-in methods (they start with "__")
+        if attribute.startswith("__"):
+            continue
+        setattr(logging.getLoggerClass(), attribute, value)
+        # print(f"Added {attribute} to {logging.getLoggerClass()}")  # DEBUG message
+
+    # Add the new levels from the CPFLogger into the main logger (overwrite existing)
+    for levelName, levelNum in CPFLogger.levels.items():
+        methodName = levelName.lower()
+
+        def logToRoot(message, *args, **kwargs):
+            logging.log(levelNum, message, *args, **kwargs)
+
+        # Add additional log levels to the logging module
+        logging.addLevelName(levelNum, levelName)
+        setattr(logging, levelName, levelNum)
+        setattr(logging, methodName, logToRoot)
+        # print(f"Added logging level {levelName} to {logging.getLoggerClass()}")  # DEBUG
+
+    # Load and configure the root logger used by this Python environment
+    # It will have CPFLogger's attributes now
+    logger = cast(CPFLogger, logging.getLogger())
+    logger.set_formatter()
+    logger.add_stream_handler()
+    logger.setLevel(os.environ["CPF_LOG_LEVEL"])
+
+
+# Run the function to configure the logging environment
+configure_logger()
+
+
+def get_logger(name: Optional[str] = None) -> CPFLogger:
+    """
+    Creates an instance of the logger class used in the current Python environment, with
+    the logger taking on whatever name was specified. If no name was provided, the root
+    logger is returned instead.
+
+    In order to satisfy type checkers, this function re-casts the logger class used by
+    the Python session as the CPFLogger.
+
+    Normally, each module should have its own unique logger instance, but when working
+    with Python consoles or Jupyter Notebooks, which spawn their own logger instances,
+    this will lead to duplicate logs, so for now, the root logger is reused in each file.
+    """
+    logger = cast(CPFLogger, logging.getLogger())
+    return logger

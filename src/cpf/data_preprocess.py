@@ -41,9 +41,9 @@ from skimage import filters, morphology, restoration
 
 import cpf.settings as Settings
 from cpf.Cosmics import cosmicsimage
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.data_preprocess")
+logger = get_logger("cpf.data_preprocess")
 
 
 def image_adjust(data, image_process):

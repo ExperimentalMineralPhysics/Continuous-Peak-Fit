@@ -8,9 +8,9 @@ import numpy as np
 
 import cpf.output_formatters.WriteMultiFit as WriteMultiFit
 from cpf.IO_functions import make_outfile_name
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.output_formatters.WritePolydefix")
+logger = get_logger("cpf.output_formatters.WritePolydefix")
 
 
 def Requirements():

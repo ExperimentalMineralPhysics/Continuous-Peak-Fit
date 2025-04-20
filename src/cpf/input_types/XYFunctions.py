@@ -69,9 +69,9 @@ from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.input_types.XYFunctions")
+logger = get_logger("cpf.input_types.XYFunctions")
 
 # plot the data as an image (TRue) or a scatter plot (false).
 # FIXME: the plot as image (im_show) does not work. The fitted data has to be reshaped
@@ -200,12 +200,12 @@ class XYDetector:
         new.azm = deepcopy(self.azm[local_mask])
         if "dspace" in dir(self):
             new.dspace = deepcopy(self.dspace[local_mask])
-        
-        #set nee range.
+
+        # set nee range.
         new.tth_start = range_bounds[0]
-        new.tth_end   = range_bounds[1]
-        
-        if "x" in dir(self): 
+        new.tth_end = range_bounds[1]
+
+        if "x" in dir(self):
             if self.x is not None:
                 new.x = deepcopy(self.x[local_mask])
         if "y" in dir(self):
@@ -362,7 +362,7 @@ class XYDetector:
             else:
                 dtype = self.GetDataType(im[0], minimumPrecision=False)
         im = ma.array(im, dtype=dtype)
-        
+
         if self.calibration["x_dim"] != 0:
             im = im.T
 
@@ -487,11 +487,15 @@ class XYDetector:
         # get and apply mask
         mask_array = self.get_mask(mask, self.intensity)
         self.mask_apply(mask_array, debug=debug)
-        
-        self.azm_start = np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        self.azm_end   =  np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+
+        self.azm_start = (
+            np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        )
+        self.azm_end = (
+            np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        )
         self.tth_start = np.min(self.tth.flatten())
-        self.tth_end   = np.max(self.tth.flatten())
+        self.tth_end = np.max(self.tth.flatten())
 
         self.azm_start = (
             np.around(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
@@ -568,7 +572,7 @@ class XYDetector:
     bins = _AngleDispersive_common.bins
     set_limits = _AngleDispersive_common.set_limits
     test_azims = _AngleDispersive_common.test_azims
-    GetDataType  = _AngleDispersive_common.GetDataType
+    GetDataType = _AngleDispersive_common.GetDataType
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask
@@ -583,14 +587,9 @@ class XYDetector:
     plot_fitted = _Plot_AngleDispersive.plot_fitted
     plot_collected = _Plot_AngleDispersive.plot_collected
     plot_calibrated = _Plot_AngleDispersive.plot_calibrated
-    plot_integrated  = _Plot_AngleDispersive.plot_integrated
+    plot_integrated = _Plot_AngleDispersive.plot_integrated
     # this function is added because it requires access to self:
     dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks
-
-
-
-
-
 
 
 class OrthogonalDetector:
@@ -774,9 +773,7 @@ class OrthogonalDetector:
         :return:
         """
         _, y_array = self.get_xy()
-        calibrated_y = np.ones(y_array.shape)*self.calibration["y"][0]
-        for i in range(len(self.calibration["y"])-1):
-            calibrated_y += y_array * self.calibration["y"][i+1] * (i+1)
+        calibrated_y = np.ones(y_array.shape) * self.calibration["y"][0]
+        for i in range(len(self.calibration["y"]) - 1):
+            calibrated_y += y_array * self.calibration["y"][i + 1] * (i + 1)
         return calibrated_y
-    
-    

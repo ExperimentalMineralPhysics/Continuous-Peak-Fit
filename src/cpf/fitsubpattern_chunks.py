@@ -17,9 +17,9 @@ import cpf.lmfit_model as lmm
 import cpf.series_constraints as sc
 import cpf.series_functions as sf
 from cpf.IO_functions import make_outfile_name, peak_string
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.fitsubpattern_chunks")
+logger = get_logger("cpf.fitsubpattern_chunks")
 
 
 def get_manual_guesses(settings_as_class, data_as_class, debug=False):
@@ -513,24 +513,23 @@ def fit_chunks(
                             # the orders a list of numbers - in which case stil
                             # have to be reduced to 0
                             local_orders["peak"][pk][comp_names[i]] = 0
-                        
-                        if comp_names[i]+"_fixed" in local_orders["peak"][pk]:
+
+                        if comp_names[i] + "_fixed" in local_orders["peak"][pk]:
                             # fixed = 1
-                            local_orders["peak"][pk][comp_names[i]+"_fixed"] = 1
-                            
-                params = lmm.initiate_all_params_for_fit(settings_as_class,
+                            local_orders["peak"][pk][comp_names[i] + "_fixed"] = 1
+
+                params = lmm.initiate_all_params_for_fit(
+                    settings_as_class,
                     chunk_data,
-                    peak_orders = local_orders,
+                    peak_orders=local_orders,
                     values={"background": background_guess, "peak": peaks},
                     types=False,
-                    )
-                
-                #unvary fixed parameters
+                )
+
+                # unvary fixed parameters
                 for pk in range(len(peaks)):
                     for i in range(len(comp_names)):
-                        if (
-                            comp_names[i]+"_fixed" in local_orders["peak"][pk]
-                        ):
+                        if comp_names[i] + "_fixed" in local_orders["peak"][pk]:
                             params = lmm.un_vary_single_param(
                                 params,
                                 f"peak_{pk}",
@@ -569,9 +568,11 @@ def fit_chunks(
                 # get values from fit and append to arrays for output
                 for i in range(len(background_guess)):
                     out_vals["bg"][i].append(params["bg_c" + str(i) + "_f0"].value)
-                    # catch None is errors                        
+                    # catch None is errors
                     if params["bg_c" + str(i) + "_f0"].stderr != None:
-                        out_vals["bg_err"][i].append(params["bg_c" + str(i) + "_f0"].stderr)
+                        out_vals["bg_err"][i].append(
+                            params["bg_c" + str(i) + "_f0"].stderr
+                        )
                     else:
                         out_vals["bg_err"][i].append(np.nan)
                 comp_list = ["h", "d", "w", "p"]
@@ -581,15 +582,18 @@ def fit_chunks(
                         out_vals[comp_list[cp]][pk].append(
                             params["peak_" + str(pk) + "_" + comp_list[cp] + "0"].value
                         )
-                        # catch None is errors                        
-                        if params["peak_" + str(pk) + "_" + comp_list[cp] + "0"].stderr != None:
+                        # catch None is errors
+                        if (
+                            params["peak_" + str(pk) + "_" + comp_list[cp] + "0"].stderr
+                            != None
+                        ):
                             out_vals[comp_list[cp] + "_err"][pk].append(
-                                params["peak_" + str(pk) + "_" + comp_list[cp] + "0"].stderr
+                                params[
+                                    "peak_" + str(pk) + "_" + comp_list[cp] + "0"
+                                ].stderr
                             )
                         else:
-                            out_vals[comp_list[cp] + "_err"][pk].append(
-                                np.nan
-                            )
+                            out_vals[comp_list[cp] + "_err"][pk].append(np.nan)
                 out_vals["chunks"].append(azichunks[j])
 
                 # plot the fits.
@@ -696,7 +700,7 @@ def fit_series(
         data_vals = data[0]["bg"][b]
         data_val_errors = data[0]["bg_err"][b]
         data_val_errors = clean_errs(data_val_errors)
-        
+
         fout = lmm.coefficient_fit(
             azimuth=azimuth,
             ydata=data_vals,
@@ -707,7 +711,7 @@ def fit_series(
             fit_method="leastsq",
         )
         # fout.plot(show_init=True)
-        
+
         master_params = fout.params
 
     # initiate peak(s)
@@ -734,9 +738,9 @@ def fit_series(
             else:
                 fixed = 0
                 data_vals = data[0][comp][j]
-                data_val_errors = data[0][comp+"_err"][j]
+                data_val_errors = data[0][comp + "_err"][j]
                 data_val_errors = clean_errs(data_val_errors)
-                
+
             #     # FIX ME: this was not checked properly.the values it feeds are not necessarily correct
             #     # and the fixed parameters might be fit for.
             # coeff_type = pf.params_get_type(orders, comp, peak=j)
@@ -775,7 +779,7 @@ def fit_series(
                     max_nfev=max_n_f_eval,
                 )
                 # fout.plot(show_init=True)
-            
+
             master_params = fout.params
 
     logger.debug(" ".join(map(str, [("Parameters after initial Fourier fits")])))
@@ -819,7 +823,13 @@ def fit_series(
                 ax[i].scatter(data[1], data[0][comp][j], s=10)
                 y_lms = ax[i].get_ylim()
                 # add error bars to data points, over the top of the points
-                ax[i].errorbar(data[1], data[0][comp][j], yerr = data[0][comp+"_err"][j], fmt='none', elinewidth=0.5)
+                ax[i].errorbar(
+                    data[1],
+                    data[0][comp][j],
+                    yerr=data[0][comp + "_err"][j],
+                    fmt="none",
+                    elinewidth=0.5,
+                )
                 ax[i].plot(
                     az_plt,
                     gmod_plot,
@@ -860,7 +870,13 @@ def fit_series(
             ax[i + k + 1].scatter(data[1], data[0]["bg"][k], s=10)
             y_lms = ax[i + k + 1].get_ylim()
             # add error bars to data points, over the top of the points
-            ax[i + k + 1].errorbar(data[1], data[0]["bg"][k], yerr = data[0]["bg_err"][k], fmt='none', elinewidth=0.5)
+            ax[i + k + 1].errorbar(
+                data[1],
+                data[0]["bg"][k],
+                yerr=data[0]["bg_err"][k],
+                fmt="none",
+                elinewidth=0.5,
+            )
             ax[i + k + 1].plot(
                 az_plt,
                 gmod_plot,
@@ -896,22 +912,21 @@ def fit_series(
     return master_params
 
 
-
 def clean_errs(error_values, outliers=5):
     """
-    The chunk fits can produce errors that are either very small (<1e-10) or 
-    very large (>1e5). These massively skew the series fits. This functions therefore 
-    idientifies errors the are more than 'outliers' * stddev(error_values) from the 
+    The chunk fits can produce errors that are either very small (<1e-10) or
+    very large (>1e5). These massively skew the series fits. This functions therefore
+    idientifies errors the are more than 'outliers' * stddev(error_values) from the
     median and replaces them with a value that equals median_error +/- 'outliers' * stddev(error_values)
-    
-    nan errors are accounted for. 
-    
+
+    nan errors are accounted for.
+
     Parameters
     ----------
     error_values : list, np.array
         Array or list of error values.
     outliers : float, optional
-        Value to filter the outliers, filters values more than this number of times standard deviaiton of values away from median. 
+        Value to filter the outliers, filters values more than this number of times standard deviaiton of values away from median.
         The default is 5.
 
     Returns
@@ -922,19 +937,21 @@ def clean_errs(error_values, outliers=5):
     """
     # N.B. (SAH) I dont know if this function is still necessary now that I have fixed the weight/errors into Model.fit.
     # [the errors needed to be square rooted before sending ... to give sesible values when calling fout.plot(show_init=True)
-    
+
     error_values = np.array(error_values)
-    
+
     err_stdev = np.nanmedian(error_values)
     log_err_vals = np.log10(error_values)
 
     dlog = np.abs(log_err_vals - np.nanmedian(log_err_vals))
     stdev_dlog = np.nanmedian(dlog)
-    s = dlog / (stdev_dlog if stdev_dlog else 1.)
+    s = dlog / (stdev_dlog if stdev_dlog else 1.0)
 
-    error_values[s>outliers] = np.nanmedian(error_values) + outliers * err_stdev 
+    error_values[s > outliers] = np.nanmedian(error_values) + outliers * err_stdev
 
-    #remove nan values from error_values
-    error_values[np.isnan(error_values)] = np.nanmedian(error_values) + outliers * err_stdev * 10
+    # remove nan values from error_values
+    error_values[np.isnan(error_values)] = (
+        np.nanmedian(error_values) + outliers * err_stdev * 10
+    )
 
     return error_values

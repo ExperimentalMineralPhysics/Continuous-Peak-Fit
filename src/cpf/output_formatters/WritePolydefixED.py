@@ -10,9 +10,9 @@ import numpy as np
 
 import cpf.series_functions as sf
 from cpf.IO_functions import make_outfile_name, replace_null_terms
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.output_formatters.WritePolydefixED")
+logger = get_logger("cpf.output_formatters.WritePolydefixED")
 
 
 def Requirements():

@@ -52,9 +52,9 @@ import numpy as np
 import scipy.ndimage as ndimage
 import scipy.signal as signal
 
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.Cosmics")
+logger = get_logger("cpf.Cosmics")
 
 # We define the laplacian kernel to be used
 laplkernel = np.array([[0.0, -1.0, 0.0], [-1.0, 4.0, -1.0], [0.0, -1.0, 0.0]])

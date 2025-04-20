@@ -17,11 +17,11 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 from cpf.util.output_formatters import mplfig_to_npimage
 from cpf.XRD_FitSubpattern import plot_FitAndModel
 
-logger = CPFLogger("cpf.output_formatters.WriteFitMovie")
+logger = get_logger("cpf.output_formatters.WriteFitMovie")
 
 
 def Requirements():

@@ -25,9 +25,9 @@ from cpf.IO_functions import (
     make_outfile_name,
     peak_string,
 )
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.XRD_FitSubpattern")
+logger = get_logger("cpf.XRD_FitSubpattern")
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -191,14 +191,18 @@ def check_num_azimuths(peeks, azimu, orders):
     for y in range(peeks):
         # loop over parameters
         for param in choice_list:
-            coeff_type = sf.coefficient_type_as_number(sf.params_get_type(orders, param, peak=y))
+            coeff_type = sf.coefficient_type_as_number(
+                sf.params_get_type(orders, param, peak=y)
+            )
             if coeff_type != 5:  # if parameters are not independent
                 max_coeff = np.max(
                     [max_coeff, sf.get_number_coeff(orders, param, peak=y)]
                 )
     param = "background"
     for y in range(np.max([len(orders["background"])])):
-        coeff_type = sf.coefficient_type_as_number(sf.params_get_type(orders, param, peak=y))
+        coeff_type = sf.coefficient_type_as_number(
+            sf.params_get_type(orders, param, peak=y)
+        )
         if coeff_type != 5:  # if parameters are not independent
             max_coeff = np.max([max_coeff, sf.get_number_coeff(orders, "background")])
     if max_coeff > len(np.unique(azimu)):
@@ -395,7 +399,7 @@ def fit_sub_pattern(
                 # set step to -21 so that it is still negative at the end
                 step.append(-21)  # get to the end and void the fit
                 # void so send empty parameter set to out.
-                fout=lmm.initiate_all_params_for_fit(
+                fout = lmm.initiate_all_params_for_fit(
                     settings_as_class,
                     data_as_class,
                     debug=debug,
@@ -479,7 +483,7 @@ def fit_sub_pattern(
                     # set step to -11 so that it is still negative at the end
                     step.append(-11)  # get to the end and void the fit
                     # void so send empty parameter set to out.
-                    fout=lmm.initiate_all_params_for_fit(
+                    fout = lmm.initiate_all_params_for_fit(
                         settings_as_class,
                         data_as_class,
                         debug=debug,
@@ -1167,7 +1171,9 @@ def plot_FitAndModel(
                 )
             )
         else:
-            fit_centroid.append(np.full(azi_plot.shape, np.nan)) #np.zeros(azi_plot.shape))
+            fit_centroid.append(
+                np.full(azi_plot.shape, np.nan)
+            )  # np.zeros(azi_plot.shape))
 
     # plot the data and the fit
     data_as_class.plot_fitted(

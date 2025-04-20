@@ -10,10 +10,10 @@ from moviepy.video.VideoClip import VideoClip
 
 # import cpf.IO_functions as IO
 from cpf.IO_functions import make_outfile_name, title_file_names
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 from cpf.util.output_formatters import mplfig_to_npimage
 
-logger = CPFLogger("cpf.output_types.WriteCollectionMovie")
+logger = get_logger("cpf.output_types.WriteCollectionMovie")
 
 
 def Requirements():

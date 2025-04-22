@@ -177,12 +177,18 @@ class ESRFlvpDetector:
         self.azm_end = 180
         self.tth_start = None
         self.tth_end = None
+        
         # Moving image plate that be integrated into single image: so contonuous data.
         # basically the data can be treated as having a single claibration.
-        self.DispersionType = "AngleDispersive"
+        self.Dispersion = "Angle"
+        self.continuous_azm = True
+        
         self.Dispersionlabel = r"2$\theta$"
         self.DispersionUnits = r"$^\circ$"
-        self.continuous_azm = True
+        self.Azimuthlabel = r"Azimuth"
+        self.AzimuthUnits = r"$^\circ$"
+        self.Observationslabel = r"Intensity"
+        self.ObservationsUnits = r"counts"
 
         self.azm_blocks = 2
         # default blocks are 2 degrees incase using only a single detector position

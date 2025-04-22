@@ -61,10 +61,16 @@ class MedDetector:
         self.azm_end = None
         self.tth_start = None
         self.tth_end = None
-        self.DispersionType = "EnergyDispersive"
+        
+        self.Dispersion = "Energy"
         self.Dispersionlabel = "Energy"
         self.DispersionUnits = "keV"
 
+        self.Azimuthlabel = r"Azimuth"
+        self.AzimuthUnits = r"$^\circ$"
+        self.Observationslabel = r"Intensity"
+        self.ObservationsUnits = r"counts"
+        
         # separate detectors around the ring so not continuous
         self.continuous_azm = False
 
@@ -954,18 +960,18 @@ class MedDetector:
             # y is unmodified intensity; colour of data by azimuth
             plot_y = plot_i
             plot_c = self.azm
-            label_y = "Intensity (a.u.)"
+            label_y = f"{self.Observationslabel} ({self.ObservationsUnits})"
         elif y_axis == "azimuth":
             # y is unmodified azimuth, intensity is size of dots amd colour scale
             plot_y = self.azm
             plot_c = plot_i / np.max(self.intensity) * 200
             plot_s = plot_i / np.max(self.intensity) * 200
-            label_y = "Azimuth (deg)"
+            label_y = f"{self.Azimuthlabel} ({self.AzimuthUnits})"
         else:  # if y_axis is default
             # y is intensity distributed by azimuth; colour is azimuth
             plot_y = plot_i + self.azm * spacing
             plot_c = self.azm
-            label_y = "Counts"
+            label_y = f"{self.Observationslabel} ({self.ObservationsUnits})"
 
             # organise to plot 0 count lines.
             plot_y0 = []
@@ -1050,7 +1056,7 @@ class MedDetector:
                 cbar = plt.colorbar(
                     s_map, ticks=ticks, orientation=orientation, ax=axis_plot
                 )
-                cbar.set_label("Azimuth")
+                cbar.set_label(f"{self.Azimuthlabel} ({self.AzimuthUnits})")
             else:
                 cbar = []
 

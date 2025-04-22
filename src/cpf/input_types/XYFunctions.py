@@ -139,15 +139,21 @@ class XYDetector:
         self.azm_end = None
         self.tth_start = None
         self.tth_end = None
-        # Single image plate detector so contonuous data.
-        self.DispersionType = "EnergyDispersive"
-        self.Dispersionlabel = r"2$\theta$"
-        self.DispersionUnits = r"$^\circ$"
-        self.continuous_azm = False
+        
+        # Image data so contonuous.
+        self.Dispersion = "Angle"
+        self.continuous_azm = True
+        
+        self.Dispersionlabel = r"Pixels"
+        self.DispersionUnits = r"num"
+        self.Azimuthlabel = r"Pixels"
+        self.AzimuthUnits = r"num"
+        self.Observationslabel = r"Intensity"
+        self.ObservationsUnits = r"a.u."
 
-        self.azm_blocks = (
-            45  # SAH: June 2024. I am not sure what this does in this class.
-        )
+        #set defualt value, do not asume is diffraction data
+        self.azm_blocks = 100
+            
 
         self.calibration = None
         self.conversion_constant = None
@@ -487,23 +493,20 @@ class XYDetector:
         # get and apply mask
         mask_array = self.get_mask(mask, self.intensity)
         self.mask_apply(mask_array, debug=debug)
-
-        self.azm_start = (
-            np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        )
-        self.azm_end = (
-            np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        )
+        
+        # get new azm_blocks from detector.
+        self.azm_blocks = self.detector.azm_blocks
+        
+        self.azm_start = np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        self.azm_end   =  np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
         self.tth_start = np.min(self.tth.flatten())
-        self.tth_end = np.max(self.tth.flatten())
-
-        self.azm_start = (
-            np.around(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        )
-        self.azm_end = (
-            np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        )
-
+        self.tth_end   = np.max(self.tth.flatten())
+        
+        self.Dispersionlabel = self.detector.calibration["x_label"]
+        self.DispersionUnits = self.detector.calibration["x_unit"]
+        self.Azimuthlabel = self.detector.calibration["y_label"]
+        self.AzimuthUnits = self.detector.calibration["y_unit"]
+        
     @staticmethod
     def detector_check(calibration_data, settings=None):
         """
@@ -601,9 +604,35 @@ class OrthogonalDetector:
         max_shape=None,
         debug=False,
     ):
-        self.calibration = calibration
+        self.calib = calibration
         self.max_shape = max_shape
 
+        # initiate a bunch of defaults. 
+        self.calibration = {}
+
+        self.calibration["x_dim"] = 0
+        self.calibration["x"] = [0,1]
+        self.calibration["x_start"] = np.nan
+        self.calibration["x_end"] = np.nan
+        self.calibration["x_scale"] = "linear"
+        self.calibration["y"] = [0,1]
+        self.calibration["y_start"] = np.nan
+        self.calibration["y_end"] = np.nan
+        self.calibration["y_scale"] = "linear"
+        self.calibration["rotation"] = 0  # in degrees
+
+        self.calibration["x_unit"] = "num"
+        self.calibration["x_label"] = "pixels"
+        self.calibration["y_unit"] = "num"
+        self.calibration["y_label"] = "pixels"
+
+        #set a default spacing
+        self.azm_blocks = 100
+        
+
+        self.calibration["conversion_constant"] = 1
+
+        # if given a calibration then load it.
         if calibration:
             self.load_calibration(
                 calibration=calibration, diffraction_data=diffraction_data
@@ -630,26 +659,6 @@ class OrthogonalDetector:
 
         """
 
-        self.calibration = {}
-
-        self.calibration["x_dim"] = 0
-        self.calibration["x"] = None
-        self.calibration["x_start"] = np.nan
-        self.calibration["x_end"] = np.nan
-        self.calibration["x_scale"] = "linear"
-        self.calibration["y"] = None
-        self.calibration["y_start"] = np.nan
-        self.calibration["y_end"] = np.nan
-        self.calibration["y_scale"] = "linear"
-        self.calibration["rotation"] = 0  # in degrees
-
-        self.calibration["x_unit"] = "degrees"
-        self.calibration["x_label"] = "two theta"
-        self.calibration["y_unit"] = "degrees"
-        self.calibration["y_label"] = "azimuth"
-
-        self.calibration["conversion_constant"] = 1
-
         # fill in the calibration if it exists.
         if calibration:
             for key, value in calibration.items():
@@ -662,6 +671,8 @@ class OrthogonalDetector:
                         "Key '" + key + "' in not recognised as a calibration parameter"
                     )
                     raise ValueError(error_str)
+
+        
 
         if "max_shape" in list(self.calibration.keys()):
             self.max_shape = self.calibration["max_shape"]
@@ -694,17 +705,28 @@ class OrthogonalDetector:
             y_dim = 1
         else:
             y_dim = 0
-        if self.calibration["y"] == None:
-            self.calibration["y"] = (
-                self.calibration["y_start"],
-                (self.calibration["y_end"] - self.calibration["y_start"])
-                / (self.max_shape[y_dim] - 1),
-            )
-        if self.calibration["y_start"] == np.nan:
-            self.calibration["y_start"] = self.calibration["y"][0]
-            self.calibration["y_end"] = self.calibration["y"][0] + self.calibration[
-                "y"
-            ][1] * (self.max_shape[y_dim] - 1)
+        
+        if "y" in calibration:
+            self.calibration["y"] = calibration["y"]
+        elif "y_start" in calibration:
+            self.calibration["y"][0] = self.calibration["y_start"]
+            self.calibration["y"][1] = (self.calibration["y_end"] - self.calibration["y_start"]) / (self.max_shape[y_dim] - 1),
+
+        # print(self.calibration["y_label"].lower(), "azimuth", self.calibration["y_label"].lower() == "azimuth")
+        if self.calibration["y_label"].lower() == "azimuth":
+            self.azm_blocks = 45
+            if "y_unit" not in calibration:
+                self.calibration["y_unit"] = "deg"
+
+        if "theta" in self.calibration["x_label"].lower():
+            if "$" not in self.calibration["x_label"].lower():
+                self.calibration["x_label"] = re.sub(r'\$\\theta\$|\\theta|theta', "$\theta$", self.calibration["x_label"].lower())
+                # force string to be a raw string. 
+                self.calibration["x_label"] = self.calibration["x_label"].encode('unicode_escape').decode()
+            if "x_unit" not in calibration:
+                self.calibration["x_unit"] = "deg"
+            
+
 
         self.calibration_check
 

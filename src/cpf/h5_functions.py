@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-
 import re
 from copy import deepcopy
 
@@ -13,19 +12,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import cpf.XRD_FitPattern as fp
-from cpf.IO_functions import licit_filename, make_outfile_name, title_file_names, StartStopFilesToList
-from cpf.logging import CPFLogger
+from cpf.IO_functions import (
+    StartStopFilesToList,
+    licit_filename,
+    make_outfile_name,
+    title_file_names,
+)
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.h5_functions")
+logger = get_logger("cpf.h5_functions")
 
 
 # copied from internet somewhere August 2022
 def allkeys(obj):
     # =================
-    # FIXME: this function is used for the original hdf5 processing formats. 
-    # FIXME: it has been replaced with the new dictionary based format. 
+    # FIXME: this function is used for the original hdf5 processing formats.
+    # FIXME: it has been replaced with the new dictionary based format.
     # FIXME: the old format is now parsed through 'update_key_structure' and this functions should not be called.
-    # FIXME: will be removed in a furture update. 
+    # FIXME: will be removed in a furture update.
     # =================
     "Recursively find all keys in an h5py.Group."
     keys = (obj.name,)
@@ -41,10 +45,10 @@ def allkeys(obj):
 # copied from internet somewhere August 2022
 def getkeys(obj, key_list, level):
     # =================
-    # FIXME: this function is used for the original hdf5 processing formats. 
-    # FIXME: it has been replaced with the new dictionary based format. 
+    # FIXME: this function is used for the original hdf5 processing formats.
+    # FIXME: it has been replaced with the new dictionary based format.
     # FIXME: the old format is now parsed through 'update_key_structure' and this functions should not be called.
-    # FIXME: will be removed in a furture update. 
+    # FIXME: will be removed in a furture update.
     # =================
     keys = list(obj[key_list[0]].keys())
     keys = (obj.name,)
@@ -81,14 +85,14 @@ def image_key_validate(h5key_list, key_start, key_end, key_step):
     None.
 
     """
-    
+
     # =================
-    # FIXME: this function is used for the original hdf5 processing formats. 
-    # FIXME: it has been replaced with the new dictionary based format. 
+    # FIXME: this function is used for the original hdf5 processing formats.
+    # FIXME: it has been replaced with the new dictionary based format.
     # FIXME: the old format is now parsed through 'update_key_structure' and this functions should not be called.
-    # FIXME: will be removed in a furture update. 
+    # FIXME: will be removed in a furture update.
     # =================
-    
+
     fail = 0
 
     number_indicies = len(h5key_list)
@@ -177,10 +181,10 @@ def get_image_keys(
     key_str="",
 ):
     # =================
-    # FIXME: this function is used for the original hdf5 processing formats. 
-    # FIXME: it has been replaced with the new dictionary based format. 
+    # FIXME: this function is used for the original hdf5 processing formats.
+    # FIXME: it has been replaced with the new dictionary based format.
     # FIXME: the old format is now parsed through 'update_key_structure' and this functions should not be called.
-    # FIXME: will be removed in a furture update. 
+    # FIXME: will be removed in a furture update.
     # =================
 
     # validate the inputs
@@ -377,14 +381,14 @@ def get_image_key_strings(
         List of labels for the images in the data group.
 
     """
-        
+
     # =================
-    # FIXME: this function is used for the original hdf5 processing formats. 
-    # FIXME: it has been replaced with the new dictionary based format. 
+    # FIXME: this function is used for the original hdf5 processing formats.
+    # FIXME: it has been replaced with the new dictionary based format.
     # FIXME: the old format is now parsed through 'update_key_structure' and this functions should not be called.
-    # FIXME: will be removed in a furture update. 
+    # FIXME: will be removed in a furture update.
     # =================
-    
+
     if not isinstance(key_names, list):
         key_names = [key_names]
     number_data_tmp1 = []
@@ -508,22 +512,23 @@ def get_image_key_strings(
 
     return out
 
+
 # %%
 
 
-def DefaultProcessDictionary(types = False):
+def DefaultProcessDictionary(types=False):
     """
     Definition of default process dictionary for iterating over hdf5 files.
-    
+
     Either it returns the default dictionary, if types==False:
-       {"do":   "iterate", 
-        "from":  0, 
-        "to":    -1, 
-        "step":  1, 
+       {"do":   "iterate",
+        "from":  0,
+        "to":    -1,
+        "step":  1,
         "using": "position",
         "label": ["", "*"]}
     or it returns a dictionary with the expected formats or values:
-        {"do":    {"type": str, 
+        {"do":    {"type": str,
                    "values": ["sum", "iterate"]},
         "from":  {"type": (int, float, np.ndarray)},
         "to":    {"type": (int, float, np.ndarray)},
@@ -533,7 +538,7 @@ def DefaultProcessDictionary(types = False):
                   "values": ["value", "position"]},
         "label": {"type": (list, str)},
         }
-        
+
     Returns
     -------
     dict
@@ -541,79 +546,79 @@ def DefaultProcessDictionary(types = False):
 
     """
     if types == False:
-        return {"do":    "iterate", 
-                "from":  0, 
-                "to":    -1, 
-                "step":  1, 
-                "dim":   0,
-                "using": "position",
-                "label": ["", "*"]}
+        return {
+            "do": "iterate",
+            "from": 0,
+            "to": -1,
+            "step": 1,
+            "dim": 0,
+            "using": "position",
+            "label": ["", "*"],
+        }
     else:
-        return {"do":    {"type": str, 
-                          "values": ["sum", "iterate"]},
-                "from":  {"type": (int, float, np.ndarray)},
-                "to":    {"type": (int, float, np.ndarray)},
-                "step":  {"type": (int)},
-                # "list":   {"type": list}, # this is possible but not in the detault set.
-                "dim":   {"type": (int)},
-                "using": {"type": str,
-                          "values": ["value", "position"]},
-                "label": {"type": (list, str)},
-                }
-
+        return {
+            "do": {"type": str, "values": ["sum", "iterate"]},
+            "from": {"type": (int, float, np.ndarray)},
+            "to": {"type": (int, float, np.ndarray)},
+            "step": {"type": (int)},
+            # "list":   {"type": list}, # this is possible but not in the detault set.
+            "dim": {"type": (int)},
+            "using": {"type": str, "values": ["value", "position"]},
+            "label": {"type": (list, str)},
+        }
 
 
 def update_key_structure(fit_parameters, fit_settings):
     """
     For backwards compatability. Can be removed in future release.
-    
+
     Convert the original hdf5 key structure into the new (improved?) structure.
-    
+
     1. Key for data to be iterated over:
         "h5_key_list" (old)     ==> "h5datakey" (new)
         ['/', 'measurement/p3'] ==> '/*/measurement/p3'
-    
+
     2. Indicies to iterate over and labels are now a list of dictionaries
-        "h5_key_names" & 'h5_key_start' & 'h5_key_end' & 'h5_key_step' & 
+        "h5_key_names" & 'h5_key_start' & 'h5_key_end' & 'h5_key_step' &
         'h5_data' ==> 'h5iterations'
-        
-        h5_key_names = [["/",''], 
+
+        h5_key_names = [["/",''],
                         ["", 'instrument/positioners/dz1','instrument/positioners/dy']]
         h5_key_start = [0, 0]
         h5_key_end   = [42,-1]
         h5_key_step  = [-1,1]
-        h5_data      = 'iterate' 
+        h5_data      = 'iterate'
             ==>
-        h5iterations = [{"from": 0, 
-                       "to": 42, 
-                       "step": -1, 
-                       "using":"value", 
+        h5iterations = [{"from": 0,
+                       "to": 42,
+                       "step": -1,
+                       "using":"value",
                        "label":["*", 'pos']}
-                      {"do":"iterate", 
-                       "from": 0, 
-                       "to": -1, 
-                       "step": 1, 
+                      {"do":"iterate",
+                       "from": 0,
+                       "to": -1,
+                       "step": 1,
                        "using":"position",
-                       "label":['*','/*/instrument/positioners/dz1', 
+                       "label":['*','/*/instrument/positioners/dz1',
                                 '/*/instrument/positioners/dy']}]
-        
+
     There is no provision in the old system for a list in keys, than may or may not then be trucated.
-    
+
     Parameters
     ----------
     fit_parameters : cpf parameeter list
-        
+
     fit_settings : cpf settings class
-        
+
 
     Returns
     -------
     h5datakey : str
         Data key for hdf5 file's data
     h5iterations : list
-        list of dictionaries for how to loop over the hdf5 file.    
-    
-    
+        list of dictionaries for how to loop over the hdf5 file.
+
+
     """
     # convert old "h5_key_list" into new "h5datakey".
     h5datakey = ""
@@ -621,49 +626,50 @@ def update_key_structure(fit_parameters, fit_settings):
         if fit_settings.h5_key_list[i][0] != "/":
             h5datakey += "/"
         h5datakey += fit_settings.h5_key_list[i]
-        if i < len(fit_settings.h5_key_list) and i != len(fit_settings.h5_key_list)-1:
+        if i < len(fit_settings.h5_key_list) and i != len(fit_settings.h5_key_list) - 1:
             h5datakey += "*"
-    
+
     # convert everything else into a dictionary.
     h5iterations = []
     lowerKey = ""
     for i in range(len(fit_settings.h5_key_list)):
         # make 1 dictionary for each level.
         loop = DefaultProcessDictionary()
-        
+
         loop["from"] = fit_settings.h5_key_start[i]
-        loop["to"]  = fit_settings.h5_key_end[i]
-        loop["step"]  = fit_settings.h5_key_step[i]
-    
+        loop["to"] = fit_settings.h5_key_end[i]
+        loop["step"] = fit_settings.h5_key_step[i]
+
         if i < len(fit_settings.h5_key_list):
             loop["using"] = "value"
         else:
             loop["using"] = "position"
-         
+
         if isinstance(fit_settings.h5_key_names, str):
-            fit_settings.h5_key_names == [fit_settings.h5_key_names]    
-        loop["label"]=[]
+            fit_settings.h5_key_names == [fit_settings.h5_key_names]
+        loop["label"] = []
         for j in range(len(fit_settings.h5_key_names[i])):
             if fit_settings.h5_key_names[i][j] == "":
                 loop["label"].append("pos")
             elif fit_settings.h5_key_names[i][j] == "/":
                 loop["label"].append("value")
             else:
-                loop["label"].append(lowerKey+fit_settings.h5_key_names[i][j])
+                loop["label"].append(lowerKey + fit_settings.h5_key_names[i][j])
         lowerKey += "*/"
         h5iterations.append(loop)
-        
+
     return h5datakey, h5iterations
-    
 
 
-def image_key_validate_new(fit_parameters=None, fit_settings=None, h5_iterate=None, end_if_errors=False):
+def image_key_validate_new(
+    fit_parameters=None, fit_settings=None, h5_iterate=None, end_if_errors=False
+):
     """
-    Validates the lengths and structure of h5_iterate, which is the list/dictionary 
+    Validates the lengths and structure of h5_iterate, which is the list/dictionary
     of h5 file key values and labels.
-    
+
     It does not though validate if the keys exist is the hdf5 files.
-    
+
     This script calls the detauls structures defined in 'DefaultProcessDictionary'
 
     Parameters
@@ -671,8 +677,8 @@ def image_key_validate_new(fit_parameters=None, fit_settings=None, h5_iterate=No
     fit_parameters : continuous peak fit parameter list, optional
     fit_settings : continuous peak fit settings class, optional
         continuous peak fit settings class with h5 description in it.
-    h5_iterate : dictionary 
-        containing information used to iterare over the h5 files,     
+    h5_iterate : dictionary
+        containing information used to iterare over the h5 files,
     end_if_errors : bool, optional
         Switch to stop execution and spit out all an error. The default is False.
 
@@ -682,12 +688,12 @@ def image_key_validate_new(fit_parameters=None, fit_settings=None, h5_iterate=No
         A list of all the problems with the h5 descriptions.
     h5_iterate : list
         An updated version of the input list/dictionary.
-    """    
-    
+    """
+
     # get expected data types
-    expected_entries = DefaultProcessDictionary(types = True)
+    expected_entries = DefaultProcessDictionary(types=True)
     expected_keys = list(DefaultProcessDictionary().keys())
-    
+
     errors = []
     warnings = []
     if h5_iterate == None:
@@ -695,67 +701,86 @@ def image_key_validate_new(fit_parameters=None, fit_settings=None, h5_iterate=No
             h5_iterate = fit_settings.h5_iterate
         except:
             errors.append("h5_iterate is not in the settings")
-    
+
     if isinstance(h5_iterate, dict) == True:
         h5_iterate = [h5_iterate]
-    
+
     if "h5_iterate" != None:
         num_iter = len(h5_iterate)
         if fit_settings:
-            number_indicies = len([a.start() for a in list(re.finditer('\*', fit_settings.h5_datakey))])
-            if not (num_iter==number_indicies or num_iter==number_indicies-1):
-                errors.append("The number of iterations is not the same as, or 1 less than, the number of indicies in the data")
+            number_indicies = len(
+                [a.start() for a in list(re.finditer("\*", fit_settings.h5_datakey))]
+            )
+            if not (num_iter == number_indicies or num_iter == number_indicies - 1):
+                errors.append(
+                    "The number of iterations is not the same as, or 1 less than, the number of indicies in the data"
+                )
         for i in range(num_iter):
             dict_keys = list(h5_iterate[i].keys())
             # check keys that are present
             for j in range(len(dict_keys)):
                 if dict_keys[j] in expected_entries:
                     if expected_entries[dict_keys[j]]["type"] == str:
-                        if not h5_iterate[i][dict_keys[j]] in expected_entries[dict_keys[j]]["values"]:
-                            errors.append(f"h5_iterate[{i}]: the '{dict_keys[j]}' value must be one of {expected_entries[dict_keys[j]]['values']}")
+                        if (
+                            not h5_iterate[i][dict_keys[j]]
+                            in expected_entries[dict_keys[j]]["values"]
+                        ):
+                            errors.append(
+                                f"h5_iterate[{i}]: the '{dict_keys[j]}' value must be one of {expected_entries[dict_keys[j]]['values']}"
+                            )
                         else:
                             pass
                     else:
-                        if not isinstance(h5_iterate[i][dict_keys[j]], expected_entries[dict_keys[j]]["type"]):
-                            errors.append(f"h5_iterate[{i}]: the '{dict_keys[j]}' value must be a {expected_entries[dict_keys[j]]['type']}")
+                        if not isinstance(
+                            h5_iterate[i][dict_keys[j]],
+                            expected_entries[dict_keys[j]]["type"],
+                        ):
+                            errors.append(
+                                f"h5_iterate[{i}]: the '{dict_keys[j]}' value must be a {expected_entries[dict_keys[j]]['type']}"
+                            )
                         else:
                             pass
-                        
+
             # check for missing keys
             for j in range(len(expected_keys)):
                 if expected_keys[j] not in dict_keys:
-                    warnings.append(f"h5_iterate[{i}]: does not contain '{expected_keys[j]}'; a default value has been added")
-                    h5_iterate[i][expected_keys[j]] = DefaultProcessDictionary()[expected_keys[j]]
-                    
+                    warnings.append(
+                        f"h5_iterate[{i}]: does not contain '{expected_keys[j]}'; a default value has been added"
+                    )
+                    h5_iterate[i][expected_keys[j]] = DefaultProcessDictionary()[
+                        expected_keys[j]
+                    ]
+
             # check for extra keys
             extra = [x for x in dict_keys if x not in expected_entries]
             if len(extra) != 0:
-                errors.append(f"h5_iterate[{i}]: there are unrecognised entries: {extra}. These will not be used.")
+                errors.append(
+                    f"h5_iterate[{i}]: there are unrecognised entries: {extra}. These will not be used."
+                )
 
     for i in range(len(errors)):
         logger.error(" ".join(map(str, [(errors[i])])))
     for i in range(len(warnings)):
         logger.warning(" ".join(map(str, [(warnings[i])])))
     if end_if_errors == True and len(errors) > 0:
-        err_str = (
-            "The h5 settings do not balance. They need fixing.")        
+        err_str = "The h5 settings do not balance. They need fixing."
         logger.error(" ".join(map(str, [(err_str)])))
         raise ValueError(err_str)
-    
+
     if errors == []:
         errors = False
-    
+
     return errors, h5_iterate
 
 
 def h5_tree(val, keyup="", list_of_keys=[], recurse=True):
     """
-    Recursively list all the keys in the h5 file. 
-    
+    Recursively list all the keys in the h5 file.
+
     Can be slow especially if the files are big.
-    
+
     edited after: https://stackoverflow.com/questions/61133916/is-there-in-python-a-single-function-that-shows-the-full-structure-of-a-hdf5-fi
-    
+
     Parameters
     ----------
     val : file or h5py.Group
@@ -774,46 +799,39 @@ def h5_tree(val, keyup="", list_of_keys=[], recurse=True):
         list of keys in hdf5 file.
     """
     for key, val in val.items():
-        # if group iterate over it, otherwise it will be a dataset                
+        # if group iterate over it, otherwise it will be a dataset
         if type(val) == h5py._hl.group.Group:
             if recurse == True:
-                h5_tree(val, keyup=keyup+"/"+key)
+                h5_tree(val, keyup=keyup + "/" + key)
             else:
-                list_of_keys.append(keyup+"/"+key)
+                list_of_keys.append(keyup + "/" + key)
         else:
-            list_of_keys.append(keyup+"/"+key)
+            list_of_keys.append(keyup + "/" + key)
     return list_of_keys
 
-    
 
-def get_image_keys_new(
-    datafile,
-    h5key_data, 
-    h5_iterate,
-    sep1="_",
-    sep2="="
-):  
+def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
     """
     Makes a list of all the images addressed in the h5file 'datafile', by 'h5_iterate'.
-    This is used by continuous peak fit as the list of images to iterate over. 
-    
+    This is used by continuous peak fit as the list of images to iterate over.
+
     The list contains a unique label for each image; the label is either extracted from
     the h5 file using h5_iterate["label"] or listed as a number.
-    
-    The function returns a list of images, each element of which is:        
+
+    The function returns a list of images, each element of which is:
         ['h5/file/key', [number list for images], 'uniquielabelforimage']
-    
+
     the expected format of 'h5_iterate' is defined in DefaultProcessDictionary
-    
+
 
     Parameters
     ----------
     datafile : str or open file pointer
         Datafile to be worked on
     h5key_data : str
-        key in h5 file that contains the data. 
+        key in h5 file that contains the data.
     h5_iterate : list or dictionary
-        list of doctionaryies containing the information on iteratiing over the keys. 
+        list of doctionaryies containing the information on iteratiing over the keys.
     sep1 : str, optional
         seperator to go between labels. The default is "_".
     sep2 : str, optional
@@ -832,240 +850,258 @@ def get_image_keys_new(
         List of the labels, keys and data number.
 
     """
-    
-    #set some defaults for regualr expreassions
+
+    # set some defaults for regualr expreassions
     regexp_num = "([-+]?[0-9]*\.[0-9]+|[-+]?[0-9]+)"
     regexp_end = "$"
-    
+
     # validate the inputs
     _, h5_iterate = image_key_validate_new(h5_iterate=h5_iterate, end_if_errors=True)
-    if isinstance(h5key_data,list):
+    if isinstance(h5key_data, list):
         h5key_data = h5key_data[0]
-    elif not isinstance(h5key_data,str):
+    elif not isinstance(h5key_data, str):
         raise ValueError("h5_data must be a single string")
     if os.path.isfile(datafile) == False:
         raise ValueError("The hdf5 file does not exist")
-    
-    #open file if needed
+
+    # open file if needed
     if isinstance(datafile, str):
         df = h5py.File(datafile)
     else:
         df = datafile
-        
-    #get number of searches (i.e. number *) in datakey
-    loops = [a.start() for a in list(re.finditer('\*', h5key_data))]
-    dividers = [a.start() for a in list(re.finditer('/', h5key_data))]
+
+    # get number of searches (i.e. number *) in datakey
+    loops = [a.start() for a in list(re.finditer("\*", h5key_data))]
+    dividers = [a.start() for a in list(re.finditer("/", h5key_data))]
     if len(loops) > 1:
         raise NotImplementedError()
 
     # find all keys that match the wildcards.
-    # this is necessary incase we are looping over all valid entries without 
-    # directly knowing the key names 
+    # this is necessary incase we are looping over all valid entries without
+    # directly knowing the key names
     keylist = []
     for i in range(len(loops)):
-        #FIXME this loop should be an iterative loop. so thatit can iterate 
-        # over as many keys as required.        
-        
+        # FIXME this loop should be an iterative loop. so thatit can iterate
+        # over as many keys as required.
+
         # find part of key before wildcard.
-        h5key_data_sub = h5key_data[:max(j for j in dividers if j < loops[i])+1]
-        #get all matching keys
+        h5key_data_sub = h5key_data[: max(j for j in dividers if j < loops[i]) + 1]
+        # get all matching keys
         lst = h5_tree(df[h5key_data_sub], list_of_keys=[], recurse=False)
-        # FIXME: the h5tree function call needs list_of_keys=[] otherwise during 
+        # FIXME: the h5tree function call needs list_of_keys=[] otherwise during
         # testing when the function is run it appends to the previous list of keys.
-        
+
         ## get list of values that matches the wildcard.
         # find part of key before separation after wildcard.
         # cannot assume that the wildcard is the last part of the keyname.
-        h5key_data_sub = h5key_data[:min(j for j in dividers if j > loops[i])]
+        h5key_data_sub = h5key_data[: min(j for j in dividers if j > loops[i])]
         # replace * with regular expresion search for number
-        h5key_data_sub = re.sub(r'\*', regexp_num, h5key_data_sub)
+        h5key_data_sub = re.sub(r"\*", regexp_num, h5key_data_sub)
         # match lst to subkey.
         lst = list(filter(re.compile(h5key_data_sub).match, lst))
-            
+
         ## get keys that match that have subkeys matching h5key_data
         # cannot assume that all the keys have the same subdata.
-        
-        #capture numerical values in keys.
-        vals= []
+
+        # capture numerical values in keys.
+        vals = []
         for i in range(len(lst)):
             vals_tmp = re.search(h5key_data_sub, lst[i])
             # get values from regexpression
             vals.append(list(vals_tmp.groups()))
-        
-        #check if the key exists.
+
+        # check if the key exists.
         for j in range(len(vals)):
             # replace * with number using regular expresion
-            h5key_data_sub = re.sub(r'\*', vals[j][0], h5key_data)
+            h5key_data_sub = re.sub(r"\*", vals[j][0], h5key_data)
             try:
                 # if the data key does not exist it will skip over it.
                 df[h5key_data_sub]
                 keylist.append(h5key_data_sub)
             except:
                 pass
-        
-    if 0: #for debugging
-        #get all keys in h5 file [CAUTION could be slow if files are large]
+
+    if 0:  # for debugging
+        # get all keys in h5 file [CAUTION could be slow if files are large]
         key_list_all = h5_tree(df)
-        
+
         # setup h5key_data to be used.
         # replace * with number using regular expresion
-        h5key_data = re.sub(r'\*', regexp_num, h5key_data)
-        #make sure ends with a $
+        h5key_data = re.sub(r"\*", regexp_num, h5key_data)
+        # make sure ends with a $
         if h5key_data[-1] != "$":
-            h5key_data = h5key_data+regexp_end
-        
-        #get list of matching keys
+            h5key_data = h5key_data + regexp_end
+
+        # get list of matching keys
         keylist = list(filter(re.compile(h5key_data).match, key_list_all))
-            
-    #capture numerical values in keys.
-    vals= []
+
+    # capture numerical values in keys.
+    vals = []
     for i in range(len(keylist)):
-        vals_tmp = re.search(re.sub(r'\*', regexp_num, h5key_data), keylist[i])
+        vals_tmp = re.search(re.sub(r"\*", regexp_num, h5key_data), keylist[i])
         # get values from regexpression
         vals.append(list(vals_tmp.groups()))
 
-    #sort values and keys into order.
+    # sort values and keys into order.
     vals_num = np.array(vals).astype(float)
-    o = np.argsort(vals_num, axis=0)[:,0]
+    o = np.argsort(vals_num, axis=0)[:, 0]
     vals_num = vals_num[o]
     keylist = [keylist[i] for i in o]
     vals = [vals[i] for i in o]
-    
-    # cut list to size. 
-    present=[]
+
+    # cut list to size.
+    present = []
     for i in range(len(loops)):
-        #FIXME. need to make h5 iterate as long as ther are loops+1
+        # FIXME. need to make h5 iterate as long as ther are loops+1
         itera = h5_iterate[i]
-        
+
         if itera["using"] == "value":
             # make list of values to keep from parameter dictionary
-            
+
             if itera["from"] == 0:
                 itera["from"] = float(vals[0][0])
             if itera["to"] == -1:
                 itera["to"] = float(vals[-1][0])
-                
+
             keep, _ = StartStopFilesToList(paramDict=itera)
-            present = np.atleast_1d(np.array([x for x in [np.where(np.isclose(i, vals_num))[0] for i in keep] if len(x) > 0]).squeeze())
-            keylist = [keylist[x] for x in present] 
-            vals = [vals[x] for x in present] 
-                        
+            present = np.atleast_1d(
+                np.array(
+                    [
+                        x
+                        for x in [np.where(np.isclose(i, vals_num))[0] for i in keep]
+                        if len(x) > 0
+                    ]
+                ).squeeze()
+            )
+            keylist = [keylist[x] for x in present]
+            vals = [vals[x] for x in present]
+
         elif itera["using"] == "position":
             # make list of positions to keep from parameter dictionary
-            
+
             if itera["to"] == -1:
-                itera["to"] = int(len(vals))-1
-                
+                itera["to"] = int(len(vals)) - 1
+
             keep, _ = StartStopFilesToList(paramDict=itera)
-            keylist = [keylist[x] for x in keep] 
-            vals = [vals[x] for x in keep] 
-            
-        else: 
+            keylist = [keylist[x] for x in keep]
+            vals = [vals[x] for x in keep]
+
+        else:
             raise ValueError("unrecognased type")
-    
-    #get labels.
+
+    # get labels.
     labels = []
     itera = h5_iterate[0]
     for i in range(len(keylist)):
-        #FIXME. need to make h5 iterate as long as ther are loops+1
+        # FIXME. need to make h5 iterate as long as ther are loops+1
         label_tmp = []
-        if not isinstance(h5_iterate[0]["label"],list):
+        if not isinstance(h5_iterate[0]["label"], list):
             h5_iterate[0]["label"] = list(h5_iterate[0]["label"])
         # make the labels.
-        label_tmp = get_labels(df, itera["label"], 1, i, vals[i], sep1=sep1, sep2=sep2, key=keylist[i])
+        label_tmp = get_labels(
+            df, itera["label"], 1, i, vals[i], sep1=sep1, sep2=sep2, key=keylist[i]
+        )
         labels.append(label_tmp)
-        
-    if len(keylist)==0:
-        raise ValueError("No keys have been found. Check that the indicies iterating over are in the hdf5 file.")
-        
-    #iterate over the keylist and expand with labels.
+
+    if len(keylist) == 0:
+        raise ValueError(
+            "No keys have been found. Check that the indicies iterating over are in the hdf5 file."
+        )
+
+    # iterate over the keylist and expand with labels.
     out = []
     for i in range(len(keylist)):
         # the key list should contain everything that is not the bottom level
         # of the h5 keys. this loop only works on the bottom levels with the data
-        
-        #look at the last of the iteration keys.
+
+        # look at the last of the iteration keys.
         # deepcopy so can check for "to": -1 every time round.
         itera = deepcopy(h5_iterate[-1])
-        
+
         # make sure the key exists
         if not keylist[i] in df.keys():
-            err_str = (
-                "The key, '%s' does not exist in '%s'"
-                % (keylist[i], df))
+            err_str = "The key, '%s' does not exist in '%s'" % (keylist[i], df)
             logger.warning(" ".join(map(str, [(err_str)])))
         else:
             number_data = df[keylist[i]].shape[itera["dim"]]
             if itera["do"] == "sum":
                 # index_values = list([*range(itera["start"], itera["stop"], itera["step"])])
                 if itera["to"] == -1:
-                    itera["to"] = number_data-1
+                    itera["to"] = number_data - 1
                 index_values, _ = StartStopFilesToList(paramDict=itera)
-                # get the labels -- only need labels from layers above because summing the data. 
+                # get the labels -- only need labels from layers above because summing the data.
                 lbls = labels[i]
-                #lbls = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
+                # lbls = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
                 out.append([keylist[i], index_values, lbls])
-                
+
             elif itera["do"] == "iterate":
                 # iterate over the size of the array in the h5 group.
                 if itera["to"] == -1:
-                    itera["to"] = number_data-1
-                for j in np.arange(itera["from"], itera["to"]+1, itera["step"]):
+                    itera["to"] = number_data - 1
+                for j in np.arange(itera["from"], itera["to"] + 1, itera["step"]):
                     index_values = j
                     lbls = labels[i]
-                    additional_label = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
+                    additional_label = get_labels(
+                        df,
+                        itera["label"],
+                        number_data,
+                        j,
+                        vals[i],
+                        sep1=sep1,
+                        sep2=sep2,
+                        key=labels[i],
+                    )
                     # print(additional_label)
                     if len(additional_label) != "":
                         lbls += f"{sep1}{additional_label}"
-                    
+
                     # if itera["using"] == "value" and :
                     out.append([keylist[i], index_values, lbls])
-                
-                
-                
+
                 # for j in range(number_data):
                 #     index_values = j
-                    
+
                 #     lbls = labels[i]
                 #     additional_label = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
                 #     # print(additional_label)
                 #     if len(additional_label) != "":
                 #         lbls += f"{sep1}{additional_label}"
-                    
+
                 #     # if itera["using"] == "value" and :
                 #     out.append([keylist[i], index_values, lbls])
-                    
+
             else:
                 err_str = "This h5 process is not recognised."
                 raise ValueError(err_str)
-    
+
     df.close()
     return out
 
 
-
-def get_labels(datafile, label_list, num_entries, seq, vals, sep1="_", sep2="=", key=None):
+def get_labels(
+    datafile, label_list, num_entries, seq, vals, sep1="_", sep2="=", key=None
+):
     """
     Makes a label string using keys and values listed in "label_list".
-    
+
     The possible entries in the label_list are:
         'pos': returns the position in the loop
         'value': returns the numeric value of the key's address
         'key/in/h5_file': returns value in key, labelled with the end key.
                             (i.e. h5_file=0.1234)
     Each entry is separated in the returned string by 'sep1' (default='_')
-    If the label is from a h5key then the keyname and value are separated by 
+    If the label is from a h5key then the keyname and value are separated by
         'sep2' (default='=')
-    The returned string is checked for illicit filename characters using 
+    The returned string is checked for illicit filename characters using
         cpf.IO_functions.licit_filename.
-    
+
     Parameters
     ----------
     datafile : h5file pointer
         H5 file for which the labels are being made.
     label_list : list
         List containing keys of required labels.
-    seq : List, 
+    seq : List,
         DESCRIPTION. The default is None.
     vals : List
         DESCRIPTION. The default is None.
@@ -1073,27 +1109,27 @@ def get_labels(datafile, label_list, num_entries, seq, vals, sep1="_", sep2="=",
         seperator to go between different labels. The default is "_".
     sep2 : string, optional
         seperator to go between label name and value. The default is "=".
-    
+
     Returns
     -------
     label : string
         String of labels.
-    
-    """    
+
+    """
     label = ""
-    if not isinstance(label_list,list):
+    if not isinstance(label_list, list):
         label_list = list(label_list)
-    
-    for j in range(len(label_list)): 
-        if j!=0:
+
+    for j in range(len(label_list)):
+        if j != 0:
             label += sep1
         lb = label_list[j]
         if lb.lower() == "pos":
-            #looking for position in the sequence
+            # looking for position in the sequence
             label += str(seq)
         elif lb.lower() == "value":
-            #looking for position in the data file
-            if isinstance(vals,list):
+            # looking for position in the data file
+            if isinstance(vals, list):
                 label += str(vals[0])
             else:
                 label += str(vals)
@@ -1101,13 +1137,13 @@ def get_labels(datafile, label_list, num_entries, seq, vals, sep1="_", sep2="=",
             # add key value to the label
             label += str(key)
         else:
-            #look up key value
-            lb = re.sub(r'\*', vals[0], lb)
+            # look up key value
+            lb = re.sub(r"\*", vals[0], lb)
             try:
                 ky = datafile[lb][()]
-                
+
                 # ky = unique_labels(ky)
-                
+
                 # if number_data != len(ky):
                 #     err_str = (
                 #         "The number of data (%i) does not match the number of keys (%i). "
@@ -1120,22 +1156,24 @@ def get_labels(datafile, label_list, num_entries, seq, vals, sep1="_", sep2="=",
                     ky = ky[seq]
                 elif isinstance(ky, bytes):
                     ky = "".join(map(chr, ky))
-                else: #is string, or something else.
+                else:  # is string, or something else.
                     pass
-                div = [a.start() for a in list(re.finditer('/', lb))]
+                div = [a.start() for a in list(re.finditer("/", lb))]
                 if lb[-1] == "/":
                     label += licit_filename(f"{lb[div[-2]+1:div[-1]]}{sep2}{ky}")
                 else:
                     label += licit_filename(f"{lb[div[-1]+1:]}{sep2}{ky}")
             except:
-                err_str = (
-                    "The key, '%s' does not exist in '%s, for dataframe %s'"
-                    % (lb, datafile, seq))
+                err_str = "The key, '%s' does not exist in '%s, for dataframe %s'" % (
+                    lb,
+                    datafile,
+                    seq,
+                )
                 logger.warning(" ".join(map(str, [(err_str)])))
                 raise ValueError(err_str)
-    
+
     return label
-    
+
 
 # %%
 

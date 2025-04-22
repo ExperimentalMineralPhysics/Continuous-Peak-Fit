@@ -8,10 +8,9 @@ import numpy.ma as ma
 from matplotlib import cm, colors, gridspec, tri
 
 from cpf.histograms import histogram1d, histogram2d
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.input_types._Plot_AngleDispersive")
-
+logger = get_logger("cpf.input_types._Plot_AngleDispersive")
 
 
 class _Plot_AngleDispersive:
@@ -69,33 +68,27 @@ class _Plot_AngleDispersive:
             )
 
         return disp_ticks
-    
-    
-    
-    def plot_integrated(
-        self,
-        fig_plot=None,
-        axis_plot=None, show=None):
+
+    def plot_integrated(self, fig_plot=None, axis_plot=None, show=None):
         """
-        Makes a plot of the integrated data. 
-        
+        Makes a plot of the integrated data.
+
         :param fig:
         :return:
         """
-    
+
         if fig_plot == None:
-            #make a figure
+            # make a figure
             fig_plot, axis_plot = plt.subplots()
-    
+
         p, i, a = histogram1d(self.tth, self.intensity, self.azm)
 
-        axis_plot.plot(p,i)
-                
+        axis_plot.plot(p, i)
+
         axis_plot.set_xlabel(f"{self.Dispersionlabel} ({self.DispersionUnits})")
         axis_plot.set_ylabel(f"{self.Observationslabel} ({self.ObservationsUnits})")
         axis_plot.set_title("Integrated Data")
-    
-    
+
     def plot_masked(self, fig_plot=None):
         """
         Plot all the information needed to mask the data well.
@@ -470,10 +463,10 @@ class _Plot_AngleDispersive:
             # (single detector rather than multiple detectors or positions.)
             def f(data, n):
                 return data
-    
+
         IMax = np.percentile(plot_i.compressed(), limits[1])
         IMin = np.percentile(plot_i.compressed(), limits[0])
-        
+
         if limits[0] > 0 and limits[1] < 100:
             cb_extend = "both"
         elif limits[1] < 100:
@@ -600,7 +593,7 @@ class _Plot_AngleDispersive:
             plot_x = self.tth
         # plot_y = self.azm
         label_x = f"{self.Dispersionlabel} ({self.DispersionUnits})"
-        
+
         if y_axis == "intensity":
             # plot y rather than azimuth on the y axis
             plot_y = self.intensity
@@ -671,8 +664,8 @@ class _Plot_AngleDispersive:
             IMax = 1
             IMin = -1
         elif IMax == IMin:
-            IMax+=1
-            IMin-=1
+            IMax += 1
+            IMin -= 1
         if location == None:
             if y_lims is None:
                 location = "right"

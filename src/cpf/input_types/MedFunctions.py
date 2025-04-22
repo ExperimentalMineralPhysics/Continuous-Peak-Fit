@@ -17,11 +17,11 @@ from matplotlib import cm, colors, gridspec
 
 from cpf.input_types import Med, med_detectors
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
-from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.input_types._Masks import _masks
-from cpf.logging import CPFLogger
+from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.input_types.MedFunctions")
+logger = get_logger("cpf.input_types.MedFunctions")
 
 
 class MedDetector:
@@ -65,6 +65,7 @@ class MedDetector:
         self.Dispersion = "Energy"
         self.Dispersionlabel = "Energy"
         self.DispersionUnits = "keV"
+
         self.Azimuthlabel = r"Azimuth"
         self.AzimuthUnits = r"$^\circ$"
         self.Observationslabel = r"Intensity"
@@ -118,17 +119,17 @@ class MedDetector:
         )
 
         new.intensity = deepcopy(self.intensity[local_mask])
-        new.tth       = deepcopy(self.tth[local_mask])
-        new.azm       = deepcopy(self.azm[local_mask])
-        
-        #set nee range.
+        new.tth = deepcopy(self.tth[local_mask])
+        new.azm = deepcopy(self.azm[local_mask])
+
+        # set nee range.
         new.tth_start = range_bounds[0]
-        new.tth_end   = range_bounds[1]
-        
-        new.intensity = new.intensity[new.intensity.mask==False]
-        new.tth       = new.tth[new.tth.mask==False]
-        new.azm       = new.azm[new.azm.mask==False]
-    
+        new.tth_end = range_bounds[1]
+
+        new.intensity = new.intensity[new.intensity.mask == False]
+        new.tth = new.tth[new.tth.mask == False]
+        new.azm = new.azm[new.azm.mask == False]
+
         if "dspace" in dir(new):
             if self.dspace is not None:
                 new.dspace = deepcopy(self.dspace[local_mask])
@@ -357,16 +358,15 @@ class MedDetector:
         if dtype == None:
             if self.intensity is None and np.size(self.intensity) > 2:
                 # self.intensity has been set before. Inherit the dtype.
-                dtype = self.intensity.dtype    
-        # elif "int" in im_all[0].dtype.name:
-        #     #the type is either int or uint - convert to float
-        #     # using same bit precision 
-        #     precision = re.findall("\d+", im_all[0].dtype.name)[0]
-        #     dtype = np.dtype("float"+precision)            
+                dtype = self.intensity.dtype
+            # elif "int" in im_all[0].dtype.name:
+            #     #the type is either int or uint - convert to float
+            #     # using same bit precision
+            #     precision = re.findall("\d+", im_all[0].dtype.name)[0]
+            #     dtype = np.dtype("float"+precision)
             else:
                 dtype = self.GetDataType(im_all[0], minimumPrecision=False)
         im_all = ma.array(im_all, dtype=dtype)
-        
 
         # apply mask to the intensity array
         if mask == None and ma.is_masked(self.intensity) == False:
@@ -452,11 +452,19 @@ class MedDetector:
             mask = {"detector": mask}
         mask_array = self.get_mask(mask, debug=debug)
         self.mask_apply(mask_array, debug=debug)
-        
-        self.azm_start = np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        self.azm_end   =  np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        self.tth_start = np.min(self.tth.flatten()) #not two theta but energy but needs same name for consistecy.
-        self.tth_end   = np.max(self.tth.flatten()) #not two theta but energy but needs same name for consistecy.
+
+        self.azm_start = (
+            np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        )
+        self.azm_end = (
+            np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        )
+        self.tth_start = np.min(
+            self.tth.flatten()
+        )  # not two theta but energy but needs same name for consistecy.
+        self.tth_end = np.max(
+            self.tth.flatten()
+        )  # not two theta but energy but needs same name for consistecy.
 
         self.azm_start = (
             np.around(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
@@ -614,7 +622,7 @@ class MedDetector:
         :return:
         """
         e_in = np.array(e_in)
-        
+
         # convert energy into d-spacing.
         if azm is not None:
             e_in = np.array([[azm, e_in]])
@@ -914,7 +922,7 @@ class MedDetector:
         colourmap="jet",
         colourbar=True,
         debug=False,
-        rastered = {},
+        rastered={},
     ):
         """
         add data to axes in form collected in.
@@ -1063,9 +1071,9 @@ class MedDetector:
 
     # add common functions.
     set_limits = _AngleDispersive_common.set_limits
-    GetDataType   = _AngleDispersive_common.GetDataType
+    GetDataType = _AngleDispersive_common.GetDataType
 
-    plot_integrated  = _Plot_AngleDispersive.plot_integrated
+    plot_integrated = _Plot_AngleDispersive.plot_integrated
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask

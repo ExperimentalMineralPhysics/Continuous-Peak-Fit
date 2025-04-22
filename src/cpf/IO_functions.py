@@ -15,9 +15,9 @@ from pathlib import Path
 
 import numpy as np
 
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.IO_functions")
+logger = get_logger("cpf.IO_functions")
 
 
 # Needed for JSON to save fitted parameters.
@@ -101,32 +101,33 @@ def image_list(fit_parameters, fit_settings):
 
     # iterate for h5 files.
     image_list = []
-    
+
     if "h5_datakey" in fit_parameters:
-        #if new h5 format is present then call it. 
+        # if new h5 format is present then call it.
         for i in range(n_diff_files):
             h5_list = h5_functions.get_image_keys_new(
                 diff_files[i],
                 h5key_data=fit_settings.h5_datakey,
-                h5_iterate = fit_settings.h5_iterate,
+                h5_iterate=fit_settings.h5_iterate,
             )
             for j in range(len(h5_list)):
                 image_list.append([diff_files[i], h5_list[j]])
-                
+
     elif "h5_key_list" in fit_parameters:
         # if the input contains the old hdf5 file instircutions make the new
         # dictionary based format and call that
-        h5datakey, h5iterations = h5_functions.update_key_structure(fit_parameters, fit_settings)
+        h5datakey, h5iterations = h5_functions.update_key_structure(
+            fit_parameters, fit_settings
+        )
         print(h5datakey, h5iterations)
         for i in range(n_diff_files):
             h5_list = h5_functions.get_image_keys_new(
                 diff_files[i],
                 h5key_data=h5datakey,
-                h5_iterate = h5iterations,
+                h5_iterate=h5iterations,
             )
             for j in range(len(h5_list)):
                 image_list.append([diff_files[i], h5_list[j]])
-
 
     #     # FIX ME: all this code should be moved to settings and validation.
     #     h5_key_list = fit_settings.h5_key_list
@@ -189,37 +190,37 @@ def file_list(fit_parameters, fit_settings):
     """
     From the Settings make a list of all the data files.
     This function is called by the output writing scripts to make sure the file names are called consistently.
-    
+
     if datafile_StartNum and datafile_EndNum are in the settings a list of file names is made. If step is present
-    it is also used. datafile_StartNum is always present in the file list and if step > 0 then is the fisrt file in the 
-    list. If step <0 then datafile_StartNum is the last file in the list. 
-    e.g. 
+    it is also used. datafile_StartNum is always present in the file list and if step > 0 then is the fisrt file in the
+    list. If step <0 then datafile_StartNum is the last file in the list.
+    e.g.
     1. datafile_StartNum = 1
        datafile_EndNum   = 10
        step = 1
        gives file list: 1,2,3,4,5,6,7,8,9,10
-       
+
     2. datafile_StartNum = 1
        datafile_EndNum   = 10
        step = 4
        gives file list: 1,5,9
-       
+
     3. datafile_StartNum = 1
        datafile_EndNum   = 10
        step = -4
        gives file list: 9,5,1
-       
+
     4. datafile_StartNum = 10
        datafile_EndNum   = 1
        step = 4
        gives file list: 10,6,2
-       
+
     5. datafile_StartNum = 10
        datafile_EndNum   = 1
        step = -4
        gives file list: 2,6,10
-    
-    
+
+
     :param fit_parameters:
     :param fit_settings:
     :return:
@@ -249,14 +250,14 @@ def file_list(fit_parameters, fit_settings):
     elif "datafile_Files" not in fit_parameters:
         n_diff_files = int(
             np.floor(
-                np.abs(fit_settings.datafile_EndNum - fit_settings.datafile_StartNum) 
+                np.abs(fit_settings.datafile_EndNum - fit_settings.datafile_StartNum)
                 / np.abs(step)
             )
             + 1
         )
         for j in range(n_diff_files):
             # Make list of diffraction pattern names and no. of pattern
-            if fit_settings.datafile_EndNum >= fit_settings.datafile_StartNum: 
+            if fit_settings.datafile_EndNum >= fit_settings.datafile_StartNum:
                 n = str(fit_settings.datafile_StartNum + (j * np.abs(step))).zfill(
                     fit_settings.datafile_NumDigit
                 )
@@ -274,9 +275,9 @@ def file_list(fit_parameters, fit_settings):
                     + fit_settings.datafile_Ending
                 )
             )
-        if step<0:
+        if step < 0:
             diff_files = diff_files[::-1]
-        
+
     elif "datafile_Files" in fit_parameters:
         n_diff_files = int(np.round(len(fit_settings.datafile_Files) / np.abs(step)))
         for j in range(n_diff_files):
@@ -304,69 +305,70 @@ def file_list(fit_parameters, fit_settings):
     return diff_files, n_diff_files
 
 
-
-def StartStopFilesToList(paramDict=None, StartNum=None, EndNum=None, Step=1, Files=None, Keys=None):
+def StartStopFilesToList(
+    paramDict=None, StartNum=None, EndNum=None, Step=1, Files=None, Keys=None
+):
     """
-    Convert parameters into a list of numerical. Takes with a settings class, a 
+    Convert parameters into a list of numerical. Takes with a settings class, a
     dictionary or start, stop, step and files directly.
-    
-    It works on either file names or keys for h5 files. 
-    
-    The function cannot accept both keys and files in the same call. 
-    
+
+    It works on either file names or keys for h5 files.
+
+    The function cannot accept both keys and files in the same call.
+
     The heirerarchy works as follow:
     1. If Files (or keys) is given and StartNum,EndNum,Step are not given
     the contents of files/keys is returned.
     2. If Files (or keys) is given and StartNum, EndNum or Step are also given
     files/keys are trimmed to values between StartNum and EndNum using Step.
     - if only Step and Step = -1, the order of Files/Keys is reversed.
-    3. If only StartNum, EndNum +/- Step are given a list of numbers is 
+    3. If only StartNum, EndNum +/- Step are given a list of numbers is
     made from these values.
-    - StartNum is  present in the file list if step > 0 
+    - StartNum is  present in the file list if step > 0
     - EndNum is present in the list if Step < 0
-    
-    e.g. 
+
+    e.g.
     A.  Files = [1,3,4,6,7,9,10]
         gives: [1,3,4,6,7,9,10]
-    
+
     B.  Files = [1,3,4,6,7,9,10]
         StartNum = 2
         EndNum   = 9
-        gives: [3,4,6,7,9] 
-    
+        gives: [3,4,6,7,9]
+
     C.  Files = [1,3,4,6,7,9,10]
         StartNum = 2
         EndNum   = 9
         step = -1
-        gives: [9,7,6,4,3] 
-        
+        gives: [9,7,6,4,3]
+
     D.  StartNum = 1
         EndNum   = 10
         step = 1
         gives: 1,2,3,4,5,6,7,8,9,10
-       
+
     E.  StartNum = 1
         EndNum   = 10
         step = 4
         gives: 1,5,9
-       
+
     F.  StartNum = 1
         EndNum   = 10
         step = -4
         gives: 9,5,1
-       
+
     G.  StartNum = 10
         EndNum   = 1
         step = 4
         gives: 10,6,2
-       
+
     H.  StartNum = 10
         EndNum   = 1
         step = -4
         gives: 2,6,10
-    
 
-    
+
+
     Parameters
     ----------
     paramDict : TYPE, optional
@@ -390,10 +392,10 @@ def StartStopFilesToList(paramDict=None, StartNum=None, EndNum=None, Step=1, Fil
         Number of entries in FKlist.
 
     """
-    
+
     if paramDict != None:
         if isinstance(paramDict, dict):
-            # if is a dictionary assume from hdf5 files. 
+            # if is a dictionary assume from hdf5 files.
             # dictionary from hdf5 functions
             if "from" in paramDict:
                 StartNum = paramDict["from"]
@@ -408,12 +410,12 @@ def StartStopFilesToList(paramDict=None, StartNum=None, EndNum=None, Step=1, Fil
                 To = paramDict["datafile_EndNum"]
             if "Step" in paramDict:
                 Step = paramDict["datafile_Step"]
-        
+
         if Keys != True:
-            #get information for Files
+            # get information for Files
             pass
         else:
-            #get information for hdf5 keys
+            # get information for hdf5 keys
             pass
         pass
         FKlist = []
@@ -429,14 +431,14 @@ def StartStopFilesToList(paramDict=None, StartNum=None, EndNum=None, Step=1, Fil
             raise ValueError("EndNum is not defined")
     else:
         raise ValueError("Neither Files, Keys or StartNum are defined")
-    
-    # exclude negative numbers from start num and EndNum. 
-    # this just makes life simpler. 
+
+    # exclude negative numbers from start num and EndNum.
+    # this just makes life simpler.
     if StartNum != None and StartNum < 0:
         raise ValueError("StartNum must be greater than 0")
     if EndNum != None and EndNum < 0:
         raise ValueError("EndNum must be greater than 0")
-        
+
     if FKlist == []:
         # make Lst from start, stop and step.
         if StartNum > EndNum:
@@ -444,12 +446,12 @@ def StartStopFilesToList(paramDict=None, StartNum=None, EndNum=None, Step=1, Fil
             EndNum -= 1
         else:
             EndNum += 1
-            
+
         FKlist = np.arange(StartNum, EndNum, np.abs(Step))
         if Step < 0:
-            #reverse list
+            # reverse list
             FKlist = FKlist[::-1]
-    
+
     # make maximal list
     # based on values in the list
     if StartNum == None:
@@ -459,33 +461,31 @@ def StartStopFilesToList(paramDict=None, StartNum=None, EndNum=None, Step=1, Fil
     else:
         s = StartNum
     if EndNum == None:
-        e = np.max(FKlist)+1
+        e = np.max(FKlist) + 1
     elif StartNum == -1:
         s = np.min(FKlist)
     else:
-        e = EndNum+1
-    
+        e = EndNum + 1
+
     if s > e:
         s, e = e, s
     #     e -= 1
     else:
         e += 1
-    LstAll = np.arange(s, e+1, np.abs(Step))
+    LstAll = np.arange(s, e + 1, np.abs(Step))
     if Step < 0:
-        #reverse list
+        # reverse list
         LstAll = LstAll[::-1]
-    
+
     ## cut Lst to allowed values
-    if Files != None and isinstance(Files[0],str):
+    if Files != None and isinstance(Files[0], str):
         # files is a list of strings
         FKlist = FKlist[LstAll]
     else:
-        #get list of matching values
+        # get list of matching values
         FKlist = [x for x in LstAll if x in FKlist]
-    
+
     return FKlist, len(FKlist)
-
-
 
 
 def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", clean=None):

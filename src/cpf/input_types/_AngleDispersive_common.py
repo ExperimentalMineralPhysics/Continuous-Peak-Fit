@@ -3,13 +3,14 @@
 
 
 import re
+
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.input_types._AngelDispersive_common")
+logger = get_logger("cpf.input_types._AngelDispersive_common")
 
 
 class _AngleDispersive_common:
@@ -58,7 +59,7 @@ class _AngleDispersive_common:
         :return:
         """
         tth_in = np.array(tth_in)
-        
+
         if isinstance(tth_in, list):
             tth_in = np.array(tth_in)
             a = True
@@ -81,7 +82,6 @@ class _AngleDispersive_common:
         if a == True:
             dspc_out = list(dspc_out)
         return np.squeeze(np.array(dspc_out))
-
 
     def bins(self, orders_class, cascade=False):
         """
@@ -168,7 +168,7 @@ class _AngleDispersive_common:
                     )
                 )
             )
-            
+
         # fit the data to the bins
         chunks = []
         bin_mean_azi = []
@@ -244,17 +244,14 @@ class _AngleDispersive_common:
 
         return np.linspace(self.azm_start, self.azm_end, steps + 1)
 
-    
-    
-    
     def GetDataType(self, rawData, numType="float", minimumPrecision=32):
         """
-        A function to return the data type for the diffraction data. 
+        A function to return the data type for the diffraction data.
         The data can be any format when it is read in, but should be a float
-        for the data fitting because the lmfit model inherits the data type from 
-        the data. 
-       
-        
+        for the data fitting because the lmfit model inherits the data type from
+        the data.
+
+
         Parameters
         ----------
         rawData : array
@@ -264,31 +261,30 @@ class _AngleDispersive_common:
         minimumPrecision : number, optional
             Minimum numerical precision to be applied to the data. If the numerical
             precision does not matter, set to False. The default is 32.
-    
+
         Returns
         -------
         DataType : string
-            A numpy data type to be applied to the data arrays. 
-    
+            A numpy data type to be applied to the data arrays.
+
         """
         precision = re.findall("\d+", rawData.dtype.name)[0]
         # force minimum precision
-        if minimumPrecision != False: 
+        if minimumPrecision != False:
             if precision < minimumPrecision:
                 precision = minimumPrecision
         else:
             pass
-            
+
         try:
-            DataType = np.dtype(numType+precision)
+            DataType = np.dtype(numType + precision)
         except:
             err_str = f"The datatype, {DataType}, is not a recognised data type"
             logger.critical(err_str)
             raise TypeError(err_str)
-        
+
         return DataType
-    
-    
+
 
 def equalObs(x, nbin):
     """

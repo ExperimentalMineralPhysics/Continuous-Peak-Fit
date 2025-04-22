@@ -5,9 +5,9 @@ import sys
 from PIL import Image
 from PIL.ExifTags import TAGS
 
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.ImageMetaData")
+logger = get_logger("cpf.ImageMetaData")
 
 Im = sys.argv[1]
 

@@ -16,9 +16,9 @@ from cpf.IO_functions import (
     peak_string,
     replace_null_terms,
 )
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.output_formatters.WriteDifferentialStrain")
+logger = get_logger("cpf.output_formatters.WriteDifferentialStrain")
 
 
 def Requirements():

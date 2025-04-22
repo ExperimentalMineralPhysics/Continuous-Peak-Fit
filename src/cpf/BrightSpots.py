@@ -42,9 +42,9 @@ __version__ = "0.1"
 
 import numpy as np
 
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.BrightSpots")
+logger = get_logger("cpf.BrightSpots")
 
 
 def SpotProcess(sub_data, settings_for_fit):
@@ -72,7 +72,7 @@ def SpotProcess(sub_data, settings_for_fit):
                     imax = settings_for_fit.subfit_orders["imax"]["limit"]
         else:
             imax = settings_for_fit.subfit_orders["imax"]
-            
+
     if "imin" in settings_for_fit.subfit_orders:
         if isinstance(settings_for_fit.subfit_orders["imin"], str):
             imin = np.percentile(

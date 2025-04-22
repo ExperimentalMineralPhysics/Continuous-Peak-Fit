@@ -614,6 +614,13 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
         for cp in range(len(comp_list)):
             comp = comp_names[cp]
             for j in range(len(obj_to_inspect["peak"][k][comp])):
+                # check if
+                # - there is a value and an error
+                # - the error is less than "large_errors" * error
+                # - the value is not within error of 0
+                #       [this is a sanity check to the preceeding check -- the ratio of error/value tends to inifinty as the 
+                #         value becomes very small.]
+                #       [without this there is lots of discarding the previous fit when the profile values are close to 0]
                 if (
                     obj_to_inspect["peak"][k][comp][j] != 0
                     and obj_to_inspect["peak"][k][comp][j] != None
@@ -622,6 +629,9 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
                     and obj_to_inspect["peak"][k][comp + "_err"][j]
                     / obj_to_inspect["peak"][k][comp][j]
                     >= large_errors
+                    and np.abs(obj_to_inspect["peak"][k][comp][j]) 
+                    - obj_to_inspect["peak"][k][comp + "_err"][j]
+                    >= 0
                 ):
                     clean = 0
                     err_rat = (

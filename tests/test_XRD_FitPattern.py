@@ -16,12 +16,10 @@ def reset_working_directory():
     get reset when running iterated tests, so this fixture funciton ensures that the
     working directory is reset to its initial state at the start of every test run.
     """
-    # Save the current working directory
-    cwd = Path().cwd().absolute()
-    yield  # Test runs here
 
-    # After the test, reset the working directory
-    os.chdir(cwd)
+    cwd = Path().cwd().absolute()  # Save current working directory
+    yield  # Test runs here
+    os.chdir(cwd)  # Reset working directory
 
 
 # Run the same test on different datasets and input files

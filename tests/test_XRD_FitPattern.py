@@ -6,7 +6,23 @@ import os
 from pathlib import Path
 
 from cpf.XRD_FitPattern import execute
-from pytest import mark
+from pytest import fixture, mark
+
+
+@fixture
+def reset_working_directory():
+    """
+    The CPF functions involve a lot of changes in working directories. These will not
+    get reset when running iterated tests, so this fixture funciton ensures that the
+    working directory is reset to its initial state at the start of every test run.
+    """
+    # Save the current working directory
+    cwd = Path().cwd().absolute()
+    yield  # Test runs here
+
+    # After the test, reset the working directory
+    os.chdir(cwd)
+
 
 # Run the same test on different datasets and input files
 execute_test_matrix = (
@@ -21,22 +37,25 @@ execute_test_matrix = (
 
 
 @mark.parametrize("test_params", execute_test_matrix)
-def test_execute(test_params: tuple[str, str]):
+def test_execute(
+    test_params: tuple[str, str],
+    reset_working_directory,
+):
     """
     Tests the top-level 'execute()' function to confirm that the workflow runs
     through to completion in its current state.
     """
 
     # Unpack test params
-    dataset, input_file = test_params
+    dataset, input_file = map(Path, test_params)
 
     # Set things up for the function
     os.chdir(dataset)
-    assert Path(input_file).exists()
-    os.mkdir("results")
+    assert input_file.exists()
+    Path("results").mkdir(exist_ok=True)
 
     # Run the function
-    execute(Path(input_file))
+    execute(input_file)
 
     # 'execute()' doesn't return a helpful value at the moment, so we can assert True
     # at the end of the function for now to check that it ran to completion.

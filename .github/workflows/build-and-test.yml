@@ -9,7 +9,7 @@ on:
       - master # Trigger on pushes to master branch
   pull_request:
     branches:
-      - "**" # Trigger on PRs to ANY branch
+      - "**" # Trigger on PRs of ANY branch
 
 jobs:
   build:

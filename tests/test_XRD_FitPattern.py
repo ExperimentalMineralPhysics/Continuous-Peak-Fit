@@ -31,6 +31,10 @@ execute_test_matrix = (
     ("Example1-Fe", "BCC1_Dioptas_MultiPeak_input.py"),
     ("Example1-Fe", "BCC1_Dioptas_SeriesFunctions_input.py"),
     ("Example1-Fe", "BCC1_Dioptas_SymmFixed_input.py"),
+    ("Example2-MgO", "CoSi22_MgO_DetectorPosition_input.py"),
+    ("Example2-MgO", "CoSi22_MgO_input.py"),
+    ("Example2-MgO", "CoSi22_MgO_Reverse_input.py"),
+    ("Example2-MgO", "CoSi22_MgO_Track_input.py"),
 )
 
 

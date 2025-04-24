@@ -6,11 +6,10 @@ name: Build and test package
 on:
   push:
     branches:
-      - master # Should run whenever a PR is merged to 'master' branch
+      - "**" # Trigger on pushes to ANY branch, including nested ones
   pull_request:
     branches:
-      - master
-      - "**" # Should run whenever we push to a PR, regardless of which branch it targets
+      - "**" # Trigger on PRs to ANY branch
 
 jobs:
   build:

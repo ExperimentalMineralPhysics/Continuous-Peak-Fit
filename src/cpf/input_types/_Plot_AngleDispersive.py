@@ -337,11 +337,11 @@ class _Plot_AngleDispersive:
         if fit_centroid is not None:
             for i in range(len(fit_centroid[1])):
                 if orientation == "horizontal":
-                    ax[1].plot(
+                    ax[2].plot(
                         fit_centroid[0], fit_centroid[1][i], "k--", linewidth=0.5
                     )
                 else:
-                    ax[1].plot(
+                    ax[2].plot(
                         fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5
                     )
         if orientation == "horizontal":
@@ -768,6 +768,7 @@ class _Plot_AngleDispersive:
             shrink=0.9,
         )  # , pad=0.1, aspect=8)
 
+        return fig_plot
 
 def residuals_colour_scheme(maximum_value, minimum_value, **kwargs):
     # create custom colormap for residuals

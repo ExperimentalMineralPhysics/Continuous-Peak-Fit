@@ -820,8 +820,17 @@ def fit_series(
                     param=temp[0],
                     coeff_type=temp_tp,
                 )
+                ax[i].plot(
+                    az_plt,
+                    gmod_plot
+                )
                 ax[i].scatter(data[1], data[0][comp][j], s=10)
-                y_lms = ax[i].get_ylim()
+                
+            # set y limits ignoring the error bars
+            y_lms = ax[i].get_ylim()
+            ax[i].set_ylim(y_lms)
+            
+            for j in range(len(orders["peak"])):
                 # add error bars to data points, over the top of the points
                 ax[i].errorbar(
                     data[1],
@@ -830,21 +839,16 @@ def fit_series(
                     fmt="none",
                     elinewidth=0.5,
                 )
-                ax[i].plot(
-                    az_plt,
-                    gmod_plot,
+            
+            # set x-ticks by data type.
+            # if notthing in the data class then continue
+            try:
+                label_x = settings_as_class.data_class.dispersion_ticks(
+                    disp_ticks=ax[i + 1].get_xticks
                 )
-                # set y limits ignoring the error bars
-                ax[i].set_ylim(y_lms)
-                # set x-labels by data type.
-                # if notthing in the data class then continue
-                try:
-                    label_x = settings_as_class.data_class.dispersion_ticks(
-                        disp_ticks=ax[i + 1].get_xticks
-                    )
-                    ax[i + 1].set_xticks(label_x)
-                except:
-                    pass
+                ax[i + 1].set_xticks(label_x)
+            except:
+                pass
 
         # plot background
         for k in range(len(orders["background"])):

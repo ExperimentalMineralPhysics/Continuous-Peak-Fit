@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 
 import cpf.output_formatters.WriteMultiFit as WriteMultiFit
+from cpf.output_formatters.crystallographic_operations import indicies4to3
 from cpf.IO_functions import make_outfile_name
 from cpf.util.logging import get_logger
 
@@ -323,6 +324,7 @@ def WriteOutput(
                     hkl = "000"
                     use = 0
                 pos = 0
+                
                 if hkl[0] == "-":
                     h = hkl[pos : pos + 2]
                     pos = pos + 2
@@ -341,6 +343,15 @@ def WriteOutput(
                 else:
                     l = hkl[pos : pos + 1]
                     pos = pos + 1
+                if len(hkl) > pos:
+                    if hkl[pos] == "-":
+                        m = hkl[pos : pos + 2]
+                        pos = pos + 2
+                    else:
+                        m = hkl[pos : pos + 1]
+                        pos = pos + 1
+                    HKL = indicies4to3(np.array([h,k,l,m], dtype=int))
+                    h, k, l = HKL
                 text_file.write(" %5i    %s    %s    %s\n" % (use, h, k, l))
 
         # material properties

@@ -11,6 +11,12 @@ on:
     branches:
       - "**" # Trigger on PRs of ANY branch
 
+concurrency:
+  # Assigns this GitHub workflow a category so that we can cancel in progress runs if
+  # a new push to the branch/pull request is made
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     strategy:

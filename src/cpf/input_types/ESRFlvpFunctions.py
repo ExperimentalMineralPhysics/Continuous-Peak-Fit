@@ -337,7 +337,7 @@ class ESRFlvpDetector:
 
         """
         # load the list of files
-        files_list = glob.glob(file_string)
+        files_list = glob.glob(str(file_string))
 
         positions = []
         for i in range(len(files_list)):

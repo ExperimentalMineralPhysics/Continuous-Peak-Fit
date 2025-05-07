@@ -9,6 +9,7 @@ from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.ImageMetaData")
 
+
 Im = sys.argv[1]
 
 logger.info(" ".join(map(str, [("Image File: ", Im)])))

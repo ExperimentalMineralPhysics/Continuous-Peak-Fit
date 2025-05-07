@@ -200,6 +200,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
             settings_class.set_subpattern(y[int(t * fps)], z)
             sub_data.set_limits(range_bounds=dispersion_range[z][y[int(t * fps)]])
 
+
             # Mask the subpattern by intensity if called for
             if (
                 "imax" in settings_class.subfit_orders

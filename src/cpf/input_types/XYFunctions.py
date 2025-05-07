@@ -73,6 +73,7 @@ from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.input_types.XYFunctions")
 
+
 # plot the data as an image (TRue) or a scatter plot (false).
 # FIXME: the plot as image (im_show) does not work. The fitted data has to be reshaped
 # into an image.
@@ -154,7 +155,6 @@ class XYDetector:
         #set defualt value, do not asume is diffraction data
         self.azm_blocks = 100
             
-
         self.calibration = None
         self.conversion_constant = None
         self.detector = None
@@ -367,6 +367,7 @@ class XYDetector:
                 dtype = self.intensity.dtype
             else:
                 dtype = self.GetDataType(im[0], minimumPrecision=False)
+
         im = ma.array(im, dtype=dtype)
 
         if self.calibration["x_dim"] != 0:
@@ -577,6 +578,7 @@ class XYDetector:
     test_azims = _AngleDispersive_common.test_azims
     GetDataType = _AngleDispersive_common.GetDataType
 
+
     # add masking functions to detetor class.
     get_mask = _masks.get_mask
     set_mask = _masks.set_mask
@@ -672,8 +674,6 @@ class OrthogonalDetector:
                     )
                     raise ValueError(error_str)
 
-        
-
         if "max_shape" in list(self.calibration.keys()):
             self.max_shape = self.calibration["max_shape"]
         elif diffraction_data:
@@ -726,8 +726,6 @@ class OrthogonalDetector:
             if "x_unit" not in calibration:
                 self.calibration["x_unit"] = "deg"
             
-
-
         self.calibration_check
 
     def calibration_check(self):

@@ -56,6 +56,7 @@ from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.Cosmics")
 
+
 # We define the laplacian kernel to be used
 laplkernel = np.array([[0.0, -1.0, 0.0], [-1.0, 4.0, -1.0], [0.0, -1.0, 0.0]])
 # Other kernels :

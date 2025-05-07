@@ -15,6 +15,7 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.output_formatters.WriteCoefficientTable")
 
 
+
 def Requirements():
     # List non-universally required parameters for writing this output type.
 
@@ -196,7 +197,6 @@ def WriteOutput(
     # print the data.
     for z in range(len(lists)):
         RowLst = {}
-
         settings_class.set_subpattern(lists[z, 0], lists[z, 1])
         data_to_write = fits[lists[z, 0]][lists[z, 1]]
 

@@ -14,6 +14,7 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.input_types.med_detectors")
 
 
+
 def W2010_10element():
     """
     Azimuthal detector positions for the 10 element detector of Weidner et al. (2010).

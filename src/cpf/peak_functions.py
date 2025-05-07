@@ -23,6 +23,7 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.peak_functions")
 
 
+
 def peak_components(full=False, include_profile=True):
     """
     Lists the parameters needed for each peak.

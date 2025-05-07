@@ -32,6 +32,7 @@ from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.input_types.ESRFlvpFunctions")
 
+
 """
 25th April 2024
 
@@ -831,6 +832,7 @@ class ESRFlvpDetector:
         self.tth_start = np.min(self.tth.flatten())
         self.tth_end = np.max(self.tth.flatten())
 
+
     def get_requirements(self, parameter_settings=None):
         """
         #Returns the parameters required for this detector class.
@@ -954,5 +956,6 @@ class ESRFlvpDetector:
     plot_collected = _Plot_AngleDispersive.plot_collected
     plot_calibrated = _Plot_AngleDispersive.plot_calibrated
     plot_integrated = _Plot_AngleDispersive.plot_integrated
+
     # this function is added because it requires access to self:
     dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks

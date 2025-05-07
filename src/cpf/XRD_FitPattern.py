@@ -878,6 +878,7 @@ def execute(
                 plt.show()
                 # plt.close()
 
+
             elif mode == "view":
                 fig = plt.figure()
                 ax = fig.add_subplot(1, 1, 1)

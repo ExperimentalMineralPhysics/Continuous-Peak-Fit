@@ -3,7 +3,6 @@
 
 
 import re
-
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
@@ -284,6 +283,7 @@ class _AngleDispersive_common:
             raise TypeError(err_str)
 
         return DataType
+
 
 
 def equalObs(x, nbin):

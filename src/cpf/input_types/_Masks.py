@@ -39,6 +39,7 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.input_types._Masks")
 
 
+
 class _masks:
     """
     Class definiing mask functions.

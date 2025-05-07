@@ -24,6 +24,7 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.input_types.MedFunctions")
 
 
+
 class MedDetector:
     """
     Data class for Energy dispersive diffraction.
@@ -366,6 +367,7 @@ class MedDetector:
             #     dtype = np.dtype("float"+precision)
             else:
                 dtype = self.GetDataType(im_all[0], minimumPrecision=False)
+
         im_all = ma.array(im_all, dtype=dtype)
 
         # apply mask to the intensity array
@@ -672,6 +674,7 @@ class MedDetector:
             dspc_out = np.array(dspc_out)
 
         return np.squeeze(np.array(dspc_out))
+
 
     def bins(self, orders_class, **kwargs):
         """
@@ -1072,7 +1075,6 @@ class MedDetector:
     # add common functions.
     set_limits = _AngleDispersive_common.set_limits
     GetDataType = _AngleDispersive_common.GetDataType
-
     plot_integrated = _Plot_AngleDispersive.plot_integrated
 
     # add masking functions to detetor class.

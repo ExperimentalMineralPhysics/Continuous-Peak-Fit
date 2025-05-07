@@ -32,6 +32,7 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.series_functions")
 
 
+
 def coefficient_types():
     """
     Defines the coefficient types possible and the numbers associated with them.

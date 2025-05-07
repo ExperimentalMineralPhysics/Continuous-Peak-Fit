@@ -89,6 +89,7 @@ class _Plot_AngleDispersive:
         axis_plot.set_ylabel(f"{self.Observationslabel} ({self.ObservationsUnits})")
         axis_plot.set_title("Integrated Data")
 
+
     def plot_masked(self, fig_plot=None):
         """
         Plot all the information needed to mask the data well.
@@ -759,7 +760,6 @@ class _Plot_AngleDispersive:
 
         # p2 = axis_plot.get_position().get_points().flatten()
         # ax_cbar1 = fig_plot.add_axes([p2[0], 0, p2[2]-p2[0], 0.05])
-
         cb = fig_plot.colorbar(
             mappable=the_plot,
             ax=axis_plot,

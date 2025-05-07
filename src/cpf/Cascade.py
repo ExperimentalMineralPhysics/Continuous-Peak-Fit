@@ -68,6 +68,7 @@ from cpf.XRD_FitSubpattern import fit_sub_pattern
 logger = get_logger("cpf.Cascade")
 
 
+
 def initiate(*args, **kwargs):
     """
     Run checks on input files, initiate data class and check output options
@@ -118,6 +119,7 @@ def execute(
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
     ] = "INFO",
+
     show_plots: bool = False,
     **kwargs,
 ):

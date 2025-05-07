@@ -36,6 +36,7 @@ from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.lmfit_model")
 
+
 np.set_printoptions(threshold=sys.maxsize)
 
 

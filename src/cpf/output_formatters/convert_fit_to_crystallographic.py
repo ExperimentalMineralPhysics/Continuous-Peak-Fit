@@ -104,7 +104,7 @@ def fourier_to_crystallographic(
             np.arctan(
                 coefficients[subpattern]["peak"][peak]["d-space"][3]
                 / coefficients[subpattern]["peak"][peak]["d-space"][4]
-            ) 
+            )
             / 2
         )
         out_angerr = (

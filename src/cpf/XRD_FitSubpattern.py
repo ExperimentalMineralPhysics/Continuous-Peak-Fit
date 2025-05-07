@@ -30,6 +30,7 @@ from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.XRD_FitSubpattern")
 
+
 np.set_printoptions(threshold=sys.maxsize)
 
 
@@ -462,7 +463,6 @@ def fit_sub_pattern(
                             indent=2,
                             default=json_numpy_serializer,
                         )
-                    
                     
                 # check if peak intensity is above threshold
                 ave_intensity = []

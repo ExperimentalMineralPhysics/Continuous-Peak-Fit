@@ -47,6 +47,7 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.BrightSpots")
 
 
+
 def SpotProcess(sub_data, settings_for_fit):
     imax = np.inf
     imin = -np.inf
@@ -95,6 +96,7 @@ def SpotProcess(sub_data, settings_for_fit):
                     imax = settings_for_fit.subfit_orders["imin"]["limit"]
         else:
             imin = settings_for_fit.subfit_orders["imin"]
+
 
     sub_data.set_mask(intensity_bounds=[imin, imax])  # (i_min=imin, i_max=imax)
     return sub_data

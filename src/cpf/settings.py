@@ -36,7 +36,6 @@ logger = get_logger("cpf.settings")
 
 # from cpf.XRD_FitPattern import logger
 
-
 class Settings:
     """
     Settings class definitions.
@@ -481,6 +480,7 @@ class Settings:
         report: Literal[
             "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
         ] = "INFO",
+
         peak=None,
         orders=None,
     ):
@@ -755,6 +755,7 @@ class Settings:
         report: Literal[
             "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
         ] = "INFO",
+
     ):
         """
         Checks that a set component type is valid -- i.e. it exists in PeakFunctions.

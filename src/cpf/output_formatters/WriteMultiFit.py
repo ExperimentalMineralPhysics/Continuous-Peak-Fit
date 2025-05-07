@@ -13,6 +13,7 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.output_formatters.WriteMultiFit")
 
 
+
 def Requirements():
     # List non-universally required parameters for writing this output type.
 

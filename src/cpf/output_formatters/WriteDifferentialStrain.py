@@ -21,6 +21,7 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.output_formatters.WriteDifferentialStrain")
 
 
+
 def Requirements():
     # List non-universally required parameters for writing this output type.
 

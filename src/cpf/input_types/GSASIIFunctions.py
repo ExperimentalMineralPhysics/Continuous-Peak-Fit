@@ -24,6 +24,7 @@ from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.input_types.GSASIIFunctions")
 
+
 np.set_printoptions(threshold=sys.maxsize)
 
 # import GSASIIIO as GsIO

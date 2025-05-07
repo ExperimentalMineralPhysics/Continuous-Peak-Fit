@@ -22,6 +22,7 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.fitsubpattern_chunks")
 
 
+
 def get_manual_guesses(settings_as_class, data_as_class, debug=False):
     """
     :param data_as_class:

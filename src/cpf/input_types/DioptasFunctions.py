@@ -26,6 +26,7 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.input_types.DioptasFunctions")
 
 
+
 class DioptasDetector:
     # For Dioptas functions to change
     #   -   Load/import data
@@ -442,6 +443,7 @@ class DioptasDetector:
         self.tth_start = np.min(self.tth.flatten())
         self.tth_end = np.max(self.tth.flatten())
 
+
     @staticmethod
     def detector_check(calibration_data, settings=None):
         """
@@ -541,6 +543,7 @@ class DioptasDetector:
     test_azims = _AngleDispersive_common.test_azims
     GetDataType = _AngleDispersive_common.GetDataType
 
+
     # add masking functions to detetor class.
     get_mask = _masks.get_mask
     set_mask = _masks.set_mask
@@ -555,5 +558,6 @@ class DioptasDetector:
     plot_collected = _Plot_AngleDispersive.plot_collected
     plot_calibrated = _Plot_AngleDispersive.plot_calibrated
     plot_integrated = _Plot_AngleDispersive.plot_integrated
+
     # this function is added because it requires access to self:
     dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks

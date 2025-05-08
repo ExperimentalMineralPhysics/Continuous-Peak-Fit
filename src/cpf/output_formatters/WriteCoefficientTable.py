@@ -141,6 +141,7 @@ def WriteOutput(
 
     # store headers
     headers = []
+    headers.append("num")
     headers.append("DataFile")
     headers.append("Peak")
     headers.append("Range_start")
@@ -201,6 +202,9 @@ def WriteOutput(
         data_to_write = fits[lists[z, 0]][lists[z, 1]]
 
         if len(data_to_write["peak"]) > lists[z, 2]:
+            
+            RowLst["num"] = lists[z, 0]
+            
             out_name = make_outfile_name(
                 settings_class.subfit_filename,
                 directory="",

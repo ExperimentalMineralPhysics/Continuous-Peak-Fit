@@ -19,9 +19,6 @@ from cpf.IO_functions import (
     image_list,
     json_numpy_serializer,
 )
-
-# , get_output_options, detector_factory, register_default_formats
-from cpf.logging import CPFLogger
 from cpf.series_functions import (
     coefficient_type_as_number,
     coefficient_type_as_string,
@@ -29,8 +26,15 @@ from cpf.series_functions import (
     get_number_coeff,
 )
 
-logger = CPFLogger("cpf.settings")
+# , get_output_options, detector_factory, register_default_formats
+from cpf.util.logging import get_logger
 
+# import logging
+
+# logger = logging.getLogger(__name__)
+logger = get_logger("cpf.settings")
+
+# from cpf.XRD_FitPattern import logger
 
 class Settings:
     """
@@ -58,7 +62,15 @@ class Settings:
         self,
         settings_file: Optional[Path] = None,
         out_type=None,
-        report: bool = False,
+        report: Literal[
+            "DEBUG",
+            "EFFUSIVE",
+            "MOREINFO",
+            "INFO",
+            "WARNING",
+            "ERROR",
+            "CRITICAL",
+        ] = "INFO",
         debug: bool = False,
         mode: Literal["fit"] = "fit",
     ):
@@ -428,8 +440,9 @@ class Settings:
             files_to_check = [files_to_check]
 
         for j in range(len(files_to_check)):
-            # logger.info(" ".join(map(str, [(files_to_check[j])])))
-            if files_to_check[j].exists() is False:
+            # q = glob.iglob(files_to_check[j])
+            # if not q:#glob.glob(files_to_check[j]):
+            if not Path(".").glob(str(files_to_check[j])):
                 # use glob.glob for a file search to account for compund detectors of ESRFlvp detectors
                 raise ImportError(
                     f"The file {files_to_check[j]} is not found but is required."
@@ -464,7 +477,10 @@ class Settings:
 
     def validate_fit_orders(
         self,
-        report: bool = False,
+        report: Literal[
+            "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+        ] = "INFO",
+
         peak=None,
         orders=None,
     ):
@@ -736,7 +752,10 @@ class Settings:
         peak_set,
         peak,
         component,
-        report: bool = False,
+        report: Literal[
+            "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+        ] = "INFO",
+
     ):
         """
         Checks that a set component type is valid -- i.e. it exists in PeakFunctions.
@@ -778,7 +797,9 @@ class Settings:
         peak_set,
         peak,
         component,
-        report: bool = False,
+        report: Literal[
+            "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+        ] = "INFO",
     ):
         """
         Checks that a fixed component set is the same size of the orders that govern it.
@@ -856,7 +877,9 @@ class Settings:
     def validate_position_selection(
         self,
         peak_set: int | list[int] = 0,
-        report: bool = False,
+        report: Literal[
+            "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+        ] = "INFO",
     ):
         """
         Checks that the multiple peak position selections have the right number of parts.
@@ -921,7 +944,9 @@ class Settings:
 
     def validate_fit_bounds(
         self,
-        report: bool = False,
+        report: Literal[
+            "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+        ] = "INFO",
     ):
         """
         check the peak fitting bounds in the input file are valid.
@@ -975,7 +1000,9 @@ class Settings:
     def set_output_types(
         self,
         out_type_list: list[str] = [],
-        report: bool = False,
+        report: Literal[
+            "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+        ] = "INFO",
     ):
         """
         set output types in settings class given a list of output types
@@ -1200,7 +1227,7 @@ class Settings:
             json.dump(
                 "This is a temporary file with no content",
                 TempFile,
-                sort_keys=False,
+                sort_get_image_key_strings=False,
                 indent=2,
                 default=json_numpy_serializer,
             )

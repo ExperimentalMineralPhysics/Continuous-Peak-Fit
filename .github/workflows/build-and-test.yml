@@ -1,24 +1,37 @@
 # This workflow will install Python dependencies, run tests and lint with a variety of Python versions
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
-name: Python package
+name: Build and test package
 
 on:
   push:
     branches:
-      - master # Should run whenever a PR is merged to 'master' branch
+      - master # Trigger on pushes to master branch
   pull_request:
     branches:
-      - master
-      - "**" # Should run whenever we push to a PR, regardless of which branch it targets
+      - "**" # Trigger on PRs of ANY branch
+
+concurrency:
+  # Assigns this GitHub workflow a name so that in-progress instances of this
+  # workflow will be cancelled if a new push is made
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-2019, windows-2022]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        os:
+          - macos-14
+          - ubuntu-24.04
+          - windows-2022
+          - windows-2025
+        python-version:
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
 
     runs-on: ${{ matrix.os }}
 

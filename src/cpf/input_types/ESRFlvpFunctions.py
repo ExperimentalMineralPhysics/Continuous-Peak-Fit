@@ -28,9 +28,10 @@ from pyFAI.goniometer import MultiGeometry
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.input_types.ESRFlvpFunctions")
+logger = get_logger("cpf.input_types.ESRFlvpFunctions")
+
 
 """
 25th April 2024
@@ -177,10 +178,18 @@ class ESRFlvpDetector:
         self.azm_end = 180
         self.tth_start = None
         self.tth_end = None
+        
         # Moving image plate that be integrated into single image: so contonuous data.
         # basically the data can be treated as having a single claibration.
-        self.DispersionType = "AngleDispersive"
+        self.Dispersion = "Angle"
         self.continuous_azm = True
+        
+        self.Dispersionlabel = r"2$\theta$"
+        self.DispersionUnits = r"$^\circ$"
+        self.Azimuthlabel = r"Azimuth"
+        self.AzimuthUnits = r"$^\circ$"
+        self.Observationslabel = r"Intensity"
+        self.ObservationsUnits = r"counts"
 
         self.azm_blocks = 2
         # default blocks are 2 degrees incase using only a single detector position
@@ -233,6 +242,10 @@ class ESRFlvpDetector:
         new.azm = deepcopy(self.azm[local_mask])
         if "dspace" in dir(self):
             new.dspace = deepcopy(self.dspace[local_mask])
+
+        # set nee range.
+        new.tth_start = range_bounds[0]
+        new.tth_end = range_bounds[1]
 
         if "x" in dir(self):
             if self.x is not None:
@@ -325,7 +338,7 @@ class ESRFlvpDetector:
 
         """
         # load the list of files
-        files_list = glob.glob(file_string)
+        files_list = glob.glob(str(file_string))
 
         positions = []
         for i in range(len(files_list)):
@@ -537,8 +550,24 @@ class ESRFlvpDetector:
 
         # if mask is False and ma.is_masked(self.intensity) == True:
         #     mask =self.intensity.mask
+        if logger.is_below_level(level="moreinfo"):
+            import time
+
+            st = time.time()
 
         if self.intensity is None:
+            # Convert the input data from integer to float because the lmfit model values
+            # inherits integer properties from the data.
+            #
+            # Allow option for the data type to be set.
+            if dtype == None:
+                if self.intensity.size > 2:
+                    # self.intensity has been set before. Inherit the dtype.
+                    dtype = self.intensity.dtype
+                else:
+                    tmp_image = ma.array(fabio.open(frames[0]).data)
+                    dtype = self.GetDataType(tmp_image[0], minimumPrecision=False)
+
             self.intensity = ma.array(
                 [np.flipud(fabio.open(f).data) for f in frames], dtype=dtype
             )
@@ -546,10 +575,12 @@ class ESRFlvpDetector:
                 self.intensity, mask=self.get_mask(mask, self.intensity)
             )
         else:
+            # inherit the data type from previosuly.
             dtype_tmp = self.intensity.dtype
             self.intensity.data[:] = ma.array(
                 [np.flipud(fabio.open(f).data) for f in frames], dtype=dtype_tmp
             )
+
         # 13th June 2024 - Note on flipud: the flipud command is included to invert the short axis of the detector intensity.
         # If I flip the data then the 'spots' in the reconstructed data are spot like, rather than incoherent
         # intensity diffraction peaks.
@@ -557,24 +588,14 @@ class ESRFlvpDetector:
         # ESRF and LVP beamline multidetector objects.
         # I (SAH) do not believe this is the same feature as the Dioptas and Fit2D
         # adjustment required in the Dioptas class.
+        if logger.is_below_level(level="moreinfo"):
+            logger.moreinfo(
+                " ".join(map(str, [f"Image import took {time.time()-st} seconds"]))
+            )
+            # print("image import took", time.time()-st, "seconds")
 
         if max(angles) - min(angles) >= 45:
             self.azm_blocks = 45
-
-        # Convert the input data from integer to float because the lmfit model values
-        # inherits integer properties from the data.
-        #
-        # Allow option for the data type to be set.
-        if dtype == None:
-            if self.intensity.size > 2:
-                # self.intensity has been set before. Inherit the dtype.
-                dtype = self.intensity.dtype
-            elif "int" in self.intensity[0].dtype.name:
-                # the type is either int or uint - convert to float
-                # using same bit precision
-                precision = re.findall("\d+", self.intensity[0].dtype.name)[0]
-                dtype = np.dtype("float" + precision)
-        # im = ma.array(im, dtype=dtype)
 
         # apply mask to the intensity array
         # print("mask", mask)
@@ -669,6 +690,8 @@ class ESRFlvpDetector:
         # set default for data type.
         # Fabio defaults to float64 if nothing is set.
         # Float32 or float16 take up much less memoary than flost64.
+        # N.B. Float 16 does not have sufficient precision to be used.
+        # Float32 is the minimum
         array_dtype = np.float32
 
         # get ordered list of images
@@ -800,8 +823,15 @@ class ESRFlvpDetector:
         # FIX ME: should we apply the mask as the arrays are populated rather than
         # in a separate function?
 
-        self.azm_start = np.floor(self.azm.min() / self.azm_blocks) * self.azm_blocks
-        self.azm_end = np.ceil(self.azm.max() / self.azm_blocks) * self.azm_blocks
+        self.azm_start = (
+            np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        )
+        self.azm_end = (
+            np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        )
+        self.tth_start = np.min(self.tth.flatten())
+        self.tth_end = np.max(self.tth.flatten())
+
 
     def get_requirements(self, parameter_settings=None):
         """
@@ -925,5 +955,7 @@ class ESRFlvpDetector:
     plot_fitted = _Plot_AngleDispersive.plot_fitted
     plot_collected = _Plot_AngleDispersive.plot_collected
     plot_calibrated = _Plot_AngleDispersive.plot_calibrated
+    plot_integrated = _Plot_AngleDispersive.plot_integrated
+
     # this function is added because it requires access to self:
     dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks

@@ -32,9 +32,10 @@ from lmfit import Model, Parameters
 import cpf.peak_functions as pf
 import cpf.series_constraints as sc
 import cpf.series_functions as sf
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.lmfit_model")
+logger = get_logger("cpf.lmfit_model")
+
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -926,7 +927,7 @@ def coefficient_fit(
             inp_param.add(param_str + "_" + str(t), 1.0)  # need limits
 
     if errs is None or np.array(errs).all is None:
-        errs = np.ones(ydata.shape)
+        errs = np.ones(np.array(ydata).shape)
     else:
         errs = np.array(errs)
 
@@ -949,11 +950,17 @@ def coefficient_fit(
     new_errs = errs[idx]
     # FIX ME: what happens if all new_errs is None?
     # DMF: I've fudged this for now to test Example 1 from start
-    try:
-        new_errs[new_errs is None] = 1000 * new_errs[new_errs is not None].max()
-    except TypeError:
-        new_errs[:] = 0.5  # Need to talk to Simon about this!!!
-    new_errs = new_errs.astype("float64")
+    # SAH : I have removed this (April 2025). I dont think that it is needed any more.
+    # try:
+    #     new_errs[np.isnan(new_errs)] = 1000 * np.nanmax(new_errs)
+    # except TypeError:
+    #     new_errs[:] = 0.5  # Need to talk to Simon about this!!!
+    # new_errs = new_errs.astype("float64")
+
+    # replace any Nans in the errors with a large value.
+    # this is instead of setting the nan_policy to "omit" which generates its own set of errors.
+    new_errs[np.isnan(new_errs)] = 1000 * np.nanmax(new_errs)
+
     out = f_model.fit(
         ydata[idx],
         inp_param,
@@ -961,9 +968,9 @@ def coefficient_fit(
         # coeff_type=coeff_type,
         # start_end=start_end,
         method=fit_method,
-        weights=new_errs,
+        weights=1 / new_errs,
         # comp_str=param_str,
-        nan_policy="propagate",
+        nan_policy="propagate",  # "omit"
         max_nfev=max_nfev,
     )
     return out

@@ -1,701 +1,287 @@
-<!doctype html>
 
-<html>
+<!DOCTYPE html>
+
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>
-      Input file structure (long) &#8212; Continuous-Peak-Fit 0.0 alpha
-      documentation
-    </title>
-    <link rel="stylesheet" href="_static/agogo.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script
-      id="documentation_options"
-      data-url_root="./"
-      src="_static/documentation_options.js"
-    ></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Input file structure (long) &#8212; Continuous-Peak-Fit 0.0 alpha documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/agogo.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
-    <script
-      async="async"
-      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"
-    ></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link
-      rel="next"
-      title="Subpatterns and peaks"
-      href="subpattern structure.html"
-    />
-    <link
-      rel="prev"
-      title="Input file structure (short)"
-      href="input file short.html"
-    />
-  </head>
-  <body>
+    <link rel="next" title="Sytax for iterating over hdf5 files." href="input%20file%20h5%20syntax.html" />
+    <link rel="prev" title="Input file structure (short)" href="input%20file%20short.html" /> 
+  </head><body>
     <div class="header-wrapper" role="banner">
       <div class="header">
-        <div class="headertitle">
-          <a href="index.html">Continuous-Peak-Fit 0.0 alpha documentation</a>
-        </div>
+        <div class="headertitle"><a
+          href="index.html">Continuous-Peak-Fit 0.0 alpha documentation</a></div>
         <div class="rel" role="navigation" aria-label="related navigation">
-          <a
-            href="input file short.html"
-            title="Input file structure (short)"
-            accesskey="P"
-            >previous</a
-          >
-          |
-          <a
-            href="subpattern structure.html"
-            title="Subpatterns and peaks"
-            accesskey="N"
-            >next</a
-          >
-          |
-          <a href="genindex.html" title="General Index" accesskey="I">index</a>
+          <a href="input%20file%20short.html" title="Input file structure (short)"
+             accesskey="P">previous</a> |
+          <a href="input%20file%20h5%20syntax.html" title="Sytax for iterating over hdf5 files."
+             accesskey="N">next</a> |
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a>
         </div>
-      </div>
+       </div>
     </div>
 
     <div class="content-wrapper">
       <div class="content">
         <div class="document">
-          <div class="documentwrapper">
-            <div class="bodywrapper">
-              <div class="body" role="main">
-                <div class="section" id="input-file-structure-long">
-                  <h1>
-                    Input file structure (long)<a
-                      class="headerlink"
-                      href="#input-file-structure-long"
-                      title="Permalink to this headline"
-                      >¶</a
-                    >
-                  </h1>
-                  <p>
-                    The input file for continuous peak fit is a python file that
-                    lists and defines most of the parameters needed to run and
-                    package on a data set. The settings are as follows:
-                  </p>
-                  <div class="section" id="data-file-definitions">
-                    <span id="datafile-definitions"></span>
-                    <h2>
-                      Data file definitions<a
-                        class="headerlink"
-                        href="#data-file-definitions"
-                        title="Permalink to this headline"
-                        >¶</a
-                      >
-                    </h2>
-                    <p>
-                      The file names are assumed to consist of a root or
-                      basename (e.g.
-                      <code class="docutils literal notranslate"
-                        ><span class="pre">`BCC1_...`</span></code
-                      >, an incrementing number that is systematically formatted
-                      and a file ‘ending’ (e.g. .tif).
-                    </p>
-                    <p>The options are listed here:</p>
-                    <table class="docutils align-default">
-                      <colgroup>
-                        <col style="width: 16%" />
-                        <col style="width: 8%" />
-                        <col style="width: 76%" />
-                      </colgroup>
-                      <thead>
-                        <tr class="row-odd">
-                          <th class="head"><p>Parameter</p></th>
-                          <th class="head"><p>Compulsary?</p></th>
-                          <th class="head"><p>Description</p></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr class="row-even">
-                          <td>
-                            <p>
-                              <code class="docutils literal notranslate"
-                                ><span class="pre"
-                                  >datafile_directory</span
-                                ></code
-                              >
-                            </p>
-                          </td>
-                          <td><p>yes</p></td>
-                          <td>
-                            <p>
-                              The location of the directory containing the data
-                              files.
-                            </p>
-                          </td>
-                        </tr>
-                        <tr class="row-odd">
-                          <td>
-                            <p>
-                              <code class="docutils literal notranslate"
-                                ><span class="pre"
-                                  >datafile_Basename</span
-                                ></code
-                              >
-                            </p>
-                          </td>
-                          <td><p>yes</p></td>
-                          <td>
-                            <p>
-                              The name of the file before the incrementing
-                              numbers. Can be an empty string
-                            </p>
-                          </td>
-                        </tr>
-                        <tr class="row-even">
-                          <td>
-                            <p>
-                              <code class="docutils literal notranslate"
-                                ><span class="pre"
-                                  >datafile_NumDigit</span
-                                ></code
-                              >
-                            </p>
-                          </td>
-                          <td><p>no</p></td>
-                          <td>
-                            <p>
-                              number of digits in the file number. If absent
-                              assumed the numbers are not zero padded. This
-                              applies to both style a and b below.
-                            </p>
-                          </td>
-                        </tr>
-                        <tr class="row-odd">
-                          <td>
-                            <p>
-                              <code class="docutils literal notranslate"
-                                ><span class="pre">datafile_Ending</span></code
-                              >
-                            </p>
-                          </td>
-                          <td><p>yes</p></td>
-                          <td>
-                            <p>
-                              The ending of the file after the incrementing
-                              numbers. Can be an empty string.
-                            </p>
-                          </td>
-                        </tr>
-                        <tr class="row-even">
-                          <td>
-                            <p>
-                              <code class="docutils literal notranslate"
-                                ><span class="pre"
-                                  >datafile_StartNum</span
-                                ></code
-                              >
-                            </p>
-                          </td>
-                          <td><p>style a, yes</p></td>
-                          <td><p>number of the first diffraction file</p></td>
-                        </tr>
-                        <tr class="row-odd">
-                          <td>
-                            <p>
-                              <code class="docutils literal notranslate"
-                                ><span class="pre">datafile_EndNum</span></code
-                              >
-                            </p>
-                          </td>
-                          <td><p>style a, yes</p></td>
-                          <td><p>number of the last diffraction file</p></td>
-                        </tr>
-                        <tr class="row-even">
-                          <td>
-                            <p>
-                              <code class="docutils literal notranslate"
-                                ><span class="pre">datafile_Step</span></code
-                              >
-                            </p>
-                          </td>
-                          <td><p>style a, no</p></td>
-                          <td>
-                            <p>
-                              increment for file numbers. If absent assumed to
-                              be 1 (if StartNum &gt; EndNum) or -1 (if StartNum
-                              &lt; EndNum)
-                            </p>
-                          </td>
-                        </tr>
-                        <tr class="row-odd">
-                          <td>
-                            <p>
-                              <code class="docutils literal notranslate"
-                                ><span class="pre">datafile_Files</span></code
-                              >
-                            </p>
-                          </td>
-                          <td><p>style b, yes.</p></td>
-                          <td>
-                            <p>
-                              a list of the incrementing part of the file names.
-                              It is assumed to be numberic and is zero padded if
-                              ‘datafile_NumDigit’ is present.
-                            </p>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                    <p>
-                      File name construction does not add underscores or
-                      fullstops between the components. A fullstop must be
-                      contained within the strings used to construct the file
-                      name for the file extension to be present.
-                    </p>
-                    <p>
-                      Whilst both
-                      <code class="docutils literal notranslate"
-                        ><span class="pre">datafile_Basename</span></code
-                      >
-                      and
-                      <code class="docutils literal notranslate"
-                        ><span class="pre">datafile_Ending</span></code
-                      >
-                      are required, it is permitted for them to be empty
-                      strings. See examples 2 and 3 below.
-                    </p>
-                    <div class="section" id="example-file-name-structures">
-                      <h3>
-                        Example file name structures:<a
-                          class="headerlink"
-                          href="#example-file-name-structures"
-                          title="Permalink to this headline"
-                          >¶</a
-                        >
-                      </h3>
-                      <ul class="simple">
-                        <li>
-                          <p>Example 1: style a, from [LINK to Example 1]:</p>
-                        </li>
-                      </ul>
-                      <blockquote>
-                        <div>
-                          <div class="highlight-python notranslate">
-                            <div class="highlight">
-                              <pre><span></span><span class="n">datafile_directory</span>  <span class="o">=</span> <span class="s1">&#39;./Example1-Fe/&#39;</span>
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="input-file-structure-long">
+<h1>Input file structure (long)<a class="headerlink" href="#input-file-structure-long" title="Permalink to this heading">¶</a></h1>
+<p>The input file for continuous peak fit is a python file that lists and defines most of the parameters needed to run and package on a data set. The settings are as follows:</p>
+<section id="data-file-definitions">
+<span id="datafile-definitions"></span><h2>Data file definitions<a class="headerlink" href="#data-file-definitions" title="Permalink to this heading">¶</a></h2>
+<p>The file names are assumed to consist of a root or basename (e.g. <code class="docutils literal notranslate"><span class="pre">`BCC1_...`</span></code>, an incrementing number that is systematically formatted and a file ‘ending’ (e.g. .tif).</p>
+<p>The options are listed here:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Compulsary?</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">datafile_directory</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>The location of the directory containing the data files.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">datafile_Basename</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>The name of the file before the incrementing numbers. Can be an empty string</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">datafile_NumDigit</span></code></p></td>
+<td><p>no</p></td>
+<td><p>number of digits in the file number. If absent assumed the numbers are not zero padded. This applies to both style a and b below.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">datafile_Ending</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>The ending of the file after the incrementing numbers. Can be an empty string.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">datafile_StartNum</span></code></p></td>
+<td><p>style a, yes</p></td>
+<td><p>number of the first diffraction file</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">datafile_EndNum</span></code></p></td>
+<td><p>style a, yes</p></td>
+<td><p>number of the last diffraction file</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">datafile_Step</span></code></p></td>
+<td><p>style a, no</p></td>
+<td><p>increment for file numbers. If absent assumed to be 1 (if StartNum &gt; EndNum) or -1 (if StartNum &lt; EndNum)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">datafile_Files</span></code></p></td>
+<td><p>style b, yes.</p></td>
+<td><p>a list of the incrementing part of the file names. It is assumed to be numberic and is zero padded if ‘datafile_NumDigit’ is present.</p></td>
+</tr>
+</tbody>
+</table>
+<p>File name construction does not add underscores or fullstops between the components. A fullstop must be contained within the strings used to construct the file name for the file extension to be present.</p>
+<p>Whilst both <code class="docutils literal notranslate"><span class="pre">datafile_Basename</span></code> and <code class="docutils literal notranslate"><span class="pre">datafile_Ending</span></code> are required, it is permitted for them to be empty strings. See examples 2 and 3 below.</p>
+<section id="example-file-name-structures">
+<h3>Example file name structures:<a class="headerlink" href="#example-file-name-structures" title="Permalink to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Example 1: style a, from [LINK to Example 1]:</p></li>
+</ul>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">datafile_directory</span>  <span class="o">=</span> <span class="s1">&#39;./Example1-Fe/&#39;</span>
 <span class="n">datafile_Basename</span>   <span class="o">=</span> <span class="s1">&#39;BCC1_2GPa_10s_001_&#39;</span>
 <span class="n">datafile_Ending</span>     <span class="o">=</span> <span class="s1">&#39;.tif&#39;</span>
 <span class="n">datafile_StartNum</span>   <span class="o">=</span> <span class="mi">1</span>
 <span class="n">datafile_EndNum</span>     <span class="o">=</span> <span class="mi">10</span>
 <span class="n">datafile_NumDigit</span>   <span class="o">=</span> <span class="mi">5</span>
-</pre>
-                            </div>
-                          </div>
-                          <ul>
-                            <li>
-                              <p>Makes file names:</p>
-                              <div class="highlight-default notranslate">
-                                <div class="highlight">
-                                  <pre><span></span><span class="o">./</span><span class="n">Example1</span><span class="o">-</span><span class="n">Fe</span><span class="o">/</span><span class="n">BCC1_2GPa_10s_001_00001</span><span class="o">.</span><span class="n">tif</span><span class="p">,</span>
+</pre></div>
+</div>
+<ul>
+<li><p>Makes file names:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">Example1</span><span class="o">-</span><span class="n">Fe</span><span class="o">/</span><span class="n">BCC1_2GPa_10s_001_00001</span><span class="o">.</span><span class="n">tif</span><span class="p">,</span>
 <span class="o">./</span><span class="n">Example1</span><span class="o">-</span><span class="n">Fe</span><span class="o">/</span><span class="n">BCC1_2GPa_10s_001_00002</span><span class="o">.</span><span class="n">tif</span><span class="p">,</span>
 <span class="o">...</span><span class="p">,</span>
 <span class="o">./</span><span class="n">Example1</span><span class="o">-</span><span class="n">Fe</span><span class="o">/</span><span class="n">BCC1_2GPa_10s_001_00008</span><span class="o">.</span><span class="n">tif</span><span class="p">,</span>
 <span class="o">./</span><span class="n">Example1</span><span class="o">-</span><span class="n">Fe</span><span class="o">/</span><span class="n">BCC1_2GPa_10s_001_00009</span><span class="o">.</span><span class="n">tif</span><span class="p">,</span>
 <span class="o">./</span><span class="n">Example1</span><span class="o">-</span><span class="n">Fe</span><span class="o">/</span><span class="n">BCC1_2GPa_10s_001_00010</span><span class="o">.</span><span class="n">tif</span>
-</pre>
-                                </div>
-                              </div>
-                            </li>
-                          </ul>
-                        </div>
-                      </blockquote>
-                      <ul class="simple">
-                        <li><p>Example 2, style a:</p></li>
-                      </ul>
-                      <blockquote>
-                        <div>
-                          <div class="highlight-python notranslate">
-                            <div class="highlight">
-                              <pre><span></span><span class="n">datafile_directory</span>  <span class="o">=</span> <span class="s1">&#39;./&#39;</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li><p>Example 2, style a:</p></li>
+</ul>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">datafile_directory</span>  <span class="o">=</span> <span class="s1">&#39;./&#39;</span>
 <span class="n">datafile_Basename</span>   <span class="o">=</span> <span class="s1">&#39;&#39;</span>
 <span class="n">datafile_Ending</span>     <span class="o">=</span> <span class="s1">&#39;diffraction.tif&#39;</span>
 <span class="n">datafile_StartNum</span>   <span class="o">=</span> <span class="mi">15</span>
 <span class="n">datafile_EndNum</span>     <span class="o">=</span> <span class="mi">3</span>
 <span class="n">datafile_Step</span><span class="o">.</span>      <span class="o">=</span> <span class="o">-</span><span class="mi">3</span>
-</pre>
-                            </div>
-                          </div>
-                          <ul>
-                            <li>
-                              <p>Makes file names:</p>
-                              <div class="highlight-default notranslate">
-                                <div class="highlight">
-                                  <pre><span></span><span class="o">./</span><span class="mi">15</span><span class="n">_diffraction</span><span class="o">.</span><span class="n">tif</span><span class="p">,</span>
+</pre></div>
+</div>
+<ul>
+<li><p>Makes file names:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="mi">15</span><span class="n">_diffraction</span><span class="o">.</span><span class="n">tif</span><span class="p">,</span>
 <span class="o">./</span><span class="mi">12</span><span class="n">_diffraction</span><span class="o">.</span><span class="n">tif</span><span class="p">,</span>
 <span class="o">./</span><span class="mi">9</span><span class="n">_diffraction</span><span class="o">.</span><span class="n">tif</span><span class="p">,</span>
 <span class="o">./</span><span class="mi">6</span><span class="n">_diffraction</span><span class="o">.</span><span class="n">tif</span><span class="p">,</span>
 <span class="o">./</span><span class="mi">3</span><span class="n">_diffraction</span><span class="o">.</span><span class="n">tif</span>
-</pre>
-                                </div>
-                              </div>
-                            </li>
-                          </ul>
-                        </div>
-                      </blockquote>
-                      <ul class="simple">
-                        <li><p>Example 3, style b:</p></li>
-                      </ul>
-                      <blockquote>
-                        <div>
-                          <div class="highlight-python notranslate">
-                            <div class="highlight">
-                              <pre><span></span><span class="n">datafile_directory</span> <span class="o">=</span> <span class="s1">&#39;F:</span><span class="se">\\</span><span class="s1">remote_server_location</span><span class="se">\&#39;</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li><p>Example 3, style b:</p></li>
+</ul>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">datafile_directory</span> <span class="o">=</span> <span class="s1">&#39;F:</span><span class="se">\\</span><span class="s1">remote_server_location</span><span class="se">\&#39;</span>
 <span class="n">datafile_Basename</span>  <span class="o">=</span> <span class="s1">&#39;M1234.&#39;</span>
 <span class="n">datafile_Ending</span>    <span class="o">=</span> <span class="s1">&#39;&#39;</span>
 <span class="n">datafile_Files</span><span class="o">.</span>    <span class="o">=</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span><span class="mi">13</span><span class="p">,</span> <span class="mi">115</span><span class="p">]</span>
 <span class="n">datafile_NumDigit</span>  <span class="o">=</span> <span class="mi">4</span>
-</pre>
-                            </div>
-                          </div>
-                          <ul>
-                            <li>
-                              <p>Makes file names:</p>
-                              <div class="highlight-default notranslate">
-                                <div class="highlight">
-                                  <pre><span></span><span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0006</span>
-<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0007</span>
-<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0009</span>
-<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0010</span>
-<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0012</span>
-<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0013</span>
-<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="o">.</span><span class="mi">0115</span>
-</pre>
-                                </div>
-                              </div>
-                            </li>
-                          </ul>
-                        </div>
-                      </blockquote>
-                    </div>
-                  </div>
-                  <div class="section" id="calibration-definitions">
-                    <span id="id1"></span>
-                    <h2>
-                      Calibration definitions<a
-                        class="headerlink"
-                        href="#calibration-definitions"
-                        title="Permalink to this headline"
-                        >¶</a
-                      >
-                    </h2>
-                    <p>
-                      A calibration type and file are required. Other
-                      requirements are possible depending on the detector type.
-                      <code class="docutils literal notranslate"
-                        ><span class="pre"
-                          >`cpf.XRD_FitPattern.initiate`</span
-                        ></code
-                      >
-                      (LINK) will inform you if needed definitions are missing.
-                    </p>
-                    <table class="docutils align-default">
-                      <colgroup>
-                        <col style="width: 10%" />
-                        <col style="width: 7%" />
-                        <col style="width: 83%" />
-                      </colgroup>
-                      <thead>
-                        <tr class="row-odd">
-                          <th class="head"><p>Parameter</p></th>
-                          <th class="head"><p>Required?</p></th>
-                          <th class="head"><p>Description</p></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr class="row-even">
-                          <td>
-                            <p>
-                              <code class="docutils literal notranslate"
-                                ><span class="pre">Calib_type</span></code
-                              >
-                            </p>
-                          </td>
-                          <td><p>yes</p></td>
-                          <td>
-                            <p>
-                              tells the souce for the calibration. Accepted
-                              values are “Dioptas” and “MED”.
-                            </p>
-                          </td>
-                        </tr>
-                        <tr class="row-odd">
-                          <td>
-                            <p>
-                              <code class="docutils literal notranslate"
-                                ><span class="pre">Calib_param</span></code
-                              >
-                            </p>
-                          </td>
-                          <td><p>yes</p></td>
-                          <td>
-                            <p>
-                              This is the file containing the calibration
-                              parameters for the detector. If it is not in the
-                              same directory as the imput file then needs to
-                              contain a path.
-                            </p>
-                          </td>
-                        </tr>
-                        <tr class="row-even">
-                          <td>
-                            <p>
-                              <code class="docutils literal notranslate"
-                                ><span class="pre">Calib_mask</span></code
-                              >
-                            </p>
-                          </td>
-                          <td><p>no</p></td>
-                          <td>
-                            <p>
-                              Is the mask file for the detector. If it is not in
-                              the same directory as the imput file then needs to
-                              contain a path.
-                            </p>
-                          </td>
-                        </tr>
-                        <tr class="row-odd">
-                          <td>
-                            <p>
-                              <code class="docutils literal notranslate"
-                                ><span class="pre">Calib_detector</span></code
-                              >
-                            </p>
-                          </td>
-                          <td><p>no</p></td>
-                          <td>
-                            <p>
-                              name of the detector. Not used for Dioptas
-                              calibration. Might be needed for MED and others
-                              though.
-                            </p>
-                          </td>
-                        </tr>
-                        <tr class="row-even">
-                          <td>
-                            <p>
-                              <code class="docutils literal notranslate"
-                                ><span class="pre">Calib_data</span></code
-                              >
-                            </p>
-                          </td>
-                          <td><p>no</p></td>
-                          <td>
-                            <p>
-                              the name of the data file with the calibration
-                              data in. Used in debugging to check the
-                              calibration is imported propertly.
-                            </p>
-                          </td>
-                        </tr>
-                        <tr class="row-odd">
-                          <td>
-                            <p>
-                              <code class="docutils literal notranslate"
-                                ><span class="pre">Calib_pixels</span></code
-                              >
-                            </p>
-                          </td>
-                          <td><p>no</p></td>
-                          <td>
-                            <p>
-                              needed by GSAS-II calibrations, which currently
-                              dont work!!
-                            </p>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  <div class="section" id="subpattern-definitions">
-                    <h2>
-                      Subpattern definitions<a
-                        class="headerlink"
-                        href="#subpattern-definitions"
-                        title="Permalink to this headline"
-                        >¶</a
-                      >
-                    </h2>
-                    <p>
-                      A full description of the structure required for each
-                      subpattern is given here:
-                      <a
-                        class="reference internal"
-                        href="subpattern structure.html"
-                        ><span class="doc">Subpatterns and peaks</span></a
-                      >
-                    </p>
-                  </div>
-                  <div class="section" id="output-settings">
-                    <span id="output-definitions"></span>
-                    <h2>
-                      Output settings<a
-                        class="headerlink"
-                        href="#output-settings"
-                        title="Permalink to this headline"
-                        >¶</a
-                      >
-                    </h2>
-                    <p>blah balh balh</p>
-                  </div>
-                  <div class="section" id="additional-optional-settings">
-                    <span id="optional-definitions"></span>
-                    <h2>
-                      Additional (Optional) Settings<a
-                        class="headerlink"
-                        href="#additional-optional-settings"
-                        title="Permalink to this headline"
-                        >¶</a
-                      >
-                    </h2>
-                    <div class="section" id="azimuthal-bins">
-                      <h3>
-                        Azimuthal Bins<a
-                          class="headerlink"
-                          href="#azimuthal-bins"
-                          title="Permalink to this headline"
-                          >¶</a
-                        >
-                      </h3>
-                      <p>
-                        <code class="docutils literal notranslate"
-                          ><span class="pre">AziBins</span></code
-                        >
-                        is the number of bins used in the inital fitting of the
-                        data (LINK). For angle dispersive data the default
-                        number of bins is 90. This value gives 4 degree
-                        azimuthal bins for complete Debye-Scherer rings. For
-                        partial diffraction rings a smaller number maybe a
-                        better chice. This is set in input file by:
-                      </p>
-                      <blockquote>
-                        <div>
-                          <div class="highlight-python notranslate">
-                            <div class="highlight">
-                              <pre><span></span><span class="n">AziBins</span> <span class="o">=</span> <span class="mi">45</span>
-</pre>
-                            </div>
-                          </div>
-                        </div>
-                      </blockquote>
-                    </div>
-                    <div class="section" id="limits">
-                      <span id="optional-limits-definitions"></span>
-                      <h3>
-                        Limits<a
-                          class="headerlink"
-                          href="#limits"
-                          title="Permalink to this headline"
-                          >¶</a
-                        >
-                      </h3>
-                      <p>
-                        The paramters in the fits are bounded (see LINK for
-                        details). The default limits are:
-                      </p>
-                      <blockquote>
-                        <div>
-                          <div class="highlight-python notranslate">
-                            <div class="highlight">
-                              <pre><span></span><span class="n">limits</span> <span class="o">=</span> <span class="p">[]</span>
-</pre>
-                            </div>
-                          </div>
-                        </div>
-                      </blockquote>
-                      <p>These can be changed by ….</p>
-                    </div>
-                  </div>
-                </div>
+</pre></div>
+</div>
+<ul>
+<li><p>Makes file names:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="mf">.0006</span>
+<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="mf">.0007</span>
+<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="mf">.0009</span>
+<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="mf">.0010</span>
+<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="mf">.0012</span>
+<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="mf">.0013</span>
+<span class="n">F</span><span class="p">:</span>\\<span class="n">remote_server_location</span>\<span class="n">M1234</span><span class="mf">.0115</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+</section>
+</section>
+<section id="calibration-definitions">
+<span id="id1"></span><h2>Calibration definitions<a class="headerlink" href="#calibration-definitions" title="Permalink to this heading">¶</a></h2>
+<p>A calibration type and file are required. Other requirements are possible depending on the detector type. <code class="docutils literal notranslate"><span class="pre">`cpf.XRD_FitPattern.initiate`</span></code> (LINK) will inform you if needed definitions are missing.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Required?</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Calib_type</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>tells the souce for the calibration. Accepted values are “Dioptas” and “MED”.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Calib_param</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>This is the file containing the calibration parameters for the detector. If it is not in the same directory as the imput file then needs to contain a path.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Calib_mask</span></code></p></td>
+<td><p>no</p></td>
+<td><p>Is the mask file for the detector. If it is not in the same directory as the imput file then needs to contain a path.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Calib_detector</span></code></p></td>
+<td><p>no</p></td>
+<td><p>name of the detector. Not used for Dioptas calibration. Might be needed for MED and others though.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Calib_data</span></code></p></td>
+<td><p>no</p></td>
+<td><p>the name of the data file with the calibration data in. Used in debugging to check the calibration is imported propertly.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Calib_pixels</span></code></p></td>
+<td><p>no</p></td>
+<td><p>needed by GSAS-II calibrations, which currently dont work!!</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="subpattern-definitions">
+<h2>Subpattern definitions<a class="headerlink" href="#subpattern-definitions" title="Permalink to this heading">¶</a></h2>
+<p>A full description of the structure required for each subpattern is given here: <a class="reference internal" href="subpattern%20structure.html"><span class="doc">Subpatterns and peaks</span></a></p>
+</section>
+<section id="output-settings">
+<span id="output-definitions"></span><h2>Output settings<a class="headerlink" href="#output-settings" title="Permalink to this heading">¶</a></h2>
+<p>blah balh balh</p>
+</section>
+<section id="additional-optional-settings">
+<span id="optional-definitions"></span><h2>Additional (Optional) Settings<a class="headerlink" href="#additional-optional-settings" title="Permalink to this heading">¶</a></h2>
+<section id="azimuthal-bins">
+<h3>Azimuthal Bins<a class="headerlink" href="#azimuthal-bins" title="Permalink to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">AziBins</span></code> is the number of bins used in the inital fitting of the data (LINK). For angle dispersive data the default number of bins is 90. This value gives 4 degree azimuthal bins for complete Debye-Scherer rings. For partial diffraction rings a smaller number maybe a better chice. This is set in input file by:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">AziBins</span> <span class="o">=</span> <span class="mi">45</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<section id="limits">
+<span id="optional-limits-definitions"></span><h3>Limits<a class="headerlink" href="#limits" title="Permalink to this heading">¶</a></h3>
+<p>The paramters in the fits are bounded (see LINK for details). The default limits are:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">limits</span> <span class="o">=</span> <span class="p">[]</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>These can be changed by ….</p>
+</section>
+</section>
+</section>
 
-                <div class="clearer"></div>
-              </div>
-            </div>
+
+            <div class="clearer"></div>
           </div>
         </div>
+      </div>
+        </div>
         <div class="sidebar">
+          
           <h3>Table of Contents</h3>
           <ul class="current">
-            <li class="toctree-l1">
-              <a class="reference internal" href="algorithm.html">Algorithm</a>
-            </li>
-            <li class="toctree-l1">
-              <a class="reference internal" href="installation.html"
-                >Download and Install</a
-              >
-            </li>
-            <li class="toctree-l1">
-              <a class="reference internal" href="running cpf.html"
-                ><em>Continuous peak fit</em>, via the command line</a
-              >
-            </li>
-            <li class="toctree-l1">
-              <a class="reference internal" href="input file short.html"
-                >Input file structure (short)</a
-              >
-            </li>
-            <li class="toctree-l1 current">
-              <a class="current reference internal" href="#"
-                >Input file structure (long)</a
-              >
-              <ul>
-                <li class="toctree-l2">
-                  <a class="reference internal" href="#data-file-definitions"
-                    >Data file definitions</a
-                  >
-                </li>
-                <li class="toctree-l2">
-                  <a class="reference internal" href="#calibration-definitions"
-                    >Calibration definitions</a
-                  >
-                </li>
-                <li class="toctree-l2">
-                  <a class="reference internal" href="#subpattern-definitions"
-                    >Subpattern definitions</a
-                  >
-                </li>
-                <li class="toctree-l2">
-                  <a class="reference internal" href="#output-settings"
-                    >Output settings</a
-                  >
-                </li>
-                <li class="toctree-l2">
-                  <a
-                    class="reference internal"
-                    href="#additional-optional-settings"
-                    >Additional (Optional) Settings</a
-                  >
-                </li>
-              </ul>
-            </li>
-            <li class="toctree-l1">
-              <a class="reference internal" href="subpattern structure.html"
-                >Subpatterns and peaks</a
-              >
-            </li>
-            <li class="toctree-l1">
-              <a class="reference internal" href="whatsnew.html"
-                >Release Notes</a
-              >
-            </li>
-          </ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="x-ray%20diffraction.html">X-ray diffraction fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="algorithm.html">Algorithm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="running%20cpf.html"><em>Continuous peak fit</em>, via the command line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file%20short.html">Input file structure (short)</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Input file structure (long)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#data-file-definitions">Data file definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#calibration-definitions">Calibration definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#subpattern-definitions">Subpattern definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output-settings">Output settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#additional-optional-settings">Additional (Optional) Settings</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file%20h5%20syntax.html">Sytax for iterating over hdf5 files.</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subpattern%20structure.html">Subpatterns and peaks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bounds.html">Bounds</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output_file_structure.html">Output files:</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example%20function%20tests.html">XRD_FitPattern’s examples and the features they test.</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whatsnew.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">APIs</a></li>
+</ul>
 
           <div role="search">
-            <h3 style="margin-top: 1.5em">Search</h3>
+            <h3 style="margin-top: 1.5em;">Search</h3>
             <form class="search" action="search.html" method="get">
-              <input type="text" name="q" />
-              <input type="submit" value="Go" />
+                <input type="text" name="q" />
+                <input type="submit" value="Go" />
             </form>
           </div>
+
         </div>
         <div class="clearer"></div>
       </div>
@@ -705,30 +291,30 @@
       <div class="footer">
         <div class="left">
           <div role="navigation" aria-label="related navigaton">
-            <a href="input file short.html" title="Input file structure (short)"
-              >previous</a
-            >
-            |
-            <a href="subpattern structure.html" title="Subpatterns and peaks"
-              >next</a
-            >
-            |
-            <a href="genindex.html" title="General Index">index</a>
+            <a href="input%20file%20short.html" title="Input file structure (short)"
+              >previous</a> |
+            <a href="input%20file%20h5%20syntax.html" title="Sytax for iterating over hdf5 files."
+              >next</a> |
+            <a href="genindex.html" title="General Index"
+              >index</a>
           </div>
           <div role="note" aria-label="source link">
-            <br />
-            <a href="_sources/input file.rst.txt" rel="nofollow">Show Source</a>
+              <br/>
+              <a href="_sources/input file.rst.txt"
+                rel="nofollow">Show Source</a>
           </div>
         </div>
 
         <div class="right">
-          <div class="footer" role="contentinfo">
-            &#169; Copyright Simon Hunt &amp; Danielle Fenech, 2020. Created
-            using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.2.
-          </div>
+          
+    <div class="footer" role="contentinfo">
+        &#169; Copyright Simon Hunt &amp; Danielle Fenech, 2020.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.0.2.
+    </div>
         </div>
         <div class="clearer"></div>
       </div>
     </div>
+
   </body>
 </html>

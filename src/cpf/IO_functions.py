@@ -15,9 +15,10 @@ from pathlib import Path
 
 import numpy as np
 
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.IO_functions")
+logger = get_logger("cpf.IO_functions")
+
 
 
 # Needed for JSON to save fitted parameters.
@@ -101,55 +102,82 @@ def image_list(fit_parameters, fit_settings):
 
     # iterate for h5 files.
     image_list = []
-    if "h5_key_list" in fit_parameters:
-        # FIX ME: all this code should be moved to settings and validation.
-        h5_key_list = fit_settings.h5_key_list
 
-        if "h5_key_names" in fit_parameters:
-            h5_key_names = fit_settings.h5_key_names
-        else:
-            h5_key_names = []
-
-        if "h5_key_start" in fit_parameters:
-            h5_key_start = fit_settings.h5_key_start
-        else:
-            h5_key_start = 0
-        # h5_key_start = fit_settings.h5_key_start
-
-        if "h5_key_end" in fit_parameters:
-            h5_key_end = fit_settings.h5_key_end
-        else:
-            h5_key_end = -1
-        #  h5_key_end   = fit_settings.h5_key_end
-        if isinstance(h5_key_end, int):
-            h5_key_end = [h5_key_end]
-
-        if "h5_key_step" in fit_parameters:
-            h5_key_step = fit_settings.h5_key_step
-        else:
-            h5_key_step = 1
-        # h5_key_step  = fit_settings.h5_key_step
-
-        if "h5_data" in fit_parameters:
-            h5_data = fit_settings.h5_data
-        else:
-            h5_data = "iterate"
-        # h5_data      = fit_settings.h5_data
-
+    if "h5_datakey" in fit_parameters:
+        # if new h5 format is present then call it.
         for i in range(n_diff_files):
-            h5_list = h5_functions.get_image_keys(
+            h5_list = h5_functions.get_image_keys_new(
                 diff_files[i],
-                h5_key_list,
-                h5_key_names,
-                key_start=h5_key_start,
-                key_end=deepcopy(h5_key_end),
-                key_step=h5_key_step,
-                bottom_level=h5_data,
+                h5key_data=fit_settings.h5_datakey,
+                h5_iterate=fit_settings.h5_iterate,
             )
-            # N.B. deepcopying of h5_key_end is needed otherwise it is reset for subsequent h5 files.
-
             for j in range(len(h5_list)):
                 image_list.append([diff_files[i], h5_list[j]])
+
+    elif "h5_key_list" in fit_parameters:
+        # if the input contains the old hdf5 file instircutions make the new
+        # dictionary based format and call that
+        h5datakey, h5iterations = h5_functions.update_key_structure(
+            fit_parameters, fit_settings
+        )
+        print(h5datakey, h5iterations)
+        for i in range(n_diff_files):
+            h5_list = h5_functions.get_image_keys_new(
+                diff_files[i],
+                h5key_data=h5datakey,
+                h5_iterate=h5iterations,
+            )
+            for j in range(len(h5_list)):
+                image_list.append([diff_files[i], h5_list[j]])
+
+    #     # FIX ME: all this code should be moved to settings and validation.
+    #     h5_key_list = fit_settings.h5_key_list
+
+    #     if "h5_key_names" in fit_parameters:
+    #         h5_key_names = fit_settings.h5_key_names
+    #     else:
+    #         h5_key_names = []
+
+    #     if "h5_key_start" in fit_parameters:
+    #         h5_key_start = fit_settings.h5_key_start
+    #     else:
+    #         h5_key_start = 0
+    #     # h5_key_start = fit_settings.h5_key_start
+
+    #     if "h5_key_end" in fit_parameters:
+    #         h5_key_end = fit_settings.h5_key_end
+    #     else:
+    #         h5_key_end = -1
+    #     #  h5_key_end   = fit_settings.h5_key_end
+    #     if isinstance(h5_key_end, int):
+    #         h5_key_end = [h5_key_end]
+
+    #     if "h5_key_step" in fit_parameters:
+    #         h5_key_step = fit_settings.h5_key_step
+    #     else:
+    #         h5_key_step = 1
+    #     # h5_key_step  = fit_settings.h5_key_step
+
+    #     if "h5_data" in fit_parameters:
+    #         h5_data = fit_settings.h5_data
+    #     else:
+    #         h5_data = "iterate"
+    #     # h5_data      = fit_settings.h5_data
+
+    #     for i in range(n_diff_files):
+    #         h5_list = h5_functions.get_image_keys(
+    #             diff_files[i],
+    #             h5_key_list,
+    #             h5_key_names,
+    #             key_start=h5_key_start,
+    #             key_end=deepcopy(h5_key_end),
+    #             key_step=h5_key_step,
+    #             bottom_level=h5_data,
+    #         )
+    #         # N.B. deepcopying of h5_key_end is needed otherwise it is reset for subsequent h5 files.
+
+    #         for j in range(len(h5_list)):
+    #             image_list.append([diff_files[i], h5_list[j]])
 
     else:
         image_list = diff_files
@@ -163,6 +191,37 @@ def file_list(fit_parameters, fit_settings):
     """
     From the Settings make a list of all the data files.
     This function is called by the output writing scripts to make sure the file names are called consistently.
+
+    if datafile_StartNum and datafile_EndNum are in the settings a list of file names is made. If step is present
+    it is also used. datafile_StartNum is always present in the file list and if step > 0 then is the fisrt file in the
+    list. If step <0 then datafile_StartNum is the last file in the list.
+    e.g.
+    1. datafile_StartNum = 1
+       datafile_EndNum   = 10
+       step = 1
+       gives file list: 1,2,3,4,5,6,7,8,9,10
+
+    2. datafile_StartNum = 1
+       datafile_EndNum   = 10
+       step = 4
+       gives file list: 1,5,9
+
+    3. datafile_StartNum = 1
+       datafile_EndNum   = 10
+       step = -4
+       gives file list: 9,5,1
+
+    4. datafile_StartNum = 10
+       datafile_EndNum   = 1
+       step = 4
+       gives file list: 10,6,2
+
+    5. datafile_StartNum = 10
+       datafile_EndNum   = 1
+       step = -4
+       gives file list: 2,6,10
+
+
     :param fit_parameters:
     :param fit_settings:
     :return:
@@ -170,15 +229,8 @@ def file_list(fit_parameters, fit_settings):
     # Define step
     if "datafile_Step" in fit_parameters:
         step = fit_settings.datafile_Step
-    elif "datafile_Files" in fit_parameters:
+    else:
         step = 1
-    elif "datafile_StartNum" in fit_parameters and "datafile_EndNum" in fit_parameters:
-        if fit_settings.datafile_EndNum >= fit_settings.datafile_StartNum:
-            step = 1
-        else:
-            step = -1
-    else:  # it must be a single file with no numberical compoent.
-        step = None
 
     if "datafile_NumDigit" not in fit_parameters:
         fit_settings.datafile_NumDigit = 1
@@ -198,20 +250,20 @@ def file_list(fit_parameters, fit_settings):
         )
     elif "datafile_Files" not in fit_parameters:
         n_diff_files = int(
-            np.round(
-                (fit_settings.datafile_EndNum - fit_settings.datafile_StartNum)
+            np.floor(
+                np.abs(fit_settings.datafile_EndNum - fit_settings.datafile_StartNum)
                 / np.abs(step)
-                + 1
             )
+            + 1
         )
         for j in range(n_diff_files):
             # Make list of diffraction pattern names and no. of pattern
-            if step < 0:
-                n = str(fit_settings.datafile_EndNum + j * step).zfill(
+            if fit_settings.datafile_EndNum >= fit_settings.datafile_StartNum:
+                n = str(fit_settings.datafile_StartNum + (j * np.abs(step))).zfill(
                     fit_settings.datafile_NumDigit
                 )
             else:
-                n = str(fit_settings.datafile_StartNum + j * step).zfill(
+                n = str(fit_settings.datafile_StartNum + (j * -np.abs(step))).zfill(
                     fit_settings.datafile_NumDigit
                 )
             # Append diffraction pattern name and directory
@@ -224,6 +276,9 @@ def file_list(fit_parameters, fit_settings):
                     + fit_settings.datafile_Ending
                 )
             )
+        if step < 0:
+            diff_files = diff_files[::-1]
+
     elif "datafile_Files" in fit_parameters:
         n_diff_files = int(np.round(len(fit_settings.datafile_Files) / np.abs(step)))
         for j in range(n_diff_files):
@@ -249,6 +304,189 @@ def file_list(fit_parameters, fit_settings):
     else:
         n_diff_files = int(len(fit_settings.datafile_Files) / step + 1)
     return diff_files, n_diff_files
+
+
+def StartStopFilesToList(
+    paramDict=None, StartNum=None, EndNum=None, Step=1, Files=None, Keys=None
+):
+    """
+    Convert parameters into a list of numerical. Takes with a settings class, a
+    dictionary or start, stop, step and files directly.
+
+    It works on either file names or keys for h5 files.
+
+    The function cannot accept both keys and files in the same call.
+
+    The heirerarchy works as follow:
+    1. If Files (or keys) is given and StartNum,EndNum,Step are not given
+    the contents of files/keys is returned.
+    2. If Files (or keys) is given and StartNum, EndNum or Step are also given
+    files/keys are trimmed to values between StartNum and EndNum using Step.
+    - if only Step and Step = -1, the order of Files/Keys is reversed.
+    3. If only StartNum, EndNum +/- Step are given a list of numbers is
+    made from these values.
+    - StartNum is  present in the file list if step > 0
+    - EndNum is present in the list if Step < 0
+
+    e.g.
+    A.  Files = [1,3,4,6,7,9,10]
+        gives: [1,3,4,6,7,9,10]
+
+    B.  Files = [1,3,4,6,7,9,10]
+        StartNum = 2
+        EndNum   = 9
+        gives: [3,4,6,7,9]
+
+    C.  Files = [1,3,4,6,7,9,10]
+        StartNum = 2
+        EndNum   = 9
+        step = -1
+        gives: [9,7,6,4,3]
+
+    D.  StartNum = 1
+        EndNum   = 10
+        step = 1
+        gives: 1,2,3,4,5,6,7,8,9,10
+
+    E.  StartNum = 1
+        EndNum   = 10
+        step = 4
+        gives: 1,5,9
+
+    F.  StartNum = 1
+        EndNum   = 10
+        step = -4
+        gives: 9,5,1
+
+    G.  StartNum = 10
+        EndNum   = 1
+        step = 4
+        gives: 10,6,2
+
+    H.  StartNum = 10
+        EndNum   = 1
+        step = -4
+        gives: 2,6,10
+
+
+
+    Parameters
+    ----------
+    paramDict : TYPE, optional
+        DESCRIPTION. The default is None.
+    StartNum : float, optional
+        Starting value for the file index/number. The default is None.
+    EndNum : float, optional
+        End value for the file index/number. The default is None.
+    Step : int, optional
+        Step value for the indicies. The default is 1.
+    Files : list, optional
+        List of file indicies. The default is None.
+    Keys : list, optional
+        List of key indicies for hdf5 file. The default is None.
+
+    Returns
+    -------
+    FKlist : list
+        List of file or key numbers.
+    numFKlist : list
+        Number of entries in FKlist.
+
+    """
+
+    if paramDict != None:
+        if isinstance(paramDict, dict):
+            # if is a dictionary assume from hdf5 files.
+            # dictionary from hdf5 functions
+            if "from" in paramDict:
+                StartNum = paramDict["from"]
+            if "to" in paramDict:
+                EndNum = paramDict["to"]
+            if "Step" in paramDict:
+                Step = paramDict["Step"]
+        else:
+            if "StartNum" in paramDict:
+                From = paramDict["datafile_StartNum"]
+            if "EndNum" in paramDict:
+                To = paramDict["datafile_EndNum"]
+            if "Step" in paramDict:
+                Step = paramDict["datafile_Step"]
+
+        if Keys != True:
+            # get information for Files
+            pass
+        else:
+            # get information for hdf5 keys
+            pass
+        pass
+        FKlist = []
+    elif Files != None and Keys == None:
+        FKlist = Files
+    elif Files == None and Keys != None:
+        FKlist = Keys
+    elif Files == None and Keys == None and StartNum != None:
+        FKlist = []
+    elif StartNum != None:
+        FKlist = []
+        if EndNum == None:
+            raise ValueError("EndNum is not defined")
+    else:
+        raise ValueError("Neither Files, Keys or StartNum are defined")
+
+    # exclude negative numbers from start num and EndNum.
+    # this just makes life simpler.
+    if StartNum != None and StartNum < 0:
+        raise ValueError("StartNum must be greater than 0")
+    if EndNum != None and EndNum < 0:
+        raise ValueError("EndNum must be greater than 0")
+
+    if FKlist == []:
+        # make Lst from start, stop and step.
+        if StartNum > EndNum:
+            StartNum, EndNum = EndNum, StartNum
+            EndNum -= 1
+        else:
+            EndNum += 1
+
+        FKlist = np.arange(StartNum, EndNum, np.abs(Step))
+        if Step < 0:
+            # reverse list
+            FKlist = FKlist[::-1]
+
+    # make maximal list
+    # based on values in the list
+    if StartNum == None:
+        s = np.min(FKlist)
+    elif StartNum == -1:
+        s = np.max(FKlist)
+    else:
+        s = StartNum
+    if EndNum == None:
+        e = np.max(FKlist) + 1
+    elif StartNum == -1:
+        s = np.min(FKlist)
+    else:
+        e = EndNum + 1
+
+    if s > e:
+        s, e = e, s
+    #     e -= 1
+    else:
+        e += 1
+    LstAll = np.arange(s, e + 1, np.abs(Step))
+    if Step < 0:
+        # reverse list
+        LstAll = LstAll[::-1]
+
+    ## cut Lst to allowed values
+    if Files != None and isinstance(Files[0], str):
+        # files is a list of strings
+        FKlist = FKlist[LstAll]
+    else:
+        # get list of matching values
+        FKlist = [x for x in LstAll if x in FKlist]
+
+    return FKlist, len(FKlist)
 
 
 def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", clean=None):
@@ -377,6 +615,13 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
         for cp in range(len(comp_list)):
             comp = comp_names[cp]
             for j in range(len(obj_to_inspect["peak"][k][comp])):
+                # check if
+                # - there is a value and an error
+                # - the error is less than "large_errors" * error
+                # - the value is not within error of 0
+                #       [this is a sanity check to the preceeding check -- the ratio of error/value tends to inifinty as the 
+                #         value becomes very small.]
+                #       [without this there is lots of discarding the previous fit when the profile values are close to 0]
                 if (
                     obj_to_inspect["peak"][k][comp][j] != 0
                     and obj_to_inspect["peak"][k][comp][j] != None
@@ -385,6 +630,9 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
                     and obj_to_inspect["peak"][k][comp + "_err"][j]
                     / obj_to_inspect["peak"][k][comp][j]
                     >= large_errors
+                    and np.abs(obj_to_inspect["peak"][k][comp][j]) 
+                    - obj_to_inspect["peak"][k][comp + "_err"][j]
+                    >= 0
                 ):
                     clean = 0
                     err_rat = (

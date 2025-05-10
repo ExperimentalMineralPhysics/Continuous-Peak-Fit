@@ -27,9 +27,10 @@ from scipy.interpolate import CubicSpline, make_interp_spline
 
 import cpf.peak_functions as pf
 import cpf.series_constraints as sc
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.series_functions")
+logger = get_logger("cpf.series_functions")
+
 
 
 def coefficient_types():

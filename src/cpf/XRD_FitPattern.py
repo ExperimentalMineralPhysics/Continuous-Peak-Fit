@@ -28,8 +28,8 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.logging import CPFLogger
 from cpf.settings import Settings
+from cpf.util.logging import get_logger, set_global_log_level
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 
 np.set_printoptions(threshold=sys.maxsize)
@@ -38,45 +38,7 @@ np.set_printoptions(threshold=sys.maxsize)
 # Also need to do something similar with data class
 
 
-logger = CPFLogger("cpf.XRD_FitPattern")
-
-
-def initialise_logger(
-    settings_file: Optional[Path],
-    report: Literal["DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"]
-    | bool = False,
-):
-    """
-    Helper function to set up the CPFLogger instance with the desired stream and file handlers
-    """
-    # Start the logger with the desired outputs
-    logger.handlers.clear()
-    format = "%(asctime)s [%(levelname)s] %(message)s"
-    formatter = logging.Formatter(format)
-    level = report.upper() if isinstance(report, (str,)) else "INFO"
-
-    # Create a log file if a level name or True is provided
-    if isinstance(report, (str,)) or report is True:
-        # Fail gracefully if no settings file was provided
-        if settings_file is None:
-            raise ValueError(
-                "Settings file needs to be specified in order to create a log file."
-            )
-
-        # Set the logging level and log file name
-        log_name = make_outfile_name(settings_file, extension=".log", overwrite=True)
-
-        # Create and add the file handler
-        fh = logging.FileHandler(log_name, mode="a", encoding="utf-8")
-        fh.setFormatter(formatter)
-        fh.setLevel(level)
-        logger.addHandler(fh)
-
-    # Create the stream handler
-    sh = logging.StreamHandler()
-    sh.setFormatter(formatter)
-    sh.setLevel(level)
-    logger.addHandler(sh)
+logger = get_logger("cpf.XRD_FitPattern")
 
 
 def register_default_formats() -> dict[str, ModuleType]:
@@ -101,7 +63,9 @@ def initiate(
     settings_file: Optional[str | Path] = None,
     inputs=None,
     out_type=None,
-    report: str | bool = False,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
     **kwargs,
 ):
     """
@@ -115,6 +79,16 @@ def initiate(
     :return fit_parameters:
     :return fit_settings:
     """
+
+    # Set the logger level for this run
+    set_global_log_level(report)
+
+    # Add a file handler to this logger
+    if settings_file:
+        log_file = make_outfile_name(
+            base_filename=settings_file, extension=".log", overwrite=True
+        )
+        logger.add_file_handler(log_file)
 
     # Fail gracefully
     if settings_file is None:
@@ -184,6 +158,8 @@ def view(
         # restrict file list to first file
         settings_for_fit.set_data_files(keep=pattern)
 
+    write_output(settings_file=settings_file, out_type="CollectionMovie")
+
     execute(
         settings_class=settings_for_fit,
         debug=debug,
@@ -208,7 +184,9 @@ def set_range(
     # track: bool = False,
     parallel: bool = True,
     subpattern: str = "all",
-    report: bool = False,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
 ):
     """
     :param settings_file:
@@ -246,7 +224,7 @@ def set_range(
         iterations=iterations,
         parallel=parallel,
         mode="set-range",
-        report=True,
+        report=report,
     )
 
 
@@ -262,7 +240,9 @@ def initial_peak_position(
     # track: bool = False,
     parallel: bool = True,
     subpattern: str = "all",
-    report: bool = False,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
 ):
     """
     Calls interactive graph to set the inital peak postion guesses.
@@ -333,7 +313,7 @@ def initial_peak_position(
         iterations=iterations,
         parallel=parallel,
         mode="set-guess",
-        report=True,
+        report=report,
     )
 
 
@@ -441,7 +421,9 @@ def order_search(
     subpattern: str = "all",
     search_peak: int = 0,
     search_series: list[str] = ["fourier", "spline"],
-    report: bool = False,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
 ):
     """
     :param search_series:
@@ -501,7 +483,7 @@ def order_search(
         save_all=save_all,
         iterations=iterations,
         parallel=parallel,
-        report=True,
+        report=report,
     )
 
     # write a differential strain output file
@@ -526,7 +508,10 @@ def write_output(
     use_bounds: bool = False,
     differential_only: bool = False,
     debug: bool = False,
-    report: bool = False,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
+    **kwargs,
 ):
     """
     :param debug:
@@ -585,6 +570,7 @@ def write_output(
                 settings_file=settings_file,
                 differential_only=differential_only,
                 debug=debug,
+                **kwargs,
             )
 
 
@@ -602,7 +588,9 @@ def execute(
     # track: bool = False,  #moved this option to settings file
     parallel: bool = True,
     mode: str = "fit",
-    report: bool = False,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
     fit_method: str = "leastsq",
 ):
     """
@@ -621,9 +609,6 @@ def execute(
     :param iterations:
     :return:
     """
-
-    # Set up the logger with the desired format and handlers
-    initialise_logger(settings_file=settings_file, report=report)
 
     if settings_class is None:
         settings_for_fit = initiate(settings_file, inputs=inputs, report=report)
@@ -717,7 +702,34 @@ def execute(
             plt.title(title_file_names(settings_for_fit=settings_for_fit, num=j))
             plt.show()
             if mode == "view":
-                sys.exit("Plotted data.")
+                filename = make_outfile_name(
+                    settings_for_fit.image_list[j],
+                    directory=settings_for_fit.output_directory,
+                    extension=".png",
+                    overwrite=True,
+                )
+
+                fig.savefig(filename)
+
+            fig = plt.figure()
+            ax = fig.add_subplot(1, 1, 1)
+            ax_o1 = plt.subplot(111)
+            new_data.plot_integrated(fig_plot=fig, axis_plot=ax, show="intensity")
+            # plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
+            plt.title(title_file_names(settings_for_fit=settings_for_fit, num=j))
+            plt.show()
+            if mode == "view":
+                filename = make_outfile_name(
+                    settings_for_fit.image_list[j],
+                    directory=settings_for_fit.output_directory,
+                    additional_text = "integrated",
+                    extension=".png",
+                    overwrite=True,
+                )
+
+                fig.savefig(filename)
+
+                print("Plotted data.")
             else:
                 plt.close()
 
@@ -726,6 +738,7 @@ def execute(
             Path(temporary_data_file).is_file()
             and settings_for_fit.fit_propagate is True
             and mode == "fit"
+            and j != 0  # not the first data in series.
         ):
             # Read JSON data from file
             logger.moreinfo(  # type: ignore
@@ -772,7 +785,7 @@ def execute(
             tth_range = np.array(settings_for_fit.subfit_orders["range"])
             if settings_for_fit.fit_track is True and "previous_fit" in locals():
                 clean = any_terms_null(params, val_to_find=None)
-                if clean == 0:
+                if not clean:
                     # the previous fit has problems so discard it
                     logger.moreinfo(  # type: ignore
                         " ".join(
@@ -788,17 +801,16 @@ def execute(
                     )
                     params = []
                 else:
+                    # if tacking things start from positon of previous fit positions
+                    tth_range = previous_fit[i]["range"][0]
                     mid = []
                     for k in range(len(params["peak"])):
                         mid.append(params["peak"][k]["d-space"][0])
                         # FIXME: replace with caluculation of mean d-spacing.
 
                     cent = new_data.conversion(np.mean(mid), reverse=True)
-
                     move_by = cent - np.mean(tth_range)
-                    move_by = move_by[
-                        0
-                    ]  # this is needed to turn move_by from array to float
+                    # move_by = move_by[0]  # this is needed to turn move_by from array to float
 
                     # update tth_range and settings
                     tth_range = tth_range + move_by
@@ -865,6 +877,35 @@ def execute(
                 # if debug:
                 plt.show()
                 # plt.close()
+
+
+            elif mode == "view":
+                fig = plt.figure()
+                ax = fig.add_subplot(1, 1, 1)
+                ax_o1 = plt.subplot(111)
+                sub_data.plot_calibrated(
+                    fig_plot=fig, axis_plot=ax, show="intensity", rastered="scatter"
+                )
+                plt.suptitle(
+                    peak_string(settings_for_fit.subfit_orders) + "; calibrated"
+                )
+
+                filename = make_outfile_name(
+                    settings_for_fit.image_list[j],
+                    directory=settings_for_fit.output_directory,
+                    additional_text="range",
+                    orders=settings_for_fit.subfit_orders,
+                    extension=".png",
+                    overwrite=True,
+                )
+
+                fig.savefig(filename)
+
+                plt.show()
+                if mode == "view":
+                    print("Plotted data.")
+                else:
+                    plt.close()
 
             elif mode == "set-guess":
                 fig_1 = plt.figure()

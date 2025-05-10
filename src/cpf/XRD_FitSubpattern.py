@@ -24,10 +24,12 @@ from cpf.IO_functions import (
     any_terms_null,
     make_outfile_name,
     peak_string,
+    json_numpy_serializer
 )
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.XRD_FitSubpattern")
+logger = get_logger("cpf.XRD_FitSubpattern")
+
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -191,14 +193,18 @@ def check_num_azimuths(peeks, azimu, orders):
     for y in range(peeks):
         # loop over parameters
         for param in choice_list:
-            coeff_type = sf.params_get_type(orders, param, peak=y)
+            coeff_type = sf.coefficient_type_as_number(
+                sf.params_get_type(orders, param, peak=y)
+            )
             if coeff_type != 5:  # if parameters are not independent
                 max_coeff = np.max(
                     [max_coeff, sf.get_number_coeff(orders, param, peak=y)]
                 )
     param = "background"
     for y in range(np.max([len(orders["background"])])):
-        coeff_type = sf.params_get_type(orders, param, peak=y)
+        coeff_type = sf.coefficient_type_as_number(
+            sf.params_get_type(orders, param, peak=y)
+        )
         if coeff_type != 5:  # if parameters are not independent
             max_coeff = np.max([max_coeff, sf.get_number_coeff(orders, "background")])
     if max_coeff > len(np.unique(azimu)):
@@ -224,7 +230,7 @@ def fit_sub_pattern(
     histogram_bins=None,
     cascade: bool = False,
     min_data_intensity=1,
-    min_peak_intensity="0.25*std",
+    min_peak_intensity="std",
     large_errors=300,
 ):
     """
@@ -394,7 +400,12 @@ def fit_sub_pattern(
                 )
                 # set step to -21 so that it is still negative at the end
                 step.append(-21)  # get to the end and void the fit
-                fout = master_params
+                # void so send empty parameter set to out.
+                fout = lmm.initiate_all_params_for_fit(
+                    settings_as_class,
+                    data_as_class,
+                    debug=debug,
+                )
 
             if step[-1] >= 0 and not previous_params:
                 # There is no previous fit -- Fit data in azimuthal chunks
@@ -429,6 +440,30 @@ def fit_sub_pattern(
                     save_fit=save_fit,
                 )
 
+                if save_fit or logger.is_below_level("MOREINFO"):
+                    # Write master_params to new_params dict object
+                    new_params = lmm.params_to_new_params(
+                        master_params, orders=settings_as_class.subfit_orders
+                    )
+                    # write to a file. 
+                    filename = make_outfile_name(
+                        settings_as_class.subfit_filename,
+                        directory=settings_as_class.output_directory,
+                        orders=settings_as_class.subfit_orders,
+                        additional_text="InitialSeriesFit",
+                        extension=".json",
+                        overwrite=True,
+                    )
+                    with open(filename, "w") as TempFile:
+                        # Write a JSON string into the file.
+                        json.dump(
+                            new_params,
+                            TempFile,
+                            sort_keys=True,
+                            indent=2,
+                            default=json_numpy_serializer,
+                        )
+                    
                 # check if peak intensity is above threshold
                 ave_intensity = []
                 for k in range(peeks):
@@ -473,7 +508,12 @@ def fit_sub_pattern(
                     )
                     # set step to -11 so that it is still negative at the end
                     step.append(-11)  # get to the end and void the fit
-                    fout = master_params
+                    # void so send empty parameter set to out.
+                    fout = lmm.initiate_all_params_for_fit(
+                        settings_as_class,
+                        data_as_class,
+                        debug=debug,
+                    )
 
             elif step[-1] >= 0 and previous_params:
                 logger.moreinfo(
@@ -883,9 +923,9 @@ def fit_sub_pattern(
     new_params.update(
         {
             "range": [
-                [data_as_class.tth.min(), data_as_class.tth.max()],
+                [data_as_class.tth_start, data_as_class.tth_end],
                 data_as_class.conversion(
-                    np.array(data_as_class.tth.min(), data_as_class.tth.max())
+                    [data_as_class.tth_start, data_as_class.tth_end]
                 ),
             ]
         }
@@ -1157,7 +1197,9 @@ def plot_FitAndModel(
                 )
             )
         else:
-            fit_centroid.append(np.zeros(azi_plot.shape))
+            fit_centroid.append(
+                np.full(azi_plot.shape, np.nan)
+            )  # np.zeros(azi_plot.shape))
 
     # plot the data and the fit
     data_as_class.plot_fitted(

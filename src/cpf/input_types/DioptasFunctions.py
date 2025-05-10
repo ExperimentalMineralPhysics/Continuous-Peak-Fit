@@ -21,9 +21,10 @@ from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.input_types.DioptasFunctions")
+logger = get_logger("cpf.input_types.DioptasFunctions")
+
 
 
 class DioptasDetector:
@@ -53,8 +54,16 @@ class DioptasDetector:
         self.azm_end = 180
         self.tth_start = None
         self.tth_end = None
-        self.DispersionType = "AngleDispersive"
+        
+        self.Dispersion = "Angle"
         self.continuous_azm = True
+        
+        self.Dispersionlabel = r"2$\theta$"
+        self.DispersionUnits = r"$^\circ$"
+        self.Azimuthlabel = r"Azimuth"
+        self.AzimuthUnits = r"$^\circ$"
+        self.Observationslabel = r"Intensity"
+        self.ObservationsUnits = r"counts"
 
         self.azm_blocks = 45
 
@@ -105,6 +114,10 @@ class DioptasDetector:
         new.azm = deepcopy(self.azm[local_mask])
         if "dspace" in dir(self):
             new.dspace = deepcopy(self.dspace[local_mask])
+
+        # set nee range.
+        new.tth_start = range_bounds[0]
+        new.tth_end = range_bounds[1]
 
         if "x" in dir(self):
             if self.x is not None:
@@ -273,9 +286,33 @@ class DioptasDetector:
         #     # If there are more, then it will only read 1.
         #     im = np.array(im_all["/entry1/instrument/detector/data"])
         else:
-            im_all = fabio.open(image_name)
-            im = im_all.data
-
+            try:
+                im_all = fabio.open(image_name)
+                print(
+                    f"This file contains {im_all.nframes} frame(s) with a combined shape of {im_all.shape}"
+                )
+                if im_all.nframes == 1:
+                    im = np.squeeze(
+                        im_all.data
+                    )  # squeeze to make sure 1st dimension is not 1.
+                else:
+                    err_str = "".join(
+                        [
+                            "There is more than 1 image in the file.\n",
+                            "If the image is a 'hdf5' type then use the hdf5 input functions.\n",
+                            "Multiimage Tiffs are not currently implemented in continuous peak fit.",
+                        ]
+                    )
+                    raise ValueError(err_str)
+            except:
+                err_str = "".join(
+                    [
+                        "The image type is not recognsed by Fabio.\n",
+                        "It might be that the image type is a 'hdf5' or 'nxs' file type.\n",
+                        "In which case call the images using the hdf5 functions.",
+                    ]
+                )
+                raise ValueError(err_str)
         # Convert the input data from integer to float because the lmfit model values
         # inherits integer properties from the data.
         #
@@ -284,11 +321,8 @@ class DioptasDetector:
             if self.intensity is None and np.size(self.intensity) > 2:
                 # self.intensity has been set before. Inherit the dtype.
                 dtype = self.intensity.dtype
-            elif "int" in im[0].dtype.name:
-                # the type is either int or uint - convert to float
-                # using same bit precision
-                precision = re.findall("\d+", im[0].dtype.name)[0]
-                dtype = np.dtype("float" + precision)
+            else:
+                dtype = self.GetDataType(im[0], minimumPrecision=False)
         im = ma.array(im, dtype=dtype)
 
         # Dioptas flips the images to match the orientations in Fit2D
@@ -401,11 +435,14 @@ class DioptasDetector:
         self.mask_apply(mask_array, debug=debug)
 
         self.azm_start = (
-            np.around(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+            np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
         )
         self.azm_end = (
-            np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+            np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
         )
+        self.tth_start = np.min(self.tth.flatten())
+        self.tth_end = np.max(self.tth.flatten())
+
 
     @staticmethod
     def detector_check(calibration_data, settings=None):
@@ -504,6 +541,8 @@ class DioptasDetector:
     bins = _AngleDispersive_common.bins
     set_limits = _AngleDispersive_common.set_limits
     test_azims = _AngleDispersive_common.test_azims
+    GetDataType = _AngleDispersive_common.GetDataType
+
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask
@@ -518,5 +557,7 @@ class DioptasDetector:
     plot_fitted = _Plot_AngleDispersive.plot_fitted
     plot_collected = _Plot_AngleDispersive.plot_collected
     plot_calibrated = _Plot_AngleDispersive.plot_calibrated
+    plot_integrated = _Plot_AngleDispersive.plot_integrated
+
     # this function is added because it requires access to self:
     dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks

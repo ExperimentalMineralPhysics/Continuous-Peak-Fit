@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 
 
+import re
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.input_types._AngelDispersive_common")
+logger = get_logger("cpf.input_types._AngelDispersive_common")
 
 
 class _AngleDispersive_common:
@@ -56,6 +57,7 @@ class _AngleDispersive_common:
         :param azm:
         :return:
         """
+        tth_in = np.array(tth_in)
 
         if isinstance(tth_in, list):
             tth_in = np.array(tth_in)
@@ -78,7 +80,7 @@ class _AngleDispersive_common:
 
         if a == True:
             dspc_out = list(dspc_out)
-        return dspc_out
+        return np.squeeze(np.array(dspc_out))
 
     def bins(self, orders_class, cascade=False):
         """
@@ -93,13 +95,21 @@ class _AngleDispersive_common:
         # determine how to divide the data into bins and how many.
         if cascade:
             bt = orders_class.cascade_bin_type
-            if bt == 1:
+            if bt == None:
+                # force a default
+                bt = 0
+                b_num = 50
+            elif bt == 1:
                 b_num = orders_class.cascade_number_bins
             else:
                 b_num = orders_class.cascade_per_bin
         else:
             bt = orders_class.fit_bin_type
-            if bt == 1:
+            if bt == None:
+                # force a default
+                bt = 1
+                b_num = 90
+            elif bt == 1:
                 b_num = orders_class.fit_number_bins
             else:
                 b_num = orders_class.fit_per_bin
@@ -139,14 +149,24 @@ class _AngleDispersive_common:
             logger.debug(" ".join(map(str, [("total data", np.sum(n))])))
         # display bin boundaries and frequency per bin
         logger.debug(" ".join(map(str, [("bin boundaries:", bin_boundaries)])))
-        logger.debug(
-            " ".join(
-                map(
-                    str,
-                    [("expected number of data per bin", orders_class.cascade_per_bin)],
+        if bt == 1:
+            logger.debug(
+                " ".join(
+                    map(
+                        str,
+                        [("expected number of chunks", b_num)],
+                    )
                 )
             )
-        )
+        else:
+            logger.debug(
+                " ".join(
+                    map(
+                        str,
+                        [("expected number of data per chunkbin", b_num)],
+                    )
+                )
+            )
 
         # fit the data to the bins
         chunks = []
@@ -222,6 +242,48 @@ class _AngleDispersive_common:
         """
 
         return np.linspace(self.azm_start, self.azm_end, steps + 1)
+
+    def GetDataType(self, rawData, numType="float", minimumPrecision=32):
+        """
+        A function to return the data type for the diffraction data.
+        The data can be any format when it is read in, but should be a float
+        for the data fitting because the lmfit model inherits the data type from
+        the data.
+
+
+        Parameters
+        ----------
+        rawData : array
+            Diffraction data array.
+        numType : string, optional
+            Data type to make, without numerical precision. The default is "float".
+        minimumPrecision : number, optional
+            Minimum numerical precision to be applied to the data. If the numerical
+            precision does not matter, set to False. The default is 32.
+
+        Returns
+        -------
+        DataType : string
+            A numpy data type to be applied to the data arrays.
+
+        """
+        precision = re.findall("\d+", rawData.dtype.name)[0]
+        # force minimum precision
+        if minimumPrecision != False:
+            if precision < minimumPrecision:
+                precision = minimumPrecision
+        else:
+            pass
+
+        try:
+            DataType = np.dtype(numType + precision)
+        except:
+            err_str = f"The datatype, {DataType}, is not a recognised data type"
+            logger.critical(err_str)
+            raise TypeError(err_str)
+
+        return DataType
+
 
 
 def equalObs(x, nbin):

@@ -96,7 +96,8 @@ def fourier_to_crystallographic(
     # out_angerr = dc.
     # FIX ME need to check this.
     if (
-        coefficients[subpattern]["peak"][peak]["d-space"][4] != 0
+        len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5 
+        and coefficients[subpattern]["peak"][peak]["d-space"][4] != 0 
         and coefficients[subpattern]["peak"][peak]["d-space"][3] != 0
     ):
         out_ang = (
@@ -133,7 +134,10 @@ def fourier_to_crystallographic(
                 ** (1 / 2)
             )
         ) / 2
-    elif coefficients[subpattern]["peak"][peak]["d-space"][3] != 0:
+    elif (
+        len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5 
+        and coefficients[subpattern]["peak"][peak]["d-space"][3] != 0
+    ):
         out_ang = np.pi / 2
         out_angerr = 0
     else:
@@ -141,7 +145,7 @@ def fourier_to_crystallographic(
         out_angerr = np.nan
         # FIXME: this is a bodged fix for now. It needs to be calcualted assuming the error is not also zero.
     # correction to make angle correct (otherwise potentially out by pi/2)
-    if coefficients[subpattern]["peak"][peak]["d-space"][4] > 0:
+    if len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5 and coefficients[subpattern]["peak"][peak]["d-space"][4] > 0:
         if coefficients[subpattern]["peak"][peak]["d-space"][3] <= 0:
             out_ang += np.pi / 2
         else:
@@ -152,27 +156,31 @@ def fourier_to_crystallographic(
 
     # %%% differential strain
     # differentail (3d) = (a2^2+b2^2)^(1/2)
-    out_dd = np.sqrt(
-        coefficients[subpattern]["peak"][peak]["d-space"][3] ** 2
-        + coefficients[subpattern]["peak"][peak]["d-space"][4] ** 2
-    )
-    # out_dderr= [(2.a.da.)^2 + (2.b.db)^2]^(1/2)]^(1/2)
-    out_dderr = (
-        (
-            2
-            * coefficients[subpattern]["peak"][peak]["d-space"][3]
-            * coefficients[subpattern]["peak"][peak]["d-space_err"][3]
+    if len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5:
+        out_dd = np.sqrt(
+            coefficients[subpattern]["peak"][peak]["d-space"][3] ** 2
+            + coefficients[subpattern]["peak"][peak]["d-space"][4] ** 2
         )
-        ** 2
-        + (
-            2
-            * coefficients[subpattern]["peak"][peak]["d-space"][4]
-            * coefficients[subpattern]["peak"][peak]["d-space_err"][4]
-        )
-        ** 2
-    ) ** (1 / 4)
-
-    # %%% d_max and d_min.
+        # out_dderr= [(2.a.da.)^2 + (2.b.db)^2]^(1/2)]^(1/2)
+        out_dderr = (
+            (
+                2
+                * coefficients[subpattern]["peak"][peak]["d-space"][3]
+                * coefficients[subpattern]["peak"][peak]["d-space_err"][3]
+            )
+            ** 2
+            + (
+                2
+                * coefficients[subpattern]["peak"][peak]["d-space"][4]
+                * coefficients[subpattern]["peak"][peak]["d-space_err"][4]
+            )
+            ** 2
+        ) ** (1 / 4)
+    else:
+        out_dd = np.nan
+        out_dderr = np.nan
+    
+    #%%% d_max and d_min.
     # differential max
     out_dmax = coefficients[subpattern]["peak"][peak]["d-space"][0] + out_dd
     out_dmaxerr = (

@@ -34,18 +34,18 @@ dependencies = [
     "hdf5plugin",
     "imaged11",
     "lmfit",
-    "matplotlib",
+    "matplotlib>=3.7",
     "moviepy>=2",
-    "numpy<2",       # Locked to <2 to give dependencies time to catch up
+    "numpy<2",         # Locked to <2 to give dependencies time to catch up
     "opencv-python",
     "pandas",
     "pathos",
     "pillow",
     "pycairo",
     "pyfai",
-    "pyopencl",      # NOTE: ImageD11 mentions using pyopengl
+    "pyopencl",        # NOTE: ImageD11 mentions using pyopengl
     "scipy",
-    "siphash24",     # Requested for by PyTools' 'persistent_dict'
+    "siphash24",       # Requested for by PyTools' 'persistent_dict'
 ]
 optional-dependencies.dev = [
     "bump2version", # For version control

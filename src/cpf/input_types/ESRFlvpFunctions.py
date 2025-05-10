@@ -3,15 +3,13 @@
 
 from __future__ import annotations
 
-import pyFAI.detectors
-
 __all__ = ["ESRFlvpDetector"]
 
 import glob
 import json
-import re
 import sys
 from copy import copy, deepcopy
+from importlib.metadata import version
 
 import fabio
 import matplotlib.pyplot as plt
@@ -21,7 +19,13 @@ import pyFAI
 from numpy import cos as cos  # used in self.calibration["trans_function"]
 from numpy import pi as pi  # used in self.calibration["trans_function"]
 from numpy import sin as sin  # used in self.calibration["trans_function"]
-from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from packaging.version import Version
+
+# Logic to support multiple PyFAI versions
+if Version(version("pyFAI")).major >= 2025:
+    from pyFAI.integrator.azimuthal import AzimuthalIntegrator
+else:
+    from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.detectors._common import Detector
 from pyFAI.goniometer import MultiGeometry
 
@@ -178,12 +182,12 @@ class ESRFlvpDetector:
         self.azm_end = 180
         self.tth_start = None
         self.tth_end = None
-        
+
         # Moving image plate that be integrated into single image: so contonuous data.
         # basically the data can be treated as having a single claibration.
         self.Dispersion = "Angle"
         self.continuous_azm = True
-        
+
         self.Dispersionlabel = r"2$\theta$"
         self.DispersionUnits = r"$^\circ$"
         self.Azimuthlabel = r"Azimuth"
@@ -831,7 +835,6 @@ class ESRFlvpDetector:
         )
         self.tth_start = np.min(self.tth.flatten())
         self.tth_end = np.max(self.tth.flatten())
-
 
     def get_requirements(self, parameter_settings=None):
         """

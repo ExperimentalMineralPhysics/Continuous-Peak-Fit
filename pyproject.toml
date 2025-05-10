@@ -45,6 +45,7 @@ dependencies = [
     "pyfai",
     "pyopencl",      # NOTE: ImageD11 mentions using pyopengl
     "scipy",
+    "siphash24",     # Requested for by PyTools' 'persistent_dict'
 ]
 optional-dependencies.dev = [
     "bump2version", # For version control

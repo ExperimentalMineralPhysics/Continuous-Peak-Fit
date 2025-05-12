@@ -1031,9 +1031,10 @@ def execute(
             settings_file=settings_file, settings_class=settings_for_fit, debug=debug
         )
 
+    """
     if parallel is True:
         pool.clear()
-
+    """
 
 def parallel_processing(a, kw):
     # a, kw = p

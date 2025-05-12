@@ -654,7 +654,7 @@ def execute(
 
     # if parallel processing start the pool
     if parallel is True:
-        nodes = np.min([cpu_count(), len(settings_for_fit.fit_orders)])
+        nodes = int(np.min([cpu_count(), len(settings_for_fit.fit_orders)]))
         """
         pool = ParallelPool(nodes=nodes)
         # Since we may have already closed the pool, try to restart it
@@ -663,7 +663,7 @@ def execute(
         except AssertionError:
             pass
         """
-        pool =  WorkerPool(n_jobs=4, start_method='forkserver', use_dill=True)
+        pool =  WorkerPool(n_jobs=nodes, start_method='forkserver', use_dill=True)
         pool.set_keep_alive()
 
 

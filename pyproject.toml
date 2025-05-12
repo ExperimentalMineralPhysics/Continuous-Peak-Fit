@@ -26,6 +26,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
     "fabio",
@@ -33,17 +34,18 @@ dependencies = [
     "hdf5plugin",
     "imaged11",
     "lmfit",
-    "matplotlib",
+    "matplotlib>=3.7",
     "moviepy>=2",
-    "numpy<2",       # Locked to <2 to give dependencies time to catch up
+    "numpy<2",         # Locked to <2 to give dependencies time to catch up
     "opencv-python",
     "pandas",
     "pathos",
     "pillow",
     "pycairo",
     "pyfai",
-    "pyopencl",      # NOTE: ImageD11 mentions using pyopengl
+    "pyopencl",        # NOTE: ImageD11 mentions using pyopengl
     "scipy",
+    "siphash24",       # Requested for by PyTools' 'persistent_dict'
 ]
 optional-dependencies.dev = [
     "bump2version", # For version control
@@ -66,7 +68,7 @@ lint.select = [
 column_width = 120
 indent = 4
 keep_full_version = true
-max_supported_python = "3.11" # Latest version in security stage
+max_supported_python = "3.12" # Latest version in security stage
 
 [tool.pytest.ini_options]
 pythonpath = [ "Example1-Fe", "Example2-MgO" ]

@@ -3,17 +3,22 @@
 
 __all__ = ["DioptasDetector"]
 
-
-import re
 import sys
 from copy import copy, deepcopy
+from importlib.metadata import version
 
 import fabio
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import pyFAI
-from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from packaging.version import Version
+
+# Logic to support multiple PyFAI versions
+if Version(version("pyFAI")).major >= 2025:
+    from pyFAI.integrator.azimuthal import AzimuthalIntegrator
+else:
+    from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.io import ponifile
 
 import cpf.h5_functions as h5_functions
@@ -24,7 +29,6 @@ from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.input_types.DioptasFunctions")
-
 
 
 class DioptasDetector:
@@ -54,10 +58,10 @@ class DioptasDetector:
         self.azm_end = 180
         self.tth_start = None
         self.tth_end = None
-        
+
         self.Dispersion = "Angle"
         self.continuous_azm = True
-        
+
         self.Dispersionlabel = r"2$\theta$"
         self.DispersionUnits = r"$^\circ$"
         self.Azimuthlabel = r"Azimuth"
@@ -443,7 +447,6 @@ class DioptasDetector:
         self.tth_start = np.min(self.tth.flatten())
         self.tth_end = np.max(self.tth.flatten())
 
-
     @staticmethod
     def detector_check(calibration_data, settings=None):
         """
@@ -542,7 +545,6 @@ class DioptasDetector:
     set_limits = _AngleDispersive_common.set_limits
     test_azims = _AngleDispersive_common.test_azims
     GetDataType = _AngleDispersive_common.GetDataType
-
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask

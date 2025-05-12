@@ -28,9 +28,10 @@ import math
 
 import numpy as Numeric
 
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.input_types.Mca")
+logger = get_logger("cpf.input_types.Mca")
+
 
 # FIX ME: DMF Need to rationalise this code and keep what's needed.
 # FIX ME: where do we stand on licensing? has this been published?

@@ -20,9 +20,10 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 from scipy.optimize import curve_fit
 
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.input_types.GSASIIFunctions")
+logger = get_logger("cpf.input_types.GSASIIFunctions")
+
 
 np.set_printoptions(threshold=sys.maxsize)
 

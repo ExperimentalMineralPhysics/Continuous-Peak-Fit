@@ -71,14 +71,20 @@ Documentation Parts
 .. toctree::
    :maxdepth: 2
 
+   introduction
+   x-ray diffraction
    algorithm
    installation
    running cpf
    input file short
    input file
+   input file h5 syntax
    subpattern structure
+   bounds
+   output_file_structure
+   example function tests
    whatsnew
-
+   api
 
 
 ==================

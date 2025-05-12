@@ -61,49 +61,12 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.logging import CPFLogger
 from cpf.settings import Settings
+from cpf.util.logging import get_logger
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 
-logger = CPFLogger("cpf.Cascade")
+logger = get_logger("cpf.Cascade")
 
-
-def initialise_logger(
-    settings_file: Optional[Path],
-    report: Literal["DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"]
-    | bool = False,
-):
-    """
-    Helper function to set up the CPFLogger instance with the desired stream and file handlers
-    """
-    # Start the logger with the desired outputs
-    logger.handlers.clear()
-    format = "%(asctime)s [%(levelname)s] %(message)s"
-    formatter = logging.Formatter(format)
-    level = report.upper() if isinstance(report, (str,)) else "INFO"
-
-    # Create a log file if a level name or True is provided
-    if isinstance(report, (str,)) or report is True:
-        # Fail gracefully if no settings file was provided
-        if settings_file is None:
-            raise ValueError(
-                "Settings file needs to be specified in order to create a log file."
-            )
-
-        # Set the logging level and log file name
-        log_name = make_outfile_name(settings_file, extension=".log", overwrite=True)
-
-        # Create and add the file handler
-        fh = logging.FileHandler(log_name, mode="a", encoding="utf-8")
-        fh.setFormatter(formatter)
-        fh.setLevel(level)
-        logger.addHandler(fh)
-
-    # Create the stream handler
-    sh = logging.StreamHandler()
-    sh.setFormatter(formatter)
-    sh.setLevel(level)
-    logger.addHandler(sh)
 
 
 def initiate(*args, **kwargs):
@@ -153,7 +116,10 @@ def execute(
     parallel: bool = True,
     subpattern: str = "all",
     mode: str = "cascade",
-    report: bool = False,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
+
     show_plots: bool = False,
     **kwargs,
 ):
@@ -174,10 +140,8 @@ def execute(
     :return:
     """
 
-    initialise_logger(settings_file=settings_file, report=report)
-
     if settings_class is None:
-        settings_for_fit = initiate(settings_file, inputs=inputs, report=True)
+        settings_for_fit = initiate(settings_file, inputs=inputs, report=report)
     else:
         settings_for_fit = settings_class
     new_data = settings_for_fit.data_class
@@ -515,7 +479,9 @@ def read_saved_chunks(
     settings_class=None,
     inputs=None,
     debug=False,
-    report=False,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
     **kwargs,
 ):
     """
@@ -548,7 +514,7 @@ def read_saved_chunks(
     if inputs:
         settings_class = inputs
     elif settings_class is None:
-        settings_class = initiate(settings_file, report=True)
+        settings_class = initiate(settings_file, report=report)
     else:
         settings_class = settings_class
 
@@ -556,16 +522,10 @@ def read_saved_chunks(
     all_fits = []
 
     print("Reading chunk files")
-    logger = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
+    lgr = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
 
-    print("Reading chunk files")
-    logger = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
-
-    print("Reading chunk files")
-    logger = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
-
-    # for f in range(settings_class.image_number):
-    for f in logger.iter_bar(iteration=range(settings_class.image_number)):
+    # for f in range(setting_class.image_number):
+    for f in lgr.iter_bar(iteration=range(settings_class.image_number)):
         settings_class.set_subpattern(f, 0)
         filename = make_outfile_name(
             settings_class.subfit_filename,
@@ -606,7 +566,9 @@ def plot_cascade_chunks(
     settings_class=None,
     inputs=None,
     debug=False,
-    report=False,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
     plot_type="timeseries",
     subpattern="all",
     scale="linear",
@@ -633,7 +595,7 @@ def plot_cascade_chunks(
     if inputs:
         settings_class = inputs
     elif settings_class is None:
-        settings_class = initiate(settings_file, inputs=inputs, report=True)
+        settings_class = initiate(settings_file, inputs=inputs, report=report)
     else:
         settings_class = settings_class
 
@@ -668,7 +630,9 @@ def plot_cascade_chunks(
         settings_class.set_subpattern(0, j)
 
         # set plot limits
-        if vmax == np.inf:
+        if "min_all" in locals():
+            vmin = min_all[j]
+        if "max_all" in locals():
             vmax = max_all[j]
         # set colour bar ends
         if vmax < max_all[j] and vmin > min_all[j]:
@@ -703,15 +667,22 @@ def plot_cascade_chunks(
                     for i in logger.iter_bar(
                         iteration=range(settings_class.image_number)
                     ):
+                        if 1:  # len(all_data[i][j]["h"]) == 1:
+                            tms = modified_time_s[j]
+                        else:
+                            tms = modified_time_s[i] * np.ones(
+                                np.shape(all_data[i][j]["chunks"])
+                            )
+
                         plt.scatter(
                             all_data[i][j]["chunks"],
                             modified_time_s[i]
                             * np.ones(np.shape(all_data[i][j]["chunks"])),
-                            s=0.05,
+                            s=10,  # s=.05,
                             c=(all_data[i][j]["h"][k]),
-                            # vmax= vmax,
-                            # vmin= vmin,
-                            cmap="YlOrBr",
+                            vmax=vmax,
+                            vmin=vmin,
+                            # cmap="YlOrBr",
                             norm=norm,
                         )
 
@@ -734,8 +705,7 @@ def plot_cascade_chunks(
                     x_ticks = settings_class.data_class.dispersion_ticks(
                         disp_lims=azi_range
                     )
-                    ax.set_xticks(x_ticks)
-
+                    # x.set_xticks(x_ticks)
                     cb = plt.colorbar(extend=cb_extend)
                     # cb.set_label(r"Log$_{10}$(Intensity)")
                     cb.set_label(r"Intensity")
@@ -751,6 +721,7 @@ def plot_cascade_chunks(
                         overwrite=True,
                     )
                     fig.savefig(filename, transparent=True, bbox_inches="tight")
+
                     if show_plots is True:
                         plt.show()
                     else:
@@ -833,7 +804,9 @@ def peak_count(
     settings_class=None,
     inputs=None,
     debug: bool = False,
-    report: bool = False,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
     prominence: int = 15,
     subpattern: str = "all",
     show_plots: bool = False,
@@ -856,7 +829,7 @@ def peak_count(
     if inputs:
         settings_class = inputs
     elif settings_class is None:
-        settings_class = initiate(settings_file, inputs=inputs, report=True)
+        settings_class = initiate(settings_file, inputs=inputs, report=report)
     else:
         settings_class = settings_class
 
@@ -935,7 +908,9 @@ def plot_peak_count(
     settings_class=None,
     inputs=None,
     debug: bool = False,
-    report: bool = False,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
     prominence: int = 1,
     subpattern: str = "all",
     rotate: bool = False,
@@ -959,7 +934,7 @@ def plot_peak_count(
     if inputs:
         settings_class = inputs
     elif settings_class is None:
-        settings_class = initiate(settings_file, inputs=inputs, report=True)
+        settings_class = initiate(settings_file, inputs=inputs, report=report)
     else:
         settings_class = settings_class
 
@@ -1047,7 +1022,9 @@ def execute2(
     parallel=True,
     subpattern="all",
     mode="cascade",
-    report=False,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
     threshold=[1, 10, 100, 1000, 10000],
     **kwargs,
 ):
@@ -1068,10 +1045,8 @@ def execute2(
     :return:
     """
 
-    initialise_logger(settings_file=settings_file, report=report)
-
     if settings_class is None:
-        settings_for_fit = initiate(settings_file, inputs=inputs, report=True)
+        settings_for_fit = initiate(settings_file, inputs=inputs, report=report)
     else:
         settings_for_fit = settings_class
     new_data = settings_for_fit.data_class
@@ -1176,7 +1151,15 @@ def execute2(
     # if debug:
 
 
-def load_flts(settings_file=None, settings_class=None, inputs=None, **kwargs):
+def load_flts(
+    settings_file=None,
+    settings_class=None,
+    inputs=None,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
+    **kwargs,
+):
     """
     loads flt files for the selected subpattern.
     Makes an array of the peaks, where x,y are the centres and i is the size of the peak.
@@ -1196,7 +1179,7 @@ def load_flts(settings_file=None, settings_class=None, inputs=None, **kwargs):
     """
 
     if settings_class is None:
-        settings_for_fit = initiate(settings_file, inputs=inputs, report=True)
+        settings_for_fit = initiate(settings_file, inputs=inputs, report=report)
     else:
         settings_for_fit = settings_class
 
@@ -1235,11 +1218,14 @@ def make_im_from_flts(
     settings_class=None,
     data_class=None,
     inputs=None,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
     debug=False,
     **kwargs,
 ):
     if settings_class is None:
-        settings_for_fit = initiate(settings_file, inputs=inputs, report=True)
+        settings_for_fit = initiate(settings_file, inputs=inputs, report=report)
     else:
         settings_for_fit = settings_class
 

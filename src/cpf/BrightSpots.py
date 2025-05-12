@@ -42,9 +42,10 @@ __version__ = "0.1"
 
 import numpy as np
 
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.BrightSpots")
+logger = get_logger("cpf.BrightSpots")
+
 
 
 def SpotProcess(sub_data, settings_for_fit):
@@ -53,49 +54,49 @@ def SpotProcess(sub_data, settings_for_fit):
     if "imax" in settings_for_fit.subfit_orders:
         if isinstance(settings_for_fit.subfit_orders["imax"], str):
             imax = np.percentile(
-                sub_data.intensity.flatten(),
+                sub_data.intensity.compressed(),
                 float(settings_for_fit.subfit_orders["imax"].strip("%")),
             )
         elif isinstance(settings_for_fit.subfit_orders["imax"], dict):
             if (
-                np.max(sub_data.intensity.flatten())
+                np.max(sub_data.intensity.compressed())
                 > settings_for_fit.subfit_orders["imax"]["abovebelow"]
             ):
                 if isinstance(settings_for_fit.subfit_orders["imax"]["limit"], str):
                     imax = np.percentile(
-                        sub_data.intensity.flatten(),
+                        sub_data.intensity.compressed(),
                         float(
                             settings_for_fit.subfit_orders["imax"]["limit"].strip("%")
                         ),
                     )
                 else:
-                    imax = int(settings_for_fit.subfit_orders["imax"]["limit"])
+                    imax = settings_for_fit.subfit_orders["imax"]["limit"]
         else:
-            imax = int(settings_for_fit.subfit_orders["imax"])
+            imax = settings_for_fit.subfit_orders["imax"]
 
     if "imin" in settings_for_fit.subfit_orders:
         if isinstance(settings_for_fit.subfit_orders["imin"], str):
             imin = np.percentile(
-                sub_data.intensity.flatten(),
+                sub_data.intensity.compressed(),
                 float(settings_for_fit.subfit_orders["imin"].strip("%")),
             )
         elif isinstance(settings_for_fit.subfit_orders["imin"], dict):
             if (
-                np.max(sub_data.intensity.flatten())
+                np.max(sub_data.intensity.compressed())
                 > settings_for_fit.subfit_orders["imin"]["abovebelow"]
             ):
                 if isinstance(settings_for_fit.subfit_orders["imin"]["limit"], str):
                     imax = np.percentile(
-                        sub_data.intensity.flatten(),
+                        sub_data.intensity.compressed(),
                         float(
                             settings_for_fit.subfit_orders["imin"]["limit"].strip("%")
                         ),
                     )
                 else:
-                    imax = int(settings_for_fit.subfit_orders["imin"]["limit"])
+                    imax = settings_for_fit.subfit_orders["imin"]["limit"]
         else:
-            imin = int(settings_for_fit.subfit_orders["imin"])
+            imin = settings_for_fit.subfit_orders["imin"]
+
 
     sub_data.set_mask(intensity_bounds=[imin, imax])  # (i_min=imin, i_max=imax)
-
     return sub_data

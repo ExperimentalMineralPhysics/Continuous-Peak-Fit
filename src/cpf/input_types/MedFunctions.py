@@ -18,9 +18,11 @@ from matplotlib import cm, colors, gridspec
 from cpf.input_types import Med, med_detectors
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
-from cpf.logging import CPFLogger
+from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.input_types.MedFunctions")
+logger = get_logger("cpf.input_types.MedFunctions")
+
 
 
 class MedDetector:
@@ -60,7 +62,16 @@ class MedDetector:
         self.azm_end = None
         self.tth_start = None
         self.tth_end = None
-        self.DispersionType = "EnergyDispersive"
+        
+        self.Dispersion = "Energy"
+        self.Dispersionlabel = "Energy"
+        self.DispersionUnits = "keV"
+
+        self.Azimuthlabel = r"Azimuth"
+        self.AzimuthUnits = r"$^\circ$"
+        self.Observationslabel = r"Intensity"
+        self.ObservationsUnits = r"counts"
+        
         # separate detectors around the ring so not continuous
         self.continuous_azm = False
 
@@ -112,6 +123,10 @@ class MedDetector:
         new.tth = deepcopy(self.tth[local_mask])
         new.azm = deepcopy(self.azm[local_mask])
 
+        # set nee range.
+        new.tth_start = range_bounds[0]
+        new.tth_end = range_bounds[1]
+
         new.intensity = new.intensity[new.intensity.mask == False]
         new.tth = new.tth[new.tth.mask == False]
         new.azm = new.azm[new.azm.mask == False]
@@ -160,9 +175,10 @@ class MedDetector:
         parms_dict = {}
 
         if settings != None:
-            dat = Med.Med(file=settings.calibration_parameters)
+            # make calibration paramerters in to a string rather than edit for Med functions.
+            dat = Med.Med(file=str(settings.calibration_parameters))
         else:
-            dat = Med.Med(file=file_name)
+            dat = Med.Med(file=str(file_name))
 
         # save this block of code incase it is needed for future studies/datasets
         # this is a blank calibratiom from a dead detector. Make something more reasonable.
@@ -277,9 +293,10 @@ class MedDetector:
 
         # cannot load calibration into detector simply. Much simpler to re-read the files.
         if hasattr(settings, "calibration_data"):
-            self.detector = Med.Med(file=settings.calibration_parameters)
+            # make calibration paramerters in to a string rather than edit for Med functions.
+            self.detector = Med.Med(file=str(settings.calibration_parameters))
         elif calibration_file != None:
-            self.detector = Med.Med(file=calibration_file)
+            self.detector = Med.Med(file=str(calibration_file))
 
     def import_image(
         self, image_name=None, settings=None, mask=None, dtype=None, debug=False
@@ -327,7 +344,8 @@ class MedDetector:
 
         _, file_extension = os.path.splitext(image_name)
         if file_extension == ".med":
-            self.detector.read_file(image_name)
+            # make calibration paramerters in to a string rather than edit for Med functions.
+            self.detector.read_file(str(image_name))
             im_all = []
             for x in range(self.detector.n_detectors):
                 im_all.append(self.detector.mcas[x].get_data())
@@ -342,11 +360,14 @@ class MedDetector:
             if self.intensity is None and np.size(self.intensity) > 2:
                 # self.intensity has been set before. Inherit the dtype.
                 dtype = self.intensity.dtype
-            elif "int" in im_all[0].dtype.name:
-                # the type is either int or uint - convert to float
-                # using same bit precision
-                precision = re.findall("\d+", im_all[0].dtype.name)[0]
-                dtype = np.dtype("float" + precision)
+            # elif "int" in im_all[0].dtype.name:
+            #     #the type is either int or uint - convert to float
+            #     # using same bit precision
+            #     precision = re.findall("\d+", im_all[0].dtype.name)[0]
+            #     dtype = np.dtype("float"+precision)
+            else:
+                dtype = self.GetDataType(im_all[0], minimumPrecision=False)
+
         im_all = ma.array(im_all, dtype=dtype)
 
         # apply mask to the intensity array
@@ -433,6 +454,19 @@ class MedDetector:
             mask = {"detector": mask}
         mask_array = self.get_mask(mask, debug=debug)
         self.mask_apply(mask_array, debug=debug)
+
+        self.azm_start = (
+            np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        )
+        self.azm_end = (
+            np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        )
+        self.tth_start = np.min(
+            self.tth.flatten()
+        )  # not two theta but energy but needs same name for consistecy.
+        self.tth_end = np.max(
+            self.tth.flatten()
+        )  # not two theta but energy but needs same name for consistecy.
 
         self.azm_start = (
             np.around(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
@@ -589,6 +623,8 @@ class MedDetector:
         :param reverse:
         :return:
         """
+        e_in = np.array(e_in)
+
         # convert energy into d-spacing.
         if azm is not None:
             e_in = np.array([[azm, e_in]])
@@ -637,7 +673,8 @@ class MedDetector:
                 )
             dspc_out = np.array(dspc_out)
 
-        return dspc_out
+        return np.squeeze(np.array(dspc_out))
+
 
     def bins(self, orders_class, **kwargs):
         """
@@ -888,6 +925,7 @@ class MedDetector:
         colourmap="jet",
         colourbar=True,
         debug=False,
+        rastered={},
     ):
         """
         add data to axes in form collected in.
@@ -914,7 +952,7 @@ class MedDetector:
             plot_x = self.tth
         else:
             plot_x = self.tth
-        label_x = "Energy (keV)"
+        label_x = f"{self.Dispersionlabel} ({self.DispersionUnits})"
 
         if data is not None:
             plot_i = data
@@ -925,18 +963,18 @@ class MedDetector:
             # y is unmodified intensity; colour of data by azimuth
             plot_y = plot_i
             plot_c = self.azm
-            label_y = "Intensity (a.u.)"
+            label_y = f"{self.Observationslabel} ({self.ObservationsUnits})"
         elif y_axis == "azimuth":
             # y is unmodified azimuth, intensity is size of dots amd colour scale
             plot_y = self.azm
             plot_c = plot_i / np.max(self.intensity) * 200
             plot_s = plot_i / np.max(self.intensity) * 200
-            label_y = "Azimuth (deg)"
+            label_y = f"{self.Azimuthlabel} ({self.AzimuthUnits})"
         else:  # if y_axis is default
             # y is intensity distributed by azimuth; colour is azimuth
             plot_y = plot_i + self.azm * spacing
             plot_c = self.azm
-            label_y = "Counts"
+            label_y = f"{self.Observationslabel} ({self.ObservationsUnits})"
 
             # organise to plot 0 count lines.
             plot_y0 = []
@@ -1021,7 +1059,7 @@ class MedDetector:
                 cbar = plt.colorbar(
                     s_map, ticks=ticks, orientation=orientation, ax=axis_plot
                 )
-                cbar.set_label("Azimuth")
+                cbar.set_label(f"{self.Azimuthlabel} ({self.AzimuthUnits})")
             else:
                 cbar = []
 
@@ -1036,6 +1074,8 @@ class MedDetector:
 
     # add common functions.
     set_limits = _AngleDispersive_common.set_limits
+    GetDataType = _AngleDispersive_common.GetDataType
+    plot_integrated = _Plot_AngleDispersive.plot_integrated
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask

@@ -1,44 +1,57 @@
-# Input parameters for Example 1 -- BCC1_2GPa_100s_001.
+# Example 1 -- BCC1_2GPa_100s_001; different series types.
+#
+# This example demonstrates all the different series types, except for "independent" (see Example 2).
+# also demonstrates restrictions on the coefficients active in the series.
+# Some series have more than 1 acceptable name, see series documentation for full details.
 
 # properties of the data files.
-datafile_directory = "./"
+datafile_directory = "."
 datafile_Basename = "BCC1_2GPa_10s_001_"
 datafile_Ending = ".tif"
 datafile_StartNum = 1
 datafile_EndNum = 10
 datafile_NumDigit = 5
+datafile_Step = 1
 
 # Calibration and masking.
 Calib_type = "Dioptas"
 Calib_detector = "Pilatus1M"
-Calib_data = datafile_directory + "CeO2_Pil207_E30_2Nov2016_001.tif"
-Calib_param = datafile_directory + "CeO2_cal_Dioptas.poni"
-Calib_mask = datafile_directory + "DiffractionMask_Dioptas.mask"
-Calib_pixels = 172
+Calib_data = "CeO2_Pil207_E30_2Nov2016_001.tif"
+Calib_param = "CeO2_cal_Dioptas.poni"
+Calib_mask = "DiffractionMask_Dioptas.mask"
 
 # Fitting properties for peaks.
+AziBins = 45  # Number of bins for initial fitting.
 fit_bounds = {
     "background": ["min", "max"],
     "d-space": ["min", "max"],
-    "height": [0, "2*max"],
+    "height": [0, "1.2*max"],
     "profile": [0, 1],
     "width": ["range/(ndata)", "range/2"],
 }
+
+# Output settings
+Output_directory = "results"
+Output_type = ["Polydefix", "FitMovie", "CoefficientTable"]
+# optional settings for 'Polydefix'.
+Output_NumAziWrite = 90
+phase = "Fe-BCC"
+Output_ElasticProperties = "Properties_Fe-BCC.txt"
+
+# define ranges and peaks
 fit_orders = [
     {
-        "range": [[10.8, 11.67]],
+        "range": [11.0, 11.7],
         "background": [2, 0],
-        # "background-type": "spline-cubic",
+        "background_type": "spline-cubic",
         "peak": [
             {
                 "phase": "Other",
                 "hkl": "000",
-                "d-space": 3,
-                # "d-space-type": "spline-cubic",
+                "d-space": [0, 2],  # restricted fourier series.
+                "d-space_type": "fourier",
                 "height": 1,
-                # "height-type": "fourier",
                 "profile": 0,
-                "profile_fixed": 0.1,
                 "width": 0,
                 "symmetry": 2,
             },
@@ -47,9 +60,8 @@ fit_orders = [
                 "hkl": 110,
                 "d-space": 3,
                 "height": 16,
-                "height-type": "spline-cubic",
+                "height_type": "spline-cubic",
                 "profile": 0,
-                # "profile_fixed": 1,
                 "width": 0,
                 "symmetry": 2,
             },
@@ -80,23 +92,26 @@ fit_orders = [
         ],
     },
     {
-        "range": [[16.1, 16.6]],
+        "range": [16.1, 16.6],
+        "imax": 27,
         "background": [0, 0],
         "peak": [
             {
                 "phase": "Fe-BCC",
                 "hkl": 200,
                 "d-space": 3,
+                "height_type": "spline_linear",
                 "height": 8,
                 "profile": 0,
-                "profile_fixed": 1,
+                "profile_fixed": [1],
                 "width": 0,
                 "symmetry": 2,
             }
         ],
     },
     {
-        "range": [[19.8, 20.27]],
+        "range": [19.8, 20.27],
+        "imax": 27,
         "background": [0, 0],
         "peak": [
             {
@@ -104,6 +119,7 @@ fit_orders = [
                 "hkl": 211,
                 "d-space": 3,
                 "height": 8,
+                "height_type": "quadratic",
                 "profile": 1,
                 "profile_fixed": [0.5, 0.25, 0.25],
                 "width": 0,
@@ -112,16 +128,17 @@ fit_orders = [
         ],
     },
     {
-        "range": [[23.1, 23.5]],
+        "range": [23.1, 23.5],
+        "imax": 25,
         "background": [2, 2],
         "peak": [
             {
                 "phase": "Fe-BCC",
                 "hkl": 220,
                 "d-space": 2,
+                "d-space_type": "spline_cubic_open",
                 "height": 8,
                 "profile": 0,
-                # "profile_fixed": 1,
                 "width": 0,
                 "symmetry": 2,
             }
@@ -135,34 +152,24 @@ fit_orders = [
             [1, 90.025, 23.158],
             [1, 25.729, 23.246],
         ],
-        "Imax": 25,
     },
     {
-        "range": [[25.7, 26.4]],
+        "range": [25.7, 26.4],
+        "imax": 27,
         "background": [2, 2],
         "peak": [
             {
                 "phase": "Fe-BCC",
                 "hkl": 310,
-                "d-space": 2,
+                "d-space": [0, 1, 3],  # restricted fourier series.
                 "height": 1,
                 "profile": 0,
-                "profile_fixed": 0.5,
+                "profile_type": "spline_cubic_open",
+                "profile_fixed": [0.5],
                 "width": 0,
+                "width_type": "quadratic",
                 "symmetry": 2,
             }
         ],
-        "imax": 27,
     },
 ]
-
-
-# Number of bins for initial fitting.
-AziBins = 90
-
-# Output settings
-Output_directory = "./results/"
-Output_type = ["Polydefix", "DifferentialStrain", "FitMovie"]
-Output_NumAziWrite = 90
-phase = "Fe-BCC"
-Output_ElasticProperties = "Properties_Fe-BCC.txt"

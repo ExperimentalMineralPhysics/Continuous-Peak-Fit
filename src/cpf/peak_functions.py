@@ -18,9 +18,10 @@ __all__ = [
 
 import numpy as np
 
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.peak_functions")
+logger = get_logger("cpf.peak_functions")
+
 
 
 def peak_components(full=False, include_profile=True):

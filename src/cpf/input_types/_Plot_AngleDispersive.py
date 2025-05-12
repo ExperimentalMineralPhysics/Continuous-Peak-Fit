@@ -7,10 +7,10 @@ import numpy as np
 import numpy.ma as ma
 from matplotlib import cm, colors, gridspec, tri
 
-from cpf.histograms import histogram2d
-from cpf.logging import CPFLogger
+from cpf.histograms import histogram1d, histogram2d
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.input_types._Plot_AngleDispersive")
+logger = get_logger("cpf.input_types._Plot_AngleDispersive")
 
 
 class _Plot_AngleDispersive:
@@ -68,6 +68,27 @@ class _Plot_AngleDispersive:
             )
 
         return disp_ticks
+
+    def plot_integrated(self, fig_plot=None, axis_plot=None, show=None):
+        """
+        Makes a plot of the integrated data.
+
+        :param fig:
+        :return:
+        """
+
+        if fig_plot == None:
+            # make a figure
+            fig_plot, axis_plot = plt.subplots()
+
+        p, i, a = histogram1d(self.tth, self.intensity, self.azm)
+
+        axis_plot.plot(p, i)
+
+        axis_plot.set_xlabel(f"{self.Dispersionlabel} ({self.DispersionUnits})")
+        axis_plot.set_ylabel(f"{self.Observationslabel} ({self.ObservationsUnits})")
+        axis_plot.set_title("Integrated Data")
+
 
     def plot_masked(self, fig_plot=None):
         """
@@ -222,8 +243,8 @@ class _Plot_AngleDispersive:
                 limits = plot_ColourRange
         else:
             limits = {
-                "max": np.max([self.intensity.max(), model.max()]),
-                "min": np.min([self.intensity.min(), model.min()]),
+                "max": np.nanmax([self.intensity.max(), model.max()]),
+                "min": np.nanmin([self.intensity.min(), model.min()]),
             }
 
         tight = False
@@ -317,11 +338,11 @@ class _Plot_AngleDispersive:
         if fit_centroid is not None:
             for i in range(len(fit_centroid[1])):
                 if orientation == "horizontal":
-                    ax[1].plot(
+                    ax[2].plot(
                         fit_centroid[0], fit_centroid[1][i], "k--", linewidth=0.5
                     )
                 else:
-                    ax[1].plot(
+                    ax[2].plot(
                         fit_centroid[1][i], fit_centroid[0], "k--", linewidth=0.5
                     )
         if orientation == "horizontal":
@@ -444,8 +465,8 @@ class _Plot_AngleDispersive:
             def f(data, n):
                 return data
 
-        IMax = np.percentile(plot_i, limits[1])
-        IMin = np.percentile(plot_i, limits[0])
+        IMax = np.percentile(plot_i.compressed(), limits[1])
+        IMin = np.percentile(plot_i.compressed(), limits[0])
 
         if limits[0] > 0 and limits[1] < 100:
             cb_extend = "both"
@@ -515,8 +536,8 @@ class _Plot_AngleDispersive:
         show="default",
         x_axis="default",
         y_axis="default",
-        x_label=r"2$\theta$ ($^\circ$)",
-        y_label="Azimuth ($^\circ$)",
+        # x_label = r"2$\theta$ ($^\circ$)",
+        y_label = True, #"Azimuth ($^\circ$)",
         data=None,
         limits=[1, 99.9],
         y_lims=None,
@@ -572,19 +593,22 @@ class _Plot_AngleDispersive:
         else:  # if x_axis is "default" or "tth"
             plot_x = self.tth
         # plot_y = self.azm
-        label_x = x_label
+        label_x = f"{self.Dispersionlabel} ({self.DispersionUnits})"
 
         if y_axis == "intensity":
             # plot y rather than azimuth on the y axis
             plot_y = self.intensity
             # organise colour scale as azimuth
             plot_i = self.azm
-            label_y = "Intensity (a.u.)"
+            label_y = f"{self.Observationslabel} ({self.ObservationsUnits})"
             y_ticks = False
         else:  # if y_axis is "default" or "azimuth"
             plot_y = self.azm
             plot_i = self.intensity
-            label_y = y_label
+            if y_label == None:
+                label_y = None# label_y = y_label
+            else:
+                label_y = f"{self.Azimuthlabel} ({self.AzimuthUnits})"
             if y_lims == None:
                 y_lims = [self.azm_start, self.azm_end]
                 # y_lims = [self.azm.min(), self.azm.max()]
@@ -624,11 +648,11 @@ class _Plot_AngleDispersive:
             if limits[1] == 100:
                 IMax = np.max(plot_i)
             else:
-                IMax = np.percentile(plot_i, limits[1])
+                IMax = np.percentile(plot_i.compressed(), limits[1])
             if limits[0] == 0:
                 IMin = np.min(plot_i)
             else:
-                IMin = np.percentile(plot_i, limits[0])
+                IMin = np.percentile(plot_i.compressed(), limits[0])
             if limits[0] > 0 and limits[1] < 100:
                 cb_extend = "both"
             elif limits[1] < 100:
@@ -637,6 +661,12 @@ class _Plot_AngleDispersive:
                 cb_extend = "min"
             else:
                 cb_extend = "neither"
+        if np.isnan(IMax) and np.isnan(IMin):
+            IMax = 1
+            IMin = -1
+        elif IMax == IMin:
+            IMax += 1
+            IMin -= 1
         if location == None:
             if y_lims is None:
                 location = "right"
@@ -730,7 +760,6 @@ class _Plot_AngleDispersive:
 
         # p2 = axis_plot.get_position().get_points().flatten()
         # ax_cbar1 = fig_plot.add_axes([p2[0], 0, p2[2]-p2[0], 0.05])
-
         cb = fig_plot.colorbar(
             mappable=the_plot,
             ax=axis_plot,
@@ -739,10 +768,7 @@ class _Plot_AngleDispersive:
             shrink=0.9,
         )  # , pad=0.1, aspect=8)
 
-    def plot_integrated(self):
-        # FIXME: Other classes are looking for a plot_integrated function under this class
-        pass
-
+        return fig_plot
 
 def residuals_colour_scheme(maximum_value, minimum_value, **kwargs):
     # create custom colormap for residuals

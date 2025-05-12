@@ -34,9 +34,10 @@ import numpy as np
 import numpy.ma as ma
 from PIL import Image, ImageDraw
 
-from cpf.logging import CPFLogger
+from cpf.util.logging import get_logger
 
-logger = CPFLogger("cpf.input_types._Masks")
+logger = get_logger("cpf.input_types._Masks")
+
 
 
 class _masks:

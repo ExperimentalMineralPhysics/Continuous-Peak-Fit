@@ -61,7 +61,7 @@ output_methods_modules = register_default_formats()
 
 
 def initiate(
-    settings_file: Optional[str | Path] = None,
+    settings: Optional[str | Path | dict] = None,
     inputs=None,
     out_type=None,
     report: Literal[
@@ -85,21 +85,30 @@ def initiate(
     set_global_log_level(report)
 
     # Add a file handler to this logger
-    if settings_file:
-        log_file = make_outfile_name(
-            base_filename=settings_file, extension=".log", overwrite=True
-        )
-        logger.add_file_handler(log_file)
+    if isinstance(settings, dict):
+        running_name = settings["run_name"]
+    else:
+        running_name = settings
+    log_file = log_file = make_outfile_name(
+        base_filename=running_name, extension=".log", overwrite=True
+    )
+    logger.add_file_handler(log_file)
+     
+    # if settings_file:
+    #     log_file = make_outfile_name(
+    #         base_filename=settings_file, extension=".log", overwrite=True
+    #     )
+    #     logger.add_file_handler(log_file)
 
     # Fail gracefully
-    if settings_file is None:
+    if settings is None:
         raise ValueError(
             "Either the settings file or the parameter dictionary need to be specified."
         )
     # Convert to Path object
-    if isinstance(settings_file, str):
+    if isinstance(settings, str):
         try:
-            settings_file = Path(settings_file)
+            settings = Path(settings)
         except Exception as error:
             raise error
 
@@ -107,14 +116,14 @@ def initiate(
     logger.info("")
     logger.info("=================================================================")
     logger.info("")
-    logger.info("Starting data proceesing using: %s.py" % settings_file)
+    logger.info(f"Starting data proceesing using settings {'dictionary' if isinstance(settings, dict) else 'file'}: {running_name}")    
     logger.info("")
     logger.info("=================================================================")
     logger.info("")
 
     # If no params_dict then initiate. Check all the output functions are present and valid.
     settings_for_fit = Settings()
-    settings_for_fit.populate(settings_file=settings_file, report=report)
+    settings_for_fit.populate(settings=settings, report=report)
 
     return settings_for_fit
 

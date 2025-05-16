@@ -10,6 +10,7 @@ import json
 from copy import copy, deepcopy
 from pathlib import Path
 from typing import Any, Literal, Optional
+import os
 
 import numpy as np
 
@@ -18,6 +19,7 @@ import cpf.output_formatters as output_formatters
 from cpf.IO_functions import (
     image_list,
     json_numpy_serializer,
+    make_outfile_name
 )
 from cpf.series_functions import (
     coefficient_type_as_number,
@@ -192,7 +194,7 @@ class Settings:
 
     def populate(
         self,
-        settings_file: Optional[str | Path] = None,
+        settings: Optional[str | Path | dict] = None,
         out_type=None,
         report=False,
         debug=False,
@@ -217,21 +219,51 @@ class Settings:
         """
 
         # Fail gracefully
-        if settings_file is None:
-            raise ValueError("The settings file needs to be specified.")
+        if settings is None:
+            raise ValueError("The settings needs to be specified: it is either a file string, a file path or a dictionary.")
 
-        # Convert to a Path object
-        if isinstance(settings_file, str):
-            try:
-                settings_file = Path(settings_file)
-            except Exception as error:
-                raise error
-        self.settings_file = settings_file
-        if not self.settings_file.suffix == ".py":
-            self.settings_file = self.settings_file.with_suffix(".py")
+        elif isinstance(settings, dict):
+            
+            if "run_name" in settings:         
+                # I dont think that an input file name is needed later in the processing.
+                # But incase it is one is forced here.
+                self.settings_file = settings["run_name"]
+            else:
+                raise ValueError("NEEDS TO BE SPECIFICED ")
+                            
+            class RecursiveObject:
+                def __init__(self, dictionary):
+                    for key, value in dictionary.items():
+                        if isinstance(value, dict):
+                            value = RecursiveObject(value)
+                        setattr(self, key, value)
 
-        self.check_files_exist(self.settings_file)
-        self.read_settings_file()
+            self.settings_from_input = RecursiveObject(dictionary = settings)
+            
+        else:
+            
+            # Convert to a Path object
+            if isinstance(settings, str):
+                try:
+                    settings = Path(settings)
+                except Exception as error:
+                    raise error
+            self.settings_file = settings
+            if not self.settings_file.suffix == ".py":
+                self.settings_file = self.settings_file.with_suffix(".py")
+    
+            self.check_files_exist(self.settings_file)
+            
+            # store all the settings from file in a module class.
+            module_name = self.settings_file.stem
+            spec = importlib.util.spec_from_file_location(module_name, self.settings_file)
+            self.settings_from_input = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(self.settings_from_input)
+            
+            
+        self.fill_settings()
+            
+            
 
         # override the files output settings.
         if not out_type is None:
@@ -243,23 +275,38 @@ class Settings:
         """
         self.populate()
 
-    def read_settings_file(self):
+    def fill_settings(self):
         """
         adds values to the class from the settings file.
         Fails with a list of missing parameters if not complete.
         """
 
-        # store all the settings from file in a mocule class.
-        module_name = self.settings_file.stem
-        spec = importlib.util.spec_from_file_location(module_name, self.settings_file)
-        self.settings_from_file = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(self.settings_from_file)
+        if "settings_from_input" not in dir(self):
+            raise ValueError("No settings have been input")
+
+        # if settings_dict is None:
+        #     # store all the settings from file in a module class.
+        #     module_name = self.settings_file.stem
+        #     spec = importlib.util.spec_from_file_location(module_name, self.settings_file)
+        #     self.settings_from_input = importlib.util.module_from_spec(spec)
+        #     spec.loader.exec_module(self.settings_from_input)
+        # else:
+            
+        #     class RecursiveObject:
+        #         def __init__(self, dictionary):
+        #             for key, value in dictionary.items():
+        #                 if isinstance(value, dict):
+        #                     value = RecursiveObject(value)
+        #                 setattr(self, key, value)
+
+        #     self.settings_from_input = RecursiveObject(dictionary = settings_dict)
+        
         # then sort them in a useful way...
 
-        ##all_settings_from_file = dir(self.settings_from_file)#
+        ##all_settings_from_input = dir(self.settings_from_input)#
 
         # add data directory and data files
-        self.datafile_directory = self.settings_from_file.datafile_directory
+        self.datafile_directory = self.settings_from_input.datafile_directory
         if isinstance(self.datafile_directory, str):  # Convert to Path object
             self.datafile_directory = Path(self.datafile_directory)
 
@@ -268,7 +315,7 @@ class Settings:
             self.datafile_number,
             self.image_list,
             self.image_number,
-        ) = image_list(dir(self.settings_from_file), self.settings_from_file)
+        ) = image_list(dir(self.settings_from_input), self.settings_from_input)
         # Convert datafile list entries to Path objects, if they exist
         if len(self.datafile_list) > 0:
             try:
@@ -279,52 +326,52 @@ class Settings:
                 raise error
 
         # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
-        if "datafile_Basename" in dir(self.settings_from_file):
-            self.datafile_basename: str = self.settings_from_file.datafile_Basename
-        if "datafile_Ending" in dir(self.settings_from_file):
-            self.datafile_ending: str = self.settings_from_file.datafile_Ending
+        if "datafile_Basename" in dir(self.settings_from_input):
+            self.datafile_basename: str = self.settings_from_input.datafile_Basename
+        if "datafile_Ending" in dir(self.settings_from_input):
+            self.datafile_ending: str = self.settings_from_input.datafile_Ending
 
         # add output directory if listed.
         # change if listed among the inputs
-        if "Output_directory" in dir(self.settings_from_file):
-            self.output_directory = self.settings_from_file.Output_directory
+        if "Output_directory" in dir(self.settings_from_input):
+            self.output_directory = self.settings_from_input.Output_directory
             if isinstance(self.output_directory, str):
                 self.output_directory = Path(self.output_directory)
 
         # Load the detector class here to access relevant functions and check required parameters are present
-        if "Calib_type" in dir(self.settings_from_file):
-            self.calibration_type = self.settings_from_file.Calib_type
-        if "Calib_param" in dir(self.settings_from_file):
-            self.calibration_parameters = self.settings_from_file.Calib_param
+        if "Calib_type" in dir(self.settings_from_input):
+            self.calibration_type = self.settings_from_input.Calib_type
+        if "Calib_param" in dir(self.settings_from_input):
+            self.calibration_parameters = self.settings_from_input.Calib_param
             if isinstance(self.calibration_parameters, str):
                 self.calibration_parameters = Path(self.calibration_parameters)
 
-        if "Calib_data" in dir(self.settings_from_file):
-            self.calibration_data = self.settings_from_file.Calib_data
+        if "Calib_data" in dir(self.settings_from_input):
+            self.calibration_data = self.settings_from_input.Calib_data
             if isinstance(self.calibration_data, str):
                 self.calibration_data = Path(self.calibration_data)
-        if "Calib_mask" in dir(self.settings_from_file):
-            self.calibration_mask = self.settings_from_file.Calib_mask
+        if "Calib_mask" in dir(self.settings_from_input):
+            self.calibration_mask = self.settings_from_input.Calib_mask
             if isinstance(self.calibration_mask, str):
                 self.calibration_mask = Path(self.calibration_mask)
-        if "Calib_detector" in dir(self.settings_from_file):
-            self.calibration_detector = self.settings_from_file.Calib_detector
-        if "Calib_pixels" in dir(self.settings_from_file):
-            self.calibration_pixel_size: int = self.settings_from_file.Calib_pixels
+        if "Calib_detector" in dir(self.settings_from_input):
+            self.calibration_detector = self.settings_from_input.Calib_detector
+        if "Calib_pixels" in dir(self.settings_from_input):
+            self.calibration_pixel_size: int = self.settings_from_input.Calib_pixels
 
         # load the data class.
         self.data_class = detector_factory(fit_settings=self)
 
-        if "Image_prepare" in dir(self.settings_from_file):
+        if "Image_prepare" in dir(self.settings_from_input):
             logger.warning(
                 "'Image_prepare' is depreciated nomenclature. Has been replased by 'image_preprocess'"
             )
-            self.settings_from_file.image_preprocess = (
-                self.settings_from_file.Image_prepare
+            self.settings_from_input.image_preprocess = (
+                self.settings_from_input.Image_prepare
             )
 
-        if "image_preprocess" in dir(self.settings_from_file):
-            self.datafile_preprocess = self.settings_from_file.Image_prepare
+        if "image_preprocess" in dir(self.settings_from_input):
+            self.datafile_preprocess = self.settings_from_input.Image_prepare
 
         #     # FIX ME: This doesn't seem to be used, if it should be this needs moving to class structure.
         #     alternatives_list = [[["datafile_StartNum", "datafile_EndNum"], ["datafile_Files"]]]
@@ -340,48 +387,48 @@ class Settings:
         #     # exit if all parameters are not present
 
         # organise the cascade properties
-        if "cascade_number_bins" in dir(self.settings_from_file):
-            self.cascade_number_bins = self.settings_from_file.cascade_number_bins
+        if "cascade_number_bins" in dir(self.settings_from_input):
+            self.cascade_number_bins = self.settings_from_input.cascade_number_bins
             self.cascade_bin_type = 1
-        if "cascade_per_bin" in dir(self.settings_from_file):
-            self.cascade_per_bin = self.settings_from_file.cascade_per_bin
+        if "cascade_per_bin" in dir(self.settings_from_input):
+            self.cascade_per_bin = self.settings_from_input.cascade_per_bin
             self.cascade_bin_type = 0
-        if "cascade_bin_type" in dir(self.settings_from_file):
-            self.cascade_bin_type = self.settings_from_file.cascade_bin_type
-        if "cascade_historgram_type" in dir(self.settings_from_file):
+        if "cascade_bin_type" in dir(self.settings_from_input):
+            self.cascade_bin_type = self.settings_from_input.cascade_bin_type
+        if "cascade_historgram_type" in dir(self.settings_from_input):
             self.cascade_historgram_type = (
-                self.settings_from_file.cascade_historgram_type
+                self.settings_from_input.cascade_historgram_type
             )
-        if "cascade_historgram_bins" in dir(self.settings_from_file):
+        if "cascade_historgram_bins" in dir(self.settings_from_input):
             self.cascade_historgram_bins = (
-                self.settings_from_file.cascade_historgram_bins
+                self.settings_from_input.cascade_historgram_bins
             )
 
         # organise the fits
-        if "fit_orders" in dir(self.settings_from_file):
-            self.fit_orders = self.settings_from_file.fit_orders
-        if "fit_bounds" in dir(self.settings_from_file):
-            self.fit_bounds = self.settings_from_file.fit_bounds
-        if "fit_track" in dir(self.settings_from_file):
-            self.fit_track = self.settings_from_file.fit_track
-        if "fit_propagate" in dir(self.settings_from_file):
-            self.fit_propagate = self.settings_from_file.fit_propagate
-        if "fit_min_data_intensity" in dir(self.settings_from_file):
-            self.fit_min_data_intensity = self.settings_from_file.fit_min_data_intensity
-        if "fit_min_peak_intensity" in dir(self.settings_from_file):
-            self.fit_min_peak_intensity = self.settings_from_file.fit_min_peak_intensity
+        if "fit_orders" in dir(self.settings_from_input):
+            self.fit_orders = self.settings_from_input.fit_orders
+        if "fit_bounds" in dir(self.settings_from_input):
+            self.fit_bounds = self.settings_from_input.fit_bounds
+        if "fit_track" in dir(self.settings_from_input):
+            self.fit_track = self.settings_from_input.fit_track
+        if "fit_propagate" in dir(self.settings_from_input):
+            self.fit_propagate = self.settings_from_input.fit_propagate
+        if "fit_min_data_intensity" in dir(self.settings_from_input):
+            self.fit_min_data_intensity = self.settings_from_input.fit_min_data_intensity
+        if "fit_min_peak_intensity" in dir(self.settings_from_input):
+            self.fit_min_peak_intensity = self.settings_from_input.fit_min_peak_intensity
 
-        if "AziDataPerBin" in dir(self.settings_from_file):
-            self.fit_per_bin = self.settings_from_file.AziDataPerBin
+        if "AziDataPerBin" in dir(self.settings_from_input):
+            self.fit_per_bin = self.settings_from_input.AziDataPerBin
             self.fit_bin_type = 0
-        elif "AziBins" in dir(self.settings_from_file):
-            self.fit_number_bins = self.settings_from_file.AziBins
+        elif "AziBins" in dir(self.settings_from_input):
+            self.fit_number_bins = self.settings_from_input.AziBins
             self.fit_bin_type = 1
-        if "AziBinType" in dir(self.settings_from_file):
-            self.fit_bin_type = self.settings_from_file.AziBinType
+        if "AziBinType" in dir(self.settings_from_input):
+            self.fit_bin_type = self.settings_from_input.AziBinType
 
-        if "Output_type" in dir(self.settings_from_file):
-            self.set_output_types(out_type_list=self.settings_from_file.Output_type)
+        if "Output_type" in dir(self.settings_from_input):
+            self.set_output_types(out_type_list=self.settings_from_input.Output_type)
 
         self.validate_settings_file()
         # FIXME: it needs to fail if everything is not present as needed and report what is missing
@@ -455,14 +502,17 @@ class Settings:
         self,
         directory: Path,
         write: bool = False,
+        
     ):
         """
         Check if a directory exists. If not issue an error
         """
         if directory.exists() is False:
-            raise FileNotFoundError(
-                f"The directory {directory.name!r} is not found but is required."
-            )
+            # raise FileNotFoundError(
+            #     f"The directory {directory.name!r} is not found but is required."
+            # )
+            os.makedirs(directory)
+            logger.info(" ".join(map(str, [(f"{directory.name!r} was created.")])))
         else:
             if write == True:
                 logger.info(" ".join(map(str, [(f"{directory.name!r} exists.")])))
@@ -1035,7 +1085,7 @@ class Settings:
             for j in range(len(required)):
                 try:
                     self.output_settings[required[j]] = getattr(
-                        self.settings_from_file, required[j]
+                        self.settings_from_input, required[j]
                     )
                 except:
                     missing.append(
@@ -1047,7 +1097,7 @@ class Settings:
             for j in range(len(optional)):
                 try:
                     self.output_settings[optional[j]] = getattr(
-                        self.settings_from_file, optional[j]
+                        self.settings_from_input, optional[j]
                     )
                 except:
                     missing.append(
@@ -1191,10 +1241,10 @@ class Settings:
         self.subfit_orders = self.fit_orders[number_subpattern]
 
     def save_settings(
-        self, filename: str = "settings.json", filepath: Path = Path(".")
+        self, filename: str = "settings.py", filepath: Path = Path(".")
     ):
         """
-        Saves the settings class to file.
+        Saves the settings class or dictionary to file.
 
         Parameters
         ----------
@@ -1208,30 +1258,86 @@ class Settings:
         None.
 
         """
-        logger.warning(
-            " ".join(
-                map(
-                    str,
-                    [
-                        (
-                            "Caution: save_settings writes a temporary file with no content"
-                        )
-                    ],
-                )
-            )
-        )
 
+
+        # with open(filename, 'r') as tp_file:
+        #      tp_file.write(json.dumps(self.__dict__))
+             
+        #      # print(values_write)
+        # stop
+
+
+        import re
+
+        template_file = "Template_for_XRDFitPattern_Inputs.txt"
+        template_loc = os.path.join(os.path.dirname(__file__), template_file)
+
+        # get template file. 
+        with open(template_loc, 'r') as tp_file:
+            template = tp_file.read()
+            values_write = re.findall(r'(\$\w+)', template)
+
+        #loop over the values_write and replace with values
+        # Looping also makes easier to add or remove blocks of the setting file. 
+        for i in range(len(values_write)):
+            
+            # get value to write.
+            d = {}
+            
+            if values_write[i][1:] in self.__dict__:
+                d[values_write[i][1:]] = self.__dict__[values_write[i][1:]]
+            elif values_write[i][1:] in self.settings_from_input.__dict__:
+                d[values_write[i][1:]] = self.settings_from_input.__dict__[values_write[i][1:]]
+            # else:
+            #     try:
+            #         d[values_write[i][1:]] = Settings().__dict__[values_write[i][1:]]
+            #     except:
+            #         d[values_write[i][1:]] = "Pah"
+
+            #if is not an acceptale type the convert to text.
+            if values_write[i][1:] in d:
+                if isinstance(d[values_write[i][1:]], list):
+                    # convert list to json string. 
+                    try:
+                        output = json.dumps(d[values_write[i][1:]], indent=2)
+                        output = re.sub(r'": \[\s+', '": [', output)
+                        output = re.sub(r'",\s+', '", ', output)
+                        output = re.sub(r'"\s+\]', '"]', output)
+                        template = template.replace(values_write[i], output)
+                    except:
+                        pass
+                
+                elif isinstance(d[values_write[i][1:]], dict):
+                    #convert dictionary to formatted string. 
+                    template = template.replace(values_write[i], json.dumps(d[values_write[i][1:]]))
+                
+                elif isinstance(d[values_write[i][1:]], Path):
+                    
+                    template = template.replace(values_write[i], f"'{str(d[values_write[i][1:]])}'")
+                    
+                elif isinstance(d[values_write[i][1:]], str):
+                    template = template.replace(values_write[i], f"'{d[values_write[i][1:]]}'")
+                else:
+                    template = template.replace(values_write[i], f"{d[values_write[i][1:]]}")
+            
+          
+        #remove lines that still have $ in them. 
+        template = template.splitlines(True)
+        # remove deadlines
+        for i in range(len(template)):
+            if re.findall(r'(\$\w+)', template[i]):
+                template[i] = ""
+        #recombine
+        template = ''.join(template)
+               
+        #write settings file
+        if self.settings_file:
+            filename = make_outfile_name(self.settings_file, extension="py", overwrite=False)
         fnam = filepath / filename
         with open(fnam, "w") as TempFile:
-            # Write a JSON string into the file.
-            json.dump(
-                "This is a temporary file with no content",
-                TempFile,
-                sort_get_image_key_strings=False,
-                indent=2,
-                default=json_numpy_serializer,
-            )
-        logger.info(" ".join(map(str, [("Done writing", filename)])))
+            # Write to a text or py file.
+            TempFile.write(template)
+        logger.info(" ".join(map(str, [("Finished writing settings to ", filename)])))
 
 
 def get_output_options(output_type: list[str]):
@@ -1267,7 +1373,7 @@ def detector_factory(fit_settings: Settings):
         detector_class = getattr(detector, def_def)
         return detector_class(settings_class=fit_settings)
     else:
-        raise ValueError("Unrecognized calibration type.")
+        raise ValueError(f"Unrecognized calibration type, {fit_settings.calibration_type}")
 
 
 if __name__ == "__main__":

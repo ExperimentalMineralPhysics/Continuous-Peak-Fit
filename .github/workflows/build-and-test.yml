@@ -64,6 +64,7 @@ jobs:
     needs: generate-test-matrix
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: False
       matrix: ${{ fromJson(needs.generate-test-matrix.outputs.matrix) }}
 
     name: Test on ${{ matrix.os }} - Python ${{ matrix.python-version }} - NumPy ${{ matrix.numpy-version }}

@@ -18,25 +18,60 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - macos-14
-          - ubuntu-24.04
-          - windows-2022
-          - windows-2025
-        python-version:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
+  # Create a test matrix that alternates the installation of NumPy v1 and v2
+  # in a checkerboard pattern on the OSes being tested
+  generate-test-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Generate test matrix
+        id: set-matrix
+        shell: python
+        run: |
+          import json, os
 
+          os_list = ["ubuntu-24.04", "macos-14", "windows-2022", "windows-2025"]
+          python_versions = ["3.9", "3.10", "3.11", "3.12"]
+
+          matrix = []
+
+          for o, os_name in enumerate(os_list):
+              for p, python_version in enumerate(python_versions):
+                  numpy_version = (
+                      (
+                          "<2,>=1" if p % 2 == 0 else ">=2,<3"
+                      ) if o % 2 == 0 else (
+                          ">=2,<3" if p % 2 == 0 else "<2,>=1"
+                      )
+                  )
+                  matrix.append(
+                      {
+                          "os": os_name,
+                          "python-version": python_version,
+                          "numpy-version": numpy_version,
+                      }
+                  )
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              json_data = json.dumps({"include": matrix})
+              fh.write(f"matrix={json_data}\n")
+
+      - name: Print generated matrix
+        run: echo '${{ steps.set-matrix.outputs.matrix }}'
+
+  build-and-test:
+    # Load the test matrix generated for use here
+    needs: generate-test-matrix
     runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: False
+      matrix: ${{ fromJson(needs.generate-test-matrix.outputs.matrix) }}
 
+    name: ${{ matrix.os }} - python${{ matrix.python-version }} - numpy${{ matrix.numpy-version }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Install Cairo library (Ubuntu only)
         # Cairo library needs to be manually installed on Ubuntu in order for
         # pyCairo to be installed
@@ -44,6 +79,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y libcairo2-dev
+
       - name: Disable OpenCL for pyFAI and silx (MacOS only)
         # There is currently an error with getting device IDs in pyOpenCL on MacOS
         # $ pyopencl._cl.LogicError: clGetDeviceIDs failed: INVALID_VALUE
@@ -52,15 +88,18 @@ jobs:
         run: |
           echo "PYFAI_NO_OPENCL=1" >> $GITHUB_ENV
           echo "SILX_OPENCL=0" >> $GITHUB_ENV
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest
+          python -m pip install 'numpy${{ matrix.numpy-version }}'
           python -m pip install .[dev]
+
       - name: Run 'pytest' tests
         run: |
           pytest

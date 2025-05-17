@@ -31,33 +31,34 @@ jobs:
         run: |
           import json, os
 
-          os_list_a = ["ubuntu-24.04", "macos-14"]
-          os_list_b = ["windows-2022", "windows-2025"]
-          py_versions = ["3.9", "3.10", "3.11", "3.12"]
+          os_list = ["ubuntu-24.04", "macos-14", "windows-2022", "windows-2025"]
+          python_versions = ["3.9", "3.10", "3.11", "3.12"]
 
           matrix = []
 
-          for os_name in os_list_a:
-              for i, py in enumerate(py_versions):
-                  numpy = "<2,>=1" if i % 2 == 0 else ">=2,<3"
-                  matrix.append({
-                      "os": os_name,
-                      "python-version": py,
-                      "numpy-version": numpy
-                  })
-
-          for os_name in os_list_b:
-              for i, py in enumerate(py_versions):
-                  numpy = ">=2,<3" if i % 2 == 0 else "<2,>=1"
-                  matrix.append({
-                      "os": os_name,
-                      "python-version": py,
-                      "numpy-version": numpy
-                  })
+          for o, os_name in enumerate(os_list):
+              for p, python_version in enumerate(python_versions):
+                  numpy_version = (
+                      (
+                          "<2,>=1" if p % 2 == 0 else ">=2,<3"
+                      ) if o % 2 == 0 else (
+                          ">=2,<3" if p % 2 == 0 else "<2,>=1"
+                      )
+                  )
+                  matrix.append(
+                      {
+                          "os": os_name,
+                          "python-version": python_version,
+                          "numpy-version": numpy_version,
+                      }
+                  )
 
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               json_data = json.dumps({"include": matrix})
               fh.write(f"matrix={json_data}\n")
+
+      - name: Print generated matrix
+        run: echo '${{ steps.set-matrix.outputs.matrix }}'
 
   build-and-test:
     # Load the test matrix generated for use here
@@ -67,7 +68,7 @@ jobs:
       fail-fast: False
       matrix: ${{ fromJson(needs.generate-test-matrix.outputs.matrix) }}
 
-    name: Test on ${{ matrix.os }} - Python ${{ matrix.python-version }} - NumPy ${{ matrix.numpy-version }}
+    name: ${{ matrix.os }} - python${{ matrix.python-version }} - numpy${{ matrix.numpy-version }}
     steps:
       - uses: actions/checkout@v4
 

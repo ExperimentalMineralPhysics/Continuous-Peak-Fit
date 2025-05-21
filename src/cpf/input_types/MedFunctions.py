@@ -115,9 +115,9 @@ class MedDetector:
         else:
             # copy and then delete the detector and calibration, 
             # so that anyother non-default values are propagated.             
-            new = copy(self)
-            # new.detector = None
-            # new.calibration = None
+            new = deepcopy(self)
+            new.detector = None
+            new.calibration = None
 
         local_mask = np.where(
             (self.tth >= range_bounds[0])
@@ -264,6 +264,9 @@ class MedDetector:
         )
 
         self.calibration = parms_dict
+        self.conversion_constant = {}
+        self.conversion_constant["two theta"] = parms_dict["conversion_constant"]
+        self.conversion_constant["azimuths"] = parms_dict["azimuths"]
 
     def get_detector(
         self, settings=None, calibration_file=None, diffraction_data=None, debug=False
@@ -645,9 +648,9 @@ class MedDetector:
         wavelength = 4.135667662e-15 * (299792458 * 1e10) / (e_in[:, 1] * 1000)
 
         # determine which detector calibration goes with each energy.
-        sort_idx = np.array(self.calibration["azimuths"]).argsort()
+        sort_idx = np.array(self.conversion_constant["azimuths"]).argsort()
         de = sort_idx[
-            np.searchsorted(self.calibration["azimuths"], e_in[:, 0], sorter=sort_idx)
+            np.searchsorted(self.conversion_constant["azimuths"], e_in[:, 0], sorter=sort_idx)
         ]
 
         if not reverse:
@@ -659,7 +662,7 @@ class MedDetector:
                     / 2
                     / np.sin(
                         np.radians(
-                            self.calibration["mcas"].mcas[i].calibration.two_theta / 2
+                            self.conversion_constant["two theta"][i] / 2
                         )
                     )
                 )
@@ -674,7 +677,7 @@ class MedDetector:
                     / 2
                     / np.sin(
                         np.radians(
-                            self.calibration["mcas"].mcas[i].calibration.two_theta / 2
+                            self.conversion_constant["two theta"][i] / 2
                         )
                     )
                 )

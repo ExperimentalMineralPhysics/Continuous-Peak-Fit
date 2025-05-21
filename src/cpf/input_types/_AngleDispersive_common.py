@@ -8,6 +8,7 @@ import numpy as np
 import numpy.ma as ma
 
 from cpf.util.logging import get_logger
+from skimage.transform import rescale, resize, downscale_local_mean
 
 logger = get_logger("cpf.input_types._AngelDispersive_common")
 
@@ -66,7 +67,12 @@ class _AngleDispersive_common:
             a = False
 
         # wavelength = self.calibration.wavelength * 1e10
-        wavelength = self.conversion_constant
+        if self.conversion_constant is None:
+            # thnen the conversion has not been initated proerly somewhere
+            raise ValueError("'Conversion_constant' cannot be None. Something has not been iniated properly.")
+        else:
+            wavelength = self.conversion_constant
+        
 
         if self.conversion_constant == None:
             dspc_out = tth_in
@@ -283,6 +289,113 @@ class _AngleDispersive_common:
             raise TypeError(err_str)
 
         return DataType
+    
+    
+    def duplicate_without_detector(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
+        """
+        Makes an independent copy of a Intensity, two theta and azimuth data. 
+        If present the d-spacing and detector x,y,z are included as well 
+
+        range_bounds and azi_bounds restrict the extent of the data if needed.
+        The range resturictions should be applied upon copying (if required) for memory efficieny.
+        
+        Alaternatively run:
+        region = data_class.get_SubRegion()
+        region.set_limit2(range_bounds=[...], azi_bounds=[...])
+
+        Although a Detector instance is returned the detector and calibration are empty. 
+
+        Parameters
+        ----------
+        range_bounds : dict or array, optional
+            Limits for the two theta range. The default is [-np.inf, np.inf].
+        azi_bounds : dict or array, optional
+            Limits for the azimuth range. The default is [-np.inf, np.inf].
+        reduction : int, optional
+            A fraction by which to reduce the data. The reduction for a Dioptas 
+            detector instance in by binning the data. 
+
+        Returns
+        -------
+        new : Detector Instance.
+            Detector with only image related arrays.
+
+        """  
+        return self.duplicate(range_bounds=range_bounds, azi_bounds=azi_bounds, with_detector=False)
+
+    
+    def _reduce_array(self, data, reduce_by=None, method="downscale_local_mean", keep_FirstDim=False):
+        """
+        Function to reduce the size of the data arrays by factor of reduce_by.
+        The reduction bins the pixel data into reduce_by x reduce_by bins. 
+
+        Parameters
+        ----------
+        data : np.array
+            Data to be reduced.
+        reduce_by : int, optional
+            DESCRIPTION. The default is None.
+        sum : TYPE, optional
+            DESCRIPTION. The default is False.
+
+        Returns
+        -------
+        data : np.array
+            DESCRIPTION.
+
+        """
+        
+        if reduce_by is False or (reduce_by is None and self.reduce_by is None):
+            # reduce_by = False is used by fill_data to make sure this function is passed
+            # if both are none then there is nothing to do.
+            return data
+        
+        elif reduce_by is not None:
+            reduction = int(reduce_by)
+        else:
+            reduction = int(self.reduce_by)
+        
+        reduction = np.int_(np.ones([1,np.ndim(data)]) * reduction)[0]
+        if keep_FirstDim == True:
+            reduction[0] = 1
+        reduction = tuple(reduction)
+        # if np.ndim(data) == 3:
+        #     reduction = (1, reduction, reduction)
+        # else:
+        #     reduction = (reduction, reduction)
+                
+        msk=None
+        if ma.is_masked(data) == True:
+            msk = data.mask
+            if method == "rescale":
+                raise NotImplementedError(f"'{method}' has not been implemented as a reuction method")
+                msk = rescale(msk, 1/reduction, anti_aliasing=False)
+            elif method == "resize":
+                raise NotImplementedError(f"'{method}' has not been implemented as a reuction method")
+                msk = resize(
+                    msk, (msk.shape[0] // reduction, msk.shape[1] // reduction), anti_aliasing=True
+                )
+            elif method=="downscale_local_mean":
+                msk = downscale_local_mean(msk, reduction)
+            else:
+                raise ValueError(f"Unrecognised data reduction method: {method}")
+        else:
+            msk=False
+        
+        if method == "rescale":
+            raise NotImplementedError(f"'{method}' has not been implemented as a reuction method")
+            data_out = ma.array(rescale(data, 1/reduction, anti_aliasing=False), mask=msk)
+        elif method == "resize":
+            raise NotImplementedError(f"'{method}' has not been implemented as a reuction method")
+            data_out = ma.array(resize(
+                data, (data.shape[0] // reduction, data.shape[1] // reduction), anti_aliasing=True
+            ), mask=msk)
+        elif method=="downscale_local_mean":
+            data_out = ma.array(downscale_local_mean(data, reduction), mask=msk)
+        else:
+            raise ValueError(f"Unrecognised data reduction method: {method}")
+                
+        return data_out
 
 
 

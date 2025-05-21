@@ -76,6 +76,8 @@ class MedDetector:
 
         self.azm_blocks = 45
 
+        self.reduce_by = None
+        
         self.calibration = None
         self.conversion_constant = None
         self.detector = None
@@ -85,7 +87,7 @@ class MedDetector:
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
         """
         Makes an independent copy of a MedDetector Instance.
 
@@ -109,7 +111,14 @@ class MedDetector:
 
         """
 
-        new = copy(self)
+        if with_detector:
+            new = copy(self)
+        else:
+            # copy and then delete the detector and calibration, 
+            # so that anyother non-default values are propagated.             
+            new = deepcopy(self)
+            new.detector = None
+            new.calibration = None
 
         local_mask = np.where(
             (self.tth >= range_bounds[0])
@@ -256,6 +265,9 @@ class MedDetector:
         )
 
         self.calibration = parms_dict
+        self.conversion_constant = {}
+        self.conversion_constant["two theta"] = parms_dict["conversion_constant"]
+        self.conversion_constant["azimuths"] = parms_dict["azimuths"]
 
     def get_detector(
         self, settings=None, calibration_file=None, diffraction_data=None, debug=False
@@ -298,7 +310,8 @@ class MedDetector:
             self.detector = Med.Med(file=str(calibration_file))
 
     def import_image(
-        self, image_name=None, settings=None, mask=None, dtype=None, debug=False
+        self, image_name=None, settings=None, mask=None, dtype=None,
+        reduce_by = None, debug=False
     ):
         """
         Import the data image into the intensity array.
@@ -369,18 +382,30 @@ class MedDetector:
 
         im_all = ma.array(im_all, dtype=dtype)
 
+        # reduce the size of the data (if called for)
+        if reduce_by is not None or self.reduce_by is not None:
+            if reduce_by is False:
+                # used to allow the full data image to be read by data_fill as part of reading the calibrations
+                pass
+            elif reduce_by is not None and reduce_by != 1:
+                im_all = self._reduce_array(im_all, reduce_by=reduce_by, keep_FirstDim=True)
+            elif self.reduce_by is not None and self.reduce_by != 1:
+                im_all = self._reduce_array(im_all, reduce_by=self.reduce_by, keep_FirstDim=True)
+            else:
+                pass
+
         # apply mask to the intensity array
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im_all)
             return ma.array(im_all)
-        elif mask is not None:
-            # apply given mask
-            self.intensity = ma.array(im_all, mask=self.fill_mask(mask, im_all))
-            return ma.array(im_all, mask=mask)
-        else:
-            # apply mask from intensities
+        elif ma.is_masked(self.intensity) == True and self.intensity.mask.shape == im_all.shape:
+            # apply mask from previous intensities and all are same size
             self.intensity = ma.array(im_all, mask=self.intensity.mask)
             return ma.array(im_all)
+        else:#if mask is not None:
+            # apply given mask
+            self.intensity = ma.array(im_all, mask=self.get_mask(mask, im_all))
+            return ma.array(im_all, mask=mask)
 
     def fill_data(
         self, diff_file=None, settings=None, mask=None, make_zyx=False, debug=False
@@ -434,11 +459,14 @@ class MedDetector:
             if settings.calibration_mask:  # in settings.items():
                 mask = settings.calibration_mask
 
+        if settings.reduce_by is not None:
+            self.reduce_by = settings.reduce_by
+            
         if self.detector == None:
             self.get_detector(settings=settings)
 
         # get the intensities (without mask)
-        self.intensity = self.import_image(diff_file)
+        self.intensity = self.import_image(diff_file, reduce_by=False)
 
         self.tth = self._get_two_theta()
         self.azm = self._get_azimuth()
@@ -453,6 +481,11 @@ class MedDetector:
             mask = {"detector": mask}
         mask_array = self.get_mask(mask, debug=debug)
         self.mask_apply(mask_array, debug=debug)
+
+        if self.reduce_by is not None:
+            self.intensity = self._reduce_array(self.intensity, keep_FirstDim=True)
+            self.tth = self._reduce_array(self.tth, keep_FirstDim=True)
+            self.azm = self._reduce_array(self.azm, keep_FirstDim=True)
 
         self.azm_start = (
             np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
@@ -637,9 +670,9 @@ class MedDetector:
         wavelength = 4.135667662e-15 * (299792458 * 1e10) / (e_in[:, 1] * 1000)
 
         # determine which detector calibration goes with each energy.
-        sort_idx = np.array(self.calibration["azimuths"]).argsort()
+        sort_idx = np.array(self.conversion_constant["azimuths"]).argsort()
         de = sort_idx[
-            np.searchsorted(self.calibration["azimuths"], e_in[:, 0], sorter=sort_idx)
+            np.searchsorted(self.conversion_constant["azimuths"], e_in[:, 0], sorter=sort_idx)
         ]
 
         if not reverse:
@@ -651,7 +684,7 @@ class MedDetector:
                     / 2
                     / np.sin(
                         np.radians(
-                            self.calibration["mcas"].mcas[i].calibration.two_theta / 2
+                            self.conversion_constant["two theta"][i] / 2
                         )
                     )
                 )
@@ -666,7 +699,7 @@ class MedDetector:
                     / 2
                     / np.sin(
                         np.radians(
-                            self.calibration["mcas"].mcas[i].calibration.two_theta / 2
+                            self.conversion_constant["two theta"][i] / 2
                         )
                     )
                 )
@@ -1073,6 +1106,8 @@ class MedDetector:
     # add common functions.
     set_limits = _AngleDispersive_common.set_limits
     GetDataType = _AngleDispersive_common.GetDataType
+    duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
+    _reduce_array = _AngleDispersive_common._reduce_array
     plot_integrated = _Plot_AngleDispersive.plot_integrated
 
     # add masking functions to detetor class.

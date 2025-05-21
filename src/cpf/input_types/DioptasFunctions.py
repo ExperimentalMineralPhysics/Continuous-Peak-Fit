@@ -71,6 +71,8 @@ class DioptasDetector:
 
         self.azm_blocks = 45
 
+        self.reduce_by = None
+        
         self.calibration = None
         self.conversion_constant = None
         self.detector = None
@@ -80,7 +82,7 @@ class DioptasDetector:
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
         """
         Makes an independent copy of a DioptasDetector Instance.
 
@@ -104,7 +106,14 @@ class DioptasDetector:
 
         """
 
-        new = copy(self)
+        if with_detector:
+            new = copy(self)
+        else:
+            # copy and then delete the detector and calibration, 
+            # so that anyother non-default values are propagated.             
+            new = deepcopy(self)
+            new.detector = None
+            new.calibration = None
 
         local_mask = np.where(
             (self.tth >= range_bounds[0])
@@ -235,7 +244,8 @@ class DioptasDetector:
 
     # @staticmethod
     def import_image(
-        self, image_name=None, settings=None, mask=None, dtype=None, debug=False
+        self, image_name=None, settings=None, mask=None, dtype=None, 
+        reduce_by = None, debug=False
     ):
         """
         Import the data image into the intensity array.
@@ -332,6 +342,18 @@ class DioptasDetector:
         # Dioptas flips the images to match the orientations in Fit2D
         # Therefore implemented here to be consistent with Dioptas.
         im = np.array(im)[::-1]
+        
+        # reduce the size of the data (if called for)
+        if reduce_by is not None or self.reduce_by is not None:
+            if reduce_by is False:
+                # used to allow the full data image to be read by data_fill as part of reading the calibrations
+                pass
+            elif reduce_by is not None and reduce_by != 1:
+                im = self._reduce_array(im, reduce_by=reduce_by)
+            elif self.reduce_by is not None and self.reduce_by != 1:
+                im = self._reduce_array(im, reduce_by=self.reduce_by)
+            else:
+                pass
 
         if logger.is_below_level(level="DEBUG"):
             fig = plt.figure()
@@ -345,14 +367,18 @@ class DioptasDetector:
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im)
             return ma.array(im)
-        elif mask is not None:
-            # apply given mask
-            self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
-            return ma.array(im, mask=mask)
-        else:
-            # apply mask from intensities
+        elif ma.is_masked(self.intensity) == True and self.intensity.mask.shape == im.shape:
+            # apply mask from previous intensities and all are same size
             self.intensity = ma.array(im, mask=self.intensity.mask)
             return ma.array(im)
+        else:#if mask is not None:
+            # apply given mask
+            self.intensity = ma.array(im, mask=self.get_mask(mask, im))
+            return ma.array(im, mask=mask)
+        # else:
+        #     # apply new mask
+        #     self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
+        #     return ma.array(im, mask=mask)
 
     def fill_data(
         self, diff_file=None, settings=None, mask=None, make_zyx=False, debug=False
@@ -406,11 +432,16 @@ class DioptasDetector:
             if settings.calibration_mask:  # in settings.items():
                 mask = settings.calibration_mask
 
+        if settings.reduce_by is not None:
+            self.reduce_by = settings.reduce_by
+            
         if self.detector == None:
             self.get_detector(settings=settings)
 
-        # get the intensities (without mask)
-        self.intensity = self.import_image(diff_file)
+        # get the intensities (without mask) and without reduction.
+        # No reduction because if reduced then the calibration is nonsence.
+        self.intensity = self.import_image(diff_file, reduce_by=False)
+        
         # FIXME: (June 2024) because of how self.detector is instanciated the
         # shape might not be correct (or recognised). Hence the check here and
         # inclusion of the shape in the array getting.
@@ -437,6 +468,15 @@ class DioptasDetector:
         # get and apply mask
         mask_array = self.get_mask(mask, self.intensity)
         self.mask_apply(mask_array, debug=debug)
+
+        if self.reduce_by is not None:
+            self.intensity = self._reduce_array(self.intensity)
+            self.tth = self._reduce_array(self.tth)
+            self.azm = self._reduce_array(self.azm)
+            if make_zyx:
+                self.z = self._reduce_array(self.z)
+                self.y = self._reduce_array(self.y)
+                self.x = self._reduce_array(self.x)
 
         self.azm_start = (
             np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
@@ -545,6 +585,8 @@ class DioptasDetector:
     set_limits = _AngleDispersive_common.set_limits
     test_azims = _AngleDispersive_common.test_azims
     GetDataType = _AngleDispersive_common.GetDataType
+    duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
+    _reduce_array = _AngleDispersive_common._reduce_array
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask

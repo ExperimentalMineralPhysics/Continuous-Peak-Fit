@@ -155,6 +155,8 @@ class XYDetector:
         #set defualt value, do not asume is diffraction data
         self.azm_blocks = 100
             
+        self.reduce_by = None
+        
         self.calibration = None
         self.conversion_constant = None
         self.detector = None
@@ -168,7 +170,7 @@ class XYDetector:
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
         """
         Makes an independent copy of a XYDetector Instance.
 
@@ -192,7 +194,19 @@ class XYDetector:
 
         """
 
-        new = copy(self)
+        if with_detector:
+            new = copy(self)
+        else:
+            # copy and then delete the detector and calibration, 
+            # so that anyother non-default values are propagated.             
+            new = deepcopy(self)
+            new.detector = None
+            new.calibration = None
+            
+            # new = XYDetector()
+            # # must define conversion constants here beacuce this is the only other 
+            # # variable that is REQUIRED.
+            # new.conversion_constant = self.conversion_constant
 
         local_mask = np.where(
             (self.tth >= range_bounds[0])
@@ -273,7 +287,7 @@ class XYDetector:
         if "conversion_constant" in self.calibration:
             self.conversion_constant = self.calibration["conversion_constant"]
         else:
-            self.conversion_constant = None
+            self.conversion_constant = 1
         # self.azm_start = self.calibration["y_start"]
         # self.azm_end = self.calibration["y_end"]
 
@@ -302,7 +316,8 @@ class XYDetector:
 
     # @staticmethod
     def import_image(
-        self, image_name=None, settings=None, mask=None, dtype=None, debug=False
+        self, image_name=None, settings=None, mask=None, dtype=None, 
+        reduce_by = None, debug=False
     ):
         """
         Import the data image into the intensity array.
@@ -372,6 +387,18 @@ class XYDetector:
 
         if self.calibration["x_dim"] != 0:
             im = im.T
+            
+        # reduce the size of the data (if called for)
+        if reduce_by is not None or self.reduce_by is not None:
+            if reduce_by is False:
+                # used to allow the full data image to be read by data_fill as part of reading the calibrations
+                pass
+            elif reduce_by is not None and reduce_by != 1:
+                im = self._reduce_array(im, reduce_by=reduce_by)
+            elif self.reduce_by is not None and self.reduce_by != 1:
+                im = self._reduce_array(im, reduce_by=self.reduce_by)
+            else:
+                pass
 
         if logger.is_below_level(level="DEBUG"):
             fig = plt.figure()
@@ -401,31 +428,15 @@ class XYDetector:
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im)
             return ma.array(im)
-        elif mask is not None:
+        elif ma.is_masked(self.intensity) == True and self.intensity.mask.shape == im.shape:
+            # apply mask from previous intensities and all are same size
+            self.intensity = ma.array(im, mask=self.intensity.mask)
+            return ma.array(im)
+        else:#if mask is not None:
             # apply given mask
-            self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
+            self.intensity = ma.array(im, mask=self.get_mask(mask, im))
             return ma.array(im, mask=mask)
-        else:
-            # apply mask from intensities
-            self.intensity = ma.array(im, mask=self.intensity.mask)
-            return ma.array(im)
 
-        """
-        if mask == None and ma.is_masked(self.intensity) == False:
-            self.intensity = ma.array(im)
-            return ma.array(im)
-        elif mask is not None:
-            self.intensity = ma.array(im, mask=mask)
-            return ma.array(im, mask=mask)
-        else:
-            self.intensity = ma.array(im, mask=self.intensity.mask)
-            return ma.array(im)
-
-        if mask is not None:
-            return ma.array(im, mask=mask)
-        else:
-            return ma.array(im)
-       """
 
     def fill_data(
         self, diff_file=None, settings=None, mask=None, make_zyx=False, debug=False
@@ -480,21 +491,27 @@ class XYDetector:
             if settings.calibration_mask:  # in settings.items():
                 mask = settings.calibration_mask
 
+        if settings.reduce_by is not None:
+            self.reduce_by = settings.reduce_by
+            
         if self.detector == None:
             self.get_detector(settings=settings)
 
         # get the intensities (without mask)
-        self.intensity = self.import_image(diff_file)
-
+        self.intensity = self.import_image(diff_file, reduce_by=False)
         self.tth = ma.array(self.detector.get_horizontal())
         self.azm = ma.array(self.detector.get_vertical())
-
         # self.dspace = self._get_d_space()
 
         # get and apply mask
         mask_array = self.get_mask(mask, self.intensity)
         self.mask_apply(mask_array, debug=debug)
-        
+
+        if self.reduce_by is not None:
+            self.intensity = self._reduce_array(self.intensity)
+            self.tth = self._reduce_array(self.tth)
+            self.azm = self._reduce_array(self.azm)
+
         # get new azm_blocks from detector.
         self.azm_blocks = self.detector.azm_blocks
         
@@ -577,6 +594,8 @@ class XYDetector:
     set_limits = _AngleDispersive_common.set_limits
     test_azims = _AngleDispersive_common.test_azims
     GetDataType = _AngleDispersive_common.GetDataType
+    duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
+    _reduce_array = _AngleDispersive_common._reduce_array
 
 
     # add masking functions to detetor class.

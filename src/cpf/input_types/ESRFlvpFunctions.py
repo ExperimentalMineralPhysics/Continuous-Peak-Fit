@@ -204,7 +204,7 @@ class ESRFlvpDetector:
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
         """
         Makes an independent copy of a ESRFlvpDetector Instance.
 
@@ -228,8 +228,22 @@ class ESRFlvpDetector:
 
         """
 
-        new = copy(self)
-
+        if with_detector:
+            new = copy(self)
+        else:
+            # cannot deepcopy ESRFlvpDetector instance. So make a new one and fill.
+            new = ESRFlvpDetector()
+            new.conversion_constant = self.conversion_constant
+            new.azm_start = self.azm_start
+            new.azm_end = self.azm_end
+            new.Dispersionlabel = self.Dispersionlabel
+            new.DispersionUnits = self.DispersionUnits
+            new.Azimuthlabel = self.Azimuthlabel
+            new.AzimuthUnits = self.AzimuthUnits
+            new.Observationslabel = self.Observationslabel
+            new.ObservationsUnits = self.ObservationsUnits
+            new.azm_blocks = self.azm_blocks
+            
         local_mask = np.where(
             (self.tth >= range_bounds[0])
             & (self.tth <= range_bounds[1])
@@ -940,6 +954,8 @@ class ESRFlvpDetector:
     bins = _AngleDispersive_common.bins
     set_limits = _AngleDispersive_common.set_limits
     test_azims = _AngleDispersive_common.test_azims
+    GetDataType = _AngleDispersive_common.GetDataType
+    duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask

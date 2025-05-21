@@ -66,7 +66,12 @@ class _AngleDispersive_common:
             a = False
 
         # wavelength = self.calibration.wavelength * 1e10
-        wavelength = self.conversion_constant
+        if self.conversion_constant is None:
+            # thnen the conversion has not been initated proerly somewhere
+            raise ValueError("'Conversion_constant' cannot be None. Something has not been iniated properly.")
+        else:
+            wavelength = self.conversion_constant
+        
 
         if self.conversion_constant == None:
             dspc_out = tth_in
@@ -283,6 +288,40 @@ class _AngleDispersive_common:
             raise TypeError(err_str)
 
         return DataType
+    
+    
+    def duplicate_without_detector(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
+        """
+        Makes an independent copy of a Intensity, two theta and azimuth data. 
+        If present the d-spacing and detector x,y,z are included as well 
+
+        range_bounds and azi_bounds restrict the extent of the data if needed.
+        The range resturictions should be applied upon copying (if required) for memory efficieny.
+        
+        Alaternatively run:
+        region = data_class.get_SubRegion()
+        region.set_limit2(range_bounds=[...], azi_bounds=[...])
+
+        Although a Detector instance is returned the detector and calibration are empty. 
+
+        Parameters
+        ----------
+        range_bounds : dict or array, optional
+            Limits for the two theta range. The default is [-np.inf, np.inf].
+        azi_bounds : dict or array, optional
+            Limits for the azimuth range. The default is [-np.inf, np.inf].
+        reduction : int, optional
+            A fraction by which to reduce the data. The reduction for a Dioptas 
+            detector instance in by binning the data. 
+
+        Returns
+        -------
+        new : Detector Instance.
+            Detector with only image related arrays.
+
+        """  
+        return self.duplicate(range_bounds=range_bounds, azi_bounds=azi_bounds, with_detector=False)
+
 
 
 

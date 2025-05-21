@@ -76,7 +76,7 @@ class DioptasDetector:
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
         """
         Makes an independent copy of a DioptasDetector Instance.
 
@@ -100,7 +100,14 @@ class DioptasDetector:
 
         """
 
-        new = copy(self)
+        if with_detector:
+            new = copy(self)
+        else:
+            # copy and then delete the detector and calibration, 
+            # so that anyother non-default values are propagated.             
+            new = deepcopy(self)
+            new.detector = None
+            new.calibration = None
 
         local_mask = np.where(
             (self.tth >= range_bounds[0])
@@ -542,7 +549,7 @@ class DioptasDetector:
     set_limits = _AngleDispersive_common.set_limits
     test_azims = _AngleDispersive_common.test_azims
     GetDataType = _AngleDispersive_common.GetDataType
-
+    duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask

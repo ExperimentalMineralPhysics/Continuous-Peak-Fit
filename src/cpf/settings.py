@@ -192,6 +192,22 @@ class Settings:
         new.subfit_orders = deepcopy(self.subfit_orders)
         return new
 
+
+    def duplicate_without_dataclass(self):
+        """
+        Makes a copy of an settings instance but without the data class. 
+        
+        This is for the parallel processing that needs an immutable object to work
+        and because some of the detector classes are not parallelisable.
+        
+        Calls duplicate and then deletes the data_class
+        
+        """
+        new = self.duplicate()
+        delattr(new, 'data_class')
+        return new
+
+
     def populate(
         self,
         settings: Optional[str | Path | dict] = None,

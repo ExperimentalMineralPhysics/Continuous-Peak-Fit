@@ -863,7 +863,7 @@ def execute(
                     # re-get settings for current subpattern
                     settings_for_fit.set_subpattern(j, i)
 
-            sub_data = new_data.duplicate(range_bounds=tth_range)
+            sub_data = new_data.duplicate_without_detector(range_bounds=tth_range)
             # sub_data.set_limits(range_bounds=tth_range)
 
             # Mask the subpattern by intensity if called for
@@ -972,7 +972,7 @@ def execute(
                         "min_data_intensity": settings_for_fit.fit_min_data_intensity,
                         "min_peak_intensity": settings_for_fit.fit_min_peak_intensity,
                     }
-                    arg = (sub_data, settings_for_fit.duplicate())
+                    arg = (sub_data, settings_for_fit.duplicate_without_dataclass())
                     parallel_pile.append((arg, kwargs))
 
                 else:  # non-parallel version

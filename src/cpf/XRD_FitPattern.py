@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import proglog
 from pathos.pools import ParallelPool
-from mpire import WorkerPool
 
 from cpf import output_formatters
 from cpf.BrightSpots import SpotProcess
@@ -664,17 +663,12 @@ def execute(
     # if parallel processing start the pool
     if parallel is True:
         nodes = int(np.min([cpu_count(), len(settings_for_fit.fit_orders)]))
-        """
         pool = ParallelPool(nodes=nodes)
         # Since we may have already closed the pool, try to restart it
         try:
             pool.restart()
         except AssertionError:
             pass
-        """
-        pool =  WorkerPool(n_jobs=nodes, start_method='forkserver', use_dill=True)
-        pool.set_keep_alive()
-
 
     # Process the diffraction patterns
     # for j in range(settings_for_fit.image_number):
@@ -1040,15 +1034,12 @@ def execute(
             settings_file=settings_file, settings_class=settings_for_fit, debug=debug
         )
 
-    """
     if parallel is True:
         pool.clear()
-    """
 
-def parallel_processing(a, kw):
-    # a, kw = p
+def parallel_processing(p):
+    a, kw = p
     return fit_sub_pattern(*a, **kw)
-
 
 if __name__ == "__main__":
     # Load settings fit settings file.

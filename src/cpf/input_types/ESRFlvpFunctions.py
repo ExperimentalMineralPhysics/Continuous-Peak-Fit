@@ -195,6 +195,8 @@ class ESRFlvpDetector:
         # default blocks are 2 degrees incase using only a single detector position
         # if the detector is being spun then the blocks are changed to a larger value.
 
+        self.reduce_by = None
+
         self.calibration = None
         self.conversion_constant = None
         self.detector = None
@@ -255,7 +257,8 @@ class ESRFlvpDetector:
         new.tth = deepcopy(self.tth[local_mask])
         new.azm = deepcopy(self.azm[local_mask])
         if "dspace" in dir(self):
-            new.dspace = deepcopy(self.dspace[local_mask])
+            if self.dspace is not None:
+                new.dspace = deepcopy(self.dspace[local_mask])
 
         # set new range.
         new.tth_start = range_bounds[0]
@@ -332,7 +335,7 @@ class ESRFlvpDetector:
             pos = np.deg2rad(pos)
         return pos
 
-    def _get_sorted_files(self, file_string, debug=False):
+    def _get_sorted_files(self, file_string, reduce_by=None, debug=False):
         """
         Sort the glob string for the files and returns a sorted list. The sorting
         is perfomed using the position of the detectors. These postions are
@@ -361,10 +364,32 @@ class ESRFlvpDetector:
         order = np.array(np.argsort(positions))
         positions = [positions[i] for i in order]
         files_list = [files_list[i] for i in order]
-
         if not files_list:
             raise ValueError("No image files are found")
 
+        # reduce the size of the data set (if called for) by skipping over images.
+        # this will only work for none h5 ESRF data sets.
+        # FIXME: need to adjuct reduction when get h5 data sets -- excpt this function will not be called for h5 data.
+        if reduce_by is not None or self.reduce_by is not None:
+            if reduce_by is False:
+                # used to allow the full data image to be read by data_fill as part of reading the calibrations
+                pass
+            elif reduce_by is not None and reduce_by != 1:
+                if reduce_by < 1:
+                    reduce_by = 1/reduce_by
+                keep = np.int_(np.linspace(0,len(files_list),int(np.floor((len(files_list))/reduce_by)), endpoint=False))
+                files_list = [files_list[i] for i in keep]
+                positions = [positions[i] for i in keep]
+                
+            elif self.reduce_by is not None and self.reduce_by != 1:
+                if self.reduce_by < 1:
+                    self.reduce_by = 1/self.reduce_by
+                keep = np.int_(np.linspace(0,len(files_list),int(np.floor((len(files_list))/self.reduce_by)), endpoint=False))
+                files_list = [files_list[i] for i in keep]
+                positions = [positions[i] for i in keep]
+            else:
+                pass
+        
         return files_list, positions
 
     def get_detector(
@@ -514,9 +539,20 @@ class ESRFlvpDetector:
             ax[-1].set_xlabel("Rot3 (°)")
             plt.tight_layout()
 
+
+
+    def _read_frames(self, frames, dtype, reduce_by=None):
+        return ma.array(
+            [np.flipud(
+                self._reduce_array(fabio.open(f).data, reduce_by=reduce_by)
+                ) for f in frames], dtype=dtype
+        )
+
+
     # @staticmethod
     def import_image(
-        self, image_name=None, settings=None, mask=None, dtype=None, debug=False
+        self, image_name=None, settings=None, mask=None, dtype=None, 
+        reduce_by = None, debug=False
     ):
         """
         Import the data image into the intensity array.
@@ -560,13 +596,11 @@ class ESRFlvpDetector:
             image_name = settings.subfit_filename
 
         # get ordered list of images
-        frames, angles = self._get_sorted_files(image_name, debug=debug)
+        # reduce the size of the data while listing (if called for)
+        frames, angles = self._get_sorted_files(image_name, reduce_by=reduce_by, debug=debug)
 
-        # if mask is False and ma.is_masked(self.intensity) == True:
-        #     mask =self.intensity.mask
         if logger.is_below_level(level="MOREINFO"):
             import time
-
             st = time.time()
 
         if self.intensity is None:
@@ -582,19 +616,25 @@ class ESRFlvpDetector:
                     tmp_image = ma.array(fabio.open(frames[0]).data)
                     dtype = self.GetDataType(tmp_image[0], minimumPrecision=False)
 
-            self.intensity = ma.array(
-                [np.flipud(fabio.open(f).data) for f in frames], dtype=dtype
+            self.intensity = self._read_frames(frames, dtype, reduce_by)
+            
+            #make a full size mask and then reduce it if necessary. 
+            frame_mask = self._reduce_array(
+                self.get_mask(mask, self._read_frames(frames, dtype, reduce_by=False)), 
+                keep_FirstDim=True
             )
+            # resize mask to be the same as the intensity
             self.intensity = ma.array(
-                self.intensity, mask=self.get_mask(mask, self.intensity)
+                self.intensity, mask=frame_mask
             )
         else:
             # inherit the data type from previosuly.
             dtype_tmp = self.intensity.dtype
-            self.intensity.data[:] = ma.array(
-                [np.flipud(fabio.open(f).data) for f in frames], dtype=dtype_tmp
-            )
-
+            
+            # does not need keep_FirstDim=True because iterating over the frame list which 
+            # is already reduced
+            self.intensity.data[:] = self._read_frames(frames, dtype_tmp, reduce_by)
+            
         # 13th June 2024 - Note on flipud: the flipud command is included to invert the short axis of the detector intensity.
         # If I flip the data then the 'spots' in the reconstructed data are spot like, rather than incoherent
         # intensity diffraction peaks.
@@ -611,39 +651,6 @@ class ESRFlvpDetector:
         if max(angles) - min(angles) >= 45:
             self.azm_blocks = 45
 
-        # apply mask to the intensity array
-        # print("mask", mask)
-        # print(ma.is_masked(self.intensity))
-        # try:
-        #     print("mask 1", self.intensity.mask[0][0])
-        # except:
-        #     pass
-
-        # if mask is not False:
-        #     self.intensity = ma.array(self.intensity, mask=self.get_mask(mask, self.intensity))
-
-        # if mask is False:
-        #     return self.intensity
-        # elif mask is not False:
-        #     # apply given mask
-        #     self.intensity = ma.array(self.intensity, mask=self.fill_mask(mask, self.intensity))
-        #     return ma.array(im, mask=mask)
-        # else:
-        #     #apply mask from intensities
-        #     # self.intensity = ma.array(im, mask=self.intensity.mask)
-        #     return self.intensity
-
-        # if mask is None and ma.is_masked(self.intensity) == False:
-        #     self.intensity = ma.array(im)
-        #     return ma.array(im)
-        # elif mask is not None:
-        #     # apply given mask
-        #     self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
-        #     return ma.array(im, mask=mask)
-        # else:
-        #     #apply mask from intensities
-        #     self.intensity = ma.array(im, mask=self.intensity.mask)
-        #     return ma.array(im)
 
     def fill_data(
         self, diff_file=None, settings=None, mask=None, make_zyx=False, debug=False
@@ -697,10 +704,14 @@ class ESRFlvpDetector:
         if mask == None and settings is not None:
             if settings.calibration_mask is not None:  # in settings.items():
                 mask = settings.calibration_mask
+            
+        if settings.reduce_by is not None:
+            self.reduce_by = settings.reduce_by
 
         if self.detector == None:
+            # if reduce_by or self.reduce_by then a reduced list of image files is returned
             self.get_detector(settings=settings)
-
+            
         # set default for data type.
         # Fabio defaults to float64 if nothing is set.
         # Float32 or float16 take up much less memoary than flost64.
@@ -709,15 +720,16 @@ class ESRFlvpDetector:
         array_dtype = np.float32
 
         # get ordered list of images
-        frames, detectorangles = self._get_sorted_files(diff_file, debug=debug)
+        frames, detectorangles = self._get_sorted_files(diff_file, reduce_by=self.reduce_by, debug=debug)
         detectorangles = np.deg2rad(detectorangles)
 
         # use import_image to fill in the intensity data.
+        # No reduction because if reduced then the calibration is nonsence.
         if np.size(self.intensity) <= 1:
             if diff_file != None:
                 # sets self.intensity
-                # self.import_image(diff_file, mask=mask, dtype=array_dtype)
-                self.import_image(diff_file, dtype=array_dtype)
+                self.import_image(diff_file, mask=mask, dtype=array_dtype, reduce_by=self.reduce_by)
+                
             else:
                 # empty array
                 self.intensity = ma.zeros(
@@ -730,48 +742,23 @@ class ESRFlvpDetector:
                 )
 
         # create emmpty arrays
-        self.tth = ma.zeros(
-            [
-                len(frames),
-                self.detector.ais[0].detector.shape[0],
-                self.detector.ais[0].detector.shape[1],
-            ],
+        self.tth = ma.zeros(self.intensity.shape,
             dtype=array_dtype,
         )
-        self.azm = ma.zeros(
-            [
-                len(frames),
-                self.detector.ais[0].detector.shape[0],
-                self.detector.ais[0].detector.shape[1],
-            ],
+        self.azm = ma.zeros(self.intensity.shape,
             dtype=array_dtype,
         )
         if make_zyx:
             # the x, y, z, arrays are not usually needed.
             # but if created can fill the memory.
             # switched incase ever needed/wanted
-            self.x = ma.zeros(
-                [
-                    len(frames),
-                    self.detector.ais[0].detector.shape[0],
-                    self.detector.ais[0].detector.shape[1],
-                ],
+            self.x = ma.zeros(self.intensity.shape,
                 dtype=array_dtype,
             )
-            self.y = ma.zeros(
-                [
-                    len(frames),
-                    self.detector.ais[0].detector.shape[0],
-                    self.detector.ais[0].detector.shape[1],
-                ],
+            self.y = ma.zeros(self.intensity.shape,
                 dtype=array_dtype,
             )
-            self.z = ma.zeros(
-                [
-                    len(frames),
-                    self.detector.ais[0].detector.shape[0],
-                    self.detector.ais[0].detector.shape[1],
-                ],
+            self.z = ma.zeros(self.intensity.shape,
                 dtype=array_dtype,
             )
         logger.debug(
@@ -788,13 +775,13 @@ class ESRFlvpDetector:
 
         # fill the arrays
         for i in range(len(self.detector.ais)):
-            self.tth[i, :, :] = np.rad2deg(self.detector.ais[i].twoThetaArray())
-            self.azm[i, :, :] = np.rad2deg(self.detector.ais[i].chiArray())
+            self.tth[i, :, :] = np.rad2deg(self._reduce_array(self.detector.ais[i].twoThetaArray()))
+            self.azm[i, :, :] = np.rad2deg(self._reduce_array(self.detector.ais[i].chiArray()))
             if make_zyx:
                 zyx = self.detector.ais[i].calc_pos_zyx()
-                self.z[i, :, :] = zyx[0]
-                self.y[i, :, :] = zyx[1]
-                self.x[i, :, :] = zyx[2]
+                self.z[i, :, :] = self._reduce_array(zyx[0])
+                self.y[i, :, :] = self._reduce_array(zyx[1])
+                self.x[i, :, :] = self._reduce_array(zyx[2])
 
         logger.debug(" ".join(map(str, ["Detector is: %s" % self.detector])))
         if logger.is_below_level(level="DEBUG"):
@@ -823,8 +810,6 @@ class ESRFlvpDetector:
             ax.set_xlabel("Rot3, from azimuthal integrators  (°)")
             plt.title("rot3 vs Chi for EXRF lvp Multigeometry")
 
-        # from sys import getsizeof
-
         # F IX ME: (June 2024) i dont know that the d-space array is needed.
         # Check for calls and if this is the only one then remove it
         # self.dspace    = self._get_d_space()
@@ -832,10 +817,7 @@ class ESRFlvpDetector:
         # add masks to arrays
         # FIX ME: should we apply the mask as the arrays are populated rather than here?
         mask_array = self.get_mask(mask, self.intensity)
-
         self.mask_apply(mask_array, debug=debug)
-        # FIX ME: should we apply the mask as the arrays are populated rather than
-        # in a separate function?
 
         self.azm_start = (
             np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
@@ -956,6 +938,7 @@ class ESRFlvpDetector:
     test_azims = _AngleDispersive_common.test_azims
     GetDataType = _AngleDispersive_common.GetDataType
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
+    _reduce_array = _AngleDispersive_common._reduce_array
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask

@@ -126,6 +126,8 @@ class Settings:
         self.calibration_detector: Literal["Pilatus1M", ""] = ""
         self.calibration_pixel_size = None
 
+        self.reduce_by = None
+
         self.fit_bin_type: Optional[int] = None
         self.fit_per_bin: Optional[int] = None
         self.fit_number_bins: Optional[int] = None
@@ -374,6 +376,9 @@ class Settings:
             self.calibration_detector = self.settings_from_input.Calib_detector
         if "Calib_pixels" in dir(self.settings_from_input):
             self.calibration_pixel_size: int = self.settings_from_input.Calib_pixels
+
+        if "reduce_by" in dir(self.settings_from_input):
+            self.reduce_by = self.settings_from_input.reduce_by
 
         # load the data class.
         self.data_class = detector_factory(fit_settings=self)

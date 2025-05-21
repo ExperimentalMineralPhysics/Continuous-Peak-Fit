@@ -345,8 +345,9 @@ class _AngleDispersive_common:
 
         """
         
-        if reduce_by is False:
-            # rebuce_by = False is used by fill_data to make sure this function is passed
+        if reduce_by is False or (reduce_by is None and self.reduce_by is None):
+            # reduce_by = False is used by fill_data to make sure this function is passed
+            # if both are none then there is nothing to do.
             return data
         
         elif reduce_by is not None:

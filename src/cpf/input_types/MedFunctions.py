@@ -24,7 +24,6 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.input_types.MedFunctions")
 
 
-
 class MedDetector:
     """
     Data class for Energy dispersive diffraction.
@@ -62,7 +61,7 @@ class MedDetector:
         self.azm_end = None
         self.tth_start = None
         self.tth_end = None
-        
+
         self.Dispersion = "Energy"
         self.Dispersionlabel = "Energy"
         self.DispersionUnits = "keV"
@@ -71,7 +70,7 @@ class MedDetector:
         self.AzimuthUnits = r"$^\circ$"
         self.Observationslabel = r"Intensity"
         self.ObservationsUnits = r"counts"
-        
+
         # separate detectors around the ring so not continuous
         self.continuous_azm = False
 
@@ -708,7 +707,6 @@ class MedDetector:
 
         return np.squeeze(np.array(dspc_out))
 
-
     def bins(self, orders_class, **kwargs):
         """
         Determine bins to use in initial fitting.
@@ -903,7 +901,7 @@ class MedDetector:
         # colour_start = np.floor((np.min(self.azm)-.1)/blocks)*blocks
         # colour_end   = np.ceil((np.max(self.azm))/blocks)*blocks
         # normalize = colors.Normalize(vmin=colour_start, vmax=colour_end)
-        # c_map = cm.get_cmap(name="jet")
+        # c_map = plt.get_cmap(name="jet")
         # s_map = cm.ScalarMappable(norm=normalize, cmap=c_map)
         # # label colour bar with azimuths if there are less than 10
         # if len(self.intensity) <= 10:
@@ -1064,7 +1062,7 @@ class MedDetector:
         else:
             # Set colour map range - to be in 90 degree blocks using azm_start and azm_end
             normalize = colors.Normalize(vmin=self.azm_start, vmax=self.azm_end)
-            c_map = cm.get_cmap(name=colourmap)
+            c_map = plt.get_cmap(name=colourmap)
             for i in range(len(np.unique(self.azm)) - 1, -1, -1):
                 colour = c_map(
                     normalize(np.mean(plot_c[self.azm == np.unique(self.azm)[i]]))

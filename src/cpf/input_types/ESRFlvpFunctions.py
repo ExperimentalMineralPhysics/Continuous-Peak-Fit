@@ -257,7 +257,7 @@ class ESRFlvpDetector:
         if "dspace" in dir(self):
             new.dspace = deepcopy(self.dspace[local_mask])
 
-        # set nee range.
+        # set new range.
         new.tth_start = range_bounds[0]
         new.tth_end = range_bounds[1]
 
@@ -564,7 +564,7 @@ class ESRFlvpDetector:
 
         # if mask is False and ma.is_masked(self.intensity) == True:
         #     mask =self.intensity.mask
-        if logger.is_below_level(level="moreinfo"):
+        if logger.is_below_level(level="MOREINFO"):
             import time
 
             st = time.time()
@@ -602,7 +602,7 @@ class ESRFlvpDetector:
         # ESRF and LVP beamline multidetector objects.
         # I (SAH) do not believe this is the same feature as the Dioptas and Fit2D
         # adjustment required in the Dioptas class.
-        if logger.is_below_level(level="moreinfo"):
+        if logger.is_below_level(level="MOREINFO"):
             logger.moreinfo(
                 " ".join(map(str, [f"Image import took {time.time()-st} seconds"]))
             )

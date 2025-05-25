@@ -1,0 +1,52 @@
+# run_name
+
+# properties of the data files.
+datafile_directory = $datafile_directory   # required; string
+datafile_Basename  = $datafile_Basename    # required; string -- can be empty string
+datafile_Ending    = $datafile_Ending      # required; string -- can be empty string
+
+datafile_StartNum  = $datafile_StartNum    # optional - required if no datafiles_List; float
+datafile_EndNum    = $datafile_EndNum      # optional - required if no datafiles_List; float
+datafile_NumDigit  = $datafile_NumDigit    # optional; float
+
+datafile_Step      = $datafile_Step        # optional; integer; default = 1
+
+datafile_Files     = $datafile_list        # optional - required if no StartNum, EndNum; float
+
+# keys of the h5 files (if needed)
+h5_datakey  = $h5_datakey
+h5_iterate  = $h5_iterate
+
+
+
+# Calibration and masking.
+Calib_type       = $calibration_type        # required -- but could be worked out from calibration file ending.
+Calib_param      = $calibration_parameters  # required
+Calib_detector   = $calibration_detector    # optional for some input types; contained within calibration for others.
+Calib_data       = $calibration_data        # optional
+Calib_mask       = $calibration_mask        # optional
+Calib_pixel_size = $calibration_pixel_size  # optional -- should be contained in calibration information. [historical? ]
+
+datafile_preprocess  = $datafile_preprocess # optional; dictionary; default is None.
+
+
+# Fitting properties for ranges and peaks.
+fit_propagate          = $fit_propagate    # optional; default is True
+fit_track              = $fit_track        # optional; default is False
+fit_bin_type           = $fit_bin_type     # optional; default is 0 (fixed number of data per bin)
+fit_per_bin            = $fit_per_bin      # optional
+fit_number_bins        = $fit_number_bins  # optional; default is False
+fit_min_data_intensity = $fit_min_data_intensity   # optional; default is 0
+fit_min_peak_intensity = $fit_min_peak_intensity   # optional; default is "0.25*std"
+fit_bounds             = $fit_bounds       # optional; default is {"background": ["0.95*min", "1.05*max"],  "d-space": ["min", "max"],  "height": [0, "1.05*max"],   "profile": [0, 1],  "width": ["range/(ndata)", "range/2"],
+
+
+# Output settings
+output_directory = $output_directory
+output_type      = $output_types
+# optional settings for each output type go here.
+output_settings  = $output_settings
+
+
+# define ranges, peaks and orders
+fit_orders = $fit_orders   #required

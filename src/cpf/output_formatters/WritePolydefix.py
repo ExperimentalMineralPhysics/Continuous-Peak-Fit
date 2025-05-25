@@ -207,27 +207,27 @@ def WriteOutput(
         text_file.write(
             "     %s\n" % settings_class.datafile_basename.strip("_").strip(".")
         )
-        # if "datafile_startnum" in self.settings_from_file:
-        #     self.datafile_startnum  = self.settings_from_file.datafile_StartNum
-        #     self.datafile_endnum    = self.settings_from_file.datafile_EndNum
-        #     self.datafile_numdigits = self.settings_from_file.datafile_NumDigit
+        # if "datafile_startnum" in self.settings_from_input:
+        #     self.datafile_startnum  = self.settings_from_input.datafile_StartNum
+        #     self.datafile_endnum    = self.settings_from_input.datafile_EndNum
+        #     self.datafile_numdigits = self.settings_from_input.datafile_NumDigit
         if (
-            settings_class.settings_from_file.datafile_StartNum
-            > settings_class.settings_from_file.datafile_EndNum
+            settings_class.settings_from_input.datafile_StartNum
+            > settings_class.settings_from_input.datafile_EndNum
         ):
             logger.info(" ".join(map(str, [("start>end")])))
-            strt = settings_class.settings_from_file.datafile_EndNum
-            eend = settings_class.settings_from_file.datafile_StartNum
+            strt = settings_class.settings_from_input.datafile_EndNum
+            eend = settings_class.settings_from_input.datafile_StartNum
         else:
-            strt = settings_class.settings_from_file.datafile_StartNum
-            eend = settings_class.settings_from_file.datafile_EndNum
+            strt = settings_class.settings_from_input.datafile_StartNum
+            eend = settings_class.settings_from_input.datafile_EndNum
         text_file.write("# First index for FIT files\n")
         text_file.write("     %i\n" % strt)
         text_file.write("# Last index for FIT files\n")
         text_file.write("     %i\n" % eend)
         text_file.write("# Number of digits for FIT files\n")
         text_file.write(
-            "     %i\n" % settings_class.settings_from_file.datafile_NumDigit
+            "     %i\n" % settings_class.settings_from_input.datafile_NumDigit
         )
         text_file.write("# Wavelength\n")
         # text_file.write("     %8.7g\n" % settings_class.data_class.calibration["conversion_constant"])

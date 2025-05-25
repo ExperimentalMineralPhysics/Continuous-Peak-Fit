@@ -60,7 +60,7 @@ output_methods_modules = register_default_formats()
 
 
 def initiate(
-    settings_file: Optional[str | Path] = None,
+    settings: Optional[str | Path | dict] = None,
     inputs=None,
     out_type=None,
     report: Literal[
@@ -84,21 +84,30 @@ def initiate(
     set_global_log_level(report)
 
     # Add a file handler to this logger
-    if settings_file:
-        log_file = make_outfile_name(
-            base_filename=settings_file, extension=".log", overwrite=True
-        )
-        logger.add_file_handler(log_file)
+    if isinstance(settings, dict):
+        running_name = settings["run_name"]
+    else:
+        running_name = settings
+    log_file = log_file = make_outfile_name(
+        base_filename=running_name, extension=".log", overwrite=True
+    )
+    logger.add_file_handler(log_file)
+     
+    # if settings_file:
+    #     log_file = make_outfile_name(
+    #         base_filename=settings_file, extension=".log", overwrite=True
+    #     )
+    #     logger.add_file_handler(log_file)
 
     # Fail gracefully
-    if settings_file is None:
+    if settings is None:
         raise ValueError(
             "Either the settings file or the parameter dictionary need to be specified."
         )
     # Convert to Path object
-    if isinstance(settings_file, str):
+    if isinstance(settings, str):
         try:
-            settings_file = Path(settings_file)
+            settings = Path(settings)
         except Exception as error:
             raise error
 
@@ -106,14 +115,14 @@ def initiate(
     logger.info("")
     logger.info("=================================================================")
     logger.info("")
-    logger.info("Starting data proceesing using: %s.py" % settings_file)
+    logger.info(f"Starting data proceesing using settings {'dictionary' if isinstance(settings, dict) else 'file'}: {running_name}")    
     logger.info("")
     logger.info("=================================================================")
     logger.info("")
 
     # If no params_dict then initiate. Check all the output functions are present and valid.
     settings_for_fit = Settings()
-    settings_for_fit.populate(settings_file=settings_file, report=report)
+    settings_for_fit.populate(settings=settings, report=report)
 
     return settings_for_fit
 
@@ -653,8 +662,8 @@ def execute(
 
     # if parallel processing start the pool
     if parallel is True:
-        pool = ParallelPool(nodes=cpu_count())
-
+        nodes = int(np.min([cpu_count(), len(settings_for_fit.fit_orders)]))
+        pool = ParallelPool(nodes=nodes)
         # Since we may have already closed the pool, try to restart it
         try:
             pool.restart()
@@ -848,7 +857,7 @@ def execute(
                     # re-get settings for current subpattern
                     settings_for_fit.set_subpattern(j, i)
 
-            sub_data = new_data.duplicate(range_bounds=tth_range)
+            sub_data = new_data.duplicate_without_detector(range_bounds=tth_range)
             # sub_data.set_limits(range_bounds=tth_range)
 
             # Mask the subpattern by intensity if called for
@@ -957,7 +966,7 @@ def execute(
                         "min_data_intensity": settings_for_fit.fit_min_data_intensity,
                         "min_peak_intensity": settings_for_fit.fit_min_peak_intensity,
                     }
-                    arg = (sub_data, settings_for_fit.duplicate())
+                    arg = (sub_data, settings_for_fit.duplicate_without_dataclass())
                     parallel_pile.append((arg, kwargs))
 
                 else:  # non-parallel version
@@ -1028,11 +1037,9 @@ def execute(
     if parallel is True:
         pool.clear()
 
-
 def parallel_processing(p):
     a, kw = p
     return fit_sub_pattern(*a, **kw)
-
 
 if __name__ == "__main__":
     # Load settings fit settings file.

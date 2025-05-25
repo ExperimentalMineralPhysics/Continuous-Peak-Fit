@@ -99,7 +99,17 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install 'numpy${{ matrix.numpy-version }}'
           python -m pip install .[dev]
+          python -m pip install coverage pytest-cov
 
-      - name: Run 'pytest' tests
+      - name: Run 'pytest' tests with coverage
         run: |
-          pytest
+          coverage run -m pytest
+          coverage xml
+
+      - name: Upload test results to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+          flags: ${{ matrix.os }}-py${{ matrix.python-version }}
+          name: codecov-${{ matrix.os }}-py${{ matrix.python-version }}
+          fail_ci_if_error: false # Optional: don't fail build if upload fails

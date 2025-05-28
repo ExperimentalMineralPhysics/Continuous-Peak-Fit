@@ -486,6 +486,7 @@ class MedDetector:
             self.intensity = self._reduce_array(self.intensity, keep_FirstDim=True)
             self.tth = self._reduce_array(self.tth, keep_FirstDim=True)
             self.azm = self._reduce_array(self.azm, keep_FirstDim=True)
+            #self.azm does not need polar=True because keep_FirstDim=True
 
         self.azm_start = (
             np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks

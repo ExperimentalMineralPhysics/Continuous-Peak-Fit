@@ -6,9 +6,10 @@ import re
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
+from copy import deepcopy
+from skimage.util import shape
 
 from cpf.util.logging import get_logger
-from skimage.transform import rescale, resize, downscale_local_mean
 
 logger = get_logger("cpf.input_types._AngelDispersive_common")
 
@@ -324,26 +325,133 @@ class _AngleDispersive_common:
         return self.duplicate(range_bounds=range_bounds, azi_bounds=azi_bounds, with_detector=False)
 
     
-    def _reduce_array(self, data, reduce_by=None, method="downscale_local_mean", keep_FirstDim=False):
+    def _reduce_array(self, data, reduce_by=None, keep_FirstDim=False, polar=False):
         """
-        Function to reduce the size of the data arrays by factor of reduce_by.
-        The reduction bins the pixel data into reduce_by x reduce_by bins. 
-
+        Reduces the size of the data array by factor of reduce_by.
+        The default returned values are the arithmetric mean of 
+        'reduce_by' x 'reduce_by' blocks of data.
+        
         Parameters
         ----------
         data : np.array
-            Data to be reduced.
+            Data array to be reduced.
         reduce_by : int, optional
-            DESCRIPTION. The default is None.
-        sum : TYPE, optional
-            DESCRIPTION. The default is False.
+            Factor to reduce the data by. The default is None.
+        keep_FirstDim : bool, optional
+            Do not reduce the first dimension of the data array if True.
+            Used for compund detectors (e.g. MED and EXRFlvp type). The default is False.
+        polar : bool, optional
+            Account for wrapping of anglular data, where +/-180 degrees have the 
+            same value and a straight mean of the values is incorrect.
+            The default is False.
 
         Returns
         -------
-        data : np.array
-            DESCRIPTION.
-
+        data_out : np.array
+            Data array reduced by 'reduce_by'.
         """
+        
+        def do_reduction(data, reduction, mask=False, polar=False, rot=90, threshold=180, azm_min_max=[-180, 180]):
+            """
+            Do the resizing of the data array.
+            Downscale using the local mean for each block
+            
+            :param data: array for be reduced
+            :type data: ma.array
+            :param reduction: Integer list of how much to reduce the data by
+            :type reduction: list
+            :param msk: DESCRIPTION, defaults to None
+            :type msk: TYPE, optional
+            :param method: methd to use for reduction, defaults to "downscale_local_mean"
+            :type method: string, optional
+            :raises NotImplementedError: Reduction method is not implemented
+            :raises ValueError: Raised for unrecognised reduction method
+            :return: reduced data array
+            :rtype: ma.arrray
+
+            """
+            # Separated out from _reduce_array to prevent repeating of the same lines of code. 
+            
+            # Started from:
+            # data_out = ma.array(downscale_local_mean(data, reduction), mask=mask)
+            # but this doesn't work due to needing to check the angles for wrapping. 
+            # downscale_local_mean calls other functions in skimage. call these as needed
+            # shape.view_as_blocks() called by skimage.measure.block.block_reduce()
+            
+            # FIXME: something strange is going on here. if i dont round the 
+            # FIXME: values then end up with np.int_(1) = 0 for BCC1 input and reduce_by = 3
+            # FIXME: see following print statements for minimum working example. 
+            if 0:
+                print("data.shape:", data.shape)
+                print("reduction:", reduction)
+                print("run:   np.ceil(np.array(data.shape) / np.array(reduction)) , (np.array(data.shape) / np.array(reduction))")
+                print(np.ceil(np.array(data.shape) / np.array(reduction)) , (np.array(data.shape) / np.array(reduction)))
+                print("run:   np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))")
+                print(np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))
+                print("run:   (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))) * reduction")
+                print( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))) * reduction)
+                print("run:   np.round(  (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))) * reduction) " )
+                print(  np.round(  (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))) * reduction)  )
+                print("First value of pevious array is:", np.round(  (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))) * reduction)[0])
+                print("THIS IS THE LINE I DO NOT UNDERSTAND")
+                print("run:   1 - np.int32( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0] " )
+                print(1 - np.int32( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0]  )
+                print("run:   1 - ( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0] " )
+                print(1 - ( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0]  )
+                print("run:  np.int32( 1 - ( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0] " )
+                print(np.int32(1 - ( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0]  ))
+            
+            #needs padding before can view as blocks. 
+            #this round function is reuqired to deal with whatever mess is above in the numbers.
+            pad = np.round((np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction)
+            # format pad as required by np.pad                
+            pad = [(0, np.int_(pad[i])) for i in range(len(pad))]
+            
+            # pad and block the data
+            data = np.pad(data, pad_width=pad, constant_values=np.nan)
+            blocked = shape.view_as_blocks(data, reduction)
+
+            #reduce the data. 
+            data_out = np.nanmean(blocked, axis=tuple(range(data.ndim, blocked.ndim)))
+                
+            if polar == True:
+                # the data could wrap around and we need to deal with that. 
+                # the data wrapping is reason that cannot just call skimage.measure.block.block_reduce
+                
+                # see if the data actually wraps round 
+                range1   = np.nanmax(blocked, axis=tuple(range(data.ndim, blocked.ndim))) - np.nanmin(blocked, axis=tuple(range(data.ndim, blocked.ndim)))
+                wrapped = np.where(range1 >= threshold)
+                
+                if wrapped:
+                    # some of the blocks have range greater than threshold
+                    
+                    # rotate the data so can get good values for average
+                    # but need to make sure it all stays within expected ranges. 
+                    rot = rot%360
+                    rotated = (deepcopy(data)+rot)
+                    rotated[rotated < azm_min_max[0]] = rotated[rotated < azm_min_max[0]] + 360
+                    rotated[rotated > azm_min_max[1]] = rotated[rotated > azm_min_max[1]] - 360
+                    # block and reduce the rotated data. 
+                    blockedrot = shape.view_as_blocks(rotated, reduction)
+                    data_outrot = np.nanmean(blockedrot, axis=tuple(range(data.ndim, blockedrot.ndim)))
+                    
+                    # if len(wrapped[0])!=0:
+                    #     data_tmp = deepcopy(data_out)
+                    #     data_wrapped_unclaned = data_tmp[wrapped]
+                    
+                    # replace the values that wrap around with good ones.                     
+                    data_out[wrapped] = data_outrot[wrapped] - rot
+                    
+                    # if len(wrapped[0])!=0:
+                    #     data_wrapped_cleaned = data_out[wrapped]
+                    #     fig1, ax1 = plt.subplots(1,1)
+                    #     ax1.scatter(data_wrapped_unclaned, data_wrapped_cleaned, 1, label="after")
+                    #     ax1.legend()
+                    #     ax1.set_xlabel("piror")
+                    #     ax1.set_ylabel("after")
+
+            return ma.MaskedArray(data_out, mask=mask)
+        
         
         if reduce_by is False or (reduce_by is None and self.reduce_by is None):
             # reduce_by = False is used by fill_data to make sure this function is passed
@@ -359,42 +467,18 @@ class _AngleDispersive_common:
         if keep_FirstDim == True:
             reduction[0] = 1
         reduction = tuple(reduction)
-        # if np.ndim(data) == 3:
-        #     reduction = (1, reduction, reduction)
-        # else:
-        #     reduction = (reduction, reduction)
                 
-        msk=None
         if ma.is_masked(data) == True:
-            msk = data.mask
-            if method == "rescale":
-                raise NotImplementedError(f"'{method}' has not been implemented as a reuction method")
-                msk = rescale(msk, 1/reduction, anti_aliasing=False)
-            elif method == "resize":
-                raise NotImplementedError(f"'{method}' has not been implemented as a reuction method")
-                msk = resize(
-                    msk, (msk.shape[0] // reduction, msk.shape[1] // reduction), anti_aliasing=True
-                )
-            elif method=="downscale_local_mean":
-                msk = downscale_local_mean(msk, reduction)
-            else:
-                raise ValueError(f"Unrecognised data reduction method: {method}")
+            msk = do_reduction(data.mask, reduction, mask=False)
         else:
             msk=False
         
-        if method == "rescale":
-            raise NotImplementedError(f"'{method}' has not been implemented as a reuction method")
-            data_out = ma.array(rescale(data, 1/reduction, anti_aliasing=False), mask=msk)
-        elif method == "resize":
-            raise NotImplementedError(f"'{method}' has not been implemented as a reuction method")
-            data_out = ma.array(resize(
-                data, (data.shape[0] // reduction, data.shape[1] // reduction), anti_aliasing=True
-            ), mask=msk)
-        elif method=="downscale_local_mean":
-            data_out = ma.array(downscale_local_mean(data, reduction), mask=msk)
-        else:
-            raise ValueError(f"Unrecognised data reduction method: {method}")
-                
+        data_out = do_reduction(data, reduction, mask=msk, polar=polar, azm_min_max=[self.azm_start, self.azm_end])
+        
+        if polar == True:
+            data_out[data_out < self.azm_start] = data_out[data_out < self.azm_start] + 360
+            data_out[data_out >= self.azm_end] = data_out[data_out >= self.azm_end] - 360
+        
         return data_out
 
 

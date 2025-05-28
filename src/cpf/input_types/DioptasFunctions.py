@@ -472,7 +472,7 @@ class DioptasDetector:
         if self.reduce_by is not None:
             self.intensity = self._reduce_array(self.intensity)
             self.tth = self._reduce_array(self.tth)
-            self.azm = self._reduce_array(self.azm)
+            self.azm = self._reduce_array(self.azm, polar=True)
             if make_zyx:
                 self.z = self._reduce_array(self.z)
                 self.y = self._reduce_array(self.y)

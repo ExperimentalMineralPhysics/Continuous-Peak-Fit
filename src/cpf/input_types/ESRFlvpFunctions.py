@@ -548,8 +548,8 @@ class ESRFlvpDetector:
     def _read_frames(self, frames, dtype, reduce_by=None):
         return ma.array(
             [np.flipud(
-                self._reduce_array(fabio.open(f).data, reduce_by=reduce_by)
-                ) for f in frames], dtype=dtype
+                self._reduce_array(np.array(fabio.open(f).data, dtype=dtype), reduce_by=reduce_by)
+                ) for f in frames]
         )
 
 
@@ -779,8 +779,8 @@ class ESRFlvpDetector:
 
         # fill the arrays
         for i in range(len(self.detector.ais)):
-            self.tth[i, :, :] = np.rad2deg(self._reduce_array(self.detector.ais[i].twoThetaArray()))
-            self.azm[i, :, :] = np.rad2deg(self._reduce_array(self.detector.ais[i].chiArray()))
+            self.tth[i, :, :] = self._reduce_array(np.rad2deg(self.detector.ais[i].twoThetaArray()))
+            self.azm[i, :, :] = self._reduce_array(np.rad2deg(self.detector.ais[i].chiArray()), polar=True)
             if make_zyx:
                 zyx = self.detector.ais[i].calc_pos_zyx()
                 self.z[i, :, :] = self._reduce_array(zyx[0])

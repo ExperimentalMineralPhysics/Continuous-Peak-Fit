@@ -510,7 +510,16 @@ class XYDetector:
         if self.reduce_by is not None:
             self.intensity = self._reduce_array(self.intensity)
             self.tth = self._reduce_array(self.tth)
-            self.azm = self._reduce_array(self.azm)
+            if (re.findall("azimuth", self.calibration.calibration["y_label"].lower())
+                or 
+                re.findall("theta", self.calibration.calibration["x_label"].lower())
+                or
+                self.azm_end == self.azm_start + 360):
+                # the data would appear to be diffraction data. 
+                self.azm = self._reduce_array(self.azm, polar=True)
+            else:
+                # data is some other sort of data.
+                self.azm = self._reduce_array(self.azm, polar=False)
 
         # get new azm_blocks from detector.
         self.azm_blocks = self.detector.azm_blocks

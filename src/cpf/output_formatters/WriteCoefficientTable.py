@@ -37,7 +37,6 @@ def WriteOutput(
     settings_class=None,
     settings_file=None,
     fitStats=True,
-    writefile=True,
     *args,
     **kwargs,
 ):
@@ -50,8 +49,6 @@ def WriteOutput(
     :type settings_file: TYPE, optional
     :param fitStats: DESCRIPTION, defaults to True
     :type fitStats: TYPE, optional
-    :param writefile: DESCRIPTION, defaults to True
-    :type writefile: TYPE, optional
     :param *args: DESCRIPTION
     :type *args: TYPE
     :param **kwargs: DESCRIPTION
@@ -103,88 +100,88 @@ def WriteOutput(
     )
 
     # write file using panda dataframe    
-    if writefile == True:
-        ## format dateframe for writing to file neatly.
-        # make strings in DateFile and Peak columns all the same length
-        len_datafile = np.max(df["DataFile"].str.len())
-        len_peaks = np.max(df["Peak"].str.len())
-        df_tmp = df["DataFile"].str.pad(
-            np.max([len_datafile, col_width]), side="left", fillchar=" "
-        )
-        df["DataFile"] = df_tmp
-        df_tmp = df["Peak"].str.pad(
-            np.max([len_peaks, col_width]), side="left", fillchar=" "
-        )
-        df["Peak"] = df_tmp
 
-        # rename the columns so that the headers are the same width as the columns
-        class NewClass(object):
-            pass
+    ## format dateframe for writing to file neatly.
+    # make strings in DateFile and Peak columns all the same length
+    len_datafile = np.max(df["DataFile"].str.len())
+    len_peaks = np.max(df["Peak"].str.len())
+    df_tmp = df["DataFile"].str.pad(
+        np.max([len_datafile, col_width]), side="left", fillchar=" "
+    )
+    df["DataFile"] = df_tmp
+    df_tmp = df["Peak"].str.pad(
+        np.max([len_peaks, col_width]), side="left", fillchar=" "
+    )
+    df["Peak"] = df_tmp
 
-        columns = NewClass()
-        for i in range(len(headers)):
-            if headers[i] == "DataFile":
-                setattr(
-                    columns,
-                    headers[i],
-                    headers[i].rjust(np.max([len_datafile, col_width])),
-                )
-            elif headers[i] == "Peak":
-                setattr(
-                    columns,
-                    headers[i],
-                    headers[i].rjust(np.max([len_peaks, col_width])),
-                )
-            else:
-                setattr(columns, headers[i], headers[i].rjust(col_width))
-        columns = columns.__dict__
-        df.rename(columns=columns, inplace=True)
+    # rename the columns so that the headers are the same width as the columns
+    class NewClass(object):
+        pass
 
-        # write data frame to csv file
-        with open(out_file, "w") as f:
-            logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
-
-            f.write(
-                "# continuous_peak_fit : Table of all coefficients from fits for input file: %s.\n"
-                % settings_class.settings_file
+    columns = NewClass()
+    for i in range(len(headers)):
+        if headers[i] == "DataFile":
+            setattr(
+                columns,
+                headers[i],
+                headers[i].rjust(np.max([len_datafile, col_width])),
             )
-            f.write("# For more information: http://www.github.com/me/something\n")
-            f.write("# File version: %i \n" % version)
-            f.write("# \n")
+        elif headers[i] == "Peak":
+            setattr(
+                columns,
+                headers[i],
+                headers[i].rjust(np.max([len_peaks, col_width])),
+            )
+        else:
+            setattr(columns, headers[i], headers[i].rjust(col_width))
+    columns = columns.__dict__
+    df.rename(columns=columns, inplace=True)
 
-            df.to_csv(
-                f,
-                index=False,
-                header=True,
-                na_rep="".ljust(col_width),
-                float_format=lambda x: f"{x:{str(col_width)}.{str(dp)}f}"
-                        if np.abs(x) > 0.1
-                        else f"{x:{str(col_width)}.{str(dp)}e}"
-                    )
-            
-        # rewrite the file adjusting the column widths to keep the data lined up. 
-        with open(out_file, 'r') as fl: 
-            in_lines = fl.readlines() 
-        with open(out_file, 'w') as f:
-            for line in in_lines:
-                split_line = line.split(",")
-                split_line_out = []
-                running_length = 0
-                expected_length = 0
-                for i in range(len(split_line)):
-                    if i==0: # first column. keep narrow
-                        col_here = 3
-                        if "num" in split_line[i]:
-                            split_line_out.append(f"{split_line[i].replace(' ',''):>{col_here}}")
-                        else:
-                            split_line_out.append(f"{split_line[i]:>{col_here}}")
-                    elif i==1: # file names
-                        col_here = col_width
-                        split_line_out.append(f" {split_line[i]:>{col_here}}")
-                    else: # data values. adjust column width to line everything up.
-                        col_here = np.max([0,col_width - (running_length-expected_length)])
+    # write data frame to csv file
+    with open(out_file, "w") as f:
+        logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
+
+        f.write(
+            "# continuous_peak_fit : Table of all coefficients from fits for input file: %s.\n"
+            % settings_class.settings_file
+        )
+        f.write("# For more information: http://www.github.com/me/something\n")
+        f.write("# File version: %i \n" % version)
+        f.write("# \n")
+
+        df.to_csv(
+            f,
+            index=False,
+            header=True,
+            na_rep="".ljust(col_width),
+            float_format=lambda x: f"{x:{str(col_width)}.{str(dp)}f}"
+                    if np.abs(x) > 0.1
+                    else f"{x:{str(col_width)}.{str(dp)}e}"
+                )
+        
+    # rewrite the file adjusting the column widths to keep the data lined up. 
+    with open(out_file, 'r') as fl: 
+        in_lines = fl.readlines() 
+    with open(out_file, 'w') as f:
+        for line in in_lines:
+            split_line = line.split(",")
+            split_line_out = []
+            running_length = 0
+            expected_length = 0
+            for i in range(len(split_line)):
+                if i==0: # first column. keep narrow
+                    col_here = 3
+                    if "num" in split_line[i]:
                         split_line_out.append(f"{split_line[i].replace(' ',''):>{col_here}}")
-                        running_length += len(split_line_out[-1])
-                        expected_length += col_width
-                out_line = ",".join(split_line_out)
-                f.write(out_line)
+                    else:
+                        split_line_out.append(f"{split_line[i]:>{col_here}}")
+                elif i==1: # file names
+                    col_here = col_width
+                    split_line_out.append(f" {split_line[i]:>{col_here}}")
+                else: # data values. adjust column width to line everything up.
+                    col_here = np.max([0,col_width - (running_length-expected_length)])
+                    split_line_out.append(f"{split_line[i].replace(' ',''):>{col_here}}")
+                    running_length += len(split_line_out[-1])
+                    expected_length += col_width
+            out_line = ",".join(split_line_out)
+            f.write(out_line)

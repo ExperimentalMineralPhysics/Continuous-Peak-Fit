@@ -72,3 +72,9 @@ max_supported_python = "3.12" # Latest version in security stage
 
 [tool.pytest.ini_options]
 pythonpath = [ "Example1-Fe", "Example2-MgO" ]
+
+[tool.coverage.run]
+omit = [
+    "config.py",
+    "config-3.py",
+]

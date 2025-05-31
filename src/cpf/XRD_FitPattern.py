@@ -418,38 +418,59 @@ def order_search(
     settings_file: Optional[str | Path] = None,
     settings_class: Optional[Settings] = None,
     inputs=None,
-    debug: bool = False,
     refine: bool = True,
     save_all: bool = False,
-    # propagate: bool = True,
-    iterations: int = 1,
-    # track: bool = False,
-    parallel: bool = True,
+    parallel: bool = False,
     search_parameter: str = "height",
     search_over: list[int] = [0, 20],
     subpattern: str = "all",
-    search_peak: int = 0,
+    search_peak: int = "all",
     search_series: list[str] = ["fourier", "spline"],
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
     ] = "INFO",
 ):
     """
-    :param search_series:
-    :param search_peak:
-    :param sub_pattern:
-    :param search_over:
-    :param track:
-    :param search_parameter:
-    :param parallel:
-    :param propagate:
-    :param save_all:
-    :param settings_file:
-    :param inputs:
-    :param debug:
-    :param refine:
-    :param iterations:
-    :return:
+    Searches for the best order to use for 'search_parameter', where 'search_over'
+    is one of the model parameters (e.g. 'background', 'width', etc). 
+    The data is fit with orders in the range defined by 'search_over'.
+    The resultant fits are plotted by cpf.output_formatters.WriteOrderSearchFigures
+    
+    Makes a json file with all the fits that is named:
+        *settings_file*__search=*search_parameter*_subpattern=*subpattern*_peak=*search_peak*
+
+    Parameters
+    ----------
+    settings_class : cpf.Settings.settings() Class, optional
+        Class containing all the fitting parameters. The default is None.
+    settings_file : *.py file, optional
+        text file containing all the fitting parameters. The default is None.
+    inputs : TYPE, optional
+        DESCRIPTION. The default is None.
+    refine : bool, optional
+        DESCRIPTION. The default is True.
+    save_all : bool, optional
+        DESCRIPTION. The default is False.
+    parallel : bool, optional
+        Process the data in parallel? Set to false because parallel fills the memory with data.
+        USE WITH CAUTION. The default is False.
+    search_parameter : str, optional
+        DESCRIPTION. The default is "height".
+    search_over : list[int], optional
+        DESCRIPTION. The default is [0, 20].
+    subpattern : str, optional
+        DESCRIPTION. The default is "all".
+    search_peak : int, optional
+        DESCRIPTION. The default is "all".
+    search_series : list[str], optional
+        DESCRIPTION. The default is ["fourier", "spline"].
+    report : Literal[        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"    ], optional
+        DESCRIPTION. The default is "INFO".
+
+    Returns
+    -------
+    None.
+
     """
 
     settings_for_fit: Settings = (
@@ -458,14 +479,8 @@ def order_search(
         else settings_class
     )
 
-    # force it to write the required output type.
-    settings_for_fit.set_output_types(out_type_list=["DifferentialStrain"])
-
     # search over the first file only
     settings_for_fit.set_data_files(keep=0)
-
-    # restrict to sub-patterns listed
-    settings_for_fit.set_subpatterns(subpatterns=subpattern)
 
     # set search orders
     settings_for_fit.set_order_search(
@@ -475,7 +490,7 @@ def order_search(
         search_peak=search_peak,
         search_series=search_series,
     )
-
+    settings_for_fit.fit_propagate = False
     settings_for_fit.file_label = (
         "search="
         + search_parameter
@@ -487,22 +502,19 @@ def order_search(
 
     execute(
         settings_class=settings_for_fit,
-        debug=debug,
         refine=refine,
         save_all=save_all,
-        iterations=iterations,
+        mode="search",
         parallel=parallel,
         report=report,
     )
 
-    # write a differential strain output file
-    # FIX ME: using debug as a switch to get all info in file.
-    # should probably use another switch
+    # call WriteOrderSearchFigures to make the figures.
     write_output(
-        settings_file=settings_file,
+        # settings_file=settings_file,
         settings_class=settings_for_fit,
         debug=True,
-        out_type="DifferentialStrain",
+        out_type="OrderSearchFigures",
     )
 
 

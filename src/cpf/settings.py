@@ -1202,12 +1202,29 @@ class Settings:
         search_parameter="height",
         search_over=[0, 20],
         subpatterns="all",
-        search_peak=0,
+        search_peak="all",
         search_series=["fourier", "spline"],
     ):
         """
-        set a range of orders to fit.
-        This is used when determining what is best orders to use for fit.
+        Expands the fit_orders dictionary for searching over peak parameter order space. 
+
+        Parameters
+        ----------
+        search_parameter : str, optional
+            Set parameter to search over. The default is "height".
+        search_over : list, optional
+            Set order range to search over. The default is [0, 20].
+        subpatterns : list str, optional
+            Set which subpatterns to search over. The default is "all".
+        search_peak : list str, optional
+            Set which peak in the subpatterns to search over. The default is "all".
+        search_series : list str, optional
+            Set which series types to search over. The default is ["fourier", "spline"].
+
+        Returns
+        -------
+        None.
+
         """
         if subpatterns == "all":
             subpatterns = list(range(0, len(self.fit_orders)))
@@ -1222,31 +1239,51 @@ class Settings:
         else:
             search = [int(x) for x in str(search_over)]
 
+        #search series 
+        if search_series == "all":
+            search_series = [coefficient_type_as_string(0),
+                             coefficient_type_as_string(1),
+                             coefficient_type_as_string(2),
+                             coefficient_type_as_string(3)]
+
         orders_search = []
         for i in range(len(subpatterns)):
+            tmp_order = self.fit_orders[subpatterns[i]]
             for j in range(len(search_series)):
-                tmp_order = self.fit_orders[subpatterns[i]]
-                for k in range(len(search)):
-                    orders_s = deepcopy(tmp_order)
-                    if search_parameter != "background":
-                        orders_s["peak"][search_peak][search_parameter] = search[k]
-                        orders_s["peak"][search_peak][search_parameter + "_type"] = (
-                            search_series[j]
+                
+                if search_peak=="all":
+                    peak_search = list(range(len(tmp_order["peak"])))
+                else:
+                    peak_search = [search_peak]
+                
+                for l in peak_search:
+                    
+                    for k in range(len(search)):
+                    
+                        orders_s = deepcopy(tmp_order)
+                        
+                        if search_parameter != "background":
+                            orders_s["peak"][peak_search[l]][search_parameter] = search[k]
+                            orders_s["peak"][peak_search[l]][search_parameter + "_type"] = (
+                                search_series[j]
+                            )
+                        else:
+                            orders_s["background"][peak_search[l]] = search[k]
+                        if len(tmp_order) > 1:
+                            intro_string = "peak=" + str(peak_search[l]) + "_"
+                        else:
+                            intro_string = ""
+                        orders_s["note"] = (
+                            "peak="
+                            + str(l) 
+                            + "|"
+                            + search_parameter
+                            + "="
+                            + str(search[k])
+                            + "|type="
+                            + search_series[j]
                         )
-                    else:
-                        orders_s["background"][search_peak] = search[k]
-                    if len(tmp_order) > 1:
-                        intro_string = "peak=" + str(search_peak) + "_"
-                    else:
-                        intro_string = ""
-                    orders_s["note"] = (
-                        search_parameter
-                        + "="
-                        + str(search[k])
-                        + "_type="
-                        + search_series[j]
-                    )
-                    orders_search.append(orders_s)
+                        orders_search.append(orders_s)
         self.fit_orders = orders_search
 
     def set_subpattern(self, file_number, number_subpattern):

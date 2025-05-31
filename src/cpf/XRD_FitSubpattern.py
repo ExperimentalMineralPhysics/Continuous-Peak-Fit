@@ -1014,7 +1014,10 @@ def fit_sub_pattern(
 
     # add peak names to new_params
     new_params.update({"PeakLabel": peak_string(settings_as_class.subfit_orders)})
-
+    #add notes if they are present.
+    if "note" in settings_as_class.subfit_orders:
+            new_params.update({"note": settings_as_class.subfit_orders["note"]})
+            
     # Plot results to check
     view = 0
     if (save_fit == 1 or view == 1 or logger.is_below_level("EFFUSIVE")) and step[

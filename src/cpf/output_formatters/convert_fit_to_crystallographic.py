@@ -7,38 +7,58 @@ from cpf.IO_functions import replace_null_terms
 
 def fourier_to_crystallographic(
     coefficients,
-    SampleGeometry="3d",
-    SampleDeformation="compression",
+    SampleGeometry: str = "3d",
+    SampleDeformation: str = "compression",
     correlation_coeffs=None,
     subpattern=0,
     peak=0,
-    debug=False,
     **kwargs,
 ):
     """
-    Convert fourier coefficients into the centroid and differnetial values expected for crystallogrpahic strains/stresses.
+    Convert fourier coefficients into the centroid and differential values expected for crystallogrpahic strains/stresses.
 
-    Currently this script uses the forst order approximation that d0 = z-th order Foutier coefficient, differential strain is
+    Currently this script uses the first order approximation that d0 = z-th order Foutier coefficient, differential strain is
     the length of the second order coefficients as a vector, and the angle is the arctan of the angle from these two coefficients.
     This is true if the center of the Debye-Scherer ring is at 0,0. If X0 or y0 are not zero a small ststematice error creeps into the
     coefficients. However, accoutning for these higher order terms and converting x0 and y0 into real units is non-trivial.
 
     Parameters
     ----------
-    coefficients : TYPE
-        DESCRIPTION.
-    SampleGeometry : String, optional
-        DESCRIPTION. The default is "3d-compression".
-    correlation_coeffs : TYPE, optional
-        DESCRIPTION. The default is None.
-    debug : TYPE, optional
-        DESCRIPTION. The default is False.
+    coefficients : dict
+        Coeffecient dictionary used in cpf.
+    SampleGeometry : str, optional
+        Geometry of the sample - 2D or 3D stress/stress field. The default is "3d".
+    SampleDeformation : str, optional
+        "compression" or "extension" - type of deformation for the experiment. Determines orientation value.
+        The default is "compression".
+    correlation_coeffs : dict, optional
+        correlation coefficient dictionary as created by lmfit. The default is None.
+    subpattern : list, int, optional
+        Which subpattern in the coefficients to calulcate parameters for. The default is 0.
+    peak : int, optional
+        Which peak in the subpattern to calulcate parameters for. The default is 0.
     **kwargs : TYPE
+        DESCRIPTION.
+
+    Raises
+    ------
+    ValueError
         DESCRIPTION.
 
     Returns
     -------
-    crystallographic_properties.
+    differential_coefficients : dict
+        Dictionary of the calculated properties and their errors. The propertues calculated from the 
+        Fourier d-spacing coefficients are: 
+            "d_mean" -- mean d-spacing of diffraction ring, assuming 2d or 3d 'SampleGeometry'
+            "differential" -- differential 
+            "Q" -- differential strain
+            "orientation" -- orientation of the strain field, under 'SampleDeformation'
+            "d_max" -- maximum d-sapcing of fitted diffraction peak
+            "d_min" -- minimum d-sapcing of fitted diffraction peak
+            "x0" -- cartesian coordinate for centre of diffraction peak
+            "y0" -- cartesian coordinate for centre of diffraction peak
+        
 
     SampleGeometry options:
         - either 2d or 3d
@@ -52,9 +72,7 @@ def fourier_to_crystallographic(
         that the differentail strain is more extensive than the strains in the other two directions.
 
 
-
     """
-
     # FIX ME: strictly speaking all the errors here need to include the covarience matrix.
     # This is calculated and stored but not used here. If the values are small then the errors are about correct.
     # However, if the values are large then the errors are not correct.
@@ -282,8 +300,12 @@ def fourier_to_crystallographic(
 
     differential_coefficients = {}
 
+    # FIX ME: this should be removed but remains becuase some outputs depend on it.
     differential_coefficients["dp"] = out_d0
     differential_coefficients["dp_err"] = out_d0err
+    
+    differential_coefficients["d_mean"] = out_d0
+    differential_coefficients["d_mean_err"] = out_d0err
 
     differential_coefficients["differential"] = out_dd
     differential_coefficients["differential_err"] = out_dderr

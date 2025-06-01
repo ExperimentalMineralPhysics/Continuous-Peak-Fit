@@ -4,6 +4,8 @@
 *.egg-info
 *.ipynb
 
+*.ini
+
 *.json
 *.png
 *.sav

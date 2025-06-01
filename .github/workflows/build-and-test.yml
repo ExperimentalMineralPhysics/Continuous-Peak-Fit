@@ -107,8 +107,9 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: ./coverage.xml
-          flags: ${{ runner.os }}-py${{ matrix.python-version }}-np${{ matrix.numpy-version }}
           name: ${{ matrix.os }}-${{ matrix.python-version }}
-          fail_ci_if_error: true
+          flags: ${{ runner.os }}-py${{ matrix.python-version }}-np${{ matrix.numpy-version }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
           verbose: true
+        continue-on-error: true

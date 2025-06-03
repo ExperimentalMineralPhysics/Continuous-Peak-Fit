@@ -5,6 +5,7 @@
 *.ipynb
 
 *.ini
+*.bak
 
 *.json
 *.png

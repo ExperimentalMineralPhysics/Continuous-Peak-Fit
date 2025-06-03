@@ -99,7 +99,17 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install 'numpy${{ matrix.numpy-version }}'
           python -m pip install .[dev]
+          python -m pip install pytest-cov
 
-      - name: Run 'pytest' tests
-        run: |
-          pytest
+      - name: Run tests with coverage
+        run: pytest --cov=cpf --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          name: ${{ matrix.os }}-${{ matrix.python-version }}
+          flags: ${{ runner.os }}-py${{ matrix.python-version }}-np${{ matrix.numpy-version }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          verbose: true
+        continue-on-error: true

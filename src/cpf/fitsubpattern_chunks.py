@@ -56,7 +56,7 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
             settings_as_class.fit_bounds, data_as_class, 0, 0, param=["d-space"]
         )
         # get coefficient type
-        coeff_type = sf.params_get_type(settings_as_class.subfit_orders, comp, peak=j)
+        coeff_type = sf.get_params_type(settings_as_class.subfit_orders, comp, peak=j)
 
         # for guesses make sure there are not too many coefficients.
         n_coeff = sf.get_number_coeff(settings_as_class.subfit_orders, comp)
@@ -190,7 +190,7 @@ def get_chunk_peak_guesses(
             if k == 0:
                 logger.debug(" ".join(map(str, [("dfour in locals")])))
 
-            coeff_type = sf.params_get_type(
+            coeff_type = sf.get_params_type(
                 settings_as_class.subfit_orders, "d", peak=k
             )
             d_guess = sf.coefficient_expand(
@@ -258,7 +258,7 @@ def get_chunk_peak_guesses(
             # FIX ME: profile fixed must have the same number of coefficients as required by
             # profile.
 
-            coeff_type = sf.params_get_type(
+            coeff_type = sf.get_params_type(
                 settings_as_class.subfit_orders, "p", peak=k
             )
             if "symmetry" in settings_as_class.subfit_orders["peak"][k]:
@@ -744,7 +744,7 @@ def fit_series(
 
             #     # FIX ME: this was not checked properly.the values it feeds are not necessarily correct
             #     # and the fixed parameters might be fit for.
-            # coeff_type = pf.params_get_type(orders, comp, peak=j)
+            # coeff_type = pf.get_params_type(orders, comp, peak=j)
             n_coeff = sf.get_number_coeff(orders, comp, peak=j, azimuths=data[1])
             master_params = lmm.un_vary_params(
                 master_params, param_str, comp
@@ -811,7 +811,7 @@ def fit_series(
                     symm = 1
                 temp = lmm.gather_param_errs_to_list(master_params, param_str, comp)
                 temp_tp = sf.get_series_type(master_params, param_str, comp)
-                if temp_tp == 5:
+                if temp_tp == sf.coefficient_types()["independent"]:
                     az_plt = np.array(data[1])
                 else:
                     az_plt = azi_plot
@@ -862,7 +862,7 @@ def fit_series(
             comp = "f"
             temp = lmm.gather_param_errs_to_list(master_params, param_str, comp)
             temp_tp = sf.get_series_type(master_params, param_str, comp)
-            if temp_tp == 5:
+            if temp_tp == sf.coefficient_types()["independent"]:
                 az_plt = np.array(data[1])
             else:
                 az_plt = azi_plot

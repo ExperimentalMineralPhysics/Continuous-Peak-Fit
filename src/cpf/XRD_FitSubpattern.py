@@ -52,7 +52,7 @@ def order_set_peaks(orders, peeks, bg_order):
         # FIX ME: should this generate an error?
         if "profile_fixed" in orders["peak"][y]:
             if (
-                not sf.fourier_order(orders["peak"][y]["profile_fixed"])
+                not sf.get_order_from_params(orders["peak"][y]["profile_fixed"])
                 == orders["peak"][y]["profile"]
             ):
                 logger.warning(
@@ -68,7 +68,7 @@ def order_set_peaks(orders, peeks, bg_order):
                         )
                     )
                 )
-                orders["peak"][y]["profile"] = sf.fourier_order(
+                orders["peak"][y]["profile"] = sf.get_order_from_params(
                     orders["peak"][y]["profile_fixed"]
                 )
             # make sure the fixed profile is a list
@@ -93,9 +93,10 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
     for y in range(peeks):
         # loop over parameters
         for param in choice_list:
-            coeff_type = sf.params_get_type(previous_params, param, peak=y)
-            if coeff_type != 5:  # if parameters are not independent
-                if sc.BiggestValue(orders["peak"][y][param]) > sf.fourier_order(
+            coeff_type = sf.get_params_type(previous_params, param, peak=y)
+            coeff_type = sf.coefficient_type_as_number(coeff_type)
+            if coeff_type != sf.coefficient_types()["independent"]:  # if parameters are not independent
+                if sc.BiggestValue(orders["peak"][y][param]) > sf.get_order_from_params(
                     previous_params["peak"][y][param]
                 ):
                     change_by = (
@@ -106,7 +107,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                     previous_params["peak"][y][param] = (
                         previous_params["background"][y] + [0] * change_by
                     )
-                elif sc.BiggestValue(orders["peak"][y][param]) < sf.fourier_order(
+                elif sc.BiggestValue(orders["peak"][y][param]) < sf.get_order_from_params(
                     previous_params["peak"][y][param]
                 ):
                     change_by = (
@@ -124,7 +125,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
 
     # loop for background orders/size
     if (
-        sf.params_get_type(previous_params, "background") != 5
+        sf.get_params_type(previous_params, "background") != sf.coefficient_types()["independent"]
     ):  # if parameters are not independent
         for y in range(
             np.max([len(orders["background"]), len(previous_params["background"])])
@@ -135,7 +136,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                 and len(orders["background"]) - 1 >= y
             ):
                 # if present in both arrays make sure it is the right size.
-                if np.max(orders["background"][y]) > sf.fourier_order(
+                if np.max(orders["background"][y]) > sf.get_order_from_params(
                     previous_params["background"][y]
                 ):
                     change_by = (
@@ -146,7 +147,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                     previous_params["background"][y] = (
                         previous_params["background"][y] + [0] * change_by
                     )
-                elif np.max(orders["background"][y]) < sf.fourier_order(
+                elif np.max(orders["background"][y]) < sf.get_order_from_params(
                     previous_params["background"][y]
                 ):
                     change_by = np.size(previous_params["background"][y]) - (
@@ -194,18 +195,20 @@ def check_num_azimuths(peeks, azimu, orders):
         # loop over parameters
         for param in choice_list:
             coeff_type = sf.coefficient_type_as_number(
-                sf.params_get_type(orders, param, peak=y)
+                sf.get_params_type(orders, param, peak=y)
             )
-            if coeff_type != 5:  # if parameters are not independent
+            if coeff_type != sf.coefficient_types(full=True)["independent"]["num"]:  
+                # if parameters are not independent
                 max_coeff = np.max(
                     [max_coeff, sf.get_number_coeff(orders, param, peak=y)]
                 )
     param = "background"
     for y in range(np.max([len(orders["background"])])):
         coeff_type = sf.coefficient_type_as_number(
-            sf.params_get_type(orders, param, peak=y)
+            sf.get_params_type(orders, param, peak=y)
         )
-        if coeff_type != 5:  # if parameters are not independent
+        if coeff_type != sf.coefficient_types(full=True)["independent"]["num"]:
+            # if parameters are not independent
             max_coeff = np.max([max_coeff, sf.get_number_coeff(orders, "background")])
     if max_coeff > len(np.unique(azimu)):
         err_str = (

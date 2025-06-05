@@ -12,6 +12,7 @@ def fourier_to_crystallographic(
     correlation_coeffs=None,
     subpattern=0,
     peak=0,
+    debug=False,
     **kwargs,
 ):
     """

@@ -455,14 +455,14 @@ def WriteOutput(
                     sym = 1
 
                 az = settings_class.data_class.calibration["azimuths"]
-                coef_type = sf.params_get_type(fit[x], "d", peak=y)
+                coef_type = sf.get_params_type(fit[x], "d", peak=y)
                 peak_d = sf.coefficient_expand(
                     np.array(az),
                     replace_null_terms(fit[x]["peak"][y]["d-space"]),
                     coeff_type=coef_type,
                 )
                 # peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
-                coef_type = sf.params_get_type(fit[x], "h", peak=y)
+                coef_type = sf.get_params_type(fit[x], "h", peak=y)
                 peak_i = sf.coefficient_expand(
                     np.array(az_used) * sym,
                     replace_null_terms(fit[x]["peak"][y]["height"]),

@@ -465,8 +465,8 @@ class _Plot_AngleDispersive:
             def f(data, n):
                 return data
 
-        IMax = np.percentile(plot_i.compressed(), limits[1])
-        IMin = np.percentile(plot_i.compressed(), limits[0])
+        IMax = np.nanpercentile(plot_i.compressed(), limits[1])
+        IMin = np.nanpercentile(plot_i.compressed(), limits[0])
 
         if limits[0] > 0 and limits[1] < 100:
             cb_extend = "both"
@@ -648,11 +648,11 @@ class _Plot_AngleDispersive:
             if limits[1] == 100:
                 IMax = np.max(plot_i)
             else:
-                IMax = np.percentile(plot_i.compressed(), limits[1])
+                IMax = np.nanpercentile(plot_i.compressed(), limits[1])
             if limits[0] == 0:
                 IMin = np.min(plot_i)
             else:
-                IMin = np.percentile(plot_i.compressed(), limits[0])
+                IMin = np.nanpercentile(plot_i.compressed(), limits[0])
             if limits[0] > 0 and limits[1] < 100:
                 cb_extend = "both"
             elif limits[1] < 100:

@@ -402,8 +402,8 @@ def StartStopFilesToList(
                 StartNum = paramDict["from"]
             if "to" in paramDict:
                 EndNum = paramDict["to"]
-            if "Step" in paramDict:
-                Step = paramDict["Step"]
+            if "step" in paramDict:
+                Step = paramDict["step"]
         else:
             if "StartNum" in paramDict:
                 From = paramDict["datafile_StartNum"]

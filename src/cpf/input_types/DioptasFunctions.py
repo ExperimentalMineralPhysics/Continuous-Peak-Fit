@@ -206,7 +206,7 @@ class DioptasDetector:
         """
         if self.calibration == None:
             self.get_calibration(
-                settings=settings, file_name=calibration_file, debug=debug
+                settings=settings, file_name=calibration_file,
             )
 
         if self.calibration:

@@ -237,15 +237,15 @@ def file_list(fit_parameters, fit_settings):
 
     # Diffraction patterns -- make list of files
     diff_files = []
-    if step == None:
+    if "datafile_Files" not in fit_parameters and "datafile_StartNum" not in fit_parameters:
         # There is only a single file because nothing else is defined
         n_diff_files = 1
         diff_files.append(
             os.path.abspath(
-                fit_settings.datafile_directory
+                getattr(fit_settings, 'datafile_directory', '.')  
                 + os.sep
-                + fit_settings.datafile_Basename
-                + fit_settings.datafile_Ending
+                + getattr(fit_settings, 'datafile_Basename', '')  
+                + getattr(fit_settings, 'datafile_Ending', '')  
             )
         )
     elif "datafile_Files" not in fit_parameters:

@@ -151,7 +151,10 @@ def ReadFits(
             else: #peak related parameter
                 # iterate over the number of peaks
                 for y in range(len(fits[0][x]["peak"])):
-                    if isinstance(fits[0][x]["peak"][y][ind], int):
+                    if ind not in fits[0][x]["peak"][y]:
+                        # cannot assume the symmetry is present
+                        max_coef[ind] = np.max([max_coef[ind], 0])
+                    elif isinstance(fits[0][x]["peak"][y][ind], int):
                         max_coef[ind] = np.max([max_coef[ind], 1])
                     else:
                         max_coef[ind] = np.max([max_coef[ind], len(fits[0][x]["peak"][y][ind])])

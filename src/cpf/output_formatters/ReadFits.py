@@ -226,6 +226,7 @@ def ReadFits(
     # write the data to array, then append to dataframe
     RowsList = []
     for z in range(len(lists)):
+        settings_class.set_subpattern(lists[z,0], 0)
         RowLst = {}
         data_to_write = fits[lists[z, 0]][lists[z, 1]]
         

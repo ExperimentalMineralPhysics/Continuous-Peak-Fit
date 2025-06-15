@@ -1,0 +1,43 @@
+name: Build and publish documentation
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish-documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Cairo library (Ubuntu only)
+        # Cairo library needs to be manually installed on Ubuntu in order for
+        # pyCairo to be installed
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt install -y libcairo2-dev
+
+      - name: Install Sphinx
+        run: |
+          pip install -e .  # if you have one
+          pip install sphinx
+
+      - name: Build Sphinx documentation
+        # This builds from source/ into build/html/
+        run: |
+          cd docs
+          make html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/build/html

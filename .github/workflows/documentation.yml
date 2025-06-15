@@ -1,6 +1,6 @@
 name: Build and publish documentation
 
-on: [push, pull_request, workflow_dispatch]
+on: [push, pull_request]
 
 permissions:
   contents: write
@@ -47,8 +47,18 @@ jobs:
           echo "Contents of build/html:"
           ls -lh ./docs/build/html || echo "No files found"
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy preview docs to GitHub Pages
+        if: github.ref != 'refs/heads/master'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/build/html
+          destination_dir: preview/${{ github.head_ref || github.ref_name }}
+
+      - name: Deploy master docs to GitHub Pages
+        if: github.ref == 'refs/heads/master'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/build/html
+          destination_dir: .

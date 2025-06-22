@@ -53,7 +53,11 @@ optional-dependencies.dev = [
     "pre-commit",   # For running code checks
     "pytest",       # For running unit tests on code
 ]
+optional-dependencies.gui = [
+    "pyqt6",
+]
 urls.Repository = "https://github.com/ExperimentalMineralPhysics/Continuous-Peak-Fit"
+scripts."cpf.gui" = "cpf.gui.main:main"
 
 [tool.setuptools.packages.find]
 where = [ "src" ]

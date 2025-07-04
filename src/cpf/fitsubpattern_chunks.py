@@ -740,7 +740,7 @@ def fit_series(
                 fixed = 0
                 data_vals = data[0][comp][j]
                 data_val_errors = data[0][comp + "_err"][j]
-                data_val_errors = clean_errs(data_val_errors)
+                data_val_errors = clean_errs(data_val_errors, outliers=2)     
 
             #     # FIX ME: this was not checked properly.the values it feeds are not necessarily correct
             #     # and the fixed parameters might be fit for.

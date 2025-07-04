@@ -1235,7 +1235,7 @@ class Settings:
 
         # make new order search list
         if isinstance(search_over, list) and len(search_over) == 2:
-            search = list(range(search_over[0], search_over[1]))
+            search = list(range(search_over[0], search_over[1]+1))
         else:
             search = [int(x) for x in str(search_over)]
 

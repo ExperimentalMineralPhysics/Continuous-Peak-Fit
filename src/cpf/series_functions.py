@@ -615,6 +615,11 @@ def spline_expand(
                 points, inp_param, bc_type=bc_type, extrapolate="periodic"
             )
         else:
+            if k <= len(points):
+                # catch if the spline is underconstrained
+                k = len(points)-1
+                if k < 0:
+                    k=0
             spl = make_interp_spline(points, inp_param, k=k)
 
         fout = spl(azimuth)

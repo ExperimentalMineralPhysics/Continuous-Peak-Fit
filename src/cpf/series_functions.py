@@ -620,7 +620,7 @@ def spline_expand(
                 k = len(points)-1
                 if k < 0:
                     k=0
-            spl = make_interp_spline(points, inp_param, k=k)
+            spl = make_interp_spline(points, inp_param, k=k, bc_type=bc_type )
 
         fout = spl(azimuth)
 

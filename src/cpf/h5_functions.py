@@ -553,11 +553,11 @@ def DefaultProcessDictionary(types=False):
             "step": 1,
             "dim": 0,
             "using": "position",
-            "label": ["", "*"],
+            "label": ["pos"],
         }
     else:
         return {
-            "do": {"type": str, "values": ["sum", "iterate"]},
+            "do": {"type": str, "values": ["sum", "iterate", "combine"]},
             "from": {"type": (int, float, np.ndarray)},
             "to": {"type": (int, float, np.ndarray)},
             "step": {"type": (int)},
@@ -852,6 +852,7 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
     """
 
     # set some defaults for regualr expreassions
+    regexp_alphanum = "([-+]?[0-9a-zA-Z-+_]*\.[0-9a-zA-Z-+_]+|[-+]?[0-9a-zA-Z-+_]+)"
     regexp_num = "([-+]?[0-9]*\.[0-9]+|[-+]?[0-9]+)"
     regexp_end = "$"
 
@@ -880,79 +881,87 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
     # this is necessary incase we are looping over all valid entries without
     # directly knowing the key names
     keylist = []
-    for i in range(len(loops)):
-        # FIXME this loop should be an iterative loop. so thatit can iterate
-        # over as many keys as required.
-
-        # find part of key before wildcard.
-        h5key_data_sub = h5key_data[: max(j for j in dividers if j < loops[i]) + 1]
-        # get all matching keys
-        lst = h5_tree(df[h5key_data_sub], list_of_keys=[], recurse=False)
-        # FIXME: the h5tree function call needs list_of_keys=[] otherwise during
-        # testing when the function is run it appends to the previous list of keys.
-
-        ## get list of values that matches the wildcard.
-        # find part of key before separation after wildcard.
-        # cannot assume that the wildcard is the last part of the keyname.
-        h5key_data_sub = h5key_data[: min(j for j in dividers if j > loops[i])]
-        # replace * with regular expresion search for number
-        h5key_data_sub = re.sub(r"\*", regexp_num, h5key_data_sub)
-        # match lst to subkey.
-        lst = list(filter(re.compile(h5key_data_sub).match, lst))
-
-        ## get keys that match that have subkeys matching h5key_data
-        # cannot assume that all the keys have the same subdata.
-
+    
+    if loops:
+        for i in range(len(loops)):
+            # FIXME this loop should be an iterative loop. so thatit can iterate
+            # over as many keys as required.
+    
+            # find part of key before wildcard.
+            h5key_data_sub = h5key_data[: max(j for j in dividers if j < loops[i]) + 1]
+            # get all matching keys
+            lst = h5_tree(df[h5key_data_sub], list_of_keys=[], recurse=False)
+            # FIXME: the h5tree function call needs list_of_keys=[] otherwise during
+            # testing when the function is run it appends to the previous list of keys.
+    
+            ## get list of values that matches the wildcard.
+            # find part of key before separation after wildcard.
+            # cannot assume that the wildcard is the last part of the keyname.
+            h5key_data_sub = h5key_data[: min(j for j in dividers if j > loops[i])]
+            # replace * with regular expresion search for number
+            h5key_data_sub = re.sub(r"\*", regexp_alphanum, h5key_data_sub)
+            # match lst to subkey.
+            lst = list(filter(re.compile(h5key_data_sub).match, lst))
+            ## get keys that match that have subkeys matching h5key_data
+            # cannot assume that all the keys have the same subdata.
+    
+            # capture numerical values in keys.
+            vals = []
+            for i in range(len(lst)):
+                vals_tmp = re.search(h5key_data_sub, lst[i])
+                # get values from regexpression
+                vals.append(list(vals_tmp.groups()))
+    
+            # check if the key exists.
+            for j in range(len(vals)):
+                # replace * with number using regular expresion
+                h5key_data_sub = re.sub(r"\*", vals[j][0], h5key_data)
+                try:
+                    # if the data key does not exist it will skip over it.
+                    df[h5key_data_sub]
+                    keylist.append(h5key_data_sub)
+                except:
+                    pass
+    
+        if 0:  # for debugging
+            # get all keys in h5 file [CAUTION could be slow if files are large]
+            key_list_all = h5_tree(df)
+    
+            # setup h5key_data to be used.
+            # replace * with number using regular expresion
+            h5key_data = re.sub(r"\*", regexp_num, h5key_data)
+            # make sure ends with a $
+            if h5key_data[-1] != "$":
+                h5key_data = h5key_data + regexp_end
+    
+            # get list of matching keys
+            keylist = list(filter(re.compile(h5key_data).match, key_list_all))
+    
         # capture numerical values in keys.
         vals = []
-        for i in range(len(lst)):
-            vals_tmp = re.search(h5key_data_sub, lst[i])
+        for i in range(len(keylist)):
+            vals_tmp = re.search(re.sub(r"\*", regexp_alphanum, h5key_data), keylist[i])
             # get values from regexpression
             vals.append(list(vals_tmp.groups()))
-
-        # check if the key exists.
-        for j in range(len(vals)):
-            # replace * with number using regular expresion
-            h5key_data_sub = re.sub(r"\*", vals[j][0], h5key_data)
-            try:
-                # if the data key does not exist it will skip over it.
-                df[h5key_data_sub]
-                keylist.append(h5key_data_sub)
-            except:
-                pass
-
-    if 0:  # for debugging
-        # get all keys in h5 file [CAUTION could be slow if files are large]
-        key_list_all = h5_tree(df)
-
-        # setup h5key_data to be used.
-        # replace * with number using regular expresion
-        h5key_data = re.sub(r"\*", regexp_num, h5key_data)
-        # make sure ends with a $
-        if h5key_data[-1] != "$":
-            h5key_data = h5key_data + regexp_end
-
-        # get list of matching keys
-        keylist = list(filter(re.compile(h5key_data).match, key_list_all))
-
-    # capture numerical values in keys.
-    vals = []
-    for i in range(len(keylist)):
-        vals_tmp = re.search(re.sub(r"\*", regexp_num, h5key_data), keylist[i])
-        # get values from regexpression
-        vals.append(list(vals_tmp.groups()))
-
-    # sort values and keys into order.
-    vals_num = np.array(vals).astype(float)
-    o = np.argsort(vals_num, axis=0)[:, 0]
-    vals_num = vals_num[o]
-    keylist = [keylist[i] for i in o]
-    vals = [vals[i] for i in o]
-
+    
+        # sort values and keys into order.
+        try:
+            vals_num = np.array(vals).astype(float)
+            o = np.argsort(vals_num, axis=0)[:, 0]
+            vals_num = vals_num[o]
+            keylist = [keylist[i] for i in o]
+            vals = [vals[i] for i in o]
+        except:
+            pass
+    else:
+         #there is no wild card in the h5key_data
+         keylist = [h5key_data]
+         vals = [['1']]
+    
     # cut list to size.
     present = []
     for i in range(len(loops)):
-        # FIXME. need to make h5 iterate as long as ther are loops+1
+        # FIXME. need to make h5 iterate as long as there are loops+1
         itera = h5_iterate[i]
 
         if itera["using"] == "value":
@@ -1034,6 +1043,16 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                 # lbls = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
                 out.append([keylist[i], index_values, lbls])
 
+            elif itera["do"] == "combine":
+                # index_values = list([*range(itera["start"], itera["stop"], itera["step"])])
+                if itera["to"] == -1:
+                    itera["to"] = number_data - 1
+                index_values, _ = StartStopFilesToList(paramDict=itera)
+                # get the labels -- only need labels from layers above because returning data array.
+                lbls = labels[i]
+                # lbls = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
+                out.append([keylist[i], index_values, lbls])
+                
             elif itera["do"] == "iterate":
                 # iterate over the size of the array in the h5 group.
                 if itera["to"] == -1:
@@ -1177,7 +1196,6 @@ def get_labels(
 
 # %%
 
-
 def get_images(
     image_list=None,
     settings_file=None,
@@ -1186,7 +1204,16 @@ def get_images(
     debug=False,
 ):
     """
-    Export images from h5 files for use with Dioptas.
+    Export single images from h5 files for use with Dioptas.
+
+    Expected input is of the format: 
+     [   
+      [ file_name, ["data_Key", 'position in key', label]],
+       ...
+       [ file_name, ["data_Key", 'position in key', label]]
+    ]
+     
+    the inner "["data_Key", 'position in key', label]" is returned by get_image_keys_new()
 
     Parameters
     ----------
@@ -1221,32 +1248,49 @@ def get_images(
             "There are no settings or image_list. The fitting cannot proceed until a recognised "
             "settings file or class is present."
         )
-
+    
     if image_num == None:
-        image_num = list(range(len(image_list)))
+        image_num = list(range(len(image_list[2])))
     elif isinstance(image_num, int):
         image_num = [image_num]
     # image_num could also be a list -- in which case leave it alone.
 
-    # get image
-    for i in range(len(image_num)):
-        n = image_num[i]
-        datafile = h5py.File(image_list[n][0], "r")
-        datakey = image_list[n][1][0]
-        data_position_in_key = image_list[n][1][1]
-        data_tmp = np.array(datafile[datakey][data_position_in_key])
+    # # get image
+    # for i in range(len(image_num)):
+    #     n = image_num[i]
+    #     datafile = h5py.File(image_list[0], "r")
+    #     datakey = image_list[1]
+    #     data_position_in_key = image_list[2]
+    #     data_tmp = np.array(datafile[datakey][data_position_in_key])
 
-        if len(image_num) == 1:
-            data = data_tmp
-        else:
-            axis = 2
-            if i == 0:
-                data = data_tmp
-                data = np.expand_dims(data, axis=axis)
-            else:
-                data = np.append(data, np.expand_dims(data_tmp, axis=axis), axis=axis)
+    #     if len(image_num) == 1:
+    #         data = data_tmp
+    #     else:
+    #         axis = 2
+    #         if i == 0:
+    #             data = data_tmp
+    #             data = np.expand_dims(data, axis=axis)
+    #         else:
+    #             data = np.append(data, np.expand_dims(data_tmp, axis=axis), axis=axis)
 
-    return data
+
+    datafile = h5py.File(image_list[0], "r")
+    datakey = image_list[1]
+    data_position_in_key = image_list[2]
+    data = np.array(datafile[datakey][data_position_in_key])
+
+    # if len(image_num) == 1:
+    #     data = data_tmp
+    # else:
+    #     axis = 2
+    #     if i == 0:
+    #         data = data_tmp
+    #         data = np.expand_dims(data, axis=axis)
+    #     else:
+    #         data = np.append(data, np.expand_dims(data_tmp, axis=axis), axis=axis)
+
+
+    return np.array(data)
 
 
 def plot_images(

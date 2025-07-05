@@ -112,7 +112,9 @@ def image_list(fit_parameters, fit_settings):
                 h5_iterate=fit_settings.h5_iterate,
             )
             for j in range(len(h5_list)):
-                image_list.append([diff_files[i], h5_list[j]])
+                tmp = [diff_files[i]]
+                tmp.extend(h5_list[j])
+                image_list.append(tmp)
 
     elif "h5_key_list" in fit_parameters:
         # if the input contains the old hdf5 file instircutions make the new
@@ -120,7 +122,6 @@ def image_list(fit_parameters, fit_settings):
         h5datakey, h5iterations = h5_functions.update_key_structure(
             fit_parameters, fit_settings
         )
-        print(h5datakey, h5iterations)
         for i in range(n_diff_files):
             h5_list = h5_functions.get_image_keys_new(
                 diff_files[i],
@@ -128,7 +129,9 @@ def image_list(fit_parameters, fit_settings):
                 h5_iterate=h5iterations,
             )
             for j in range(len(h5_list)):
-                image_list.append([diff_files[i], h5_list[j]])
+                tmp = [diff_files[i]]
+                tmp.extend(h5_list[j])
+                image_list.append(tmp)
 
     #     # FIX ME: all this code should be moved to settings and validation.
     #     h5_key_list = fit_settings.h5_key_list
@@ -818,8 +821,7 @@ def title_file_names(settings_for_fit=None, num=0, image_name=None, string=True)
         t_f_str = os.path.split(image_name[0])[1]
         t_f_str, _ = os.path.splitext(t_f_str)
         t_f_str += joint
-        t_f_str += image_name[1][2]
-
+        t_f_str += str(image_name[-1])
     else:
         _, t_f_str = os.path.split(image_name)
         t_f_str, _ = os.path.splitext(t_f_str)

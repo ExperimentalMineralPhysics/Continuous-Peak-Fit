@@ -323,25 +323,6 @@ class Settings:
 
         ##all_settings_from_input = dir(self.settings_from_input)#
 
-        # add data directory and data files
-        self.datafile_directory = self.settings_from_input.datafile_directory
-        if isinstance(self.datafile_directory, str):  # Convert to Path object
-            self.datafile_directory = Path(self.datafile_directory)
-
-        (
-            self.datafile_list,
-            self.datafile_number,
-            self.image_list,
-            self.image_number,
-        ) = image_list(dir(self.settings_from_input), self.settings_from_input)
-        # Convert datafile list entries to Path objects, if they exist
-        if len(self.datafile_list) > 0:
-            try:
-                self.datafile_list = [
-                    Path(file) for file in self.datafile_list if isinstance(file, str)
-                ]
-            except Exception as error:
-                raise error
 
         # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
         if "datafile_Basename" in dir(self.settings_from_input):
@@ -394,18 +375,66 @@ class Settings:
         if "image_preprocess" in dir(self.settings_from_input):
             self.datafile_preprocess = self.settings_from_input.Image_prepare
 
-        #     # FIX ME: This doesn't seem to be used, if it should be this needs moving to class structure.
-        #     alternatives_list = [[["datafile_StartNum", "datafile_EndNum"], ["datafile_Files"]]]
-        #     optional_list = ["datafile_Step"]  # FIX ME: This doesn't seem to be used
-        #     possible = [[[], []] * len(alternatives_list)]
-        #     for x in range(len(alternatives_list)):
-        #         for y in range(2):
-        #             for z in range(len(alternatives_list[x][y])):
-        #                 if alternatives_list[x][y][z] in fit_parameters:
-        #                     possible[x][y].append(1)
-        #                 else:
-        #                     possible[x][y].append(0)
-        #     # exit if all parameters are not present
+
+        # add data directory and data files
+        self.datafile_directory = self.settings_from_input.datafile_directory
+        if isinstance(self.datafile_directory, str):  # Convert to Path object
+            self.datafile_directory = Path(self.datafile_directory)
+
+        (
+            self.datafile_list,
+            self.datafile_number,
+            self.image_list,
+            self.image_number,
+        ) = image_list(dir(self.settings_from_input), self.settings_from_input)
+        # Convert datafile list entries to Path objects, if they exist
+        if len(self.datafile_list) > 0:
+            try:
+                self.datafile_list = [
+                    Path(file) for file in self.datafile_list if isinstance(file, str)
+                ]
+            except Exception as error:
+                raise error
+
+        # h5 or nxs file types
+        # --------------------
+        # If the file type is h5/nxs and there is no h5 related settings in the input then read defaults from the detector class. 
+        # These settings are then used by the detector class. 
+        # When the h5 settings are in the settings class we need to re-initiate the image list.
+        if (len(self.datafile_list) == 1 
+                and (self.datafile_list[0].suffix == ".h5" 
+                or self.datafile_list[0].suffix == ".nxs")):
+            if "h5_datakey" not in dir(self.settings_from_input):
+                if "_default_h5_datakey" in dir(self.data_class):
+                    self.settings_from_input.h5_datakey = self.data_class._default_h5_datakey
+                else:
+                    logger.warning(
+                        "The data class has no value for '_default_h5_datakey'. Need to define 'h5_datakey' in settings." 
+                    )
+                    raise ValueError("The data class has no value for '_default_h5_datakey'.")
+            if "h5_iterate" not in dir(self.settings_from_input):
+                if "_default_h5_iterate" in dir(self.data_class):
+                    self.settings_from_input.h5_iterate = self.data_class._default_h5_iterate
+                else:
+                    logger.warning(
+                        "The data class has no value for '_default_h5_iterate'. Need to define 'h5_iterate' in settings."
+                    )
+                    raise ValueError("The data class has no value for '_default_h5_iterate'.")
+            # FIXME: this should raise errors to the logger if the values are not present.
+            (
+                self.datafile_list,
+                self.datafile_number,
+                self.image_list,
+                self.image_number,
+            ) = image_list(dir(self.settings_from_input), self.settings_from_input)
+            # Convert datafile list entries to Path objects, if they exist
+            if len(self.datafile_list) > 0:
+                try:
+                    self.datafile_list = [
+                        Path(file) for file in self.datafile_list if isinstance(file, str)
+                    ]
+                except Exception as error:
+                    raise error
 
         # organise the cascade properties
         if "cascade_number_bins" in dir(self.settings_from_input):
@@ -1431,7 +1460,7 @@ def detector_factory(fit_settings: Settings):
     if def_func in input_types.module_list:
         detector = getattr(input_types, def_func)
         detector_class = getattr(detector, def_def)
-        return detector_class(settings_class=fit_settings)
+        return detector_class()#settings_class=fit_settings)
     else:
         raise ValueError(f"Unrecognized calibration type, {fit_settings.calibration_type}")
 

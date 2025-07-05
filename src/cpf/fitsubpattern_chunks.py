@@ -251,11 +251,12 @@ def get_chunk_peak_guesses(
         # FIX ME: This is a bit crude. Is there a better way to do it?
 
         # If profile_fixed exists then set p_guess to profile_fixed values and set p_fixed to 1
-        p_guess = 0.5  # Guess half if solving for profile
+        p_guess = np.mean(settings_as_class.fit_bounds["profile"])
+        # FIXME: this should be read (via settings?) from the defaults and limits method of the peak shape function
         p_fixed = 0  # Set to 0 so solving unless profile_fixed exists.
         if "profile_fixed" in settings_as_class.subfit_orders["peak"][k]:
             # Profile fixed is the list of coefficients if the profile is fixed.
-            # FIX ME: profile fixed must have the same number of coefficients as required by
+            # FIXME: profile fixed must have the same number of coefficients as required by
             # profile.
 
             coeff_type = sf.get_params_type(

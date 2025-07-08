@@ -865,8 +865,9 @@ def make_outfile_name(
         ending = base_filename.suffix[1:]  # Remove leading dot from file extension
         filename = base_filename.stem  # Take last level of the file path
     else:
-        logger.error(f"Unexpected type passed in for base_filename parameter")
-        raise ValueError
+        err_str = "Unexpected type passed in for base_filename parameter"
+        logger.error(err_str)
+        raise ValueError(err_str)
 
     # Strip directory if it is in the name and there is a new directory
     if directory or directory == "":

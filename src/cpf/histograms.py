@@ -14,6 +14,52 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.histograms")
 
 
+
+
+def calculate_n_bins(data, num_azi_bins=1, bin_max = 10000, scale_factor = .5):
+    """
+    Calculate the number of bins to split the data into. 
+    
+    
+    Parameters
+    ----------
+    data : int or np.array
+        Either size of the data (if int) or an array of the size of the data.
+    azi_bins : int, optional
+        The number of azimuthal bins to use if the historgrams if 2D.The default is 1, i.e. 1D output
+    n_max : int, optional
+        Maximum number of bins. The default is 10000.
+    scale_factor : float, optional
+        Scale factor for bins. The default is 0.5.
+
+    Returns
+    -------
+    n_bins : int
+        Number of bins for the historgrams
+
+    """
+    if np.array(data).size == 1:
+        data_size = data
+    elif ma.isMaskedArray(data):
+        data_size = data[data.mask==False].size
+    else:
+        data_size = data.size
+    data_per_bin = data_size/num_azi_bins
+    
+    # set number of bins according to Sturges' Rule
+    # see: https://en.wikipedia.org/wiki/Sturges%27_Rule
+    # or the number of data.
+    # the multiply by 4 for Sturges' Rule is arbitrary but needed here becuase the data is wider than the distributions.
+    bin_n = np.max([1 + 3.322 * np.log10(data_per_bin) * 4, data_per_bin / 50])
+    bin_n *= scale_factor
+    
+    # catch for ESRFlvp data where millions are bins are possible.
+    if bin_n > bin_max:
+        bin_n = bin_max
+        
+    return np.int_(np.round(bin_n))
+
+
 def histogram1d(
     tth,
     intensity,
@@ -62,24 +108,22 @@ def histogram1d(
             )
 
     if bin_n == None:
-        # set number of bins according to Sturges' Rule
-        # see: https://en.wikipedia.org/wiki/Sturges%27_Rule
-        # or the number of data.
-        # the multiply by 4 for Sturges' Rule is arbitrary but needed here becuase the data is wider than the distributions.
-        bin_n = np.max([1 + 3.322 * np.log10(tth.size) * 4, tth.size / 50])
-        # catch for ESRFlvp data where millions are bins are possible.
-        if bin_n > 10000:
-            bin_n = 10000
-    if not isinstance(bin_n, int):
-        bin_n = int(np.round(bin_n))
+        bin_n = calculate_n_bins(tth)
 
     if histogram_type == "data":
         # sort the data and then bin accordingly.
-        order = np.argsort(tth, axis=None)
-        tth = tth.flatten()[order]
-        intensity = intensity.flatten()[order]
-        if azi is not None:
-            azi = azi.flatten()[order]
+        if ma.isMaskedArray(tth):
+            order = np.argsort(tth[tth.mask==False], axis=None)
+            tth = tth[tth.mask==False].flatten()[order]
+            intensity = intensity[intensity.mask==False].flatten()[order]
+            if azi is not None:
+                azi = azi[azi.mask==False].flatten()[order]
+        else:
+            order = np.argsort(tth, axis=None)
+            tth = tth.flatten()[order]
+            intensity = intensity.flatten()[order]
+            if azi is not None:
+                azi = azi.flatten()[order]
         mean_per_bin = order.size / bin_n
         # could use a use pyFAI named tuple data holder.
         # histogram = namedtuple("Integrate1dtpl", "position intensity sigma signal variance normalization count std sem norm_sq", defaults=(None,) * 3)
@@ -94,12 +138,12 @@ def histogram1d(
             data_start = int(np.round(order.size / np.round(bin_n) * i))
             data_end = int(np.round(order.size / np.round(bin_n) * (i + 1)))
 
-            position.append(np.mean(tth[data_start:data_end]))
-            intens.append(np.mean(intensity[data_start:data_end]))
-            signal.append(np.sum(intensity[data_start:data_end]))
+            position.append(np.nanmean(tth[data_start:data_end]))
+            intens.append(np.nanmean(intensity[data_start:data_end]))
+            signal.append(np.nansum(intensity[data_start:data_end]))
             count.append(np.size(tth[data_start:data_end]))
             if azi is not None:
-                azm.append(np.mean(azi[data_start:data_end]))
+                azm.append(np.nanmean(azi[data_start:data_end]))
 
         if debug == True:
             plt.plot(
@@ -130,8 +174,11 @@ def histogram1d(
         intens = histogram.intensity
 
         # get the mean azimuth of each bin.
-        histogram = he.histogram1d_engine(tth, bin_n, azi)
-        azm = histogram.intensity
+        if azi is not None:
+            histogram = he.histogram1d_engine(tth, bin_n, azi)
+            azm = histogram.intensity
+        else:
+            azm = None
 
         if debug == True:
             plt.plot(

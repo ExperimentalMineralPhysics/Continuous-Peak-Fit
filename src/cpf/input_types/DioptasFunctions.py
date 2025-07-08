@@ -28,6 +28,8 @@ from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.util.logging import get_logger
 
+from pyFAI.io import DefaultAiWriter
+
 logger = get_logger("cpf.input_types.DioptasFunctions")
 
 
@@ -577,6 +579,21 @@ class DioptasDetector:
                     "are all present."
                 )
         return required_list
+    
+    def detector_description(self):
+        """
+        Returns a text description of the detector. 
+        
+        For Dioptas detectors this is called from PyFAI.  
+
+        Returns
+        -------
+        description : string
+            Text description of the detector and the calibration.
+        """
+        description = DefaultAiWriter(None, self.detector).make_headers()
+        description = description.replace('\r\n', '\n')
+        return description
 
     # add common function.
     _get_d_space = _AngleDispersive_common._get_d_space

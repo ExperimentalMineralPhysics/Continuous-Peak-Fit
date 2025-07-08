@@ -304,9 +304,9 @@ class DioptasDetector:
         else:
             try:
                 im_all = fabio.open(image_name)
-                print(
+                logger.moreinfo(" ".join(map(str, [
                     f"This file contains {im_all.nframes} frame(s) with a combined shape of {im_all.shape}"
-                )
+                ])))
                 if im_all.nframes == 1:
                     im = np.squeeze(
                         im_all.data

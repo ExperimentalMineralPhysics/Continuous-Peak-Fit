@@ -48,7 +48,6 @@ def WriteOutput(settings_class=None, setting_file=None, **kwargs):
     histogram_type = kwargs.get("histogram_type", "data")
     bin_n          = kwargs.get("bin_n", None)
 
-    print(np.array(bin_n).size)
     if bin_n is None or np.array(bin_n).size != 1:
         raise NotImplementedError("Two dimensional historgrams are not implemented yet.")
     

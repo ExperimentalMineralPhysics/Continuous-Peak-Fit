@@ -95,21 +95,21 @@ def image_key_validate(h5key_list, key_start, key_end, key_step):
 
     fail = 0
 
-    number_indicies = len(h5key_list)
+    number_indices = len(h5key_list)
 
-    if len(key_start) != (1 | number_indicies):
+    if len(key_start) != (1 | number_indices):
         logger.error(
             " ".join(map(str, [("There are the wrong number of start positions")]))
         )
         fail = +1
 
-    if len(key_end) != (1 | number_indicies):
+    if len(key_end) != (1 | number_indices):
         logger.error(
             " ".join(map(str, [("There are the wrong number of end positions")]))
         )
         fail = +1
 
-    if len(key_step) != (1 | number_indicies):
+    if len(key_step) != (1 | number_indices):
         logger.error(
             " ".join(map(str, [("There are the wrong number of step lengths")]))
         )
@@ -436,7 +436,7 @@ def get_image_key_strings(
             # if empty then list numbers.
             labels_temp = np.array(range(number_data))
             # FIXME: We are zero counting the images and the indecies. It might be better to 1 count them.
-            # if so to 1 count the indicies we add 1 to the prewvious line.
+            # if so to 1 count the indices we add 1 to the prewvious line.
             # the counting over the arrays needs to be done in get_image_keys
             labels_temp = unique_labels(labels_temp, number_data=number_data)
         elif key_names[i] == "/":
@@ -708,12 +708,12 @@ def image_key_validate_new(
     if "h5_iterate" != None:
         num_iter = len(h5_iterate)
         if fit_settings:
-            number_indicies = len(
+            number_indices = len(
                 [a.start() for a in list(re.finditer("\*", fit_settings.h5_datakey))]
             )
-            if not (num_iter == number_indicies or num_iter == number_indicies - 1):
+            if not (num_iter == number_indices or num_iter == number_indices - 1):
                 errors.append(
-                    "The number of iterations is not the same as, or 1 less than, the number of indicies in the data"
+                    "The number of iterations is not the same as, or 1 less than, the number of indices in the data"
                 )
         for i in range(num_iter):
             dict_keys = list(h5_iterate[i].keys())
@@ -1005,7 +1005,7 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
 
     if len(keylist) == 0:
         raise ValueError(
-            "No keys have been found. Check that the indicies iterating over are in the hdf5 file."
+            "No keys have been found. Check that the indices iterating over are in the hdf5 file."
         )
 
     # iterate over the keylist and expand with labels.

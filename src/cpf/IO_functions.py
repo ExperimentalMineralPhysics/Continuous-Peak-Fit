@@ -20,7 +20,6 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.IO_functions")
 
 
-
 # Needed for JSON to save fitted parameters.
 # Copied from https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array#24375113
 # on 13th November 2018
@@ -379,11 +378,11 @@ def StartStopFilesToList(
     EndNum : float, optional
         End value for the file index/number. The default is None.
     Step : int, optional
-        Step value for the indicies. The default is 1.
+        Step value for the indices. The default is 1.
     Files : list, optional
-        List of file indicies. The default is None.
+        List of file indices. The default is None.
     Keys : list, optional
-        List of key indicies for hdf5 file. The default is None.
+        List of key indices for hdf5 file. The default is None.
 
     Returns
     -------
@@ -619,7 +618,7 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
                 # - there is a value and an error
                 # - the error is less than "large_errors" * error
                 # - the value is not within error of 0
-                #       [this is a sanity check to the preceeding check -- the ratio of error/value tends to inifinty as the 
+                #       [this is a sanity check to the preceeding check -- the ratio of error/value tends to inifinty as the
                 #         value becomes very small.]
                 #       [without this there is lots of discarding the previous fit when the profile values are close to 0]
                 if (
@@ -630,7 +629,7 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
                     and obj_to_inspect["peak"][k][comp + "_err"][j]
                     / obj_to_inspect["peak"][k][comp][j]
                     >= large_errors
-                    and np.abs(obj_to_inspect["peak"][k][comp][j]) 
+                    and np.abs(obj_to_inspect["peak"][k][comp][j])
                     - obj_to_inspect["peak"][k][comp + "_err"][j]
                     >= 0
                 ):

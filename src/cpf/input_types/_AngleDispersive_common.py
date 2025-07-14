@@ -59,6 +59,15 @@ class _AngleDispersive_common:
         :param azm:
         :return:
         """
+        
+        """
+        FIXME: add more flxibility to conversion    
+        XYFunctions does not have to be X-ray diffraction but it could be. To pass a
+        empty conversion throgh the function set DataClass.conversion_factor=False.
+        But other conversions might be necessary in fiture and so the function may 
+        need further generalisationby by accepting a lambda function. 
+        """
+        
         tth_in = np.array(tth_in)
 
         if isinstance(tth_in, list):
@@ -67,24 +76,30 @@ class _AngleDispersive_common:
         else:
             a = False
 
-        # wavelength = self.calibration.wavelength * 1e10
-        if self.conversion_constant is None:
-            # thnen the conversion has not been initated proerly somewhere
-            raise ValueError("'Conversion_constant' cannot be None. Something has not been iniated properly.")
-        else:
-            wavelength = self.conversion_constant
-        
-
-        if self.conversion_constant == None:
+        if self.conversion_constant is False:
+            # if the conversion is False then no conversion is needed
             dspc_out = tth_in
-        elif not reverse:
-            # convert tth to d_spacing
-            dspc_out = wavelength / 2 / np.sin(np.radians(tth_in / 2))
-        else:
-            # convert d-spacing to tth.
-            # N.B. this is the reverse function so that labels tth and d_spacing are not correct.
-            dspc_out = 2 * np.degrees(np.arcsin(wavelength / 2 / tth_in))
 
+        else:
+            # assume diffraction and convert.
+            # wavelength = self.calibration.wavelength * 1e10
+            if self.conversion_constant is None:
+                # thnen the conversion has not been initated proerly somewhere
+                raise ValueError("'Conversion_constant' cannot be None. Something has not been iniated properly.")
+            else:
+                wavelength = self.conversion_constant
+            
+    
+            if self.conversion_constant == None:
+                dspc_out = tth_in
+            elif not reverse:
+                # convert tth to d_spacing
+                dspc_out = wavelength / 2 / np.sin(np.radians(tth_in / 2))
+            else:
+                # convert d-spacing to tth.
+                # N.B. this is the reverse function so that labels tth and d_spacing are not correct.
+                dspc_out = 2 * np.degrees(np.arcsin(wavelength / 2 / tth_in))
+    
         if a == True:
             dspc_out = list(dspc_out)
         return np.squeeze(np.array(dspc_out))

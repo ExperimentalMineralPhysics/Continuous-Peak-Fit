@@ -287,7 +287,7 @@ class XYDetector:
         if "conversion_constant" in self.calibration:
             self.conversion_constant = self.calibration["conversion_constant"]
         else:
-            self.conversion_constant = 1
+            self.conversion_constant = False
         # self.azm_start = self.calibration["y_start"]
         # self.azm_end = self.calibration["y_end"]
 
@@ -605,7 +605,13 @@ class XYDetector:
     GetDataType = _AngleDispersive_common.GetDataType
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     _reduce_array = _AngleDispersive_common._reduce_array
-
+    """
+    FIXME: add more flxibility to conversion    
+    XYFunctions does not have to be X-ray diffraction but it could be. To pass a
+    empty conversion throgh the function set DataClass.conversion_factor=False.
+    But other conversions might be necessary in fiture and so the function may 
+    need further generalisationby by accepting a lambda function. 
+    """
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask

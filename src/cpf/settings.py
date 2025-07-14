@@ -1274,8 +1274,8 @@ class Settings:
             search_series = [search_series]
         if search_series[0] == "all":
             search_series = [coefficient_type_as_string(0),
-                             # coefficient_type_as_string(1),
-                             # coefficient_type_as_string(2),
+                             coefficient_type_as_string(1),
+                             coefficient_type_as_string(2),
                              coefficient_type_as_string(3)]
 
         orders_search = []

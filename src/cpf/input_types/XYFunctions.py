@@ -136,8 +136,8 @@ class XYDetector:
         # self.dspace = None
         self.x = None
         self.y = None
-        self.azm_start = None
-        self.azm_end = None
+        self.azm_start = np.inf
+        self.azm_end = -np.inf
         self.tth_start = None
         self.tth_end = None
         
@@ -301,7 +301,7 @@ class XYDetector:
 
         if self.calibration == None:
             self.get_calibration(
-                settings=settings, file_name=calibration_file, debug=debug
+                settings=settings, file_name=calibration_file, #, debug=debug
             )
 
         if diffraction_data is None and settings is not None:
@@ -510,9 +510,9 @@ class XYDetector:
         if self.reduce_by is not None:
             self.intensity = self._reduce_array(self.intensity)
             self.tth = self._reduce_array(self.tth)
-            if (re.findall("azimuth", self.calibration.calibration["y_label"].lower())
+            if (re.findall("azimuth", self.calibration["y_label"].lower())
                 or 
-                re.findall("theta", self.calibration.calibration["x_label"].lower())
+                re.findall("theta", self.calibration["x_label"].lower())
                 or
                 self.azm_end == self.azm_start + 360):
                 # the data would appear to be diffraction data. 

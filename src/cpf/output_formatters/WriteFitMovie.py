@@ -116,6 +116,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
         json_file = make_outfile_name(
             settings_class.subfit_filename,  # diff_files[z],
             directory=settings_class.output_directory,
+            additional_text=settings_class.file_label,
             extension=".json",
             overwrite=True,
         )
@@ -212,6 +213,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
             json_file = make_outfile_name(
                 settings_class.subfit_filename,  # diff_files[z],
                 directory=settings_class.output_directory,
+                additional_text=settings_class.file_label,
                 extension=".json",
                 overwrite=True,
             )

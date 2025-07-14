@@ -140,7 +140,9 @@ def view(
     parallel=True,
     pattern="all",
     subpattern="all",
-    report=False,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
 ):
     """
     :param settings_file:
@@ -168,17 +170,19 @@ def view(
         settings_for_fit.set_data_files(keep=pattern)
 
     write_output(settings_file=settings_file, out_type="CollectionMovie")
+    
+    # write_output(settings_file=settings_file, out_type="RangesMovie")
 
-    execute(
-        settings_class=settings_for_fit,
-        debug=debug,
-        refine=refine,
-        save_all=save_all,
-        iterations=iterations,
-        parallel=parallel,
-        mode="view",
-        report=True,
-    )
+    # execute(
+    #     settings_class=settings_for_fit,
+    #     debug=debug,
+    #     refine=refine,
+    #     save_all=save_all,
+    #     iterations=iterations,
+    #     parallel=parallel,
+    #     mode="view",
+    #     report=True,
+    # )
 
 
 def set_range(

@@ -261,16 +261,58 @@ class _Plot_AngleDispersive:
             # location = "right"
             loc = "center"
         # make axes
+        # try:
+        #     fig_plot.set_layout_engine(layout="constrained")
+        # except:
+        #     pass
         ax = []
         if tight == True:
             gs = gridspec.GridSpec(up, across, wspace=0.0, hspace=0.0)
             for i in range(3):
                 ax.append(fig_plot.add_subplot(gs[i]))
         else:
-            axs = fig_plot.subplots(nrows=up, ncols=across, sharey=True, sharex=True)
-            ax.append(axs[0])
-            ax.append(axs[1])
-            ax.append(axs[2])
+            # =========================
+            # FIXME: legends on Data/Model/Residual figures. 
+            # It would be great if we could centre the colours bars under the axes 
+            # in the 3 part figure. 
+            # This is trivial using plt.subplots(... layout='constrained') (see example 1 below ) but 
+            # cannot use used with fig.subplots() as easily. 
+            # It is also possible with gridspec and a similar over lapping of the 
+            # legends and figures. But the gridspec and mixed axes are imcompatible 
+            # with 'tight_layout'. 
+            # 
+            # see: https://matplotlib.org/stable/users/explain/axes/colorbar_placement.html
+            #      https://matplotlib.org/stable/gallery/subplots_axes_and_figures/gridspec_and_subplots.html
+            #      https://matplotlib.org/stable/users/explain/axes/mosaic.html#mosaic
+            #
+            # This has to be soluble but is not trivial given that I am passing 
+            # the figure round and reusing it. It needs some thought.
+            # --------------------------
+            # # # Example 1. 
+            # fig, axs = plt.subplots(1, 3, layout='constrained')
+            # for ax in axs.flat:
+            #     pcm = ax.pcolormesh(np.random.random((20, 20)))
+            # fig.colorbar(pcm, ax=axs[ :2], shrink=0.5, location='bottom')
+            # fig.colorbar(pcm, ax=axs[ 1:], shrink=0.5, location='bottom')
+            # =========================
+            # here after are options that weere possible but not complete
+            # the axes that the key is for a fed to self.plot_calibrated using 
+            # cbar_axes... cbar_axes can be a list of axes which will then share a 
+            # colour bar. 
+            if 1:
+                axs = fig_plot.subplots(nrows=up, ncols=across, sharey=True, sharex=True)
+                ax.append(axs[0])
+                ax.append(axs[1])
+                ax.append(axs[2])
+                # axs = fig_plot.subplots(up, across, sharey=True, sharex=True, layout='constrained')
+            else:
+                gs = gridspec.GridSpec(up, across, wspace=.08, hspace=0)
+                for i in range(3):
+                    ax.append(fig_plot.add_subplot(gs[i]))
+                    if i > 0:
+                        # ax[i].sharey(ax[0])
+                        ax[i].set_yticklabels([])
+                        # ax[i].yaxis.set_ticks_position('both')
 
         # plot data
         fig_plot = self.plot_calibrated(
@@ -282,6 +324,7 @@ class _Plot_AngleDispersive:
             # location=location,
             rastered=plot_type,
             orientation=orientation,
+            # cbar_axes=False
         )
         if orientation == "horizontal":
             ax[0].set_title("Data", loc=loc, y=0.75)
@@ -301,7 +344,9 @@ class _Plot_AngleDispersive:
             # location=location,
             rastered=plot_type,
             orientation=orientation,
+            # cbar_axes=[ax[0],ax[1]]
         )
+        
         if fit_centroid is not None:
             for i in range(len(fit_centroid[1])):
                 if orientation == "horizontal":
@@ -549,6 +594,7 @@ class _Plot_AngleDispersive:
         resample_shape=None,
         location=None,
         orientation="vertical",
+        cbar_axes = None,
     ):
         """
         add data to axes.
@@ -760,15 +806,25 @@ class _Plot_AngleDispersive:
             else:
                 axis_plot.set_yticks(y_ticks)
 
-        # p2 = axis_plot.get_position().get_points().flatten()
-        # ax_cbar1 = fig_plot.add_axes([p2[0], 0, p2[2]-p2[0], 0.05])
-        cb = fig_plot.colorbar(
-            mappable=the_plot,
-            ax=axis_plot,
-            extend=cb_extend,
-            location=location,
-            shrink=0.9,
-        )  # , pad=0.1, aspect=8)
+        # fix colour bar. 
+        # cbar_axes = False --> dont have colour bar
+        # cbar_axes = None --> cbar for these axes (default)
+        # cbar_axes = Axis --> make cbar for this/these axes. Used to make 
+        # single colour bar for data and model in self.plot_fitted.
+        if cbar_axes is not False:
+            if cbar_axes is None:
+                cbar_axes = axis_plot
+            try:
+                shrink = 0.9 / len(cbar_axes)
+            except:
+                shrink = 0.9
+            cb = fig_plot.colorbar(
+                mappable=the_plot,
+                ax=cbar_axes,
+                extend=cb_extend,
+                location=location,
+                shrink=shrink,
+            )  # , pad=0.1, aspect=8)
 
         return fig_plot
 

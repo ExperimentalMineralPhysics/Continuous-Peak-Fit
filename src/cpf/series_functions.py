@@ -39,13 +39,15 @@ def coefficient_types(full=False):
 
     The series types and their associated numbers are: 
          0: 'fourier'
-         1: 'linear', 'spline_linear'
-         2: 'quadratic', 'spline_quadratic'
-         3: 'cubic', 'spline_cubic', 'spline', 'spline-cubic'
-         4: 'linear_open', 'spline_linear_open'
-         5: 'quadratic_open', 'spline_quadratic_open'
-         6: 'cubic_open', 'spline_cubic_open', 'spline_open',
+         1: 'spline_linear', 'linear'
+         2: 'spline_quadratic', 'quadratic'
+         3: 'spline_cubic', 'cubic', 'spline', 'spline-cubic'
+         4: 'spline_linear_open', 'linear_open'
+         5: 'spline_quadratic_open', 'quadratic_open'
+         6: 'spline_cubic_open', 'cubic_open', 'spline_open'
          7: 'independent'
+    When cycled through the code the first value in each of these options is the one that 
+    will be added to the json files. So 'linear' will be written as 'spline_linear'
 
     Parameters
     ----------
@@ -63,57 +65,57 @@ def coefficient_types(full=False):
     # add fourier series type
     coeff_types = {"fourier": {"num": 0,  "expansion_function": "fourier_expand" },}   
     # add spline, linear, periodic series type
-    coeff_types |= {"linear": {
+    coeff_types |= {"spline_linear": {
             "num": 1,
             "expansion_function": "spline_expand",
             "boundary_conditions": "periodic",
             "spline_type": "linear",
             },}
-    coeff_types |= {"spline_linear": coeff_types["linear"],}
+    coeff_types |= {"linear": coeff_types["spline_linear"],}
     # add spline, quadratic, periodic series type
-    coeff_types |= {"quadratic": {
+    coeff_types |= {"spline_quadratic": {
             "num": 2,
             "expansion_function": "spline_expand",
             "boundary_conditions": "periodic",
             "spline_type": "quadratic",
             },}
-    coeff_types |= {"spline_quadratic": coeff_types["quadratic"],}
+    coeff_types |= {"quadratic": coeff_types["spline_quadratic"],}
     # add spline, cubic, periodic series type    
-    coeff_types |= {"cubic": {
+    coeff_types |= {"spline_cubic": {
             "num": 3,
             "expansion_function": "spline_expand",
             "boundary_conditions": "periodic",
-            "spline_type": "quadratic",
+            "spline_type": "cubic",
             },}
-    coeff_types |= {"spline_cubic": coeff_types["cubic"],}
-    coeff_types |= {"spline": coeff_types["cubic"],}
-    coeff_types |= {"spline-cubic": coeff_types["cubic"],}
+    coeff_types |= {"cubic": coeff_types["spline_cubic"],}
+    coeff_types |= {"spline": coeff_types["spline_cubic"],}
+    coeff_types |= {"spline-cubic": coeff_types["spline_cubic"],}
     
     # add spline, linear, open series type    
-    coeff_types |= {"linear_open": {
+    coeff_types |= {"spline_linear_open": {
             "num": 4,
             "expansion_function": "spline_expand",
             "boundary_conditions": "natural",
             "spline_type": "linear",
             },}
-    coeff_types |= {"spline_linear_open": coeff_types["linear_open"],}
+    coeff_types |= {"linear_open": coeff_types["spline_linear_open"],}
     # add spline, quardartic, open series type    
-    coeff_types |= {"quadratic_open": {
+    coeff_types |= {"spline_quadratic_open": {
             "num": 5,
             "expansion_function": "spline_expand",
             "boundary_conditions": "natural",
             "spline_type": "quadratic",
             },}
-    coeff_types |= {"spline_quadratic_open": coeff_types["quadratic_open"],}
+    coeff_types |= {"quadratic_open": coeff_types["spline_quadratic_open"],}
     # add spline, cubic, open series type    
-    coeff_types |= {"cubic_open": {
+    coeff_types |= {"spline_cubic_open": {
             "num": 6,
             "expansion_function": "spline_expand",
             "boundary_conditions": "natural",
-            "spline_type": "quadratic",
+            "spline_type": "cubic",
             },}
-    coeff_types |= {"spline_cubic_open": coeff_types["cubic_open"],}
-    coeff_types |= {"spline_open": coeff_types["cubic_open"],}    
+    coeff_types |= {"cubic_open": coeff_types["spline_cubic_open"],}
+    coeff_types |= {"spline_open": coeff_types["spline_cubic_open"],}    
     
     # add independent coefficients. 
     coeff_types |= {"independent": {

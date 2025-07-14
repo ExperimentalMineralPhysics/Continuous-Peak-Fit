@@ -11,7 +11,7 @@ from copy import copy, deepcopy
 from pathlib import Path
 from typing import Any, Literal, Optional
 import os
-
+import re
 import numpy as np
 
 import cpf.input_types as input_types
@@ -1236,6 +1236,7 @@ class Settings:
     ):
         """
         Expands the fit_orders dictionary for searching over peak parameter order space. 
+        Sets self.fit_orders to reflect this.
 
         Parameters
         ----------
@@ -1292,14 +1293,20 @@ class Settings:
                     for k in range(len(search)):
                     
                         orders_s = deepcopy(tmp_order)
-                        
-                        if search_parameter != "background":
+                        if "background" not in search_parameter:
                             orders_s["peak"][peak_search[l]][search_parameter] = search[k]
                             orders_s["peak"][peak_search[l]][search_parameter + "_type"] = (
                                 search_series[j]
                             )
-                        else:
-                            orders_s["background"][peak_search[l]] = search[k]
+                        else: # "background" in search_parameter:
+                            if search_parameter == "background":
+                                bg_pos = 0
+                            else:
+                                bg_pos = int(re.sub("background","",search_parameter))
+                            orders_s[search_parameter][bg_pos] = search[k]
+                            orders_s[search_parameter + "_type"] = (
+                                search_series[j]
+                            )
                         if len(tmp_order) > 1:
                             intro_string = "peak=" + str(peak_search[l]) + "_"
                         else:
@@ -1317,6 +1324,15 @@ class Settings:
                         orders_search.append(orders_s)
         self.fit_orders = orders_search
 
+    def unset_order_search(self):
+        """
+        Restores the fot_orders from input. Used after Settings.set_order_search
+        """
+        if "fit_orders" in dir(self.settings_from_input):
+            self.fit_orders = self.settings_from_input.fit_orders
+        else:
+            raise ValueError("Unable to restore fit_orders")
+            
     def set_subpattern(self, file_number, number_subpattern):
         """
         Set the parameters for the subpattern to be fit as immediately accesible.

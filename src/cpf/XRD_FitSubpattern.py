@@ -344,11 +344,12 @@ def fit_sub_pattern(
             )
             previous_params = None
 
-    if previous_params:
-        # initiate values for while loop.
-        step = [5]
-    else:
+    # initiate counter for while loop.
+    if previous_params is None or previous_params == [] or previous_params is False:
+        previous_params = None # make sure expected value for later
         step = [0]
+    else:
+        step = [5]
 
     if previous_params and settings_as_class.subfit_orders:
         # If we have both, order takes precedence so update previous_params to match
@@ -875,7 +876,11 @@ def fit_sub_pattern(
                 err_str = "The value of step here should not be achievable. Oops. \n The data is not fitting. Discard."
                 logger.critical(" ".join(map(str, [(err_str)])))
                 step.append(step[-1] - 200)
-
+        
+        if 0: #report_status:
+            print(f"    status: step = {step}")  
+            print(f"        time elaspsed = {time.time() - t_start}")
+        
         if step[-1] < 0:
             # the fit is void and we need to exit.
             # make sure all the height values are nan so that we dont propagate rubbish
@@ -1208,7 +1213,7 @@ def plot_FitAndModel(
             )  # np.zeros(azi_plot.shape))
 
     # plot the data and the fit
-    data_as_class.plot_fitted(
+    figure = data_as_class.plot_fitted(
         fig_plot=figure,
         model=full_fit_intens,
         fit_centroid=[azi_plot, fit_centroid],

@@ -92,7 +92,7 @@ def WriteOutput(
     
     #this is search data so there is a postscript in the json file label.
     # determine the label
-    if "file_label" not in settings_class.__dict__ or settings_class.file_label is None:
+    if "file_label" not in dir(settings_class) or settings_class.file_label is None:
         fls = glob.glob("./results/*search*.json")
         if len(fls) == 0:
             raise ValueError("There is no identified search file to plot.")
@@ -104,7 +104,7 @@ def WriteOutput(
             settings_class.file_label = os.path.splitext(os.path.basename(fls[latest]))[0].split("__")[1]
     
     # read the data.
-    df = ReadFits(settings_class=settings_class, includeStats=True, includeDerivedValues=True)
+    df = ReadFits(settings_class=settings_class, includeStats=True, includeDerivedValues=True, includePosition=True)
     headers = list(df.columns.values)
     
     # split the notes column into columns and calculate some new values
@@ -137,7 +137,6 @@ def WriteOutput(
                 df_tmp = df[(df['Peak'] == peaks[i]) & (df['series_type'] == searches[j])]
                 # if there is more than 1 peak we need to filter the data to 
                 # just look at the one that has been searched over.
-                # for k in range(len(df_tmp["search_peak"].unique())):
                 if len(df_tmp['search_peak'].unique()) == 1:
                     # there is only 1 peak. has to be 0.
                     k = 0
@@ -157,20 +156,20 @@ def WriteOutput(
             # ax[h].set_title(peaks[i])
             ax[h].legend()
         
-    return df 
-    """
-    # make filename for output
-    base = settings_class.datafile_basename
-    if base is None:
-        logger.info(
-            " ".join(map(str, [("No base filename, using input filename instead.")]))
+        # write figures to file
+        # position = df.iloc[i]["Position in json"]
+        # data_fit_tmp = data_fit[position]
+        # if "note" in data_fit_tmp:
+        #     data_fit_tmp.pop("note")
+        out_file = make_outfile_name(
+            settings_class.subfit_filename,
+            directory=settings_class.output_directory,
+            # orders = data_fit_tmp,
+            additional_text=settings_class.file_label,
+            extension='.png',
+            peak=peaks[i],
+            overwrite=True,
         )
-        base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
-    out_file = make_outfile_name(
-        base,
-        directory=settings_class.output_directory,
-        extension=".dat",
-        overwrite=True,
-        additional_text="all_coefficients",
-    )
-    """
+        fig.savefig(out_file)
+            
+    return df

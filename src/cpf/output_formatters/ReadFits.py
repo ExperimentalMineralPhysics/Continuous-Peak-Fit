@@ -25,6 +25,8 @@ def ReadFits(
     includeParameters = "all",
     includeStats=False,
     includeDerivedValues = False,
+    includeIntensityRanges = False,
+    includePosition = False,
     *args,
     **kwargs
 ):
@@ -75,13 +77,21 @@ def ReadFits(
         includeParameters = peak_properties[1]
 
     if includeDerivedValues is not False:
-        SampleGeometry = "3d"
-        SampleDeformation = "compression"
-        if "SampleGeometry" in kwargs:
-            SampleGeometry = kwargs["SampleGeometry"]
-        if "SampleDeformation" in kwargs:
-            SampleDeformation = kwargs["SampleDeformation"]
-            
+        SampleGeometry = kwargs.get("SampleGeometry", "3d")
+        SampleDeformation = kwargs.get("SampleDeformation", "compression")
+        # SampleGeometry = "3d"
+        # SampleDeformation = "compression"
+        # if "SampleGeometry" in kwargs:
+        #     SampleGeometry = kwargs["SampleGeometry"]
+        # if "SampleDeformation" in kwargs:
+        #     SampleDeformation = kwargs["SampleDeformation"]
+    
+    if includeIntensityRanges is not False: 
+        # get the intensity maximum and minimum of the fit, model and residuals
+        IntensityValues = ["data_max", "data_min", "model_max", "model_min", "residual_max", "residual_min"]
+    else:
+        IntensityValues = []
+        
     # read all the data.
     fits = []
     num_fits = 0
@@ -182,6 +192,8 @@ def ReadFits(
                 headers.append(ind + str(v))
                 headers.append(ind + str(v) + "_err")
     properties = []
+    if includePosition == True:
+        properties.append("Position in json")
     if includeDerivedValues is not False:
         if includeDerivedValues is True:
             properties += DerivedValues
@@ -189,6 +201,8 @@ def ReadFits(
             for i in range(len(includeDerivedValues)):
                 properties.append(includeDerivedValues[i])
                 # properties.append(includeDerivedValues[i]+"err")
+    if includeIntensityRanges is True:
+        properties += IntensityValues
     if includeStats is True:
         # include properties from the lmfit output that were passed with the fits.
         #read the list of parameters from the first file.
@@ -197,6 +211,7 @@ def ReadFits(
             settings_class.subfit_filename,
             directory=settings_class.output_directory,
             extension=".json",
+            additional_text=settings_class.file_label,
             overwrite=True,
         )  # overwrite = True to get the file name without incrementing it.
         with open(filename) as json_data:
@@ -313,6 +328,27 @@ def ReadFits(
                     # in crystallographic_values dictionary
                     RowLst[ind] = data_to_write["peak"][lists[z, 2]]["crystallographic_values"][ind]
                     # RowLst[ind+"err"] = data_to_write["peak"][lists[z, 2]]["crystallographic_values"][ind+"_err"]
+
+                elif ind == "Position in json":
+                    # print("here we are ")
+                    # print(lists[z, 1])
+                    RowLst[ind] = lists[z, 1]
+
+                elif ind in IntensityValues:
+                    if ind == "data_max":
+                        RowLst[ind] = data_to_write["DataProperties"]["max"]
+                    elif ind == "data_min":
+                        RowLst[ind] = data_to_write["DataProperties"]["min"]                    
+                    elif ind == "model_max":
+                        RowLst[ind] = data_to_write["ModelProperties"]["max"]
+                    elif ind == "model_min":
+                        RowLst[ind] = data_to_write["ModelProperties"]["min"]
+                    elif ind == "residual_max":
+                        RowLst[ind] = data_to_write["ResidualProperties"]["max"]
+                    elif ind == "residual_min":
+                        RowLst[ind] = data_to_write["ResidualProperties"]["min"]
+                    else:
+                        raise ValueError("Unknown value to read")
 
                 else:
                     if (data_to_write["FitProperties"][ind] is None):  

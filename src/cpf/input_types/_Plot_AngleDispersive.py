@@ -273,7 +273,7 @@ class _Plot_AngleDispersive:
             ax.append(axs[2])
 
         # plot data
-        self.plot_calibrated(
+        fig_plot = self.plot_calibrated(
             fig_plot=fig_plot,
             axis_plot=ax[0],
             show="intensity",
@@ -291,7 +291,7 @@ class _Plot_AngleDispersive:
         # plt.setp(labels, rotation=90)
 
         # plot model
-        self.plot_calibrated(
+        fig_plot = self.plot_calibrated(
             fig_plot=fig_plot,
             axis_plot=ax[1],
             data=model,
@@ -324,7 +324,7 @@ class _Plot_AngleDispersive:
             limits_resid = {"min": limits["rmin"], "max": limits["rmax"]}
         else:
             limits_resid = [0, 100]
-        self.plot_calibrated(
+        fig_plot = self.plot_calibrated(
             fig_plot=fig_plot,
             axis_plot=ax[2],
             data=self.intensity - model,
@@ -391,6 +391,8 @@ class _Plot_AngleDispersive:
 
         # tidy layout
         plt.tight_layout()
+        
+        return fig_plot
 
     def plot_collected(
         self,

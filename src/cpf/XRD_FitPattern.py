@@ -439,6 +439,13 @@ def order_search(
     Makes a json file with all the fits that is named:
         *settings_file*__search=*search_parameter*_subpattern=*subpattern*_peak=*search_peak*
 
+    The function will technically work in parallel but due to memory limitations 
+    and the way the code is structured, it is set by default to run this function in 
+    series. 
+    For the same reason, althogh the code can run 'all' the peaks at once, it is 
+    split up and loops over each peak separately.
+
+
     Parameters
     ----------
     settings_class : cpf.Settings.settings() Class, optional
@@ -482,41 +489,61 @@ def order_search(
     # search over the first file only
     settings_for_fit.set_data_files(keep=0)
 
-    # set search orders
-    settings_for_fit.set_order_search(
-        search_parameter=search_parameter,
-        search_over=search_over,
-        subpatterns=subpattern,
-        search_peak=search_peak,
-        search_series=search_series,
-    )
-    settings_for_fit.fit_propagate = False
-    settings_for_fit.file_label = (
-        "search="
-        + search_parameter
-        + "_subpattern="
-        + str(subpattern)
-        + "_peak="
-        + str(search_peak)
-    )
+    # loop over the peaks in turn unless forced
+    if subpattern =="force all":
+        subpattern = ["all"]
+    elif subpattern =="all":
+        subpattern = list(range(len(settings_for_fit.fit_orders)))
+    elif not isinstance(subpattern, list):
+        subpattern = [subpattern]
 
-    execute(
-        settings_class=settings_for_fit,
-        refine=refine,
-        save_all=save_all,
-        mode="search",
-        parallel=parallel,
-        report=report,
-    )
+    for i in range(len(subpattern)):
 
-    # call WriteOrderSearchFigures to make the figures.
-    write_output(
-        # settings_file=settings_file,
-        settings_class=settings_for_fit,
-        debug=True,
-        out_type="OrderSearchFigures",
-    )
+        logger.info(f"Performing order_search for peak {i}")
+        
+        # set search orders
+        settings_for_fit.set_order_search(
+            search_parameter=search_parameter,
+            search_over=search_over,
+            subpatterns=subpattern[i],
+            search_peak=search_peak,
+            search_series=search_series,
+        )
+        settings_for_fit.fit_propagate = False
+        settings_for_fit.file_label = (
+            "search="
+            + search_parameter
+            + "_subpattern="
+            + str(subpattern[i])
+            + "_peak="
+            + str(search_peak)
+        )
+        
+        execute(
+            settings_class=settings_for_fit,
+            refine=refine,
+            save_all=save_all,
+            mode="search",
+            parallel=parallel,
+            report=report,
+        )
+    
+        # call WriteOrderSearchFigures to make the figures.
+        write_output(
+            # settings_file=settings_file,
+            settings_class=settings_for_fit,
+            debug=True,
+            out_type="OrderSearchFigures",
+        )
+        write_output(
+            # settings_file=settings_file,
+            settings_class=settings_for_fit,
+            debug=True,
+            out_type="OrderSearchMovie",
+        )
 
+        settings_for_fit.unset_order_search()
+    logger.info("Order searches are completed.")
 
 def write_output(
     settings_file: Optional[str | Path] = None,
@@ -792,13 +819,18 @@ def execute(
         parallel_pile = []
 
         for i in range(len(settings_for_fit.fit_orders)):
+            
+            if parallel == False:
+                serial_string = f"Fitting range {i+1}/{len(settings_for_fit.fit_orders)}"
+                logger.info(serial_string)
+
             # get settings for current subpattern
             settings_for_fit.set_subpattern(j, i)
 
             if "previous_fit" in locals() and mode == "fit":
                 params = previous_fit[i]
             else:
-                params = []
+                params = None
 
             # Track the position of the peak centroid
             # FIXME: This is crude - the range doesn't change width. so can't account for massive change in stress.

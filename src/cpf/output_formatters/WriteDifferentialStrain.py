@@ -481,11 +481,17 @@ def WriteOutput(settings_class=None, settings_file=None, debug=True, **kwargs):
                                 "{0:" + str(width_col - 1) + "." + str(dp - 1) + "e},"
                             ).format(fit[y]["FitProperties"]["sum-residuals-squared"])
                         )
-                        text_file.write(
-                            ("{0:" + str(width_col - 1) + ".0f},").format(
-                                fit[y]["FitProperties"]["status"]
+                        if isinstance(fit[y]["FitProperties"]["status"], str):
+                            text_file.write(
+                                ("{0:<" + str(width_col-1) + "}").format(fit[y]["FitProperties"]["status"]
+                                )
                             )
-                        )
+                        else:
+                            text_file.write(
+                                ("{0:" + str(width_col - 1) + ".0f},").format(
+                                    fit[y]["FitProperties"]["status"]
+                                )
+                            )
                         text_file.write(
                             ("{0:" + str(width_col - 1) + ".0f},").format(
                                 fit[y]["FitProperties"]["function-evaluations"]

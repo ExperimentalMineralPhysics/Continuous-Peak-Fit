@@ -532,7 +532,7 @@ def spline_expand(
     comp_str=None,
     start_end=[0, 360],
     bc_type="periodic",
-    kind="cubic",
+    kind=None,
     **params,
 ):
     """
@@ -612,17 +612,17 @@ def spline_expand(
         fout[:] = inp_param[0]
     # essentially d_0, h_0 or w_0
     if not isinstance(inp_param, np.float64) and np.size(inp_param) > 1:
-        if k == 3:
-            spl = CubicSpline(
-                points, inp_param, bc_type=bc_type, extrapolate="periodic"
-            )
-        else:
-            if k >= len(points):
-                # catch if the spline is underconstrained
-                k = len(points)-1
-                if k < 0:
-                    k=0
-            spl = make_interp_spline(points, inp_param, k=k, bc_type=bc_type )
+        # if k == 3:
+        #     spl = CubicSpline(
+        #         points, inp_param, bc_type=bc_type, extrapolate="periodic"
+        #     )
+        # else:
+        if k >= len(points):
+            # catch if the spline is underconstrained
+            k = len(points)-1
+            if k < 0:
+                k=0
+        spl = make_interp_spline(points, inp_param, k=k, bc_type=bc_type )
 
         fout = spl(azimuth)
 

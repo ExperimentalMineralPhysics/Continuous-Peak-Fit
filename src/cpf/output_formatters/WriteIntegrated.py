@@ -142,6 +142,7 @@ def WriteOutput(settings_class=None, setting_file=None, **kwargs):
             header += "\n# The bins are all made with approximately equal numbers of unmasked pixels\n"
         else:
             header += "# The bins all have an equal width in two theta.\n"
+        if 'moveby' in locals() and moveby != 0:
             header += f"# Data has been adjusted. Subtraction of {moveby} from intrgated values.\n"
         header += "#\n#\n"
             

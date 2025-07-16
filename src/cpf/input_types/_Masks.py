@@ -153,10 +153,10 @@ class _masks:
         # mask invalid values
         mask2 = ma.masked_invalid(im_ints).mask
         # mask everything less than 0.
-        mask3 = ma.masked_less(im_ints, 0).mask
+        # mask3 = ma.masked_less(im_ints, 0).mask
 
         # combine masks
-        im_mask = np.asarray(im_mask) | np.asarray(mask2) | np.asarray(mask3)
+        im_mask = np.asarray(im_mask) | np.asarray(mask2) #| np.asarray(mask3)
         # im_ints = ma.array(im_ints, mask=im_mask)
 
         """

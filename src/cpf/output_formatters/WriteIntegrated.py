@@ -47,9 +47,17 @@ def WriteOutput(settings_class=None, setting_file=None, **kwargs):
 
     histogram_type = kwargs.get("histogram_type", "data")
     bin_n          = kwargs.get("bin_n", None)
+    # bin_data       = kwargs.get("bin_n", 200)
 
-    if bin_n is None or np.array(bin_n).size != 1:
+    if np.array(bin_n).size != 1:
         raise NotImplementedError("Two dimensional historgrams are not implemented yet.")
+    
+    # set default values if dasta in bin is not given.
+    if bin_n == None:
+        if histogram_type == "data":
+            bin_n = 400
+        elif histogram_type == "width":
+            bin_n = 2000
     
     if settings_class is None and setting_file is None:
         raise ValueError(
@@ -107,6 +115,15 @@ def WriteOutput(settings_class=None, setting_file=None, **kwargs):
 
         p, i, a = histogram1d(new_data.tth, new_data.intensity, bin_n=bin_n, histogram_type=histogram_type)
 
+        # GSAS-ii cannot take negative intensities. 
+        # Force positive intensities here incase darkfield applied to images incorrectly.
+        moveby = np.nanmin(i)
+        if np.nanmin(i) < 0:
+            i = i - moveby
+        else: 
+            moveby = 0
+
+
         filename = make_outfile_name(
             settings_class.subfit_filename,
             directory=settings_class.output_directory,
@@ -122,9 +139,10 @@ def WriteOutput(settings_class=None, setting_file=None, **kwargs):
         header += f"# from inputfile: \n#     {settings_class.settings_file} \n#\n"
         header += f"# Historgram bin type: '{histogram_type}'\n"
         if histogram_type == "data":
-            header += "# The bins are all made with approximately equal numbers of unmasked pixels\n"
+            header += "\n# The bins are all made with approximately equal numbers of unmasked pixels\n"
         else:
             header += "# The bins all have an equal width in two theta.\n"
+            header += f"# Data has been adjusted. Subtraction of {moveby} from intrgated values.\n"
         header += "#\n#\n"
             
         try:

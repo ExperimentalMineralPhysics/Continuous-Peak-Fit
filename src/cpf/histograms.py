@@ -16,7 +16,7 @@ logger = get_logger("cpf.histograms")
 
 
 
-def calculate_n_bins(data, num_azi_bins=1, bin_max = 10000, scale_factor = .5):
+def calculate_n_bins(data, num_azi_bins=1, bin_max = 10000, scale_factor = 5):
     """
     Calculate the number of bins to split the data into. 
     
@@ -51,7 +51,7 @@ def calculate_n_bins(data, num_azi_bins=1, bin_max = 10000, scale_factor = .5):
     # or the number of data.
     # the multiply by 4 for Sturges' Rule is arbitrary but needed here becuase the data is wider than the distributions.
     bin_n = np.max([1 + 3.322 * np.log10(data_per_bin) * 4, data_per_bin / 50])
-    bin_n *= scale_factor
+    bin_n /= scale_factor
     
     # catch for ESRFlvp data where millions are bins are possible.
     if bin_n > bin_max:

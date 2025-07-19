@@ -993,8 +993,12 @@ class ESRFlvpDetector:
         
         # use import_image to fill in the intensity data.
         # No reduction because if reduced then the calibration is nonsence.
+        if isinstance(diff_file, list):
+            df = diff_file[0]
+        else:
+            df = diff_file
         if np.size(self.intensity) <= 1:
-            if diff_file != None and os.path.splitext(os.path.basename(diff_file[0]))[1] != ".h5":
+            if diff_file != None and os.path.splitext(os.path.basename(str(df)))[1] != ".h5":
                 # sets self.intensity
                 self.import_image(diff_file, mask=mask, dtype=array_dtype, reduce_by=self.reduce_by)
                 

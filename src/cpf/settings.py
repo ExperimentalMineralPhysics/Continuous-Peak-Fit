@@ -27,6 +27,8 @@ from cpf.series_functions import (
     coefficient_types,
     get_number_coeff,
 )
+from cpf.peak_functions import peak_components
+
 
 # , get_output_options, detector_factory, register_default_formats
 from cpf.util.logging import get_logger
@@ -1294,6 +1296,8 @@ class Settings:
                     
                         orders_s = deepcopy(tmp_order)
                         if "background" not in search_parameter:
+                            if search_parameter not in peak_components(full=False, include_profile=True):
+                                raise ValueError("The search_parameter is not recognised.")
                             orders_s["peak"][peak_search[l]][search_parameter] = search[k]
                             orders_s["peak"][peak_search[l]][search_parameter + "_type"] = (
                                 search_series[j]

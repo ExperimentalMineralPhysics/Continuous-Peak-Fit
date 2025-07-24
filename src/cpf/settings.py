@@ -498,7 +498,7 @@ class Settings:
 
         # check output directoy
         if self.output_directory != None:
-            self.check_directory_exists(self.output_directory)
+            self.check_directory_exists(self.output_directory, make_dir=True)
 
         # check calibration
         if self.calibration_type == None:
@@ -524,8 +524,7 @@ class Settings:
 
     def check_files_exist(
         self,
-        files_to_check: list[Path] | Path,
-        write: bool = False,
+        files_to_check: list[Path] | Path
     ):
         """
         Check if a file exists. If not issue an error
@@ -547,34 +546,34 @@ class Settings:
                     f"The file {files_to_check[j]} is not found but is required."
                 )
             else:
-                if write == True:
-                    logger.info(" ".join(map(str, [(f"{files_to_check[j]} exists.")])))
+                logger.info(" ".join(map(str, [(f"{files_to_check[j]} exists.")])))
 
     def check_directory_exists(
         self,
         directory: Path,
-        write: bool = False,
+        make_dir: bool = False,
         
     ):
         """
-        Check if a directory exists. If not issue an error
+        Check if a directory exists. Make it if make_dir==True or issue an error.
         """
         if directory.exists() is False:
-            # raise FileNotFoundError(
-            #     f"The directory {directory.name!r} is not found but is required."
-            # )
-            os.makedirs(directory)
-            logger.info(" ".join(map(str, [(f"{directory.name!r} was created.")])))
+            if make_dir == False:
+                raise FileNotFoundError(
+                    f"The directory {directory.name!r} is not found but is required."
+                )
+            else:
+                os.makedirs(directory)
+                logger.info(" ".join(map(str, [(f"{directory.name!r} was created.")])))
         else:
-            if write == True:
-                logger.info(" ".join(map(str, [(f"{directory.name!r} exists.")])))
+            logger.info(" ".join(map(str, [(f"{directory.name!r} exists.")])))
 
     def validate_datafiles(self):
         """
         Checks if the input directory and files all exist.
         """
-        self.check_directory_exists(self.datafile_directory, write=True)
-        self.check_files_exist(self.datafile_list, write=False)
+        self.check_directory_exists(self.datafile_directory, make_dir=False)
+        self.check_files_exist(self.datafile_list)
         logger.info(" ".join(map(str, [("All the data files exist.")])))
 
     def validate_fit_orders(

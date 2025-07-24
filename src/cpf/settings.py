@@ -1295,7 +1295,7 @@ class Settings:
                     
                         orders_s = deepcopy(tmp_order)
                         if "background" not in search_parameter:
-                            if search_parameter not in peak_components(full=False, include_profile=True):
+                            if search_parameter not in peak_components(full=False, include_profile=True)[1]:
                                 raise ValueError("The search_parameter is not recognised.")
                             orders_s["peak"][peak_search[l]][search_parameter] = search[k]
                             orders_s["peak"][peak_search[l]][search_parameter + "_type"] = (

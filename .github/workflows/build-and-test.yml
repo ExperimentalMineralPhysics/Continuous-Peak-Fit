@@ -64,6 +64,9 @@ jobs:
     # Load the test matrix generated for use here
     needs: generate-test-matrix
     runs-on: ${{ matrix.os }}
+    env:
+      # Disable rendering of Matplotlib figures in test workflows
+      MPLBACKEND: Agg
     strategy:
       fail-fast: False
       matrix: ${{ fromJson(needs.generate-test-matrix.outputs.matrix) }}

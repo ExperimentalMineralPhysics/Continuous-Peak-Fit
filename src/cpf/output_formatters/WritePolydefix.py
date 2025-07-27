@@ -8,7 +8,7 @@ import numpy as np
 
 import cpf.output_formatters.WriteMultiFit as WriteMultiFit
 from cpf.IO_functions import make_outfile_name
-from cpf.output_formatters.crystallographic_operations import indices4to3
+from cpf.output_formatters.crystallographic_operations import plane_indices_4_to_3
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WritePolydefix")
@@ -350,7 +350,7 @@ def WriteOutput(
                     else:
                         m = hkl[pos : pos + 1]
                         pos = pos + 1
-                    HKL = indices4to3(np.array([h, k, l, m], dtype=int))
+                    HKL = plane_indices_4_to_3(np.array([h, k, l, m], dtype=int))
                     h, k, l = HKL
                 text_file.write(" %5i    %s    %s    %s\n" % (use, h, k, l))
 

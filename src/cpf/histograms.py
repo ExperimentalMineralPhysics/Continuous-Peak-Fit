@@ -238,11 +238,17 @@ def histogram2d(data, x, y, x_bins=500, y_bins=720):
     # we can forace all the options we want here rather than having to set them everytime.
 
     if not ma.isMaskedArray(data):
-        data = ma.array(data)
-    if not ma.isMaskedArray(x):
-        x = ma.array(x)
-    if not ma.isMaskedArray(y):
-        y = ma.array(y)
+        if ma.isMaskedArray(x):
+            data = ma.array(data, mask=x.mask)
+            if not ma.isMaskedArray(y):
+                y = ma.array(y, mask=x.mask)
+        elif ma.isMaskedArray(y):
+            data = ma.array(data, mask=y.mask)
+            data = ma.array(data, mask=y.mask) # if here x cannot be masked.
+        else:
+            data = ma.array(data)
+            x = ma.array(x)
+            y = ma.array(y)
 
     x_edges = np.linspace(
         x[x.mask == False].min(), x[x.mask == False].max(), int(x_bins) + 1

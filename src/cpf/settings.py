@@ -7,6 +7,7 @@ __all__ = ["settings", "get_output_options", "detector_factory"]
 
 import importlib.util
 import json
+import glob
 from copy import copy, deepcopy
 from pathlib import Path
 from typing import Any, Literal, Optional
@@ -14,6 +15,7 @@ import os
 import re
 import numpy as np
 
+import proglog
 import cpf.input_types as input_types
 import cpf.output_formatters as output_formatters
 from cpf.IO_functions import (
@@ -529,7 +531,6 @@ class Settings:
         """
         Check if a file exists. If not issue an error
         """
-
         # Validate input
         if isinstance(files_to_check, (list, Path)) is False:
             raise TypeError("Input is of an unsupported type")
@@ -537,16 +538,29 @@ class Settings:
         if isinstance(files_to_check, Path):
             files_to_check = [files_to_check]
 
-        for j in range(len(files_to_check)):
-            # q = glob.iglob(files_to_check[j])
-            # if not q:#glob.glob(files_to_check[j]):
-            if not Path(".").glob(str(files_to_check[j])):
+        missing_files = []
+        missing_indicies = []
+        progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
+        for j in progress.iter_bar(image_files=range(len(files_to_check))):
+            if not glob.glob(str(files_to_check[j])):
                 # use glob.glob for a file search to account for compund detectors of ESRFlvp detectors
+                missing_files.append(files_to_check[j])
+                missing_indicies.append(j)
+            else:
+                logger.moreinfo(" ".join(map(str, [(f"{files_to_check[j]} exists.")])))
+        
+        if len(missing_files) != 0:
+            if len(missing_files) <= 30:
                 raise ImportError(
-                    f"The file {files_to_check[j]} is not found but is required."
+                    f"The file {missing_files} is not found but is required."
                 )
             else:
-                logger.info(" ".join(map(str, [(f"{files_to_check[j]} exists.")])))
+                raise ImportError(
+                    f"The files missing from the sequece are:  {missing_indicies}."
+                )
+        else:
+            logger.info(" ".join(map(str, [(f"{files_to_check[j]} exists.")])))
+
 
     def check_directory_exists(
         self,

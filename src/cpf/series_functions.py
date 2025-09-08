@@ -23,10 +23,12 @@ __all__ = [
 
 import numpy as np
 import numpy.ma as ma
+import re
 from scipy.interpolate import CubicSpline, make_interp_spline
 
 import cpf.peak_functions as pf
 import cpf.series_constraints as sc
+from cpf.IO_functions import replace_null_terms
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.series_functions")
@@ -752,3 +754,103 @@ def background_expansion(azimuth_two_theta, orders, params):
         out = coefficient_expand(azimuth, backg[i], backg_tp[i])
         bg_all = bg_all + (out * (two_theta_prime ** float(i)))
     return bg_all
+
+def series_properties(
+    coefficients,
+    correlation_coeffs=None,
+    subpattern=0,
+    peak=0,
+    param = "height",
+    precision = 0.01, # 
+    debug=False,
+    **kwargs,
+):
+    """
+    Calcualte series properties from the coefficients. 
+    
+    Parameters
+    ----------
+    coefficients : dict
+        Coeffecient dictionary used in cpf.
+    correlation_coeffs : dict, optional
+        correlation coefficient dictionary as created by lmfit. The default is None.
+    subpattern : list, int, optional
+        Which subpattern in the coefficients to calulcate parameters for. The default is 0.
+    peak : int, optional
+        Which peak in the subpattern to calulcate parameters for. The default is 0.
+    param: str, optional
+        Peak profile parameter to calculate properties for
+    precision : float, optional
+        Precision to calulate the properties for (if required). 
+    **kwargs : TYPE
+        DESCRIPTION.
+
+    Raises
+    ------
+    ValueError
+        DESCRIPTION.
+
+    Returns
+    -------
+    differential_coefficients : dict
+        Dictionary of the calculated properties and their errors. The propertues calculated from the 
+        series coefficients are: 
+            "series_mean" -- mean d-spacing of diffraction ring, assuming 2d or 3d 'SampleGeometry'
+            "series_max" -- maximum values of series
+            "orientation max" -- maximum values of series
+            "series_min" -- minimum values of series
+            "orientation min" -- minimum values of series
+
+    """
+
+    # %% validate the inputs.
+    if isinstance(coefficients, dict):
+        coefficients = [coefficients]
+
+    if not isinstance(coefficients, list):
+        raise ValueError("The coefficients need to be a list of dictionaries.")
+
+    # catch 'null' terms in fits
+    coefficients = replace_null_terms(coefficients)
+
+    properties = {}
+
+
+    # height mean
+    if coefficients[subpattern]["peak"][peak][param+"_type"] == "fourier":
+        properties["series mean"] = coefficients[subpattern]["peak"][peak][param][0]
+        properties["series mean err"] = coefficients[subpattern]["peak"][peak][param+"_err"][0]
+    else:
+        tot = np.sum(coefficients[subpattern]["peak"][peak][param])
+        errsum = np.sqrt(
+            np.sum(np.array(coefficients[subpattern]["peak"][peak][param+"_err"]) ** 2)
+        )
+        num = np.shape(coefficients[subpattern]["peak"][peak][param])
+        properties["series mean"] = float(tot / num)
+        properties["series mean err"] = float(errsum / num)
+    if properties["series mean"] is None:  # catch  'null' as an error
+        properties["series mean"] = np.nan
+    if properties["series mean err"] is None:  # catch  'null' as an error
+        properties["series mean err"] = np.nan
+
+    # calulate maximum and minimum and their positions.
+    n = 360/precision + 1
+    orientations = np.linspace(0, 360, int(n))
+
+    vals = coefficient_expand(orientations, 
+                              param=coefficients[subpattern]["peak"][peak][param], 
+                              coeff_type=coefficients[subpattern]["peak"][peak][param+"_type"],
+                              comp_str=param)
+    maximum = np.argmax(vals)
+    minimum = np.argmin(vals)
+    properties["series max"] = vals[maximum]
+    properties["series min"] = vals[minimum]
+    properties["series orientation max"] = orientations[maximum]
+    properties["series orientation min"] = orientations[minimum]
+
+    if param is not None:
+        entries = list(properties)
+        for i in range(len(entries)):
+            properties[re.sub("series", param, entries[i])] = properties.pop(entries[i])
+
+    return properties

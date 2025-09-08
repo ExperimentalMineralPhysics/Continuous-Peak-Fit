@@ -14,6 +14,7 @@ import pandas as pd
 import cpf.peak_functions as pf
 import cpf.output_formatters.convert_fit_to_crystallographic as FitToCryst
 from cpf.IO_functions import make_outfile_name, peak_string
+from cpf.series_functions import series_properties
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.ReadFits")
@@ -65,7 +66,7 @@ def ReadFits(
         )
     elif settings_class is None:
         from cpf.XRD_FitPattern import initiate
-        settings_class = initiate(settings_file)
+        settings_class = initiate(settings_file, require_datafiles=False)
 
     # get what to write
     if "includeParameters" in settings_class.output_settings:
@@ -127,6 +128,15 @@ def ReadFits(
                             peak=j,
                         )
                         fits[-1][i]["peak"][j]["crystallographic_values"] = crystallographic_values
+                        
+                        height_properties = series_properties(fits[-1], subpattern = i, peak=j, param="height")
+                        width_properties = series_properties(fits[-1], subpattern = i, peak=j, param="width")
+                        profile_properties = series_properties(fits[-1], subpattern = i, peak=j, param="profile")
+                        
+                        fits[-1][i]["peak"][j]["crystallographic_values"] = fits[-1][i]["peak"][j]["crystallographic_values"] | height_properties
+                        fits[-1][i]["peak"][j]["crystallographic_values"] = fits[-1][i]["peak"][j]["crystallographic_values"] | width_properties
+                        fits[-1][i]["peak"][j]["crystallographic_values"] = fits[-1][i]["peak"][j]["crystallographic_values"] | profile_properties
+                        
         if includeDerivedValues is not False:
             #list the entries in crystallographic_values dictionary
             DerivedValues = fits[-1][0]["peak"][0]["crystallographic_values"].keys()

@@ -7,6 +7,7 @@ __all__ = ["ReadFits"]
 import json
 from itertools import product
 import re
+import glob
 
 import numpy as np
 import pandas as pd
@@ -27,6 +28,7 @@ def ReadFits(
     includeStats=False,
     includeSeriesValues = False,
     includeIntensityRanges = False,
+    includeUnitCells = False,
     includePosition = False,
     *args,
     **kwargs
@@ -137,9 +139,59 @@ def ReadFits(
                         fits[-1][i]["peak"][j]["crystallographic_values"] = fits[-1][i]["peak"][j]["crystallographic_values"] | width_properties
                         fits[-1][i]["peak"][j]["crystallographic_values"] = fits[-1][i]["peak"][j]["crystallographic_values"] | profile_properties
                         
+            if includeUnitCells is not False:
+                # calculate unit cell properties and return them
+                
+                # get or guess phase
+                if "phase" in settings_class.output_settings:
+                    phase = settings_class.output_settings["phase"]
+                else:
+                    #list all phases in fits
+                    phases = []
+                    for i in range(len(fits[-1])):
+                        for j in range(len(fits[-1][i]["peak"])):
+                            if "phase" in fits[-1][i]["peak"][j]:
+                                phases.append(fits[-1][i]["peak"][j]["phase"])
+                    phase = np.unique(phases)
+                    
+                # get or guess jcpds file
+                if "jcpds" in settings_class.output_settings:
+                    jcpds = settings_class.output_settings["jcpds"]
+                else:
+                    jcpds = []
+                    for i in range(len(phase)):
+                        if glob.glob(f"*{phase[i]}*"):
+                            if len(glob.glob(f"*{phase[i]}*")) != 1:
+                                raise ValueError("There is more than 1 jcpds file")
+                            jcpds.append(glob.glob(f"*{phase[i]}*")[0])
+                    if len(phase) != len(jcpds):
+                        raise ValueError("The phase and jcpds files are not certain")
+                        
+                for i in range (len(phase)):
+                    unitcells = FitToCryst.fourier_to_unitcellvolume(
+                        fits[-1],
+                        SampleGeometry=SampleGeometry,
+                        SampleDeformation=SampleDeformation,
+                        phase = phase[i],
+                        jcpds_file = jcpds[i]
+                    )
+                    
+                    # label return with phase name and add to fits                    
+                    entries = list(unitcells)
+                    for j in range(len(unitcells)):
+                        unitcells[re.sub(entries[j], phase[i]+" "+entries[j], entries[j])] = unitcells.pop(entries[j])
+                    if not "unitcells" in fits[-1][0]:
+                        fits[-1][0]["unitcells"] = unitcells
+                    else:
+                        fits[-1][0]["unitcells"] = fits[-1][0]["unitcells"] | unitcells
+            
         if includeSeriesValues is not False:
             #list the entries in crystallographic_values dictionary
             DerivedValues = fits[-1][0]["peak"][0]["crystallographic_values"].keys()
+        
+        if includeUnitCells is not False:
+            #list the entries in crystallographic_values dictionary
+            UnitCells = fits[0][0]["unitcells"].keys()
 
         num_fits = np.max([num_fits, len(fits[-1])])
         for y in range(len(fits[-1])):
@@ -213,6 +265,8 @@ def ReadFits(
                 # properties.append(includeSeriesValues[i]+"err")
     if includeIntensityRanges is True:
         properties += IntensityValues
+    if includeUnitCells is True:
+        properties += UnitCells
     if includeStats is True:
         # include properties from the lmfit output that were passed with the fits.
         #read the list of parameters from the first file.
@@ -339,6 +393,11 @@ def ReadFits(
                     RowLst[ind] = data_to_write["peak"][lists[z, 2]]["crystallographic_values"][ind]
                     # RowLst[ind+"err"] = data_to_write["peak"][lists[z, 2]]["crystallographic_values"][ind+"_err"]
 
+                elif ind in UnitCells:
+                    # in unitcells dictionary
+                    if "unitcells" in data_to_write:
+                        RowLst[ind] = data_to_write["unitcells"][ind]
+                
                 elif ind == "Position in json":
                     # print("here we are ")
                     # print(lists[z, 1])

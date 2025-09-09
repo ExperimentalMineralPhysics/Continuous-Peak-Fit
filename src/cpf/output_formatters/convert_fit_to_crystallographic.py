@@ -1,7 +1,11 @@
 __all__ = ["fourier_to_crystallographic"]
 
 import numpy as np
+from uncertainties import ufloat
 
+from cpf.output_formatters.jcpds import jcpds
+from cpf.IO_functions import peak_hkl
+from cpf.output_formatters.crystallographic_operations import indicies4to3
 from cpf.IO_functions import replace_null_terms
 
 
@@ -327,3 +331,147 @@ def fourier_to_crystallographic(
     differential_coefficients["y0_err"] = out_y0err
 
     return differential_coefficients
+
+
+
+def fourier_to_unitcellvolume(
+    coefficients,
+    jcpds_file: None,
+    phase: None,
+    SampleGeometry: str = "3d",
+    SampleDeformation: str = "compression",
+    correlation_coeffs=None,
+    debug=False,
+    **kwargs,
+):
+    """
+    Convert fitted peak centers into unit cell parameters.
+    
+    The method builds a jcpds object and then fits the unit cell to the given peaks.
+    
+    FIXME: no errors are currently used or returned. 
+    
+    Parameters
+    ----------
+    coefficients : dict
+        Coeffecient dictionary used in cpf.
+    SampleGeometry : str, optional
+        Geometry of the sample - 2D or 3D stress/stress field. The default is "3d".
+    SampleDeformation : str, optional
+        "compression" or "extension" - type of deformation for the experiment. Determines orientation value.
+        The default is "compression".
+    correlation_coeffs : dict, optional
+        correlation coefficient dictionary as created by lmfit. The default is None.
+    subpattern : list, int, optional
+        Which subpattern in the coefficients to calulcate parameters for. The default is 0.
+    peak : int, optional
+        Which peak in the subpattern to calulcate parameters for. The default is 0.
+    **kwargs : TYPE
+        DESCRIPTION.
+
+    Raises
+    ------
+    ValueError
+        DESCRIPTION.
+
+    Returns
+    -------
+    unitcell_volumes : dict
+        Dictionary of the calculated cell parameters and the errors.
+        
+
+    SampleGeometry options:
+        - either 2d or 3d
+    SampleDeformation options:
+        - either 'compresion' or 'extension'.
+
+        'compression' assumes that shortening strains are positive (correctly in my view)
+        and that the differential strain is more compressive strain than in the other two directions.
+
+        'extension' assumes that an extensive strain is positive (well, someone has to) and
+        that the differentail strain is more extensive than the strains in the other two directions.
+
+
+    """
+
+    # %% validate the inputs.
+    SampleGeometry = SampleGeometry.lower()
+    SampleDeformation = SampleDeformation.lower()
+    if not (SampleGeometry == "3d" or SampleGeometry == "2d"):
+        err_str = "SampleGeometry is not recognised. It must be '2d' or '3d'."
+        raise ValueError(err_str)
+    # if SampleDeformation=="extension":
+    #     err_str = "SampleDeformation 'extension' is not implemented."
+    #     raise ValueError(err_str)
+    if not (SampleDeformation == "compression" or SampleDeformation == "extension"):
+        err_str = "SampleDeformation is not recognised. It must be 'compression' or 'extension'."
+        raise ValueError(err_str)
+    # FIX ME: another possitbility exists, where the orientation of the stress/strain is known and
+    # the experiment oscillates between compression and extenion. This should perhaps be added to the
+    # possibilities.
+
+    if isinstance(coefficients, dict):
+        coefficients = [coefficients]
+
+    if not isinstance(coefficients, list):
+        raise ValueError("The coefficients need to be a list of dictionaries.")
+
+    # catch 'null' terms in fits
+    coefficients = replace_null_terms(coefficients)
+
+    # get or guess phase
+    if phase is None:
+        #list all phases in fits
+        phases = []
+        for i in range(len(coefficients)):
+            for j in range(len(coefficients[i]["peak"])):
+                if "phase" in coefficients[i]["peak"][j]:
+                    phases.append(coefficients[i]["peak"][j]["phase"])
+        phase = max(set(phases), key=phases.count)  
+    
+    #get or guess jcpds
+    
+
+
+    # %% get d0 accounting for difrerential strain and sample geometry
+    for i in range(len(coefficients)):
+        for j in range(len(coefficients[i]["peak"])):
+        
+            crystallographic = fourier_to_crystallographic(coefficients,
+                            SampleGeometry,
+                            SampleDeformation,
+                            correlation_coeffs,
+                            subpattern=i,
+                            peak=j,
+                            debug=debug,
+                            **kwargs)
+
+            coefficients[i]["peak"][j]["cryst_prop"] = crystallographic
+
+    # intial guess (a0, b0, c0 etc) for lattice parameters comes from jcpds file
+    # solve for unit cell    
+    jcpds_obj = jcpds()
+    jcpds_obj.load_file(jcpds_file)
+    #clear reflections from jcpds
+    jcpds_obj.remove_reflection("all")
+    
+    # add reflections for unit cell we need to fit.
+    for i in range(len(coefficients)):
+        for j in range(len(coefficients[1]["peak"])):
+            if coefficients[i]["peak"][j]["phase"] == phase:
+                hkl = peak_hkl(coefficients[i], j, string=False)[0]
+                if len(hkl) == 4:
+                    # convert to 3 value Miller indicies
+                    hkl = indicies4to3(hkl)
+                jcpds_obj.add_reflection(h=hkl[0], k=hkl[1], l=hkl[2],
+                                 dobs = coefficients[i]["peak"][j]["cryst_prop"]["dp"])
+    jcpds_obj.compute_d0() # compute lattice parameters for unit cell from jcpds
+    jcpds_obj.fit_lattice_parameters()
+
+    uc_parts = jcpds_obj.get_unique_unitcell_params()
+    uc_parms = {}
+    for ind in range(len(uc_parts)):
+        uc_parms[uc_parts[ind]] = getattr(jcpds_obj, uc_parts[ind])    
+    uc_parms["volume"] = jcpds_obj.v        
+
+    return uc_parms

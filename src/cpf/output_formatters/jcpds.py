@@ -31,6 +31,9 @@ Modifications:
         - renamed read and write to load and save
         - the load function will now reset all parameters (previously parameters not set in the newly loaded file, were
           taken over from the previous state of the object)
+    September 2025 Simon Hunt
+        - added "all" option to delete_reflection
+        - 
 
 """
 import logging
@@ -50,6 +53,7 @@ class jcpds_reflection:
     Attributes:
        d0:     Zero-pressure lattice spacing
        d:      Lattice spacing at P and T
+       dobs:   Observed lattice spacing (possiblt at P and T)
        inten:  Relative intensity to most intense reflection for this material
        h:      H index for this reflection
        k:      K index for this reflection
@@ -57,9 +61,10 @@ class jcpds_reflection:
 
     """
 
-    def __init__(self, h=0., k=0., l=0., intensity=0., d=0.):
+    def __init__(self, h=0., k=0., l=0., intensity=0., d=0., dobs=None):
         self.d0 = d
         self.d = d
+        self.dobs = dobs
         self.intensity = intensity
         self.h = h
         self.k = k
@@ -512,7 +517,193 @@ class jcpds(object):
                 self.mod_pressure = pressure - \
                                     self.alpha_t * self.k0 * (temperature - 298.)
                 res = minimize(self.bm3_inverse, 1.)
-                self.v = self.v0 / np.float(res.x)
+                self.v = self.v0 / float(res.x)
+
+    def compute_unitcell_volume(self):
+        """
+        Computes the unit cell volume of the material from given unit cell parameters.
+    
+        Procedure:
+           This procedure computes the unit cell volume from the unit cell
+           parameters.
+    
+        Example:
+           Compute the zero pressure and temperature unit cell volume of alumina
+           j = jcpds()
+           j.read_file('alumina.jcpds')
+           j.compute_unitcell_volume()
+        """
+        self.apply_symmetry()
+        dtor = np.pi / 180.
+        self.v0 = (self.a0 * self.b0 * self.c0 *
+                   np.sqrt(1. -
+                           np.cos(self.alpha0 * dtor) ** 2 -
+                           np.cos(self.beta0 * dtor) ** 2 -
+                           np.cos(self.gamma0 * dtor) ** 2 +
+                           2. * (np.cos(self.alpha0 * dtor) *
+                                 np.cos(self.beta0 * dtor) *
+                                 np.cos(self.gamma0 * dtor))))
+
+
+    def apply_symmetry(self):
+        """
+        Updates the unit cell parameters to correspond to the unit cell symmetry
+        """
+        
+        if (self.symmetry == 'CUBIC'):
+            self.b0 = self.a0
+            self.c0 = self.a0
+            self.alpha0 = 90.
+            self.beta0 = 90.
+            self.gamma0 = 90.
+            self.b = self.a
+            self.c = self.a
+            self.alpha = 90.
+            self.beta = 90.
+            self.gamma = 90.
+
+        elif (self.symmetry == 'TETRAGONAL'):
+            self.b0 = self.a0
+            self.alpha0 = 90.
+            self.beta0 = 90.
+            self.gamma0 = 90.
+            self.b = self.a
+            self.alpha = 90.
+            self.beta = 90.
+            self.gamma = 90.
+
+        elif (self.symmetry == 'ORTHORHOMBIC'):
+            self.alpha0 = 90.
+            self.beta0 = 90.
+            self.gamma0 = 90.
+            self.alpha = 90.
+            self.beta = 90.
+            self.gamma = 90.
+
+        elif (self.symmetry == 'HEXAGONAL'):
+            self.b0 = self.a0
+            self.alpha0 = 90.
+            self.beta0 = 90.
+            self.gamma0 = 120.
+            self.b = self.a
+            self.alpha = 90.
+            self.beta = 90.
+            self.gamma = 120.
+
+        elif (self.symmetry == 'RHOMBOHEDRAL'):
+            self.b0 = self.a0
+            self.c0 = self.a0
+            self.beta0 = self.alpha0
+            self.gamma0 = self.alpha0
+            self.b = self.a
+            self.c = self.a
+            self.beta = self.alpha
+            self.gamma = self.alpha
+
+        elif (self.symmetry == 'MONOCLINIC'):
+            self.alpha0 = 90.
+            self.gamma0 = 90.
+            self.alpha = 90.
+            self.gamma = 90.
+
+        elif (self.symmetry == 'TRICLINIC'):
+            pass
+        
+    
+    def get_unique_unitcell_params(self):
+        """
+        Get indiepende values for unit cell given symmetry
+
+        """
+        if (self.symmetry == 'CUBIC'):
+            return ["a"]
+
+        elif (self.symmetry == 'TETRAGONAL'):
+            return ["a", "c"]
+
+        elif (self.symmetry == 'ORTHORHOMBIC'):
+            return ["a", "b", "c"]
+
+        elif (self.symmetry == 'HEXAGONAL'):
+            return ["a", "c"]
+
+        elif (self.symmetry == 'RHOMBOHEDRAL'):
+            return ["a", "alpha"]
+        
+        elif (self.symmetry == 'MONOCLINIC'):
+            return ["a", "b", "c", "beta"]
+
+        elif (self.symmetry == 'TRICLINIC'):
+            return ["a", "b", "c", "alpha", "beta", "gamma"]
+            
+        
+
+    def fit_lattice_parameters(self):
+        """
+        Fits the unit cell volume of the material to the reflection d values.
+
+        Procedure:
+           This procedure computes the unit cell volume from the given d spacing 
+           in the reflectiosn. It starts with the
+        """
+        """
+           
+           FIX ME
+           volume read from the JCPDS file or computed from the zero-pressure,
+           room temperature lattice constants.  It does the following:
+              1) Corrects K0 for temperature if DK0DT is non-zero.
+              2) Computes volume at zero-pressure and the specified temperature
+                 if ALPHAT0 is non-zero.
+              3) Computes the volume at the specified pressure if K0 is non-zero.
+                 The routine uses the IDL function FX_ROOT to solve the third
+                 order Birch-Murnaghan equation of state.
+
+        Example:
+           Compute the unit cell volume of alumina at 100 GPa and 2500 K.
+           j = jcpds()
+           j.read_file('alumina.jcpds')
+           j.compute_volume(100, 2500)
+
+        """
+        import lmfit
+        
+        use = self.get_unique_unitcell_params()
+        params = lmfit.Parameters()
+        for i in range(len(use)):
+            params.add(use[i], getattr(self,use[i]), vary=True, min=0)
+            
+        out = lmfit.minimize(self._resid, params)
+        # print("# Fit using sum of squares:\n")
+        # lmfit.report_fit(out)
+
+        return out
+        
+    def _resid(self, params):
+        """
+        Rerust differences between calculated and observed reflcations
+
+        Parameters
+        ----------
+        params : lmfit.Parameters()
+            unitcell parameter set for calculating d-spacings.
+
+        Returns
+        -------
+        list
+            Difference in d-spacing between calculated and observed reflections.
+
+        """
+        params = params.valuesdict()
+        self.compute_d(lattice_parameters=params)  
+        r = self.get_reflections()
+        calc = []
+        obs = []
+        for i in range(len(r)):
+            if r[i].dobs != None:
+                obs.append(r[i].dobs)
+                calc.append(r[i].d)
+        return np.array(calc) - np.array(obs)  
+
 
     def bm3_inverse(self, v0_v):
         """
@@ -605,17 +796,20 @@ class jcpds(object):
             logger.error(('Unknown crystal symmetry = ' + self.symmetry))
         d_spacings = np.sqrt(1. / d2inv)
 
-        for ind in xrange(len(self.reflections)):
+        for ind in range(len(self.reflections)):
             self.reflections[ind].d0 = d_spacings[ind]
 
 
 
-    def compute_d(self, pressure=None, temperature=None):
+    def compute_d(self, lattice_parameters=None, pressure=None, temperature=None):
         """
         Computes the D spacings of the material.
         It can compute D spacings at different pressures and temperatures.
 
         Keywords:
+           lattice_parameters:
+               dictionary of lattice parameters for the unit cell symmetry.
+                              
            pressure:
               The pressure in GPa.  If not present then the pressure is
               assumed to be 0.
@@ -646,15 +840,33 @@ class jcpds(object):
               # Print out the D spacings at high pressure and temperature
               print, r.d
         """
-        self.compute_volume(pressure, temperature)
-
-        # Assume each cell dimension changes by the same fractional amount = cube
-        # root of volume change ratio
-        ratio = np.float((self.v / self.v0) ** (1.0 / 3.0))
-        self.a = self.a0 * ratio
-        self.b = self.b0 * ratio
-        self.c = self.c0 * ratio
-
+        
+        if lattice_parameters == None:
+            self.compute_volume(pressure, temperature)
+    
+            # Assume each cell dimension changes by the same fractional amount = cube
+            # root of volume change ratio
+            ratio = float((self.v / self.v0) ** (1.0 / 3.0))
+            self.a = self.a0 * ratio
+            self.b = self.b0 * ratio
+            self.c = self.c0 * ratio
+    
+        else:
+            # update unit cell
+            if "a" in list(lattice_parameters):
+                self.a = lattice_parameters["a"]
+            if "b" in list(lattice_parameters):
+                self.b = lattice_parameters["b"]
+            if "c" in list(lattice_parameters):
+                self.c = lattice_parameters["c"]
+            if "alpha" in list(lattice_parameters):
+                self.alpha = lattice_parameters["alpha"]
+            if "beta" in list(lattice_parameters):
+                self.beta = lattice_parameters["beta"]
+            if "gamma" in list(lattice_parameters):
+                self.gamma = lattice_parameters["gamma"]
+            self.apply_symmetry()
+            
         a = self.a
         b = self.b
         c = self.c
@@ -708,16 +920,19 @@ class jcpds(object):
         else:
             logger.error(('Unknown crystal symmetry = ' + self.symmetry))
         d_spacings = np.sqrt(1. / d2inv)
-        for ind in xrange(len(self.reflections)):
+        for ind in range(len(self.reflections)):
             self.reflections[ind].d = d_spacings[ind]
 
-    def add_reflection(self, h=0., k=0., l=0., intensity=0., d=0.):
-        new_reflection = jcpds_reflection(h,k,l, intensity, d)
+    def add_reflection(self, h=0., k=0., l=0., intensity=0., d=0., dobs=None):
+        new_reflection = jcpds_reflection(h,k,l, intensity, d, dobs=dobs)
         self.reflections.append(new_reflection)
         self.modified = True
 
     def remove_reflection(self, ind):
-        del self.reflections[ind]
+        if ind == "all":
+            self.reflections = []
+        else:
+            del self.reflections[ind]
         self.modified = True
 
     def get_reflections(self):

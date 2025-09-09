@@ -762,7 +762,7 @@ def peak_hkl(orders, peak="all", string=True):
             else:
                 l = hkl[pos : pos + 1]
                 pos = pos + 1
-            out_tmp = [h, k, l]
+            out_tmp = [int(h), int(k), int(l)]
             if len(hkl) > pos:
                 if hkl[pos] == "-":
                     m = hkl[pos : pos + 2]
@@ -770,7 +770,7 @@ def peak_hkl(orders, peak="all", string=True):
                 else:
                     m = hkl[pos : pos + 1]
                     pos = pos + 1
-                out_tmp.append(m)
+                out_tmp.append(int(m))
             out.append(out_tmp)
 
     return out

@@ -44,7 +44,6 @@ import numpy as np
 from scipy.optimize import minimize
 import os
 
-
 import time
 
 class jcpds_reflection:
@@ -535,14 +534,14 @@ class jcpds(object):
         """
         self.apply_symmetry()
         dtor = np.pi / 180.
-        self.v0 = (self.a0 * self.b0 * self.c0 *
+        self.v = (self.a * self.b * self.c *
                    np.sqrt(1. -
-                           np.cos(self.alpha0 * dtor) ** 2 -
-                           np.cos(self.beta0 * dtor) ** 2 -
-                           np.cos(self.gamma0 * dtor) ** 2 +
-                           2. * (np.cos(self.alpha0 * dtor) *
-                                 np.cos(self.beta0 * dtor) *
-                                 np.cos(self.gamma0 * dtor))))
+                           np.cos(self.alpha * dtor) ** 2 -
+                           np.cos(self.beta * dtor) ** 2 -
+                           np.cos(self.gamma * dtor) ** 2 +
+                           2. * (np.cos(self.alpha * dtor) *
+                                 np.cos(self.beta * dtor) *
+                                 np.cos(self.gamma * dtor))))
 
 
     def apply_symmetry(self):
@@ -643,27 +642,28 @@ class jcpds(object):
         Fits the unit cell volume of the material to the reflection d values.
 
         Procedure:
-           This procedure computes the unit cell volume from the given d spacing 
-           in the reflectiosn. It starts with the
-        """
-        """
+           This procedure computes the unit cell volume from the observed d spacing 
+           in the reflections. 
            
-           FIX ME
-           volume read from the JCPDS file or computed from the zero-pressure,
-           room temperature lattice constants.  It does the following:
-              1) Corrects K0 for temperature if DK0DT is non-zero.
-              2) Computes volume at zero-pressure and the specified temperature
-                 if ALPHAT0 is non-zero.
-              3) Computes the volume at the specified pressure if K0 is non-zero.
-                 The routine uses the IDL function FX_ROOT to solve the third
-                 order Birch-Murnaghan equation of state.
-
         Example:
-           Compute the unit cell volume of alumina at 100 GPa and 2500 K.
-           j = jcpds()
-           j.read_file('alumina.jcpds')
-           j.compute_volume(100, 2500)
-
+           Compute the unit cell volume of from observations.
+           
+           jcpds_obj = jcpds()
+           jcpds_obj.load_file(jcpds_file)
+           jcpds_obj.remove_reflection("all")
+           
+           jcpds_obj.add_reflection(h,k,l,dobs=obshkl)
+           
+           jcpds_obj.compute_d0() # compute lattice parameters for unit cell from jcpds
+           jcpds_obj.fit_lattice_parameters
+          
+            
+        Returns
+        -------
+        out : lmfit object
+            fit object from lmfit.
+ 
+          
         """
         import lmfit
         
@@ -673,9 +673,10 @@ class jcpds(object):
             params.add(use[i], getattr(self,use[i]), vary=True, min=0)
             
         out = lmfit.minimize(self._resid, params)
-        # print("# Fit using sum of squares:\n")
-        # lmfit.report_fit(out)
-
+        
+        #update unitcell volume
+        self.compute_unitcell_volume()
+        
         return out
         
     def _resid(self, params):

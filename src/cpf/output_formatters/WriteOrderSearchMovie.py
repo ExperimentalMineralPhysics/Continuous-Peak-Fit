@@ -146,7 +146,7 @@ def WriteOutput(
             settings_class.file_label = os.path.splitext(os.path.basename(fls[latest]))[0].split("__")[1]
     
     # read the data.
-    df = ReadFits(settings_class=settings_class, includeStats=True, includeDerivedValues=True, includeIntensityRanges=True, includePosition=True)
+    df = ReadFits(settings_class=settings_class, includeStats=True, includeSeriesValues=True, includeIntensityRanges=True, includePosition=True)
     headers = list(df.columns.values)
     # split the notes column into columns and calculate some new values
     f = lambda x: x.split("|")[0].split("=")[1]

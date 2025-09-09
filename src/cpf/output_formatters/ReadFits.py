@@ -25,7 +25,7 @@ def ReadFits(
     settings_file=None,
     includeParameters = "all",
     includeStats=False,
-    includeDerivedValues = False,
+    includeSeriesValues = False,
     includeIntensityRanges = False,
     includePosition = False,
     *args,
@@ -44,7 +44,7 @@ def ReadFits(
         List of which peak parameters to return. The default is "all".
     includeStats : bool, optional
         Switch to include all fitting statistics in output data frame. The default is False.
-    includeDerivedValues : bool or list, optional
+    includeSeriesValues : bool or list, optional
         Switch to include values derived from the fit parameters. Either a list of parameters returned by  
         cpf.output_formatters.convert_fit_to_crystallographic or a bool. The default is False.
 
@@ -77,7 +77,7 @@ def ReadFits(
         peak_properties = pf.peak_components(full=True)
         includeParameters = peak_properties[1]
 
-    if includeDerivedValues is not False:
+    if includeSeriesValues is not False:
         SampleGeometry = kwargs.get("SampleGeometry", "3d")
         SampleDeformation = kwargs.get("SampleDeformation", "compression")
         # SampleGeometry = "3d"
@@ -116,7 +116,7 @@ def ReadFits(
         # Read JSON data from file
         with open(filename) as json_data:
             fits.append(json.load(json_data))
-            if includeDerivedValues is not False:
+            if includeSeriesValues is not False:
                 # get converted values.
                 for i in range(len(fits[-1])):
                     for j in range(len(fits[-1][i]["peak"])):
@@ -137,7 +137,7 @@ def ReadFits(
                         fits[-1][i]["peak"][j]["crystallographic_values"] = fits[-1][i]["peak"][j]["crystallographic_values"] | width_properties
                         fits[-1][i]["peak"][j]["crystallographic_values"] = fits[-1][i]["peak"][j]["crystallographic_values"] | profile_properties
                         
-        if includeDerivedValues is not False:
+        if includeSeriesValues is not False:
             #list the entries in crystallographic_values dictionary
             DerivedValues = fits[-1][0]["peak"][0]["crystallographic_values"].keys()
 
@@ -204,13 +204,13 @@ def ReadFits(
     properties = []
     if includePosition == True:
         properties.append("Position in json")
-    if includeDerivedValues is not False:
-        if includeDerivedValues is True:
+    if includeSeriesValues is not False:
+        if includeSeriesValues is True:
             properties += DerivedValues
         else:
-            for i in range(len(includeDerivedValues)):
-                properties.append(includeDerivedValues[i])
-                # properties.append(includeDerivedValues[i]+"err")
+            for i in range(len(includeSeriesValues)):
+                properties.append(includeSeriesValues[i])
+                # properties.append(includeSeriesValues[i]+"err")
     if includeIntensityRanges is True:
         properties += IntensityValues
     if includeStats is True:

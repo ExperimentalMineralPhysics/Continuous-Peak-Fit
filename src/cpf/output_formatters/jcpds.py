@@ -33,18 +33,21 @@ Modifications:
           taken over from the previous state of the object)
     September 2025 Simon Hunt
         - added "all" option to delete_reflection
-        - 
+        - added functions to fit unitcell to observations
 
 """
 import logging
 logger = logging.getLogger(__name__)
 
+import os
 import string
 import numpy as np
-from scipy.optimize import minimize
-import os
+# from scipy.optimize import minimize
+import lmfit
+from uncertainties import ufloat, ufloat_fromstr
+from uncertainties.umath import sin, cos, tan, sqrt
 
-import time
+# import time
 
 class jcpds_reflection:
     """
@@ -77,14 +80,14 @@ class jcpds(object):
         self.version = 0
         self.comments = []
         self.symmetry = ''
-        self.k0 = 0.
-        self.k0p0 = 0.  # k0p at 298K
-        self.k0p = 0.  # k0p at high T
-        self.dk0dt = 0.
-        self.dk0pdt = 0.
-        self.alpha_t0 = 0.  # alphat at 298K
-        self.alpha_t = 0.  # alphat at high temp.
-        self.d_alpha_dt = 0.
+        self.k0 = ufloat(0.,1E-10)
+        self.k0p0 = ufloat(0.,1E-10)  # k0p at 298K
+        self.k0p = ufloat(0.,1E-10)  # k0p at high T
+        self.dk0dt = ufloat(0.,1E-10)
+        self.dk0pdt = ufloat(0.,1E-10)
+        self.alpha_t0 = ufloat(0.,1E-10)  # alphat at 298K
+        self.alpha_t = ufloat(0.,1E-10)  # alphat at high temp.
+        self.d_alpha_dt = ufloat(0.,1E-10)
         self.a0 = 0.
         self.b0 = 0.
         self.c0 = 0.
@@ -92,14 +95,14 @@ class jcpds(object):
         self.beta0 = 0.
         self.gamma0 = 0.
         self.v0 = 0.
-        self.a = 0.
-        self.b = 0.
-        self.c = 0.
-        self.alpha = 0.
-        self.beta = 0.
-        self.gamma = 0.
-        self.v = 0.
-        self.pressure = 0.
+        self.a = ufloat(0.,1E-10)
+        self.b = ufloat(0.,1E-10)
+        self.c = ufloat(0.,1E-10)
+        self.alpha = ufloat(0.,1E-10)
+        self.beta = ufloat(0.,1E-10)
+        self.gamma = ufloat(0.,1E-10)
+        self.v = ufloat(0.,1E-10)
+        self.pressure = ufloat(0.,1E-10)
         self.temperature = 298.
         self.reflections = []
         self.modified = False
@@ -208,13 +211,13 @@ class jcpds(object):
                 if (tag == 'COMMENT:'):
                     self.comments.append(value)
                 elif (tag == 'K0:'):
-                    self.k0 = float(value)
+                    self.k0 = ufloat_fromstr(value)
                 elif (tag == 'K0P:'):
-                    self.k0p0 = float(value)
+                    self.k0p0 = ufloat_fromstr(value)
                 elif (tag == 'DK0DT:'):
-                    self.dk0dt = float(value)
+                    self.dk0dt = ufloat_fromstr(value)
                 elif (tag == 'DK0PDT:'):
-                    self.dk0pdt = float(value)
+                    self.dk0pdt = ufloat_fromstr(value)
                 elif (tag == 'SYMMETRY:'):
                     self.symmetry = value.upper()
                 elif (tag == 'A:'):
@@ -232,9 +235,9 @@ class jcpds(object):
                 elif (tag == 'VOLUME:'):
                     self.v0 = float(value)
                 elif (tag == 'ALPHAT:'):
-                    self.alpha_t0 = float(value)
+                    self.alpha_t0 = ufloat_fromstr(value)
                 elif (tag == 'DALPHADT:'):
-                    self.d_alpha_dt = float(value)
+                    self.d_alpha_dt = ufloat_fromstr(value)
                 elif (tag == 'DIHKL:'):
                     dtemp = value.split()
                     dtemp = list(map(float, dtemp))
@@ -515,8 +518,22 @@ class jcpds(object):
             else:
                 self.mod_pressure = pressure - \
                                     self.alpha_t * self.k0 * (temperature - 298.)
-                res = minimize(self.bm3_inverse, 1.)
-                self.v = self.v0 / float(res.x)
+                
+                
+                
+                def tempfunc(self, var):
+                    return self.bm3_inverse(var)
+                
+                fit_params = lmfit.create_params(P=1)
+                out = lmfit.minimize(self.bm3_inverse, fit_params)
+                res = ufloat(out.params["P"].value, out.params["P"].stderr)
+                # print
+                # res = minimize(self.bm3_inverse, 1.)
+                self.v = self.v0 / res
+                
+                # res = minimize(self.bm3_inverse, 1.)
+                # self.v = self.v0 / float(res.x)
+
 
     def compute_unitcell_volume(self):
         """
@@ -665,14 +682,25 @@ class jcpds(object):
  
           
         """
-        import lmfit
         
         use = self.get_unique_unitcell_params()
         params = lmfit.Parameters()
         for i in range(len(use)):
-            params.add(use[i], getattr(self,use[i]), vary=True, min=0)
+            val = getattr(self,use[i])
+            try:
+                val=getattr(self,use[i]).nominal_value
+            finally:
+                val=val
+            params.add(use[i], val, vary=True, min=0)
             
         out = lmfit.minimize(self._resid, params)
+        
+        uc_parts = self.get_unique_unitcell_params()
+        uc_parms = {}
+        for ind in range(len(uc_parts)):
+            setattr(self, uc_parts[ind], ufloat(out.params[uc_parts[ind]].value, out.params[uc_parts[ind]].stderr) )
+            # self.[uc_parts[ind]] = getattr(jcpds_obj, uc_parts[ind])    
+        # uc_parms["volume"] = jcpds_obj.v        
         
         #update unitcell volume
         self.compute_unitcell_volume()
@@ -706,7 +734,7 @@ class jcpds(object):
         return np.array(calc) - np.array(obs)  
 
 
-    def bm3_inverse(self, v0_v):
+    def bm3_inverse(self, v0_v_in):
         """
         Returns the value of the third order Birch-Murnaghan equation minus
         pressure.  It is used to solve for V0/V for a given
@@ -734,10 +762,24 @@ class jcpds(object):
            k0p = 4.
            diff = jcpds_bm3_inverse(1.3)
         """
+        if isinstance(v0_v_in, type(lmfit.create_params(P=1))):
+            v0_v = v0_v_in["P"].value
+        else:
+            v0_v = v0_v_in
 
-        return (1.5 * self.k0 * (v0_v ** (7. / 3.) - v0_v ** (5. / 3.)) *
+        out = (1.5 * self.k0 * (v0_v ** (7. / 3.) - v0_v ** (5. / 3.)) *
                 (1 + 0.75 * (self.k0p - 4.) * (v0_v ** (2. / 3.) - 1.0)) -
                 self.mod_pressure) ** 2
+        
+        # the output has to be a single number for the minimisers. 
+        # so try to strip it down. 
+        try:
+            out = out.nominal_value
+        except: 
+            out = out[0].nominal_value
+        finally:
+            out=out
+        return out
 
     def compute_d0(self):
         """
@@ -847,7 +889,7 @@ class jcpds(object):
     
             # Assume each cell dimension changes by the same fractional amount = cube
             # root of volume change ratio
-            ratio = float((self.v / self.v0) ** (1.0 / 3.0))
+            ratio = ((self.v / self.v0) ** (1.0 / 3.0))
             self.a = self.a0 * ratio
             self.b = self.b0 * ratio
             self.c = self.c0 * ratio
@@ -894,33 +936,33 @@ class jcpds(object):
         elif (self.symmetry == 'HEXAGONAL'):
             d2inv = (h ** 2 + h * k + k ** 2) * 4. / 3. / a ** 2 + l ** 2 / c ** 2
         elif (self.symmetry == 'RHOMBOHEDRAL'):
-            d2inv = (((1. + np.cos(alpha)) * ((h ** 2 + k ** 2 + l ** 2) -
-                                              (1 - np.tan(0.5 * alpha) ** 2) * (h * k + k * l + l * h))) /
-                     (a ** 2 * (1 + np.cos(alpha) - 2 * np.cos(alpha) ** 2)))
+            d2inv = (((1. + cos(alpha)) * ((h ** 2 + k ** 2 + l ** 2) -
+                                              (1 - tan(0.5 * alpha) ** 2) * (h * k + k * l + l * h))) /
+                     (a ** 2 * (1 + cos(alpha) - 2 * cos(alpha) ** 2)))
         elif (self.symmetry == 'MONOCLINIC'):
-            d2inv = (h ** 2 / np.sin(beta) ** 2 / a ** 2 +
+            d2inv = (h ** 2 / sin(beta) ** 2 / a ** 2 +
                      k ** 2 / b ** 2 +
-                     l ** 2 / np.sin(beta) ** 2 / c ** 2 +
-                     2 * h * l * np.cos(beta) / (a * c * np.sin(beta) ** 2))
+                     l ** 2 / sin(beta) ** 2 / c ** 2 +
+                     2 * h * l * cos(beta) / (a * c * sin(beta) ** 2))
         elif (self.symmetry == 'TRICLINIC'):
             V = (  a * b  * c  *
-                 np.sqrt(1. - np.cos(alpha) ** 2 - np.cos(beta) ** 2 -
-                  np.cos(gamma) ** 2 +
-                  2 * np.cos(alpha) * np.cos(beta) * np.cos(gamma)))
-            s11 = b ** 2 * c ** 2 * np.sin(alpha) ** 2
-            s22 = a ** 2 * c ** 2 * np.sin(beta) ** 2
-            s33 = a ** 2 * b ** 2 * np.sin(gamma) ** 2
-            s12 = a * b * c ** 2 * (np.cos(alpha) * np.cos(beta) -
-                                    np.cos(gamma))
-            s23 = a ** 2 * b * c * (np.cos(beta) * np.cos(gamma) -
-                                    np.cos(alpha))
-            s31 = a * b ** 2 * c * (np.cos(gamma) * np.cos(alpha) -
-                                    np.cos(beta))
+                 sqrt(1. - cos(alpha) ** 2 - cos(beta) ** 2 -
+                  cos(gamma) ** 2 +
+                  2 * cos(alpha) * cos(beta) * cos(gamma)))
+            s11 = b ** 2 * c ** 2 * sin(alpha) ** 2
+            s22 = a ** 2 * c ** 2 * sin(beta) ** 2
+            s33 = a ** 2 * b ** 2 * sin(gamma) ** 2
+            s12 = a * b * c ** 2 * (cos(alpha) * cos(beta) -
+                                    cos(gamma))
+            s23 = a ** 2 * b * c * (cos(beta) * cos(gamma) -
+                                    cos(alpha))
+            s31 = a * b ** 2 * c * (cos(gamma) * cos(alpha) -
+                                    cos(beta))
             d2inv = (s11 * h ** 2 + s22 * k ** 2 + s33 * l ** 2 +
                      2. * s12 * h * k + 2. * s23 * k * l + 2. * s31 * l * h) / V ** 2
         else:
             logger.error(('Unknown crystal symmetry = ' + self.symmetry))
-        d_spacings = np.sqrt(1. / d2inv)
+        d_spacings = (1. / d2inv)**(1/2)
         for ind in range(len(self.reflections)):
             self.reflections[ind].d = d_spacings[ind]
 

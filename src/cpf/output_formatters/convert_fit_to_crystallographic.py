@@ -466,12 +466,16 @@ def fourier_to_unitcellvolume(
                 jcpds_obj.add_reflection(h=hkl[0], k=hkl[1], l=hkl[2],
                                  dobs = coefficients[i]["peak"][j]["cryst_prop"]["dp"])
     jcpds_obj.compute_d0() # compute lattice parameters for unit cell from jcpds
-    jcpds_obj.fit_lattice_parameters()
+    returned = jcpds_obj.fit_lattice_parameters()
 
     uc_parts = jcpds_obj.get_unique_unitcell_params()
     uc_parms = {}
     for ind in range(len(uc_parts)):
-        uc_parms[uc_parts[ind]] = getattr(jcpds_obj, uc_parts[ind])    
-    uc_parms["volume"] = jcpds_obj.v        
-
+        uc_parms[uc_parts[ind]] = getattr(jcpds_obj, uc_parts[ind]).nominal_value
+        uc_parms[uc_parts[ind]+"_err"] = getattr(jcpds_obj, uc_parts[ind]).std_dev
+    uc_parms["volume"] = jcpds_obj.v.nominal_value
+    uc_parms["volume_err"] = jcpds_obj.v.std_dev
+    
+    uc_parms["residuals"] = returned.residual
+    
     return uc_parms

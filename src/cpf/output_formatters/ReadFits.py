@@ -192,6 +192,8 @@ def ReadFits(
         if includeUnitCells is not False:
             #list the entries in crystallographic_values dictionary
             UnitCells = fits[0][0]["unitcells"].keys()
+        else:
+            UnitCells = []
 
         num_fits = np.max([num_fits, len(fits[-1])])
         for y in range(len(fits[-1])):

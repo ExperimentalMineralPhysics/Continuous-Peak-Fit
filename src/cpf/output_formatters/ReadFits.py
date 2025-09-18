@@ -173,7 +173,8 @@ def ReadFits(
                         SampleGeometry=SampleGeometry,
                         SampleDeformation=SampleDeformation,
                         phase = phase[i],
-                        jcpds_file = jcpds[i]
+                        jcpds_file = jcpds[i],
+                        **kwargs
                     )
                     
                     # label return with phase name and add to fits                    

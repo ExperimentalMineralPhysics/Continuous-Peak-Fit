@@ -340,6 +340,7 @@ def fourier_to_unitcellvolume(
     phase: None,
     SampleGeometry: str = "3d",
     SampleDeformation: str = "compression",
+    reflections_to_use = "all",
     correlation_coeffs=None,
     debug=False,
     **kwargs,
@@ -367,7 +368,12 @@ def fourier_to_unitcellvolume(
     peak : int, optional
         Which peak in the subpattern to calulcate parameters for. The default is 0.
     **kwargs : TYPE
-        DESCRIPTION.
+        See below.
+
+    :Keyword Arguments:
+        * *reflections_to_use* list  or "all"
+          Which ranges from the list of fitted ranges to use. 
+          FIXME: does not work for multiple peaks in the same region
 
     Raises
     ------

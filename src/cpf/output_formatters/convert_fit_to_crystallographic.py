@@ -434,9 +434,8 @@ def fourier_to_unitcellvolume(
 
 
     # %% get d0 accounting for difrerential strain and sample geometry
-    for i in range(len(coefficients)):
+    for i in reflections_to_use:
         for j in range(len(coefficients[i]["peak"])):
-        
             crystallographic = fourier_to_crystallographic(coefficients,
                             SampleGeometry,
                             SampleDeformation,
@@ -445,7 +444,6 @@ def fourier_to_unitcellvolume(
                             peak=j,
                             debug=debug,
                             **kwargs)
-
             coefficients[i]["peak"][j]["cryst_prop"] = crystallographic
 
     # intial guess (a0, b0, c0 etc) for lattice parameters comes from jcpds file
@@ -456,7 +454,7 @@ def fourier_to_unitcellvolume(
     jcpds_obj.remove_reflection("all")
     
     # add reflections for unit cell we need to fit.
-    for i in range(len(coefficients)):
+    for i in reflections_to_use:
         for j in range(len(coefficients[1]["peak"])):
             if coefficients[i]["peak"][j]["phase"] == phase:
                 hkl = peak_hkl(coefficients[i], j, string=False)[0]
@@ -464,8 +462,11 @@ def fourier_to_unitcellvolume(
                     # convert to 3 value Miller indicies
                     hkl = indicies4to3(hkl)
                 jcpds_obj.add_reflection(h=hkl[0], k=hkl[1], l=hkl[2],
-                                 dobs = coefficients[i]["peak"][j]["cryst_prop"]["dp"])
-    jcpds_obj.compute_d0() # compute lattice parameters for unit cell from jcpds
+                                 dobs = coefficients[i]["peak"][j]["cryst_prop"]["dp"],
+                                 dobs_err = coefficients[i]["peak"][j]["cryst_prop"]["dp_err"]
+                                 )
+    jcpds_obj.compute_d0() # compute lattice parameters for unit cell from jcpds, otherwise initiation not complete. 
+    
     returned = jcpds_obj.fit_lattice_parameters()
 
     uc_parts = jcpds_obj.get_unique_unitcell_params()

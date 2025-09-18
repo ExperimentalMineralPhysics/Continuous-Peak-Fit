@@ -689,7 +689,7 @@ class jcpds(object):
             val = getattr(self,use[i])
             try:
                 val=getattr(self,use[i]).nominal_value
-            finally:
+            except:
                 val=val
             params.add(use[i], val, vary=True, min=0)
             
@@ -731,8 +731,12 @@ class jcpds(object):
             if r[i].dobs != None:
                 obs.append(r[i].dobs)
                 calc.append(r[i].d)
-        return np.array(calc) - np.array(obs)  
-
+        out = np.array(calc) - np.array(obs)
+        try:
+            out = [i.nominal_value for i in out]
+        except:
+            out = out
+        return out
 
     def bm3_inverse(self, v0_v_in):
         """
@@ -966,7 +970,9 @@ class jcpds(object):
         for ind in range(len(self.reflections)):
             self.reflections[ind].d = d_spacings[ind]
 
-    def add_reflection(self, h=0., k=0., l=0., intensity=0., d=0., dobs=None):
+    def add_reflection(self, h=0., k=0., l=0., intensity=0., d=0., dobs=None, dobs_err=None):
+        if dobs_err is not None:
+            dobs = ufloat(dobs, dobs_err)
         new_reflection = jcpds_reflection(h,k,l, intensity, d, dobs=dobs)
         self.reflections.append(new_reflection)
         self.modified = True

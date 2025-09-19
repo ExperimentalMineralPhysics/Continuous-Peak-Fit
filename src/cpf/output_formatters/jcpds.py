@@ -705,20 +705,15 @@ class jcpds(object):
             except:
                 obs = np.append(obs, i.dobs)
             
-        # out = lmfit.minimize(self._resid, params)
         cmodel = lmfit.Model(self._lattice_params_model)
-        
         if weighted is True:
             out = cmodel.fit(obs, params, jcpds=None, weights=weights)   
         else:
             out = cmodel.fit(obs, params, jcpds=None)   
             
-        uc_parts = self.get_unique_unitcell_params()
-        uc_parms = {}
-        for ind in range(len(uc_parts)):
-            setattr(self, uc_parts[ind], ufloat(out.params[uc_parts[ind]].value, out.params[uc_parts[ind]].stderr) )
-            # self.[uc_parts[ind]] = getattr(jcpds_obj, uc_parts[ind])    
-        # uc_parms["volume"] = jcpds_obj.v        
+        # copy parameters back into self.
+        for ind in self.get_unique_unitcell_params():
+            setattr(self, ind, ufloat(out.params[ind].value, out.params[ind].stderr) )
         
         #update unitcell volume
         self.compute_unitcell_volume()

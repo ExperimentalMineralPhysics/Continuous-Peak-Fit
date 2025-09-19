@@ -45,7 +45,7 @@ import numpy as np
 # from scipy.optimize import minimize
 import lmfit
 from uncertainties import ufloat, ufloat_fromstr
-from uncertainties.umath import sin, cos, tan, sqrt
+from uncertainties.umath import sin, cos, tan, sqrt, pow
 
 # import time
 
@@ -88,22 +88,22 @@ class jcpds(object):
         self.alpha_t0 = ufloat(0.,1E-10)  # alphat at 298K
         self.alpha_t = ufloat(0.,1E-10)  # alphat at high temp.
         self.d_alpha_dt = ufloat(0.,1E-10)
-        self.a0 = 0.
-        self.b0 = 0.
-        self.c0 = 0.
-        self.alpha0 = 0.
-        self.beta0 = 0.
-        self.gamma0 = 0.
-        self.v0 = 0.
-        self.a = ufloat(0.,1E-10)
-        self.b = ufloat(0.,1E-10)
-        self.c = ufloat(0.,1E-10)
-        self.alpha = ufloat(0.,1E-10)
-        self.beta = ufloat(0.,1E-10)
-        self.gamma = ufloat(0.,1E-10)
-        self.v = ufloat(0.,1E-10)
-        self.pressure = ufloat(0.,1E-10)
-        self.temperature = 298.
+        self.a0 = 0. # unit cell from jcpds, or open press data
+        self.b0 = 0. # unit cell from jcpds, or open press data
+        self.c0 = 0. # unit cell from jcpds, or open press data
+        self.alpha0 = 0. # unit cell from jcpds, or open press data
+        self.beta0 = 0.  # unit cell from jcpds, or open press data
+        self.gamma0 = 0. # unit cell from jcpds, or open press data
+        self.v0 = 0.  # v0 from jcpds, or set from open press 
+        self.a = ufloat(0.,1E-10) # unit cell set, or fit to obs
+        self.b = ufloat(0.,1E-10) # unit cell set, or fit to obs
+        self.c = ufloat(0.,1E-10) # unit cell set, or fit to obs
+        self.alpha = ufloat(0.,1E-10) # unit cell set, or fit to obs
+        self.beta = ufloat(0.,1E-10)  # unit cell set, or fit to obs
+        self.gamma = ufloat(0.,1E-10) # unit cell set, or fit to obs
+        self.v = ufloat(0.,1E-10)  # volume set, or fit to obs
+        self.pressure = ufloat(0.,1E-10) # pressure set or fit to obs
+        self.temperature = 298. # pressure set 
         self.reflections = []
         self.modified = False
 
@@ -211,33 +211,33 @@ class jcpds(object):
                 if (tag == 'COMMENT:'):
                     self.comments.append(value)
                 elif (tag == 'K0:'):
-                    self.k0 = ufloat_fromstr(value)
+                    self.k0 = self._convert_value(value)
                 elif (tag == 'K0P:'):
-                    self.k0p0 = ufloat_fromstr(value)
+                    self.k0p0 = self._convert_value(value)
                 elif (tag == 'DK0DT:'):
-                    self.dk0dt = ufloat_fromstr(value)
+                    self.dk0dt = self._convert_value(value)
                 elif (tag == 'DK0PDT:'):
-                    self.dk0pdt = ufloat_fromstr(value)
+                    self.dk0pdt = self._convert_value(value)
                 elif (tag == 'SYMMETRY:'):
                     self.symmetry = value.upper()
                 elif (tag == 'A:'):
-                    self.a0 = float(value)
+                    self.a0 = self._convert_value(value)
                 elif (tag == 'B:'):
-                    self.b0 = float(value)
+                    self.b0 = self._convert_value(value)
                 elif (tag == 'C:'):
-                    self.c0 = float(value)
+                    self.c0 = self._convert_value(value)
                 elif (tag == 'ALPHA:'):
-                    self.alpha0 = float(value)
+                    self.alpha0 = self._convert_value(value)
                 elif (tag == 'BETA:'):
-                    self.beta0 = float(value)
+                    self.beta0 = self._convert_value(value)
                 elif (tag == 'GAMMA:'):
-                    self.gamma0 = float(value)
+                    self.gamma0 = self._convert_value(value)
                 elif (tag == 'VOLUME:'):
-                    self.v0 = float(value)
+                    self.v0 = self._convert_value(value)
                 elif (tag == 'ALPHAT:'):
-                    self.alpha_t0 = ufloat_fromstr(value)
+                    self.alpha_t0 = self._convert_value(value)
                 elif (tag == 'DALPHADT:'):
-                    self.d_alpha_dt = ufloat_fromstr(value)
+                    self.d_alpha_dt = self._convert_value(value)
                 elif (tag == 'DIHKL:'):
                     dtemp = value.split()
                     dtemp = list(map(float, dtemp))
@@ -312,6 +312,18 @@ class jcpds(object):
         #             ') differs by more than 0.1% from input D (', r.d0, ')'))
 
 
+    def _convert_value(self, value):
+        """
+        Convert value from jcpds file to number
+        
+        The value may have errors or may not. If there are no errors then do not add them
+        """        
+        if "+" in value or "-" in value or "/" in value or "±" in value:
+            value = ufloat_fromstr(value)
+        else:
+            value = float(value)
+        return value
+        
     def save_file(self, filename):
         """
         Writes a JCPDS object to a file.
@@ -669,10 +681,9 @@ class jcpds(object):
            jcpds_obj.load_file(jcpds_file)
            jcpds_obj.remove_reflection("all")
            
-           jcpds_obj.add_reflection(h,k,l,dobs=obshkl)
+           jcpds_obj.add_reflection(h,k,l,dobs=obshkl,dobs_err=obshkl_err)
            
-           jcpds_obj.compute_d0() # compute lattice parameters for unit cell from jcpds
-           jcpds_obj.fit_lattice_parameters
+           jcpds_obj.fit_lattice_parameters()
           
             
         Returns
@@ -715,15 +726,17 @@ class jcpds(object):
         for ind in self.get_unique_unitcell_params():
             setattr(self, ind, ufloat(out.params[ind].value, out.params[ind].stderr) )
         
-        #update unitcell volume
+        #update properties
         self.compute_unitcell_volume()
+        self.compute_pressure()
+        # self.compute_stress()
         
         return out
         
     
     def _lattice_params_model(self, **params):
          """
-         Rerust differences between calculated and observed reflcations
+         Function for fitting unitcell to observed reflections
     
          Parameters
          ----------
@@ -733,7 +746,7 @@ class jcpds(object):
          Returns
          -------
          list
-             Difference in d-spacing between calculated and observed reflections.
+             a set of calculated reflections.
     
          """
          self.compute_d(lattice_parameters=params)  
@@ -747,6 +760,68 @@ class jcpds(object):
          return np.array(calc)
 
 
+
+    def compute_pressure(self, temperature=None):
+        """
+        compute pressure from BM3 Equation of state.
+        Requires Ko, K' etc.
+        
+
+        Returns
+        -------
+        None.
+
+        """
+        """
+        Computes the pressure from the unit cell volume and v0 of the material.
+
+        Keywords:
+           temperature:
+              The temperature in K.  If not present or zero, then the
+              temperature is assumed to be 298K, i.e. room temperature.
+
+        Procedure:
+           This procedure computes the unit cell volume.  It starts with the
+           volume read from the JCPDS file or computed from the zero-pressure,
+           room temperature lattice constants.  It does the following:
+              1) Corrects K0 for temperature if DK0DT is non-zero.
+              2) Computes volume at zero-pressure and the specified temperature
+                 if ALPHAT0 is non-zero.
+              3) Computes pressure using 3rd order B-M EoS.
+
+        Example:
+           Compute the unit cell volume of alumina at 100 GPa and 2500 K.
+           j = jcpds()
+           j.read_file('alumina.jcpds')
+           j.compute_unitcell_volume()
+           j.compute_pressure()
+
+        """
+        
+        # make sure volumes have been calculated.
+        self.compute_unitcell_volume()
+                
+        if temperature == None:
+            temperature = self.temperature
+        # Assume 0 K really means room T
+        if (temperature == 0): temperature = 298.
+        # Compute values of K0, K0P and alphat at this temperature
+        self.alpha_t = self.alpha_t0 + self.d_alpha_dt * (temperature - 298.)
+        self.k0p = self.k0 + self.dk0pdt * (temperature - 298.)
+
+        vT = self.v0 * (1 + self.alpha_t * (temperature - 298.))
+
+        v0_over_v = vT / self.v
+        
+        # calculate pressure from 3rd order Birch–Murnaghan equation of state
+        self.pressure = 3/2 * self.k0p * (pow(v0_over_v,7/3) - pow(v0_over_v,5/3)) * ( 1 + 3/4*(self.k0p0-4)*(pow(v0_over_v,2/3) - 1))
+
+        return self.pressure
+        
+        
+    def fit_pressure(self, weighted=True):
+        """
+        Fits the pressure to the reflection d_obs values.
     # def _resid(self, params, weights=None):
     #     """
     #     Rerust differences between calculated and observed reflcations

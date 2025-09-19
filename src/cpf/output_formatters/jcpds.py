@@ -706,7 +706,7 @@ class jcpds(object):
                 obs = np.append(obs, i.dobs)
             
         # out = lmfit.minimize(self._resid, params)
-        cmodel = lmfit.Model(self._model_lattice_params, independent_vars=["jcpds"])
+        cmodel = lmfit.Model(self._lattice_params_model, independent_vars=["jcpds"])
         
         if weighted is True:
             out = cmodel.fit(obs, params, jcpds=None, weights=weights)   
@@ -725,7 +725,8 @@ class jcpds(object):
         
         return out
         
-    def _model_lattice_params(self, a=None, b=None, c=None, alpha=None, beta=None, gamma=None, jcpds=None):
+    
+    def _lattice_params_model(self, a=None, b=None, c=None, alpha=None, beta=None, gamma=None, jcpds=None):
          """
          Rerust differences between calculated and observed reflcations
     
@@ -740,7 +741,6 @@ class jcpds(object):
              Difference in d-spacing between calculated and observed reflections.
     
          """
-         
          use = self.get_unique_unitcell_params()
          lattice_parameters ={}
          for i in use:
@@ -751,55 +751,50 @@ class jcpds(object):
                      lattice_parameters[i] = getattr(self, i).nominal_value
                  except:
                      lattice_parameters[i] = getattr(self, i)
-                 
-         # print("lattice_parameters", lattice_parameters)
          self.compute_d(lattice_parameters=lattice_parameters)  
-         
          r = self.get_reflections()
-         # print(r)
          calc = []
          obs = []
          for i in range(len(r)):
              if r[i].dobs != None:
                  obs.append(r[i].dobs)
                  calc.append(r[i].d)
-
          return np.array(calc)
 
 
-    def _resid(self, params, weights=None):
-        """
-        Rerust differences between calculated and observed reflcations
+    # def _resid(self, params, weights=None):
+    #     """
+    #     Rerust differences between calculated and observed reflcations
 
-        Parameters
-        ----------
-        params : lmfit.Parameters()
-            unitcell parameter set for calculating d-spacings.
+    #     Parameters
+    #     ----------
+    #     params : lmfit.Parameters()
+    #         unitcell parameter set for calculating d-spacings.
 
-        Returns
-        -------
-        list
-            Difference in d-spacing between calculated and observed reflections.
+    #     Returns
+    #     -------
+    #     list
+    #         Difference in d-spacing between calculated and observed reflections.
 
-        """
-        params = params.valuesdict()
-        self.compute_d(lattice_parameters=params)  
-        r = self.get_reflections()
-        calc = []
-        obs = []
-        for i in range(len(r)):
-            if r[i].dobs != None:
-                obs.append(r[i].dobs)
-                calc.append(r[i].d)
-        out = np.array(calc) - np.array(obs)
-        try:
-            out = [i.nominal_value for i in out]
-        except:
-            out = out
+    #     """
+    #     params = params.valuesdict()
+    #     self.compute_d(lattice_parameters=params)  
+    #     r = self.get_reflections()
+    #     calc = []
+    #     obs = []
+    #     for i in range(len(r)):
+    #         if r[i].dobs != None:
+    #             obs.append(r[i].dobs)
+    #             calc.append(r[i].d)
+    #     out = np.array(calc) - np.array(obs)
+    #     try:
+    #         out = [i.nominal_value for i in out]
+    #     except:
+    #         out = out
             
-        if weights is not None:
-            return out/weights
-        return out
+    #     if weights is not None:
+    #         return out/weights
+    #     return out
 
     def bm3_inverse(self, v0_v_in):
         """

@@ -342,6 +342,7 @@ def fourier_to_unitcellvolume(
     SampleDeformation: str = "compression",
     reflections_to_use = "all",
     correlation_coeffs=None,
+    weighted = True,
     debug=False,
     **kwargs,
 ):
@@ -416,6 +417,9 @@ def fourier_to_unitcellvolume(
     # the experiment oscillates between compression and extenion. This should perhaps be added to the
     # possibilities.
 
+    if reflections_to_use=="all":
+        reflections_to_use = list(range(len(coefficients)))
+
     if isinstance(coefficients, dict):
         coefficients = [coefficients]
 
@@ -473,7 +477,7 @@ def fourier_to_unitcellvolume(
                                  )
     jcpds_obj.compute_d0() # compute lattice parameters for unit cell from jcpds, otherwise initiation not complete. 
     
-    returned = jcpds_obj.fit_lattice_parameters()
+    returned = jcpds_obj.fit_lattice_parameters(weighted=weighted)
 
     uc_parts = jcpds_obj.get_unique_unitcell_params()
     uc_parms = {}

@@ -654,7 +654,7 @@ class jcpds(object):
             
         
 
-    def fit_lattice_parameters(self):
+    def fit_lattice_parameters(self, weighted=True):
         """
         Fits the unit cell volume of the material to the reflection d values.
 
@@ -682,7 +682,6 @@ class jcpds(object):
  
           
         """
-        
         use = self.get_unique_unitcell_params()
         params = lmfit.Parameters()
         for i in range(len(use)):
@@ -693,8 +692,27 @@ class jcpds(object):
                 val=val
             params.add(use[i], val, vary=True, min=0)
             
-        out = lmfit.minimize(self._resid, params)
+        #get weights from observation errors
+        weights = []
+        obs = np.array([])
+        for i in self.get_reflections():
+            try:
+                weights.append(1/i.dobs.std_dev**2)
+            except:
+                weights.append(np.nan)
+            try:
+                obs = np.append(obs, i.dobs.nominal_value)
+            except:
+                obs = np.append(obs, i.dobs)
+            
+        # out = lmfit.minimize(self._resid, params)
+        cmodel = lmfit.Model(self._model_lattice_params, independent_vars=["jcpds"])
         
+        if weighted is True:
+            out = cmodel.fit(obs, params, jcpds=None, weights=weights)   
+        else:
+            out = cmodel.fit(obs, params, jcpds=None)   
+            
         uc_parts = self.get_unique_unitcell_params()
         uc_parms = {}
         for ind in range(len(uc_parts)):
@@ -707,7 +725,49 @@ class jcpds(object):
         
         return out
         
-    def _resid(self, params):
+    def _model_lattice_params(self, a=None, b=None, c=None, alpha=None, beta=None, gamma=None, jcpds=None):
+         """
+         Rerust differences between calculated and observed reflcations
+    
+         Parameters
+         ----------
+         params : lmfit.Parameters()
+             unitcell parameter set for calculating d-spacings.
+    
+         Returns
+         -------
+         list
+             Difference in d-spacing between calculated and observed reflections.
+    
+         """
+         
+         use = self.get_unique_unitcell_params()
+         lattice_parameters ={}
+         for i in use:
+             if i in use:
+                 lattice_parameters[i] = locals()[i]
+             else: 
+                 try:
+                     lattice_parameters[i] = getattr(self, i).nominal_value
+                 except:
+                     lattice_parameters[i] = getattr(self, i)
+                 
+         # print("lattice_parameters", lattice_parameters)
+         self.compute_d(lattice_parameters=lattice_parameters)  
+         
+         r = self.get_reflections()
+         # print(r)
+         calc = []
+         obs = []
+         for i in range(len(r)):
+             if r[i].dobs != None:
+                 obs.append(r[i].dobs)
+                 calc.append(r[i].d)
+
+         return np.array(calc)
+
+
+    def _resid(self, params, weights=None):
         """
         Rerust differences between calculated and observed reflcations
 
@@ -736,6 +796,9 @@ class jcpds(object):
             out = [i.nominal_value for i in out]
         except:
             out = out
+            
+        if weights is not None:
+            return out/weights
         return out
 
     def bm3_inverse(self, v0_v_in):
@@ -918,9 +981,9 @@ class jcpds(object):
         b = self.b
         c = self.c
         dtor = np.pi / 180.
-        alpha = self.alpha0 * dtor
-        beta = self.beta0 * dtor
-        gamma = self.gamma0 * dtor
+        alpha = self.alpha0 * dtor # in radians
+        beta = self.beta0 * dtor   # in radians
+        gamma = self.gamma0 * dtor # in radians
 
         h = np.zeros(len(self.reflections))
         k = np.zeros(len(self.reflections))

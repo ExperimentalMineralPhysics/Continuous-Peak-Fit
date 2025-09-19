@@ -706,7 +706,7 @@ class jcpds(object):
                 obs = np.append(obs, i.dobs)
             
         # out = lmfit.minimize(self._resid, params)
-        cmodel = lmfit.Model(self._lattice_params_model, independent_vars=["jcpds"])
+        cmodel = lmfit.Model(self._lattice_params_model)
         
         if weighted is True:
             out = cmodel.fit(obs, params, jcpds=None, weights=weights)   
@@ -726,7 +726,7 @@ class jcpds(object):
         return out
         
     
-    def _lattice_params_model(self, a=None, b=None, c=None, alpha=None, beta=None, gamma=None, jcpds=None):
+    def _lattice_params_model(self, **params):
          """
          Rerust differences between calculated and observed reflcations
     
@@ -741,17 +741,7 @@ class jcpds(object):
              Difference in d-spacing between calculated and observed reflections.
     
          """
-         use = self.get_unique_unitcell_params()
-         lattice_parameters ={}
-         for i in use:
-             if i in use:
-                 lattice_parameters[i] = locals()[i]
-             else: 
-                 try:
-                     lattice_parameters[i] = getattr(self, i).nominal_value
-                 except:
-                     lattice_parameters[i] = getattr(self, i)
-         self.compute_d(lattice_parameters=lattice_parameters)  
+         self.compute_d(lattice_parameters=params)  
          r = self.get_reflections()
          calc = []
          obs = []

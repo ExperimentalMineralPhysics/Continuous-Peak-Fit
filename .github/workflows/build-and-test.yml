@@ -32,7 +32,7 @@ jobs:
           import json, os
 
           os_list = ["ubuntu-24.04", "macos-14", "windows-2022", "windows-2025"]
-          python_versions = ["3.9", "3.10", "3.11", "3.12"]
+          python_versions = ["3.10", "3.11", "3.12"]
 
           matrix = []
 

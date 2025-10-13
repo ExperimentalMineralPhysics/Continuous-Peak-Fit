@@ -22,6 +22,7 @@ from cpf import output_formatters
 from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
 from cpf.IO_functions import (
+    any_errors_huge,
     any_terms_null,
     json_numpy_serializer,
     make_outfile_name,
@@ -92,7 +93,7 @@ def initiate(
         base_filename=running_name, extension=".log", overwrite=True
     )
     logger.add_file_handler(log_file)
-     
+
     # if settings_file:
     #     log_file = make_outfile_name(
     #         base_filename=settings_file, extension=".log", overwrite=True
@@ -115,7 +116,9 @@ def initiate(
     logger.info("")
     logger.info("=================================================================")
     logger.info("")
-    logger.info(f"Starting data proceesing using settings {'dictionary' if isinstance(settings, dict) else 'file'}: {running_name}")    
+    logger.info(
+        f"Starting data proceesing using settings {'dictionary' if isinstance(settings, dict) else 'file'}: {running_name}"
+    )
     logger.info("")
     logger.info("=================================================================")
     logger.info("")
@@ -731,7 +734,7 @@ def execute(
                 filename = make_outfile_name(
                     settings_for_fit.image_list[j],
                     directory=settings_for_fit.output_directory,
-                    additional_text = "integrated",
+                    additional_text="integrated",
                     extension=".png",
                     overwrite=True,
                 )
@@ -793,8 +796,10 @@ def execute(
             # But does it need to?
             tth_range = np.array(settings_for_fit.subfit_orders["range"])
             if settings_for_fit.fit_track is True and "previous_fit" in locals():
-                clean = any_terms_null(params, val_to_find=None)
-                if not clean:
+                if (
+                    any_terms_null(params, val_to_find=None) == 0
+                    or any_errors_huge(params, large_errors=300) == 0
+                ):
                     # the previous fit has problems so discard it
                     logger.moreinfo(  # type: ignore
                         " ".join(
@@ -886,7 +891,6 @@ def execute(
                 # if debug:
                 plt.show()
                 # plt.close()
-
 
             elif mode == "view":
                 fig = plt.figure()
@@ -1037,9 +1041,11 @@ def execute(
     if parallel is True:
         pool.clear()
 
+
 def parallel_processing(p):
     a, kw = p
     return fit_sub_pattern(*a, **kw)
+
 
 if __name__ == "__main__":
     # Load settings fit settings file.

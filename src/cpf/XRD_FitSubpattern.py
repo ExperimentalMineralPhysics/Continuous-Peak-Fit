@@ -22,9 +22,9 @@ from cpf.fitsubpattern_chunks import fit_chunks, fit_series
 from cpf.IO_functions import (
     any_errors_huge,
     any_terms_null,
+    json_numpy_serializer,
     make_outfile_name,
     peak_string,
-    json_numpy_serializer
 )
 from cpf.util.logging import get_logger
 
@@ -287,26 +287,27 @@ def fit_sub_pattern(
     # bg_order = orders["background"]
     # orders, backgnd = order_set_peaks(settings_as_class.subfit_orders, peeks, settings_as_class.subfit_orders["background"])
 
-    if previous_params:
-        # check if the previous fit was 'good' i.e. constrains no 'null' values.
-        # N.B. null values in json file are read in as None
-        clean = any_terms_null(previous_params, val_to_find=None)
-        clean = any_errors_huge(previous_params, large_errors=large_errors, clean=clean)
-        if clean == 0:
-            # the previous fit has problems so discard it
-            logger.moreinfo(
-                " ".join(
-                    map(
-                        str,
-                        [
-                            (
-                                "Propagated fit has problems so discarding it and doing fit from scratch"
-                            )
-                        ],
-                    )
-                )
-            )
-            previous_params = None
+    # if previous_params:
+    #     # check if the previous fit was 'good' i.e. constrains no 'null' values.
+    #     # N.B. null values in json file are read in as None
+    #     if (
+    #         any_terms_null(previous_params, val_to_find=None) == 0
+    #         or any_errors_huge(previous_params, large_errors=large_errors) == 0
+    #     ):
+    #         # the previous fit has problems so discard it
+    #         logger.moreinfo(
+    #             " ".join(
+    #                 map(
+    #                     str,
+    #                     [
+    #                         (
+    #                             "Propagated fit has problems so discarding it and doing fit from scratch"
+    #                         )
+    #                     ],
+    #                 )
+    #             )
+    #         )
+    #         previous_params = None
 
     if previous_params:
         # check if the previous fit d-spacings fall within the bounds.
@@ -445,7 +446,7 @@ def fit_sub_pattern(
                     new_params = lmm.params_to_new_params(
                         master_params, orders=settings_as_class.subfit_orders
                     )
-                    # write to a file. 
+                    # write to a file.
                     filename = make_outfile_name(
                         settings_as_class.subfit_filename,
                         directory=settings_as_class.output_directory,
@@ -463,7 +464,7 @@ def fit_sub_pattern(
                             indent=2,
                             default=json_numpy_serializer,
                         )
-                    
+
                 # check if peak intensity is above threshold
                 ave_intensity = []
                 for k in range(peeks):

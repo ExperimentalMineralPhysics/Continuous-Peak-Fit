@@ -22,7 +22,6 @@ from cpf import output_formatters
 from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
 from cpf.IO_functions import (
-    any_errors_huge,
     any_terms_null,
     json_numpy_serializer,
     make_outfile_name,
@@ -796,10 +795,8 @@ def execute(
             # But does it need to?
             tth_range = np.array(settings_for_fit.subfit_orders["range"])
             if settings_for_fit.fit_track is True and "previous_fit" in locals():
-                if (
-                    any_terms_null(params, val_to_find=None) == 0
-                    or any_errors_huge(params, large_errors=300) == 0
-                ):
+                clean = any_terms_null(params, val_to_find=None)
+                if not clean:
                     # the previous fit has problems so discard it
                     logger.moreinfo(  # type: ignore
                         " ".join(

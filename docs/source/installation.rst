@@ -64,3 +64,64 @@ For the import to complete, additional packages are needed are (see above). The 
 
 
 
+Installation with virtualenv
+----------------------------
+In your current environment run `pip install virtualenv`.
+
+Pick/create a directory in which you will store your new Python environment. I'd typically recommend something memorable and simply like `~/envs`.
+
+Run `virtualenv ~/envs/cpf` (or whatever folder name you want your new Python environment to be known by). If `virtualenv` by itself fails, you might need to run `python -m virtualenv ~/envs/cpf` instead.
+
+Activate it by running `source ~/envs/cpf/bin/activate`
+
+Now change dir to where your CPF package is saved (cd /path/to/cpf/repo)
+
+Install an editable version of the environment using `pip install -e .`. This will ensure the imports in your package are properly mapped internally, and that any edits to the repo get reflected when you run the environment.
+
+
+
+
+Installation with conda
+-----------------------
+
+[This assumes that there is a python envoriment installed on the machine. If there is not then ...]
+
+Step 1: Make a new python enviroment:
+
+ .. code-block:: python    
+
+   conda create --name *cpf*
+
+where *cpf* is the name of the new enviroment. 
+
+
+Step 2: Activate the enviroment
+
+ .. code-block:: python    
+
+   conda activate *cpf*
+
+
+Step 3: Install cpf.
+
+Either in a local directory: 
+
+source
+or install in enviroment's default location:
+
+ .. code-block:: python    
+
+   conda install 
+
+
+
+
+
+
+
+
+
+
+
+
+

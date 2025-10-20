@@ -70,7 +70,7 @@ In your current environment run `pip install virtualenv`.
 
 Pick/create a directory in which you will store your new Python environment. I'd typically recommend something memorable and simply like `~/envs`.
 
-Run `virtualenv ~/envs/cpf` (or whatever folder name you want your new Python environment to be known by). If `virtualenv` by itself fails, you might need to run `python -m virtualenv ~/envs/cpf` instead.
+Run `virtualenv ~/envs/cpf` (or whatever folder name you want your new Python environment to be known by). If :code:`virtualenv` by itself fails, you might need to run `python -m virtualenv ~/envs/cpf` instead.
 
 Activate it by running `source ~/envs/cpf/bin/activate`
 

@@ -7,13 +7,13 @@ __all__ = ["ReadFits"]
 import json
 from itertools import product
 import re
-import glob
+# import glob
 
 import numpy as np
 import pandas as pd
 
 import cpf.peak_functions as pf
-import cpf.output_formatters.convert_fit_to_crystallographic as FitToCryst
+from cpf.output_formatters.convert_fit_to_crystallographic import fourier_to_crystallographic
 from cpf.IO_functions import make_outfile_name, peak_string
 from cpf.series_functions import series_properties
 from cpf.util.logging import get_logger
@@ -61,6 +61,10 @@ def ReadFits(
         Data frame contiaing all the fits made when calling the settings_class/file.
 
     """
+    
+    # force all the kwargs that might be needed
+    kwargs.pop("SampleGeometry", "3d")
+    kwargs.pop("SampleDeformation", "compression")    
 
     if settings_class is None and settings_file is None:
         raise ValueError(
@@ -71,7 +75,9 @@ def ReadFits(
         settings_class = initiate(settings_file, require_datafiles=False)
 
     # get what to write
-    if "includeParameters" in settings_class.output_settings:
+    if includeParameters is False:
+        includeParameters = []
+    elif "includeParameters" in settings_class.output_settings:
         includeParameters = settings_class.output_settings["includeParameters"]
     if isinstance(includeParameters, str):
         includeParameters = [includeParameters]
@@ -79,7 +85,7 @@ def ReadFits(
         peak_properties = pf.peak_components(full=True)
         includeParameters = peak_properties[1]
 
-    if includeSeriesValues is not False:
+    if includeSeriesValues is not False or includeUnitCells is not False:
         SampleGeometry = kwargs.get("SampleGeometry", "3d")
         SampleDeformation = kwargs.get("SampleDeformation", "compression")
         # SampleGeometry = "3d"
@@ -122,7 +128,7 @@ def ReadFits(
                 # get converted values.
                 for i in range(len(fits[-1])):
                     for j in range(len(fits[-1][i]["peak"])):
-                        crystallographic_values = FitToCryst.fourier_to_crystallographic(
+                        crystallographic_values = fourier_to_crystallographic(
                             fits[-1],
                             SampleGeometry=SampleGeometry,
                             SampleDeformation=SampleDeformation,
@@ -138,64 +144,12 @@ def ReadFits(
                         fits[-1][i]["peak"][j]["crystallographic_values"] = fits[-1][i]["peak"][j]["crystallographic_values"] | height_properties
                         fits[-1][i]["peak"][j]["crystallographic_values"] = fits[-1][i]["peak"][j]["crystallographic_values"] | width_properties
                         fits[-1][i]["peak"][j]["crystallographic_values"] = fits[-1][i]["peak"][j]["crystallographic_values"] | profile_properties
-                        
-            if includeUnitCells is not False:
-                # calculate unit cell properties and return them
-                
-                # get or guess phase
-                if "phase" in settings_class.output_settings:
-                    phase = settings_class.output_settings["phase"]
-                else:
-                    #list all phases in fits
-                    phases = []
-                    for i in range(len(fits[-1])):
-                        for j in range(len(fits[-1][i]["peak"])):
-                            if "phase" in fits[-1][i]["peak"][j]:
-                                phases.append(fits[-1][i]["peak"][j]["phase"])
-                    phase = np.unique(phases)
-                    
-                # get or guess jcpds file
-                if "jcpds" in settings_class.output_settings:
-                    jcpds = settings_class.output_settings["jcpds"]
-                else:
-                    jcpds = []
-                    for i in range(len(phase)):
-                        if glob.glob(f"*{phase[i]}*"):
-                            if len(glob.glob(f"*{phase[i]}*")) != 1:
-                                raise ValueError("There is more than 1 jcpds file")
-                            jcpds.append(glob.glob(f"*{phase[i]}*")[0])
-                    if len(phase) != len(jcpds):
-                        raise ValueError("The phase and jcpds files are not certain")
-                        
-                for i in range (len(phase)):
-                    unitcells = FitToCryst.fourier_to_unitcellvolume(
-                        fits[-1],
-                        SampleGeometry=SampleGeometry,
-                        SampleDeformation=SampleDeformation,
-                        phase = phase[i],
-                        jcpds_file = jcpds[i],
-                        **kwargs
-                    )
-                    
-                    # label return with phase name and add to fits                    
-                    entries = list(unitcells)
-                    for j in range(len(unitcells)):
-                        unitcells[re.sub(entries[j], phase[i]+" "+entries[j], entries[j])] = unitcells.pop(entries[j])
-                    if not "unitcells" in fits[-1][0]:
-                        fits[-1][0]["unitcells"] = unitcells
-                    else:
-                        fits[-1][0]["unitcells"] = fits[-1][0]["unitcells"] | unitcells
             
         if includeSeriesValues is not False:
             #list the entries in crystallographic_values dictionary
             DerivedValues = fits[-1][0]["peak"][0]["crystallographic_values"].keys()
-        
-        if includeUnitCells is not False:
-            #list the entries in crystallographic_values dictionary
-            UnitCells = fits[0][0]["unitcells"].keys()
         else:
-            UnitCells = []
-
+            DerivedValues = []
         num_fits = np.max([num_fits, len(fits[-1])])
         for y in range(len(fits[-1])):
             max_peaks = np.max([max_peaks, len(fits[-1][y]["peak"])])
@@ -268,8 +222,6 @@ def ReadFits(
                 # properties.append(includeSeriesValues[i]+"err")
     if includeIntensityRanges is True:
         properties += IntensityValues
-    if includeUnitCells is True:
-        properties += UnitCells
     if includeStats is True:
         # include properties from the lmfit output that were passed with the fits.
         #read the list of parameters from the first file.
@@ -395,11 +347,6 @@ def ReadFits(
                     # in crystallographic_values dictionary
                     RowLst[ind] = data_to_write["peak"][lists[z, 2]]["crystallographic_values"][ind]
                     # RowLst[ind+"err"] = data_to_write["peak"][lists[z, 2]]["crystallographic_values"][ind+"_err"]
-
-                elif ind in UnitCells:
-                    # in unitcells dictionary
-                    if "unitcells" in data_to_write:
-                        RowLst[ind] = data_to_write["unitcells"][ind]
                 
                 elif ind == "Position in json":
                     # print("here we are ")

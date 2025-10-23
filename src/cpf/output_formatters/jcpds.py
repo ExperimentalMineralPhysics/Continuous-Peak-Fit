@@ -63,7 +63,12 @@ class jcpds_reflection:
 
     """
 
-    def __init__(self, h=0., k=0., l=0., intensity=0., d=0., dobs=None):
+    def __init__(self, h=0., k=0., l=0., 
+                 intensity=0., 
+                 d=0., 
+                 dobs=None, 
+                 delta_dobs = None,
+                 orientationobs = None ):
         self.d0 = d
         self.d = d
         self.dobs = dobs
@@ -71,7 +76,10 @@ class jcpds_reflection:
         self.h = h
         self.k = k
         self.l = l
-
+        self.delta_dobs = delta_dobs
+        self.orientationobs = orientationobs
+        self.stress = None
+        self.stress = None
 
 class jcpds(object):
     def __init__(self):
@@ -102,8 +110,8 @@ class jcpds(object):
         self.beta = ufloat(0.,1E-10)  # unit cell set, or fit to obs
         self.gamma = ufloat(0.,1E-10) # unit cell set, or fit to obs
         self.v = ufloat(0.,1E-10)  # volume set, or fit to obs
-        self.pressure = ufloat(0.,1E-10) # pressure set or fit to obs
-        self.temperature = 298. # pressure set 
+        self.pressure = np.nan #ufloat(0.,1E-10) # pressure set or fit to obs
+        self.temperature = np.nan #298. # pressure set 
         self.reflections = []
         self.modified = False
 
@@ -133,8 +141,10 @@ class jcpds(object):
                K0:         The bulk modulus in GPa.
                K0P:        The change in K0 with pressure, for Birch-Murnaghan
                            equation of state.  Dimensionless.
-               DK0DT:      The temperature derivative of K0, GPa/K.
-               DK0PDT:     The temperature derivative of K0P, 1/K.
+               G0:         The shear modulus in GPa.
+               G0P:        The change in G0 with pressure.  Dimensionless.
+               DK0DT:      The temperature derivative of G0, GPa/K.
+               DK0PDT:     The temperature derivative of G0P, 1/K.
                SYMMETRY:   One of CUBIC, TETRAGONAL, HEXAGONAL, RHOMBOHEDRAL,
                            ORTHORHOMBIC, MONOCLINIC or TRICLINIC
                A:          The unit cell dimension A
@@ -159,6 +169,8 @@ class jcpds(object):
                COMMENT: Alumina (JCPDS 0-173, EOS n/a)
                K0:          194.000
                K0P:           5.000
+               G0:           72.000
+               G0P:           3.000
                SYMMETRY: HEXAGONAL
                A:            4.758
                C:            12.99
@@ -218,6 +230,12 @@ class jcpds(object):
                     self.dk0dt = self._convert_value(value)
                 elif (tag == 'DK0PDT:'):
                     self.dk0pdt = self._convert_value(value)
+                elif (tag == 'G0P:'):
+                    self.g0p0 = self._convert_value(value)
+                elif (tag == 'DG0DT:'):
+                    self.dg0dt = self._convert_value(value)
+                elif (tag == 'DG0PDT:'):
+                    self.dg0pdt = self._convert_value(value)
                 elif (tag == 'SYMMETRY:'):
                     self.symmetry = value.upper()
                 elif (tag == 'A:'):
@@ -350,6 +368,11 @@ class jcpds(object):
         fp.write('K0P:      ' + str(self.k0p0)+'\n')
         fp.write('DK0DT:    ' + str(self.dk0dt)+'\n')
         fp.write('DK0PDT:   ' + str(self.dk0pdt)+'\n')
+        fp.write('G0P:      ' + str(self.g0p0)+'\n')
+        fp.write('DG0DT:    ' + str(self.dg0dt)+'\n')
+        fp.write('DG0PDT:   ' + str(self.dg0pdt)+'\n')
+        fp.write('ALPHAT:   ' + str(self.alpha_t0)+'\n')
+        fp.write('DALPHADT: ' + str(self.d_alpha_dt)+'\n')
         fp.write('SYMMETRY: ' + self.symmetry+'\n')
         fp.write('A:        ' + str(self.a0)+'\n')
         fp.write('B:        ' + str(self.b0)+'\n')
@@ -358,8 +381,6 @@ class jcpds(object):
         fp.write('BETA:     ' + str(self.beta0)+'\n')
         fp.write('GAMMA:    ' + str(self.gamma0)+'\n')
         fp.write('VOLUME:   ' + str(self.v0)+'\n')
-        fp.write('ALPHAT:   ' + str(self.alpha_t0)+'\n')
-        fp.write('DALPHADT: ' + str(self.d_alpha_dt)+'\n')
         reflections = self.get_reflections()
         for r in reflections:
             fp.write('DIHKL:    {:g}\t{:g}\t{:g}\t{:g}\t{:g}\n'.format(r.d0, r.intensity, r.h, r.k, r.l))
@@ -727,8 +748,9 @@ class jcpds(object):
             setattr(self, ind, ufloat(out.params[ind].value, out.params[ind].stderr) )
         
         #update properties
-        self.compute_unitcell_volume()
-        self.compute_pressure()
+        # does not need to call self.compute_unitcell_volume()
+        # because called within self.compute_pressure() 
+        self.compute_pressure() 
         # self.compute_stress()
         
         return out
@@ -818,43 +840,67 @@ class jcpds(object):
 
         return self.pressure
         
-        
-    def fit_pressure(self, weighted=True):
+    
+    def compute_stress(self, temperature=None, single_orientation=False):
         """
-        Fits the pressure to the reflection d_obs values.
-    # def _resid(self, params, weights=None):
-    #     """
-    #     Rerust differences between calculated and observed reflcations
+        compute stresses from differential strains.
+        Requires G0, G' etc.
 
-    #     Parameters
-    #     ----------
-    #     params : lmfit.Parameters()
-    #         unitcell parameter set for calculating d-spacings.
+        Returns
+        -------
+        None.
 
-    #     Returns
-    #     -------
-    #     list
-    #         Difference in d-spacing between calculated and observed reflections.
+        """
+        """
+        Computes the pressure from the unit cell volume and v0 of the material.
 
-    #     """
-    #     params = params.valuesdict()
-    #     self.compute_d(lattice_parameters=params)  
-    #     r = self.get_reflections()
-    #     calc = []
-    #     obs = []
-    #     for i in range(len(r)):
-    #         if r[i].dobs != None:
-    #             obs.append(r[i].dobs)
-    #             calc.append(r[i].d)
-    #     out = np.array(calc) - np.array(obs)
-    #     try:
-    #         out = [i.nominal_value for i in out]
-    #     except:
-    #         out = out
+        Keywords:
+           temperature:
+              The temperature in K.  If not present or zero, then the
+              temperature is assumed to be 298K, i.e. room temperature.
+
+        Procedure:
+           This procedure computes the unit cell volume.  It starts with the
+           volume read from the JCPDS file or computed from the zero-pressure,
+           room temperature lattice constants.  It does the following:
+              1) Corrects K0 for temperature if DK0DT is non-zero.
+              2) Computes volume at zero-pressure and the specified temperature
+                 if ALPHAT0 is non-zero.
+              3) Computes pressure using 3rd order B-M EoS.
+
+        Example:
+           Compute the unit cell volume of alumina at 100 GPa and 2500 K.
+           j = jcpds()
+           j.read_file('alumina.jcpds')
+           j.compute_stress()
+
+        """
+        
+        # make sure volumes have been calculated.
+        self.compute_pressure(temperature=temperature)
+                
+        if temperature == None:
+            temperature = self.temperature
+        # Assume 0 K really means room T
+        if (temperature == 0): temperature = 298.
+        # Compute values of K0, K0P and alphat at this temperature
+        
+        self.alpha_t = self.alpha_t0 + self.d_alpha_dt * (temperature - 298.)
+        
+        self.g0p = self.g0 + self.dg0pdt * (temperature - 298.)
+
+        # if single_orientation == True:
+        #     # have to minimise for the streses and the stress. 
             
-    #     if weights is not None:
-    #         return out/weights
-    #     return out
+            
+        # else:
+        #     # compute stresses from delta_dobs for each hkl.
+            
+            
+            
+            
+            
+        # return stresses
 
     def bm3_inverse(self, v0_v_in):
         """
@@ -1007,14 +1053,16 @@ class jcpds(object):
         """
         
         if lattice_parameters == None:
-            self.compute_volume(pressure, temperature)
-    
-            # Assume each cell dimension changes by the same fractional amount = cube
-            # root of volume change ratio
-            ratio = ((self.v / self.v0) ** (1.0 / 3.0))
-            self.a = self.a0 * ratio
-            self.b = self.b0 * ratio
-            self.c = self.c0 * ratio
+            
+            if not (np.isnan(self.temperature) or np.isnan(self.pressure)):
+                self.compute_volume(pressure, temperature)
+        
+                # Assume each cell dimension changes by the same fractional amount = cube
+                # root of volume change ratio
+                ratio = ((self.v / self.v0) ** (1.0 / 3.0))
+                self.a = self.a0 * ratio
+                self.b = self.b0 * ratio
+                self.c = self.c0 * ratio
     
         else:
             # update unit cell

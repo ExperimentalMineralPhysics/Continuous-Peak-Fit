@@ -1,18 +1,27 @@
 __all__ = ["fourier_to_crystallographic"]
 
+import json
+import pandas as pd
 import numpy as np
-from uncertainties import ufloat
+import glob
+import re
+# from uncertainties import ufloat
 
 from cpf.output_formatters.jcpds import jcpds
 from cpf.IO_functions import peak_hkl
 from cpf.output_formatters.crystallographic_operations import indicies4to3
 from cpf.IO_functions import replace_null_terms
+from cpf.IO_functions import make_outfile_name
+
+from cpf.util.logging import get_logger
+
 
 
 def fourier_to_crystallographic(
     coefficients,
     SampleGeometry: str = "3d",
     SampleDeformation: str = "compression",
+    # positive_strain: str = "compression",
     correlation_coeffs=None,
     subpattern=0,
     peak=0,
@@ -155,8 +164,9 @@ def fourier_to_crystallographic(
                     ** 2
                 )
                 ** (1 / 2)
-            )
-        ) / 2
+            ) 
+        / 2
+        )
     elif (
         len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5 
         and coefficients[subpattern]["peak"][peak]["d-space"][3] != 0
@@ -176,6 +186,11 @@ def fourier_to_crystallographic(
     # convert into degrees.
     out_ang = np.rad2deg(out_ang)
     out_angerr = np.rad2deg(out_angerr)
+    
+    # deal with sin/cos wrapping
+    if coefficients[subpattern]["peak"][peak]["d-space"][3] > 0:
+        out_ang += 180
+    
 
     # %%% differential strain
     # differentail (3d) = (a2^2+b2^2)^(1/2)
@@ -272,6 +287,42 @@ def fourier_to_crystallographic(
             out_ang -= 90
         else:
             out_ang += 90
+            
+
+    # keep anblies within given range. Prevent wrapping of angles. Change direction of Q and 
+    # differential if the angles are in second half of the range. 
+    if True:
+        ang_range = [45, -135]
+        # if ang_range[0] - ang_range[1] != 180:
+        #     raise ValueError("The acceptable range for 'ang_range' is 180 degrees.")
+        if out_ang > ang_range[0]: 
+            out_ang -= 180
+        elif out_ang <= ang_range[1]:
+            out_ang += 180
+        if out_ang < np.mean(ang_range):
+            out_dd = -out_dd
+            out_Q = -out_Q
+            
+    
+    # keep in constant refernce frame -- i.e. strain relative to vertical not absolute.
+    if False:
+        if out_ang <= -45:
+            # out_ang += 90
+            out_dd = -out_dd
+            out_Q = -out_Q
+   
+        if out_ang >=45:
+            out_ang -= 180
+
+   
+
+    """
+    if positive_strain == "extension" or positive_strain == "wrong":
+        # reverse the strain magnitudes
+        out_dd = -out_dd
+        out_Q = -out_Q
+    # else compression and 'correct'
+    """  
 
     # %%% x0 and y0
     # values is in d-spacing and needs converting to mm via calibration.
@@ -340,9 +391,11 @@ def fourier_to_unitcellvolume(
     phase: None,
     SampleGeometry: str = "3d",
     SampleDeformation: str = "compression",
+    pressure = False,
     reflections_to_use = "all",
     correlation_coeffs=None,
     weighted = True,
+    temperature = np.nan,
     debug=False,
     **kwargs,
 ):
@@ -464,6 +517,7 @@ def fourier_to_unitcellvolume(
     jcpds_obj.remove_reflection("all")
     
     # add reflections for unit cell we need to fit.
+    hkls = []
     for i in reflections_to_use:
         for j in range(len(coefficients[1]["peak"])):
             if coefficients[i]["peak"][j]["phase"] == phase:
@@ -475,7 +529,11 @@ def fourier_to_unitcellvolume(
                                  dobs = coefficients[i]["peak"][j]["cryst_prop"]["dp"],
                                  dobs_err = coefficients[i]["peak"][j]["cryst_prop"]["dp_err"]
                                  )
+                hkls.append( peak_hkl(coefficients[i], j, string=True)[0] )
+                
     jcpds_obj.compute_d0() # compute lattice parameters for unit cell from jcpds, otherwise initiation not complete. 
+    
+    jcpds_obj.temperature = temperature
     
     returned = jcpds_obj.fit_lattice_parameters(weighted=weighted)
 
@@ -487,6 +545,18 @@ def fourier_to_unitcellvolume(
     uc_parms["volume"] = jcpds_obj.v.nominal_value
     uc_parms["volume_err"] = jcpds_obj.v.std_dev
     
-    uc_parms["residuals"] = returned.residual
-    
+    if not np.isnan(temperature): 
+        uc_parms["pressure"] = jcpds_obj.pressure.nominal_value
+        uc_parms["pressure_err"] = jcpds_obj.pressure.std_dev
+
+    # uc_parms["residuals"] = np.array2string(returned.residual, separator="; ", max_line_width=np.inf)
+    if weighted == True:
+        uc_parms["residuals_weighted"] = returned.residual
+        rsd = []
+        for i in jcpds_obj.reflections:
+            rsd.append(i.dobs.nominal_value - i.d)
+        uc_parms["residuals_unweighted"] = np.array(rsd)
+    else:
+        uc_parms["residuals_unweighted"] = returned.residual
+    uc_parms["hkl"] = hkls
     return uc_parms

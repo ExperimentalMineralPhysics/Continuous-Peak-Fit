@@ -558,7 +558,7 @@ def replace_null_terms(
                 value, val_to_find, index_path + f"[{key}]", clean=clean
             )
 
-    if obj_to_inspect == val_to_find:
+    if val_to_find is not None and obj_to_inspect == val_to_find:
         obj_to_inspect = replace_with
         logger.moreinfo(
             " ".join(map(str, [(f"Value {val_to_find} found at {index_path}")]))

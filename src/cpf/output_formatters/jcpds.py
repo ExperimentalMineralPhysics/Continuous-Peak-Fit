@@ -79,7 +79,6 @@ class jcpds_reflection:
         self.delta_dobs = delta_dobs
         self.orientationobs = orientationobs
         self.stress = None
-        self.stress = None
 
 class jcpds(object):
     def __init__(self):
@@ -88,11 +87,16 @@ class jcpds(object):
         self.version = 0
         self.comments = []
         self.symmetry = ''
-        self.k0 = ufloat(0.,1E-10)
-        self.k0p0 = ufloat(0.,1E-10)  # k0p at 298K
-        self.k0p = ufloat(0.,1E-10)  # k0p at high T
+        self.k0 = ufloat(0.,1E-10) #K at abmient conditions
+        self.k0p0 = ufloat(0.,1E-10)  # Kprime at 298K
+        self.k0p = ufloat(0.,1E-10)  # Kprime at high T
         self.dk0dt = ufloat(0.,1E-10)
         self.dk0pdt = ufloat(0.,1E-10)
+        self.g0 = ufloat(0.,1E-10)
+        self.g0p0 = ufloat(0.,1E-10)  # k0p at 298K
+        self.g0p = ufloat(0.,1E-10)  # k0p at high T
+        self.dg0dt = ufloat(0.,1E-10)
+        self.dg0pdt = ufloat(0.,1E-10)
         self.alpha_t0 = ufloat(0.,1E-10)  # alphat at 298K
         self.alpha_t = ufloat(0.,1E-10)  # alphat at high temp.
         self.d_alpha_dt = ufloat(0.,1E-10)
@@ -141,10 +145,12 @@ class jcpds(object):
                K0:         The bulk modulus in GPa.
                K0P:        The change in K0 with pressure, for Birch-Murnaghan
                            equation of state.  Dimensionless.
+               DK0DT:      The temperature derivative of K0, GPa/K.
+               DK0PDT:     The temperature derivative of K0P, 1/K.
                G0:         The shear modulus in GPa.
                G0P:        The change in G0 with pressure.  Dimensionless.
-               DK0DT:      The temperature derivative of G0, GPa/K.
-               DK0PDT:     The temperature derivative of G0P, 1/K.
+               DG0DT:      The temperature derivative of G0, GPa/K.
+               DG0PDT:     The temperature derivative of G0P, 1/K.
                SYMMETRY:   One of CUBIC, TETRAGONAL, HEXAGONAL, RHOMBOHEDRAL,
                            ORTHORHOMBIC, MONOCLINIC or TRICLINIC
                A:          The unit cell dimension A
@@ -230,6 +236,8 @@ class jcpds(object):
                     self.dk0dt = self._convert_value(value)
                 elif (tag == 'DK0PDT:'):
                     self.dk0pdt = self._convert_value(value)
+                elif (tag == 'G0:'):
+                    self.g0 = self._convert_value(value)
                 elif (tag == 'G0P:'):
                     self.g0p0 = self._convert_value(value)
                 elif (tag == 'DG0DT:'):
@@ -661,7 +669,7 @@ class jcpds(object):
     
     def get_unique_unitcell_params(self):
         """
-        Get indiepende values for unit cell given symmetry
+        Get independent values for unit cell given symmetry
 
         """
         if (self.symmetry == 'CUBIC'):
@@ -748,10 +756,16 @@ class jcpds(object):
             setattr(self, ind, ufloat(out.params[ind].value, out.params[ind].stderr) )
         
         #update properties
-        # does not need to call self.compute_unitcell_volume()
+        self.compute_unitcell_volume()
+        
         # because called within self.compute_pressure() 
-        self.compute_pressure() 
-        # self.compute_stress()
+        
+        #FIXME : shold replace ths with cellditted = True/False and when call pressure check if this is ture. 
+        # make flase if modify anything without correcting the rest. 
+        
+        if not np.isnan(self.temperature):
+            self.compute_pressure() 
+            self.compute_stress_per_hkl()
         
         return out
         
@@ -829,19 +843,19 @@ class jcpds(object):
         if (temperature == 0): temperature = 298.
         # Compute values of K0, K0P and alphat at this temperature
         self.alpha_t = self.alpha_t0 + self.d_alpha_dt * (temperature - 298.)
-        self.k0p = self.k0 + self.dk0pdt * (temperature - 298.)
+        k0t = self.k0 + self.dk0dt * (temperature - 298.)
+        k0pt = self.k0p0 + self.dk0pdt * (temperature - 298.)
 
         vT = self.v0 * (1 + self.alpha_t * (temperature - 298.))
-
         v0_over_v = vT / self.v
         
         # calculate pressure from 3rd order Birch–Murnaghan equation of state
-        self.pressure = 3/2 * self.k0p * (pow(v0_over_v,7/3) - pow(v0_over_v,5/3)) * ( 1 + 3/4*(self.k0p0-4)*(pow(v0_over_v,2/3) - 1))
+        self.pressure = 3/2 * k0t * (pow(v0_over_v,7/3) - pow(v0_over_v,5/3)) * ( 1 + 3/4*(k0pt-4)*(pow(v0_over_v,2/3) - 1))
 
         return self.pressure
         
     
-    def compute_stress(self, temperature=None, single_orientation=False):
+    def compute_stress_average(self, temperature=None, single_orientation=False):
         """
         compute stresses from differential strains.
         Requires G0, G' etc.
@@ -901,6 +915,63 @@ class jcpds(object):
             
             
         # return stresses
+
+
+    def compute_stress_per_hkl(self, temperature=None, single_orientation=False):
+        """
+        compute stresses from differential strains.
+        Requires G0, G' etc.
+
+        Returns
+        -------
+        None.
+
+        """
+        """
+        Computes the pressure from the unit cell volume and v0 of the material.
+
+        Keywords:
+           temperature:
+              The temperature in K.  If not present or zero, then the
+              temperature is assumed to be 298K, i.e. room temperature.
+
+        Procedure:
+           This procedure computes the unit cell volume.  It starts with the
+           volume read from the JCPDS file or computed from the zero-pressure,
+           room temperature lattice constants.  It does the following:
+              1) Corrects K0 for temperature if DK0DT is non-zero.
+              2) Computes volume at zero-pressure and the specified temperature
+                 if ALPHAT0 is non-zero.
+              3) Computes pressure using 3rd order B-M EoS.
+
+        Example:
+           Compute the unit cell volume of alumina at 100 GPa and 2500 K.
+           j = jcpds()
+           j.read_file('alumina.jcpds')
+           j.compute_stress()
+
+        """
+        
+        # make sure volumes have been calculated.
+        self.compute_pressure(temperature=temperature)
+                
+        if temperature == None:
+            temperature = self.temperature
+        # Assume 0 K really means room T
+        if (temperature == 0): temperature = 298.
+        # Compute values of G0, G0P and alphat at this temperature
+        self.alpha_t = self.alpha_t0 + self.d_alpha_dt * (temperature - 298.)
+        g0t = self.g0 + self.dg0dt * (temperature - 298.)
+        g0pt = self.g0p0 + self.dg0pdt * (temperature - 298.)
+        g = g0t + g0pt * (self.pressure)
+
+        # compute stresses from delta_dobs for each hkl.
+        for i in self.reflections:
+            i.stress = i.delta_dobs * g
+        
+        return self.get_reflection_stresses()
+
+
 
     def bm3_inverse(self, v0_v_in):
         """
@@ -1136,10 +1207,18 @@ class jcpds(object):
         for ind in range(len(self.reflections)):
             self.reflections[ind].d = d_spacings[ind]
 
-    def add_reflection(self, h=0., k=0., l=0., intensity=0., d=0., dobs=None, dobs_err=None):
+    def add_reflection(self, h=0., k=0., l=0., intensity=0., d=0., dobs=None, dobs_err=None,
+                       delta_dobs=None,
+                       delta_dobs_err=None,
+                       orientationobs=None,
+                       orientationobs_err=None):
         if dobs_err is not None:
             dobs = ufloat(dobs, dobs_err)
-        new_reflection = jcpds_reflection(h,k,l, intensity, d, dobs=dobs)
+        if delta_dobs_err is not None:
+            delta_dobs = ufloat(delta_dobs, delta_dobs_err)
+        if orientationobs_err is not None:
+            orientationobs = ufloat(orientationobs, orientationobs_err)
+        new_reflection = jcpds_reflection(h,k,l, intensity, d, dobs=dobs, delta_dobs=delta_dobs, orientationobs=orientationobs)
         self.reflections.append(new_reflection)
         self.modified = True
 
@@ -1206,6 +1285,23 @@ class jcpds(object):
     def has_thermal_expansion(self):
         return (self.alpha_t0!=0) or (self.d_alpha_dt!=0)
 
+    def get_reflection_hkls(self):
+        hkls = []
+        for i in self.reflections:
+            hkls.append([i.h, i.k, i.l])
+        return np.array(hkls)
+    
+    def get_reflection_stresses(self):
+        stresses = []
+        for i in self.reflections:
+            stresses.append(i.stress)
+        return np.array(stresses)
+    
+    def get_reflection_orientations(self):
+        orientations = []
+        for i in self.reflections:
+            orientations.append(i.orientationobs)
+        return np.array(orientations)
 
 def lookup_jcpds_line(in_string,
                       pressure=0.,

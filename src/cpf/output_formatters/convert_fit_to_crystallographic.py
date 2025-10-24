@@ -527,7 +527,11 @@ def fourier_to_unitcellvolume(
                     hkl = indicies4to3(hkl)
                 jcpds_obj.add_reflection(h=hkl[0], k=hkl[1], l=hkl[2],
                                  dobs = coefficients[i]["peak"][j]["cryst_prop"]["dp"],
-                                 dobs_err = coefficients[i]["peak"][j]["cryst_prop"]["dp_err"]
+                                 dobs_err = coefficients[i]["peak"][j]["cryst_prop"]["dp_err"],
+                                 delta_dobs = coefficients[i]["peak"][j]["cryst_prop"]["Q"],
+                                 delta_dobs_err = coefficients[i]["peak"][j]["cryst_prop"]["Q_err"],
+                                 orientationobs = coefficients[i]["peak"][j]["cryst_prop"]["orientation"],
+                                 orientationobs_err = coefficients[i]["peak"][j]["cryst_prop"]["orientation_err"],
                                  )
                 hkls.append( peak_hkl(coefficients[i], j, string=True)[0] )
                 
@@ -548,6 +552,12 @@ def fourier_to_unitcellvolume(
     if not np.isnan(temperature): 
         uc_parms["pressure"] = jcpds_obj.pressure.nominal_value
         uc_parms["pressure_err"] = jcpds_obj.pressure.std_dev
+        for m,n,o in zip(jcpds_obj.get_reflection_stresses(), jcpds_obj.get_reflection_orientations(), jcpds_obj.get_reflection_hkls()):
+            o = f"({o[0]}{o[1]}{o[2]})"
+            uc_parms[o + " stress"] = m.nominal_value
+            uc_parms[o + " stress_err"] = m.std_dev
+            uc_parms[o + " angle"] = n.nominal_value
+            uc_parms[o + " angle_err"] = n.std_dev
 
     # uc_parms["residuals"] = np.array2string(returned.residual, separator="; ", max_line_width=np.inf)
     if weighted == True:

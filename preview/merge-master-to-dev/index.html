@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>2-dimensional peak fitting &#8212; Continuous-Peak-Fit 0.0 alpha documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/agogo.css?v=08520df9" />
+    <script src="_static/documentation_options.js?v=cddd5768"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Introduction" href="introduction.html" /> 
+  </head><body>
+    <div class="header-wrapper" role="banner">
+      <div class="header">
+        <div class="headertitle"><a
+          href="#">Continuous-Peak-Fit 0.0 alpha documentation</a></div>
+        <div class="rel" role="navigation" aria-label="Related">
+          <a href="introduction.html" title="Introduction"
+             accesskey="N">next</a> |
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="dimensional-peak-fitting">
+<h1>2-dimensional peak fitting<a class="headerlink" href="#dimensional-peak-fitting" title="Link to this heading">¶</a></h1>
+<p><cite>Continuous-peak-fit</cite> is a python package for fitting peaks in 2-dimensional (X, Y + intensity) data. It was originally developed to improve the precision of azimuthally dependent properties determined from X-ray diffraction data collected on area detectors. With suitable input and output files, it is applicable to time-series and any other 2D data (e.g. radio astronimy data).</p>
+<p>MAKE FIGURE TO GO HERE</p>
+<p>The core idea of <cite>continuous peak fit</cite> is that peaks in two dimensional data are often inherently continuous – the parameters describing a peak (in X: position, height, width, shape) are related to those describing the peak in the immedately adjacent position (Y+dY, where Y is azimuth, time, etc.).
+For the most part previous data fitting routines have ignored this relationship, and either collapsed all dispersed data in to a single peak loosing the dispersion information, or treated the data as a series of independent peaks.</p>
+<p><cite>Continuous peak fit</cite> package was develped to overcome these limitations by treating peaks as a single two-dimensional objects. The properties of the peak are numerated as fourier series or spline functions in the Y. Treating the data as continuous improves the resolution of the fitted parameters as well as enabling fitting of previously un-fittable data.</p>
+<section id="x-ray-data">
+<h2>X-ray data<a class="headerlink" href="#x-ray-data" title="Link to this heading">¶</a></h2>
+<p>Historically, 2D X-ray diffraction data has been investigated for azimuthal properties (e.g. differential stress and fabric) by transforming the data into a number of 1D diffraction patterns using software such as <a class="reference external" href="https://www.esrf.fr/computing/scientific/FIT2D/">Fit2D</a> and <a class="reference external" href="https://pyfai.readthedocs.io/en/master/index.html">pyFAI</a>. Each of these 1D diffraction patterns represents a small range of azimuth (χ). The peaks in each slice are fit independantly and from these fits azimuthal properties (e.g. differential strain, stress and fabric) are calcualted.
+This approach has been used in the analysis of the azimuthally changing properties in diffraction patterns but it has its limitations. The drawback is that resampling of the 2D diffraction pattern reduces the number of data and necessarily applies a degree of averaging. The resampaling also makes the data points equally dense over the entire 2θ range, something that is not true of the original area detector data.</p>
+<p>Rather than resampling the data <cite>Continuous peak fit</cite> uses the original detector observations and describes the diffraction peaks as continuous finctions in azimuth (χ). This description enables the fitting of weak, spotty and incomplete peaks or samples with extremally strong LPO that was not possible previously. Moreover, this method better accounts for the exclusions required by certain detectors and diffraction geometries.</p>
+</section>
+<section id="radio-data">
+<h2>Radio data<a class="headerlink" href="#radio-data" title="Link to this heading">¶</a></h2>
+<p>Noise in radio data looks a bit like the signal in X-ray diffraction patterns.</p>
+<p>More Blurb.</p>
+</section>
+<section id="software">
+<h2>Software<a class="headerlink" href="#software" title="Link to this heading">¶</a></h2>
+<p>The <cite>Continuous-peak-fit</cite> package is Free software, using the MIT open source license. Both the software and this documentation are works in progress. Please provide any feedback (good or bad) to the developers via GitHub (<a class="reference external" href="https://github.com/ExperimentalMineralPhysics/continuous-peak-fit">cpf GitHub repository</a>).</p>
+</section>
+<section id="citation">
+<h2>Citation<a class="headerlink" href="#citation" title="Link to this heading">¶</a></h2>
+<p>If you use continuous peak fit for your research, please reference the manuscript below:</p>
+<div class="highlight-latex notranslate"><div class="highlight"><pre><span></span>@article<span class="nb">{</span>cpf2020,
+  title=<span class="nb">{</span>Continuous peak fit: a new algorithm for fitting spotty, noisy or incomplete x-ray diffraction data<span class="nb">}</span>,
+  author=<span class="nb">{</span>Hunt, Simon A and Fenech, Danielle M<span class="nb">}</span>,
+  journal=<span class="nb">{</span>in prep.<span class="nb">}</span>,
+  year=<span class="nb">{</span>2021<span class="nb">}</span>,
+<span class="nb">}</span>
+</pre></div>
+</div>
+</section>
+<section id="acknowledgments">
+<h2>Acknowledgments<a class="headerlink" href="#acknowledgments" title="Link to this heading">¶</a></h2>
+<p>This package was developed while the authors were funded by NERC and SKA.</p>
+</section>
+<section id="documentation-parts">
+<h2>Documentation Parts<a class="headerlink" href="#documentation-parts" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="x-ray%20diffraction.html">X-ray diffraction fitting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="x-ray%20diffraction.html#something">Something</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="algorithm.html">Algorithm</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="algorithm.html#d-peak-fitting-and-contonuous-function-fitting">1D peak fitting and contonuous function fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="algorithm.html#refinement-of-dispersion-parameters">Refinement of dispersion parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="algorithm.html#final-fit-of-all-parameters">Final fit of all parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="algorithm.html#meaning-of-fit-status">Meaning of ‘Fit Status’</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#prerequisits">Prerequisits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#download">Download</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#installation-with-virtualenv">Installation with virtualenv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#installation-with-conda">Installation with conda</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="running%20cpf.html"><em>Continuous peak fit</em>, via the command line</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="running%20cpf.html#calibration">Calibration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="running%20cpf.html#loading-continuous-peak-fit">Loading <cite>continuous peak fit</cite>.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="running%20cpf.html#input-file-creation">Input file creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="running%20cpf.html#initiate">Initiate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="running%20cpf.html#set-range">Set range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="running%20cpf.html#initial-guess-selection-for-multiple-weak-or-obscured-peaks">Initial guess selection for multiple, weak or obscured peaks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="running%20cpf.html#order-search">Order search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="running%20cpf.html#execution">Execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="running%20cpf.html#creating-output-files">Creating output files.</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file%20short.html">Input file structure (short)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file.html">Input file structure (long)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="input%20file.html#data-file-definitions">Data file definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input%20file.html#calibration-definitions">Calibration definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input%20file.html#subpattern-definitions">Subpattern definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input%20file.html#output-settings">Output settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input%20file.html#additional-optional-settings">Additional (Optional) Settings</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file%20h5%20syntax.html">Sytax for iterating over hdf5 files.</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="input%20file%20h5%20syntax.html#hdf5-key-syntax">hdf5 key syntax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input%20file%20h5%20syntax.html#original-way-not-recomended">original way (not recomended).</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="subpattern%20structure.html">Subpatterns and peaks</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="subpattern%20structure.html#peak-definition">Peak definition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="subpattern%20structure.html#fixing-parameters-to-each-other">Fixing parameters to each other</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bounds.html">Bounds</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output_file_structure.html">Output files:</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="output_file_structure.html#full-fit-json-file">Full fit *.json file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="output_file_structure.html#output-files-chunks-json">Output files: *__chunks.json</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="example%20function%20tests.html">XRD_FitPattern’s examples and the features they test.</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="example%20function%20tests.html#example-1-monochromatic-x-ray-diffraction">Example 1: Monochromatic X-ray diffraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="example%20function%20tests.html#example-2-angle-dispersive-x-ray-diffraction">Example 2: Angle dispersive X-ray diffraction</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="whatsnew.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="whatsnew.html#latest-release">Latest Release</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#cpf-package"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cpf</span></code> Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#cpf-xrd-fitpattern-module"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cpf.XRD_FitPattern</span></code> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#cpf-xrd-fitsubpattern-module"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cpf.XRD_FitSubPattern</span></code> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#cpf-input-types-module"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cpf.input_types</span></code> Module</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>:ref:‘index‘</p></li>
+<li><p>:ref:‘modindex‘</p></li>
+<li><p>:ref:‘search‘</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          
+          <h3>Table of Contents</h3>
+          <ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="x-ray%20diffraction.html">X-ray diffraction fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="algorithm.html">Algorithm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="running%20cpf.html"><em>Continuous peak fit</em>, via the command line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file%20short.html">Input file structure (short)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file.html">Input file structure (long)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file%20h5%20syntax.html">Sytax for iterating over hdf5 files.</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subpattern%20structure.html">Subpatterns and peaks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bounds.html">Bounds</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output_file_structure.html">Output files:</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example%20function%20tests.html">XRD_FitPattern’s examples and the features they test.</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whatsnew.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">APIs</a></li>
+</ul>
+
+          <search role="search">
+            <h3 style="margin-top: 1.5em;">Search</h3>
+            <form class="search" action="search.html" method="get">
+                <input type="text" name="q" />
+                <input type="submit" value="Go" />
+            </form>
+          </search>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+          <div role="navigation" aria-label="Related">
+            <a href="introduction.html" title="Introduction"
+              >next</a> |
+            <a href="genindex.html" title="General Index"
+              >index</a>
+          </div>
+          <div role="note" aria-label="source link">
+              <br/>
+              <a href="_sources/index.rst.txt"
+                rel="nofollow">Show Source</a>
+          </div>
+        </div>
+
+        <div class="right">
+          
+    <div class="footer" role="contentinfo">
+    &#169; Copyright Simon Hunt &amp; Danielle Fenech, 2020.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+  </body>
+</html>

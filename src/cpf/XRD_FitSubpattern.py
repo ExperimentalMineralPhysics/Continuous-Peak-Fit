@@ -22,9 +22,9 @@ from cpf.fitsubpattern_chunks import fit_chunks, fit_series
 from cpf.IO_functions import (
     any_errors_huge,
     any_terms_null,
+    json_numpy_serializer,
     make_outfile_name,
     peak_string,
-    json_numpy_serializer
 )
 from cpf.util.logging import get_logger
 
@@ -445,7 +445,7 @@ def fit_sub_pattern(
                     new_params = lmm.params_to_new_params(
                         master_params, orders=settings_as_class.subfit_orders
                     )
-                    # write to a file. 
+                    # write to a file.
                     filename = make_outfile_name(
                         settings_as_class.subfit_filename,
                         directory=settings_as_class.output_directory,
@@ -463,7 +463,7 @@ def fit_sub_pattern(
                             indent=2,
                             default=json_numpy_serializer,
                         )
-                    
+
                 # check if peak intensity is above threshold
                 ave_intensity = []
                 for k in range(peeks):

@@ -92,7 +92,7 @@ def initiate(
         base_filename=running_name, extension=".log", overwrite=True
     )
     logger.add_file_handler(log_file)
-     
+
     # if settings_file:
     #     log_file = make_outfile_name(
     #         base_filename=settings_file, extension=".log", overwrite=True
@@ -115,7 +115,9 @@ def initiate(
     logger.info("")
     logger.info("=================================================================")
     logger.info("")
-    logger.info(f"Starting data proceesing using settings {'dictionary' if isinstance(settings, dict) else 'file'}: {running_name}")    
+    logger.info(
+        f"Starting data proceesing using settings {'dictionary' if isinstance(settings, dict) else 'file'}: {running_name}"
+    )
     logger.info("")
     logger.info("=================================================================")
     logger.info("")
@@ -731,7 +733,7 @@ def execute(
                 filename = make_outfile_name(
                     settings_for_fit.image_list[j],
                     directory=settings_for_fit.output_directory,
-                    additional_text = "integrated",
+                    additional_text="integrated",
                     extension=".png",
                     overwrite=True,
                 )
@@ -887,7 +889,6 @@ def execute(
                 plt.show()
                 # plt.close()
 
-
             elif mode == "view":
                 fig = plt.figure()
                 ax = fig.add_subplot(1, 1, 1)
@@ -1037,9 +1038,11 @@ def execute(
     if parallel is True:
         pool.clear()
 
+
 def parallel_processing(p):
     a, kw = p
     return fit_sub_pattern(*a, **kw)
+
 
 if __name__ == "__main__":
     # Load settings fit settings file.

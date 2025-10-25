@@ -22,9 +22,9 @@ from cpf.fitsubpattern_chunks import fit_chunks, fit_series
 from cpf.IO_functions import (
     any_errors_huge,
     any_terms_null,
+    json_numpy_serializer,
     make_outfile_name,
     peak_string,
-    json_numpy_serializer
 )
 from cpf.util.logging import get_logger
 
@@ -95,7 +95,9 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
         for param in choice_list:
             coeff_type = sf.get_params_type(previous_params, param, peak=y)
             coeff_type = sf.coefficient_type_as_number(coeff_type)
-            if coeff_type != sf.coefficient_types()["independent"]:  # if parameters are not independent
+            if (
+                coeff_type != sf.coefficient_types()["independent"]
+            ):  # if parameters are not independent
                 if sc.BiggestValue(orders["peak"][y][param]) > sf.get_order_from_params(
                     previous_params["peak"][y][param]
                 ):
@@ -107,9 +109,9 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                     previous_params["peak"][y][param] = (
                         previous_params["background"][y] + [0] * change_by
                     )
-                elif sc.BiggestValue(orders["peak"][y][param]) < sf.get_order_from_params(
-                    previous_params["peak"][y][param]
-                ):
+                elif sc.BiggestValue(
+                    orders["peak"][y][param]
+                ) < sf.get_order_from_params(previous_params["peak"][y][param]):
                     change_by = (
                         np.size(previous_params["peak"][y][param])
                         - np.max(orders["peak"][y][param]) * 2
@@ -125,7 +127,8 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
 
     # loop for background orders/size
     if (
-        sf.get_params_type(previous_params, "background") != sf.coefficient_types()["independent"]
+        sf.get_params_type(previous_params, "background")
+        != sf.coefficient_types()["independent"]
     ):  # if parameters are not independent
         for y in range(
             np.max([len(orders["background"]), len(previous_params["background"])])
@@ -197,7 +200,7 @@ def check_num_azimuths(peeks, azimu, orders):
             coeff_type = sf.coefficient_type_as_number(
                 sf.get_params_type(orders, param, peak=y)
             )
-            if coeff_type != sf.coefficient_types(full=True)["independent"]["num"]:  
+            if coeff_type != sf.coefficient_types(full=True)["independent"]["num"]:
                 # if parameters are not independent
                 max_coeff = np.max(
                     [max_coeff, sf.get_number_coeff(orders, param, peak=y)]
@@ -346,7 +349,7 @@ def fit_sub_pattern(
 
     # initiate counter for while loop.
     if previous_params is None or previous_params == [] or previous_params is False:
-        previous_params = None # make sure expected value for later
+        previous_params = None  # make sure expected value for later
         step = [0]
     else:
         step = [5]
@@ -449,7 +452,7 @@ def fit_sub_pattern(
                     new_params = lmm.params_to_new_params(
                         master_params, orders=settings_as_class.subfit_orders
                     )
-                    # write to a file. 
+                    # write to a file.
                     filename = make_outfile_name(
                         settings_as_class.subfit_filename,
                         directory=settings_as_class.output_directory,
@@ -467,7 +470,7 @@ def fit_sub_pattern(
                             indent=2,
                             default=json_numpy_serializer,
                         )
-                    
+
                 # check if peak intensity is above threshold
                 ave_intensity = []
                 for k in range(peeks):
@@ -876,11 +879,11 @@ def fit_sub_pattern(
                 err_str = "The value of step here should not be achievable. Oops. \n The data is not fitting. Discard."
                 logger.critical(" ".join(map(str, [(err_str)])))
                 step.append(step[-1] - 200)
-        
-        if 0: #report_status:
-            print(f"    status: step = {step}")  
+
+        if 0:  # report_status:
+            print(f"    status: step = {step}")
             print(f"        time elaspsed = {time.time() - t_start}")
-        
+
         if step[-1] < 0:
             # the fit is void and we need to exit.
             # make sure all the height values are nan so that we dont propagate rubbish
@@ -1022,10 +1025,10 @@ def fit_sub_pattern(
 
     # add peak names to new_params
     new_params.update({"PeakLabel": peak_string(settings_as_class.subfit_orders)})
-    #add notes if they are present.
+    # add notes if they are present.
     if "note" in settings_as_class.subfit_orders:
-            new_params.update({"note": settings_as_class.subfit_orders["note"]})
-            
+        new_params.update({"note": settings_as_class.subfit_orders["note"]})
+
     # Plot results to check
     view = 0
     if (save_fit == 1 or view == 1 or logger.is_below_level("EFFUSIVE")) and step[

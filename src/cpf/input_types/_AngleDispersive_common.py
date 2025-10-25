@@ -3,10 +3,12 @@
 
 
 import re
+from copy import deepcopy
+
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
-from copy import deepcopy
+from skimage.transform import downscale_local_mean, rescale, resize
 from skimage.util import shape
 
 from cpf.util.logging import get_logger
@@ -59,15 +61,15 @@ class _AngleDispersive_common:
         :param azm:
         :return:
         """
-        
+
         """
-        FIXME: add more flxibility to conversion    
+        FIXME: add more flxibility to conversion
         XYFunctions does not have to be X-ray diffraction but it could be. To pass a
         empty conversion throgh the function set DataClass.conversion_factor=False.
-        But other conversions might be necessary in fiture and so the function may 
-        need further generalisationby by accepting a lambda function. 
+        But other conversions might be necessary in fiture and so the function may
+        need further generalisationby by accepting a lambda function.
         """
-        
+
         tth_in = np.array(tth_in)
 
         if isinstance(tth_in, list):
@@ -85,11 +87,12 @@ class _AngleDispersive_common:
             # wavelength = self.calibration.wavelength * 1e10
             if self.conversion_constant is None:
                 # thnen the conversion has not been initated proerly somewhere
-                raise ValueError("'Conversion_constant' cannot be None. Something has not been iniated properly.")
+                raise ValueError(
+                    "'Conversion_constant' cannot be None. Something has not been iniated properly."
+                )
             else:
                 wavelength = self.conversion_constant
-            
-    
+
             if self.conversion_constant == None:
                 dspc_out = tth_in
             elif not reverse:
@@ -99,7 +102,7 @@ class _AngleDispersive_common:
                 # convert d-spacing to tth.
                 # N.B. this is the reverse function so that labels tth and d_spacing are not correct.
                 dspc_out = 2 * np.degrees(np.arcsin(wavelength / 2 / tth_in))
-    
+
         if a == True:
             dspc_out = list(dspc_out)
         return np.squeeze(np.array(dspc_out))
@@ -305,21 +308,22 @@ class _AngleDispersive_common:
             raise TypeError(err_str)
 
         return DataType
-    
-    
-    def duplicate_without_detector(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
+
+    def duplicate_without_detector(
+        self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]
+    ):
         """
-        Makes an independent copy of a Intensity, two theta and azimuth data. 
-        If present the d-spacing and detector x,y,z are included as well 
+        Makes an independent copy of a Intensity, two theta and azimuth data.
+        If present the d-spacing and detector x,y,z are included as well
 
         range_bounds and azi_bounds restrict the extent of the data if needed.
         The range resturictions should be applied upon copying (if required) for memory efficieny.
-        
+
         Alaternatively run:
         region = data_class.get_SubRegion()
         region.set_limit2(range_bounds=[...], azi_bounds=[...])
 
-        Although a Detector instance is returned the detector and calibration are empty. 
+        Although a Detector instance is returned the detector and calibration are empty.
 
         Parameters
         ----------
@@ -328,24 +332,25 @@ class _AngleDispersive_common:
         azi_bounds : dict or array, optional
             Limits for the azimuth range. The default is [-np.inf, np.inf].
         reduction : int, optional
-            A fraction by which to reduce the data. The reduction for a Dioptas 
-            detector instance in by binning the data. 
+            A fraction by which to reduce the data. The reduction for a Dioptas
+            detector instance in by binning the data.
 
         Returns
         -------
         new : Detector Instance.
             Detector with only image related arrays.
 
-        """  
-        return self.duplicate(range_bounds=range_bounds, azi_bounds=azi_bounds, with_detector=False)
+        """
+        return self.duplicate(
+            range_bounds=range_bounds, azi_bounds=azi_bounds, with_detector=False
+        )
 
-    
     def _reduce_array(self, data, reduce_by=None, keep_FirstDim=False, polar=False):
         """
         Reduces the size of the data array by factor of reduce_by.
-        The default returned values are the arithmetric mean of 
+        The default returned values are the arithmetric mean of
         'reduce_by' x 'reduce_by' blocks of data.
-        
+
         Parameters
         ----------
         data : np.array
@@ -356,7 +361,7 @@ class _AngleDispersive_common:
             Do not reduce the first dimension of the data array if True.
             Used for compund detectors (e.g. MED and EXRFlvp type). The default is False.
         polar : bool, optional
-            Account for wrapping of anglular data, where +/-180 degrees have the 
+            Account for wrapping of anglular data, where +/-180 degrees have the
             same value and a straight mean of the values is incorrect.
             The default is False.
 
@@ -365,12 +370,20 @@ class _AngleDispersive_common:
         data_out : np.array
             Data array reduced by 'reduce_by'.
         """
-        
-        def do_reduction(data, reduction, mask=False, polar=False, rot=90, threshold=180, azm_min_max=[-180, 180]):
+
+        def do_reduction(
+            data,
+            reduction,
+            mask=False,
+            polar=False,
+            rot=90,
+            threshold=180,
+            azm_min_max=[-180, 180],
+        ):
             """
             Do the resizing of the data array.
             Downscale using the local mean for each block
-            
+
             :param data: array for be reduced
             :type data: ma.array
             :param reduction: Integer list of how much to reduce the data by
@@ -385,78 +398,164 @@ class _AngleDispersive_common:
             :rtype: ma.arrray
 
             """
-            # Separated out from _reduce_array to prevent repeating of the same lines of code. 
-            
+            # Separated out from _reduce_array to prevent repeating of the same lines of code.
+
             # Started from:
             # data_out = ma.array(downscale_local_mean(data, reduction), mask=mask)
-            # but this doesn't work due to needing to check the angles for wrapping. 
+            # but this doesn't work due to needing to check the angles for wrapping.
             # downscale_local_mean calls other functions in skimage. call these as needed
             # shape.view_as_blocks() called by skimage.measure.block.block_reduce()
-            
-            # FIXME: something strange is going on here. if i dont round the 
+
+            # FIXME: something strange is going on here. if i dont round the
             # FIXME: values then end up with np.int_(1) = 0 for BCC1 input and reduce_by = 3
-            # FIXME: see following print statements for minimum working example. 
+            # FIXME: see following print statements for minimum working example.
             if 0:
                 print("data.shape:", data.shape)
                 print("reduction:", reduction)
-                print("run:   np.ceil(np.array(data.shape) / np.array(reduction)) , (np.array(data.shape) / np.array(reduction))")
-                print(np.ceil(np.array(data.shape) / np.array(reduction)) , (np.array(data.shape) / np.array(reduction)))
-                print("run:   np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))")
-                print(np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))
-                print("run:   (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))) * reduction")
-                print( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))) * reduction)
-                print("run:   np.round(  (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))) * reduction) " )
-                print(  np.round(  (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))) * reduction)  )
-                print("First value of pevious array is:", np.round(  (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))) * reduction)[0])
+                print(
+                    "run:   np.ceil(np.array(data.shape) / np.array(reduction)) , (np.array(data.shape) / np.array(reduction))"
+                )
+                print(
+                    np.ceil(np.array(data.shape) / np.array(reduction)),
+                    (np.array(data.shape) / np.array(reduction)),
+                )
+                print(
+                    "run:   np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))"
+                )
+                print(
+                    np.ceil(np.array(data.shape) / np.array(reduction))
+                    - (np.array(data.shape) / np.array(reduction))
+                )
+                print(
+                    "run:   (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))) * reduction"
+                )
+                print(
+                    (
+                        np.ceil(np.array(data.shape) / np.array(reduction))
+                        - (np.array(data.shape) / np.array(reduction))
+                    )
+                    * reduction
+                )
+                print(
+                    "run:   np.round(  (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction))) * reduction) "
+                )
+                print(
+                    np.round(
+                        (
+                            np.ceil(np.array(data.shape) / np.array(reduction))
+                            - (np.array(data.shape) / np.array(reduction))
+                        )
+                        * reduction
+                    )
+                )
+                print(
+                    "First value of pevious array is:",
+                    np.round(
+                        (
+                            np.ceil(np.array(data.shape) / np.array(reduction))
+                            - (np.array(data.shape) / np.array(reduction))
+                        )
+                        * reduction
+                    )[0],
+                )
                 print("THIS IS THE LINE I DO NOT UNDERSTAND")
-                print("run:   1 - np.int32( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0] " )
-                print(1 - np.int32( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0]  )
-                print("run:   1 - ( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0] " )
-                print(1 - ( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0]  )
-                print("run:  np.int32( 1 - ( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0] " )
-                print(np.int32(1 - ( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0]  ))
-            
-            #needs padding before can view as blocks. 
-            #this round function is reuqired to deal with whatever mess is above in the numbers.
-            pad = np.round((np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction)
-            # format pad as required by np.pad                
+                print(
+                    "run:   1 - np.int32( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0] "
+                )
+                print(
+                    1
+                    - np.int32(
+                        (
+                            np.ceil(np.array(data.shape) / np.array(reduction))
+                            - (np.array(data.shape) / np.array(reduction))
+                        )
+                        * reduction
+                    )[0]
+                )
+                print(
+                    "run:   1 - ( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0] "
+                )
+                print(
+                    1
+                    - (
+                        (
+                            np.ceil(np.array(data.shape) / np.array(reduction))
+                            - (np.array(data.shape) / np.array(reduction))
+                        )
+                        * reduction
+                    )[0]
+                )
+                print(
+                    "run:  np.int32( 1 - ( (np.ceil(np.array(data.shape) / np.array(reduction)) - (np.array(data.shape) / np.array(reduction)))*reduction )[0] "
+                )
+                print(
+                    np.int32(
+                        1
+                        - (
+                            (
+                                np.ceil(np.array(data.shape) / np.array(reduction))
+                                - (np.array(data.shape) / np.array(reduction))
+                            )
+                            * reduction
+                        )[0]
+                    )
+                )
+
+            # needs padding before can view as blocks.
+            # this round function is reuqired to deal with whatever mess is above in the numbers.
+            pad = np.round(
+                (
+                    np.ceil(np.array(data.shape) / np.array(reduction))
+                    - (np.array(data.shape) / np.array(reduction))
+                )
+                * reduction
+            )
+            # format pad as required by np.pad
             pad = [(0, np.int_(pad[i])) for i in range(len(pad))]
-            
+
             # pad and block the data
             data = np.pad(data, pad_width=pad, constant_values=np.nan)
             blocked = shape.view_as_blocks(data, reduction)
 
-            #reduce the data. 
+            # reduce the data.
             data_out = np.nanmean(blocked, axis=tuple(range(data.ndim, blocked.ndim)))
-                
+
             if polar == True:
-                # the data could wrap around and we need to deal with that. 
+                # the data could wrap around and we need to deal with that.
                 # the data wrapping is reason that cannot just call skimage.measure.block.block_reduce
-                
-                # see if the data actually wraps round 
-                range1   = np.nanmax(blocked, axis=tuple(range(data.ndim, blocked.ndim))) - np.nanmin(blocked, axis=tuple(range(data.ndim, blocked.ndim)))
+
+                # see if the data actually wraps round
+                range1 = np.nanmax(
+                    blocked, axis=tuple(range(data.ndim, blocked.ndim))
+                ) - np.nanmin(blocked, axis=tuple(range(data.ndim, blocked.ndim)))
                 wrapped = np.where(range1 >= threshold)
-                
+
                 if wrapped:
                     # some of the blocks have range greater than threshold
-                    
+
                     # rotate the data so can get good values for average
-                    # but need to make sure it all stays within expected ranges. 
-                    rot = rot%360
-                    rotated = (deepcopy(data)+rot)
-                    rotated[rotated < azm_min_max[0]] = rotated[rotated < azm_min_max[0]] + 360
-                    rotated[rotated > azm_min_max[1]] = rotated[rotated > azm_min_max[1]] - 360
-                    # block and reduce the rotated data. 
+                    # but need to make sure it all stays within expected ranges.
+                    rot = rot % 360
+                    rotated = deepcopy(data) + rot
+                    rotated[rotated < azm_min_max[0]] = (
+                        rotated[rotated < azm_min_max[0]] + 360
+                    )
+                    rotated[rotated > azm_min_max[1]] = (
+                        rotated[rotated > azm_min_max[1]] - 360
+                    )
+                    # block and reduce the rotated data.
                     blockedrot = shape.view_as_blocks(rotated, reduction)
-                    data_outrot = np.nanmean(blockedrot, axis=tuple(range(data.ndim, blockedrot.ndim)))
-                    
+                    data_outrot = np.nanmean(
+                        blockedrot, axis=tuple(range(data.ndim, blockedrot.ndim))
+                    )
+
                     # if len(wrapped[0])!=0:
                     #     data_tmp = deepcopy(data_out)
                     #     data_wrapped_unclaned = data_tmp[wrapped]
-                    
-                    # replace the values that wrap around with good ones.                     
+
+                    # replace the values that wrap around with good ones.
                     data_out[wrapped] = data_outrot[wrapped] - rot
-                    
+
                     # if len(wrapped[0])!=0:
                     #     data_wrapped_cleaned = data_out[wrapped]
                     #     fig1, ax1 = plt.subplots(1,1)
@@ -466,36 +565,44 @@ class _AngleDispersive_common:
                     #     ax1.set_ylabel("after")
 
             return ma.MaskedArray(data_out, mask=mask)
-        
-        
+
         if reduce_by is False or (reduce_by is None and self.reduce_by is None):
             # reduce_by = False is used by fill_data to make sure this function is passed
             # if both are none then there is nothing to do.
             return data
-        
+
         elif reduce_by is not None:
             reduction = int(reduce_by)
         else:
             reduction = int(self.reduce_by)
-        
-        reduction = np.int_(np.ones([1,np.ndim(data)]) * reduction)[0]
+
+        reduction = np.int_(np.ones([1, np.ndim(data)]) * reduction)[0]
         if keep_FirstDim == True:
             reduction[0] = 1
         reduction = tuple(reduction)
-                
+
         if ma.is_masked(data) == True:
             msk = do_reduction(data.mask, reduction, mask=False)
         else:
-            msk=False
-        
-        data_out = do_reduction(data, reduction, mask=msk, polar=polar, azm_min_max=[self.azm_start, self.azm_end])
-        
-        if polar == True:
-            data_out[data_out < self.azm_start] = data_out[data_out < self.azm_start] + 360
-            data_out[data_out >= self.azm_end] = data_out[data_out >= self.azm_end] - 360
-        
-        return data_out
+            msk = False
 
+        data_out = do_reduction(
+            data,
+            reduction,
+            mask=msk,
+            polar=polar,
+            azm_min_max=[self.azm_start, self.azm_end],
+        )
+
+        if polar == True:
+            data_out[data_out < self.azm_start] = (
+                data_out[data_out < self.azm_start] + 360
+            )
+            data_out[data_out >= self.azm_end] = (
+                data_out[data_out >= self.azm_end] - 360
+            )
+
+        return data_out
 
 
 def equalObs(x, nbin):

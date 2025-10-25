@@ -92,7 +92,7 @@ def initiate(
         base_filename=running_name, extension=".log", overwrite=True
     )
     logger.add_file_handler(log_file)
-     
+
     # if settings_file:
     #     log_file = make_outfile_name(
     #         base_filename=settings_file, extension=".log", overwrite=True
@@ -115,7 +115,9 @@ def initiate(
     logger.info("")
     logger.info("=================================================================")
     logger.info("")
-    logger.info(f"Starting data proceesing using settings {'dictionary' if isinstance(settings, dict) else 'file'}: {running_name}")    
+    logger.info(
+        f"Starting data proceesing using settings {'dictionary' if isinstance(settings, dict) else 'file'}: {running_name}"
+    )
     logger.info("")
     logger.info("=================================================================")
     logger.info("")
@@ -170,7 +172,7 @@ def view(
         settings_for_fit.set_data_files(keep=pattern)
 
     write_output(settings_file=settings_file, out_type="CollectionMovie")
-    
+
     # write_output(settings_file=settings_file, out_type="RangesMovie")
 
     # execute(
@@ -436,17 +438,17 @@ def order_search(
 ):
     """
     Searches for the best order to use for 'search_parameter', where 'search_over'
-    is one of the model parameters (e.g. 'background', 'width', etc). 
+    is one of the model parameters (e.g. 'background', 'width', etc).
     The data is fit with orders in the range defined by 'search_over'.
     The resultant fits are plotted by cpf.output_formatters.WriteOrderSearchFigures
-    
+
     Makes a json file with all the fits that is named:
         *settings_file*__search=*search_parameter*_subpattern=*subpattern*_peak=*search_peak*
 
-    The function will technically work in parallel but due to memory limitations 
-    and the way the code is structured, it is set by default to run this function in 
-    series. 
-    For the same reason, althogh the code can run 'all' the peaks at once, it is 
+    The function will technically work in parallel but due to memory limitations
+    and the way the code is structured, it is set by default to run this function in
+    series.
+    For the same reason, althogh the code can run 'all' the peaks at once, it is
     split up and loops over each peak separately.
 
 
@@ -494,17 +496,16 @@ def order_search(
     settings_for_fit.set_data_files(keep=0)
 
     # loop over the peaks in turn unless forced
-    if subpattern =="force all":
+    if subpattern == "force all":
         subpattern = ["all"]
-    elif subpattern =="all":
+    elif subpattern == "all":
         subpattern = list(range(len(settings_for_fit.fit_orders)))
     elif not isinstance(subpattern, list):
         subpattern = [subpattern]
 
     for i in range(len(subpattern)):
-
         logger.info(f"Performing order_search for peak {i}")
-        
+
         # set search orders
         settings_for_fit.set_order_search(
             search_parameter=search_parameter,
@@ -522,7 +523,7 @@ def order_search(
             + "_peak="
             + str(search_peak)
         )
-        
+
         execute(
             settings_class=settings_for_fit,
             refine=refine,
@@ -531,7 +532,7 @@ def order_search(
             parallel=parallel,
             report=report,
         )
-    
+
         # call WriteOrderSearchFigures to make the figures.
         write_output(
             # settings_file=settings_file,
@@ -548,6 +549,7 @@ def order_search(
 
         settings_for_fit.unset_order_search()
     logger.info("Order searches are completed.")
+
 
 def write_output(
     settings_file: Optional[str | Path] = None,
@@ -774,7 +776,7 @@ def execute(
                 filename = make_outfile_name(
                     settings_for_fit.image_list[j],
                     directory=settings_for_fit.output_directory,
-                    additional_text = "integrated",
+                    additional_text="integrated",
                     extension=".png",
                     overwrite=True,
                 )
@@ -823,9 +825,10 @@ def execute(
         parallel_pile = []
 
         for i in range(len(settings_for_fit.fit_orders)):
-            
             if parallel == False:
-                serial_string = f"Fitting range {i+1}/{len(settings_for_fit.fit_orders)}"
+                serial_string = (
+                    f"Fitting range {i+1}/{len(settings_for_fit.fit_orders)}"
+                )
                 logger.info(serial_string)
 
             # get settings for current subpattern
@@ -934,7 +937,6 @@ def execute(
                 # if debug:
                 plt.show()
                 # plt.close()
-
 
             elif mode == "view":
                 fig = plt.figure()
@@ -1085,9 +1087,11 @@ def execute(
     if parallel is True:
         pool.clear()
 
+
 def parallel_processing(p):
     a, kw = p
     return fit_sub_pattern(*a, **kw)
+
 
 if __name__ == "__main__":
     # Load settings fit settings file.

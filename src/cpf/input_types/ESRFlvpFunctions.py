@@ -7,8 +7,8 @@ __all__ = ["ESRFlvpDetector"]
 
 import glob
 import json
-import sys
 import os
+import sys
 from copy import copy, deepcopy
 from importlib.metadata import version
 
@@ -30,11 +30,11 @@ else:
 from pyFAI.detectors._common import Detector
 from pyFAI.goniometer import MultiGeometry
 
+from cpf import h5_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.util.logging import get_logger
-from cpf import h5_functions
 
 logger = get_logger("cpf.input_types.ESRFlvpFunctions")
 
@@ -141,36 +141,35 @@ Methods that are replicated with the Dioptas functions are:
 """
 
 """ 7th June 2025
-The 360 files from a single spin of the detector have now been wrapped in a h5 file. 
-A continuous scan at the same angle is also wrapped in a h5 file. 
-Both need different use cases for the processing of them. 
+The 360 files from a single spin of the detector have now been wrapped in a h5 file.
+A continuous scan at the same angle is also wrapped in a h5 file.
+Both need different use cases for the processing of them.
 
 The h5 file from continuous scan at a constant angle requires:
     - a poni calibration file
-    - each image treating as a separate step. 
+    - each image treating as a separate step.
     - h5 data commands to allow sifting through the scans in time.
-    
+
 The h5 file from a spin of the detector needs:
     - a json calibration file
     - the whole scan integrating into a single image/step.
-    
+
 How do we distinguish between them?
-- The spin has a json calibration and will be fed no h5 instricutions. 
-- the time scan at constant angle will need to be def the h5 time series instructions for where to start and stop. 
+- The spin has a json calibration and will be fed no h5 instricutions.
+- the time scan at constant angle will need to be def the h5 time series instructions for where to start and stop.
 
 """
 """
-10th June 2025 
-Ok so both of these scan types can appear in the same h5 file. 
+10th June 2025
+Ok so both of these scan types can appear in the same h5 file.
 
-therefore need to be able to distinguish between a constant angle scan and a detector spin scan. 
+therefore need to be able to distinguish between a constant angle scan and a detector spin scan.
 
-No not true -- a constant angle scan can bt treated as a Dioptas data type, saving only rotation scans for the ESRFlvp data type. 
+No not true -- a constant angle scan can bt treated as a Dioptas data type, saving only rotation scans for the ESRFlvp data type.
 Good
 
 But still need to determine between them.
 """
-
 
 
 """
@@ -233,12 +232,12 @@ class ESRFlvpDetector:
 
         # self.h5_data    = '/*.1/measurement/p900kw/'
         # self.h5_azimuths = '/*.1/measurement/azim/'
-        # #define h5 keys from a base so that when change base the others follow. 
+        # #define h5 keys from a base so that when change base the others follow.
         # self._h5_data_base = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
-        #                    {"do":"combine", 
-        #          "from": 0, 
-        #          "to": -1, 
-        #          "step": 1, 
+        #                    {"do":"combine",
+        #          "from": 0,
+        #          "to": -1,
+        #          "step": 1,
         #          "using":"position",
         #          "label": [""],
         #          # "pos": '/*.1/measurement/azim/',
@@ -249,53 +248,57 @@ class ESRFlvpDetector:
         # self.h5_data_return[1]["do"] = "combine"
         # self.h5_azimuths_return = self._h5_data_base
         # self.h5_azimuths_return[1]["do"] = "combine"
-        
-        
-        self._default_h5_datakey  = '/*.1/measurement/p900kw/'
-        self._default_h5_azimuths = '/*.1/measurement/azim/'
-        self._default_h5_iterate = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
-                           {"do":"combine", 
-                 "from": 0, 
-                 "to": -1, 
-                 "step": 1, 
-                 "using":"position",
-                 "label": ['/*.1/measurement/azim/'],
-                 # "pos": '/*.1/measurement/azim/',
-                 "dim": 0}]
-        # self._h5_iterations = 
-        
+
+        self._default_h5_datakey = "/*.1/measurement/p900kw/"
+        self._default_h5_azimuths = "/*.1/measurement/azim/"
+        self._default_h5_iterate = [
+            {"from": 0, "to": 0, "step": 1, "label": ["pos"], "do": "iterate"},
+            {
+                "do": "combine",
+                "from": 0,
+                "to": -1,
+                "step": 1,
+                "using": "position",
+                "label": ["/*.1/measurement/azim/"],
+                # "pos": '/*.1/measurement/azim/',
+                "dim": 0,
+            },
+        ]
+        # self._h5_iterations =
+
         # self.h5_data_iterate = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
-        #                    {"do":"iterate", 
-        #          "from": 0, 
-        #          "to": -1, 
-        #          "step": 1, 
+        #                    {"do":"iterate",
+        #          "from": 0,
+        #          "to": -1,
+        #          "step": 1,
         #          "using":"position",
         #          "label": ["pos"],
         #          "dim": 0}]
         # self.h5_data_return = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
-        #                    {"do":"return", 
-        #          "from": 0, 
-        #          "to": -1, 
-        #          "step": 1, 
+        #                    {"do":"return",
+        #          "from": 0,
+        #          "to": -1,
+        #          "step": 1,
         #          "using":"position",
         #          "label": ["pos"],
         #          "dim": 0}]
         # self.h5_azimuths = '/*.1/measurement/azim/'
         # self.h5_azimuths_return = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
-        #                    {"do":"return", 
-        #          "from": 0, 
-        #          "to": -1, 
-        #          "step": 1, 
+        #                    {"do":"return",
+        #          "from": 0,
+        #          "to": -1,
+        #          "step": 1,
         #          "using":"position",
         #          "label": ["pos"],
         #          "dim": 0}]
-        
+
         self.mask_default = {"threshold": [1, np.inf]}
-                
-                
+
         self.azm_blocks = 2
         # default blocks are 2 degrees incase using only a single detector position
         # if the detector is being spun then the blocks are changed to a larger value.
+
+        self.reduce_by = None
 
         self.reduce_by = None
 
@@ -308,7 +311,12 @@ class ESRFlvpDetector:
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
+    def duplicate(
+        self,
+        range_bounds=[-np.inf, np.inf],
+        azi_bounds=[-np.inf, np.inf],
+        with_detector=True,
+    ):
         """
         Makes an independent copy of a ESRFlvpDetector Instance.
 
@@ -347,7 +355,7 @@ class ESRFlvpDetector:
             new.Observationslabel = self.Observationslabel
             new.ObservationsUnits = self.ObservationsUnits
             new.azm_blocks = self.azm_blocks
-            
+
         local_mask = np.where(
             (self.tth >= range_bounds[0])
             & (self.tth <= range_bounds[1])
@@ -459,17 +467,24 @@ class ESRFlvpDetector:
         # load the list of files
         print("file_string", file_string)
         print(file_string)
-        if isinstance(file_string, list) and os.path.splitext(os.path.basename(file_string[0]))[1] == ".h5":
-            #define where data locations are in the initaition of the class.
-            
-            #file string is a list of format 
+        if (
+            isinstance(file_string, list)
+            and os.path.splitext(os.path.basename(file_string[0]))[1] == ".h5"
+        ):
+            # define where data locations are in the initaition of the class.
+
+            # file string is a list of format
             # [ file name, h5 kiy, list of frames wanteed, label]
-            
-            files_list = h5_functions.get_image_keys_new(str(file_string[0]), self.h5_datakey, self.h5_iterate)
-            azm_list = h5_functions.get_image_keys_new(str(file_string[0]), self.h5_azimuths, self.h5_iterate)
+
+            files_list = h5_functions.get_image_keys_new(
+                str(file_string[0]), self.h5_datakey, self.h5_iterate
+            )
+            azm_list = h5_functions.get_image_keys_new(
+                str(file_string[0]), self.h5_azimuths, self.h5_iterate
+            )
             print("for get images", [str(file_string[0])] + azm_list[0])
             positions = h5_functions.get_images([str(file_string[0])] + azm_list[0])
-            
+
             print("reduce_by", reduce_by, self.reduce_by)
             if reduce_by is not None or self.reduce_by is not None:
                 if reduce_by is False:
@@ -477,26 +492,39 @@ class ESRFlvpDetector:
                     pass
                 elif reduce_by is not None and reduce_by != 1:
                     if reduce_by < 1:
-                        reduce_by = 1/reduce_by
-                    keep = np.int_(np.linspace(0,len(file_string[2]),int(np.floor((len(file_string[2]))/reduce_by)), endpoint=False))
+                        reduce_by = 1 / reduce_by
+                    keep = np.int_(
+                        np.linspace(
+                            0,
+                            len(file_string[2]),
+                            int(np.floor((len(file_string[2])) / reduce_by)),
+                            endpoint=False,
+                        )
+                    )
                     files_list = [file_string[2][i] for i in keep]
                     positions = positions[keep]
-                    
+
                 elif self.reduce_by is not None and self.reduce_by != 1:
                     if self.reduce_by < 1:
-                        self.reduce_by = 1/self.reduce_by
-                    keep = np.int_(np.linspace(0,len(file_string[2]),int(np.floor((len(file_string[2]))/self.reduce_by)), endpoint=False))
+                        self.reduce_by = 1 / self.reduce_by
+                    keep = np.int_(
+                        np.linspace(
+                            0,
+                            len(file_string[2]),
+                            int(np.floor((len(file_string[2])) / self.reduce_by)),
+                            endpoint=False,
+                        )
+                    )
                     files_list = [file_string[2][i] for i in keep]
                     positions = positions[keep]
                 else:
                     print("ran through here")
-                    pass            
+                    pass
 
-            
             print("files_list", files_list)
             print("azm_list", azm_list)
             print("positions", positions)
-            
+
             """
             # reduce the size of the data set (if called for) by skipping over images.
             # this will only work for none h5 ESRF data sets.
@@ -511,7 +539,7 @@ class ESRFlvpDetector:
                     keep = np.int_(np.linspace(0,len(files_list),int(np.floor((len(files_list))/reduce_by)), endpoint=False))
                     files_list = [files_list[i] for i in keep]
                     positions = [positions[i] for i in keep]
-                    
+
                 elif self.reduce_by is not None and self.reduce_by != 1:
                     if self.reduce_by < 1:
                         self.reduce_by = 1/self.reduce_by
@@ -519,12 +547,9 @@ class ESRFlvpDetector:
                     files_list = [files_list[i] for i in keep]
                     positions = [positions[i] for i in keep]
                 else:
-                    pass            
+                    pass
             """
-            
-            
-            
-            
+
             # positions do not need to be adjusted becuase they are correct from the h5 file.
             # it is the separate (tiff/edf) image file positions that need to be moved relative to the name
         else:
@@ -532,13 +557,13 @@ class ESRFlvpDetector:
             positions = []
             for i in range(len(files_list)):
                 positions.append(self._get_pos(files_list[i], unit="degrees"))
-    
+
             order = np.array(np.argsort(positions))
             positions = [positions[i] for i in order]
             files_list = [files_list[i] for i in order]
             if not files_list:
                 raise ValueError("No image files are found")
-    
+
             # reduce the size of the data set (if called for) by skipping over images.
             # this will only work for none h5 ESRF data sets.
             # FIXME: need to adjuct reduction when get h5 data sets -- excpt this function will not be called for h5 data.
@@ -548,21 +573,35 @@ class ESRFlvpDetector:
                     pass
                 elif reduce_by is not None and reduce_by != 1:
                     if reduce_by < 1:
-                        reduce_by = 1/reduce_by
-                    keep = np.int_(np.linspace(0,len(files_list),int(np.floor((len(files_list))/reduce_by)), endpoint=False))
+                        reduce_by = 1 / reduce_by
+                    keep = np.int_(
+                        np.linspace(
+                            0,
+                            len(files_list),
+                            int(np.floor((len(files_list)) / reduce_by)),
+                            endpoint=False,
+                        )
+                    )
                     files_list = [files_list[i] for i in keep]
                     positions = [positions[i] for i in keep]
-                    
+
                 elif self.reduce_by is not None and self.reduce_by != 1:
                     if self.reduce_by < 1:
-                        self.reduce_by = 1/self.reduce_by
-                    keep = np.int_(np.linspace(0,len(files_list),int(np.floor((len(files_list))/self.reduce_by)), endpoint=False))
+                        self.reduce_by = 1 / self.reduce_by
+                    keep = np.int_(
+                        np.linspace(
+                            0,
+                            len(files_list),
+                            int(np.floor((len(files_list)) / self.reduce_by)),
+                            endpoint=False,
+                        )
+                    )
                     files_list = [files_list[i] for i in keep]
                     positions = [positions[i] for i in keep]
                 else:
                     pass
             # positions = np.deg2rad(positions)
-            
+
         return files_list, positions
 
     def get_detector(
@@ -611,7 +650,7 @@ class ESRFlvpDetector:
             raise ValueError("There is no data to construct the detector from.")
 
         print("calib_frames", calib_frames)
-        # copy h5 settings in to self if they exist. 
+        # copy h5 settings in to self if they exist.
         # used to make sure the data class has these properties
         if "h5_datakey" in dir(settings):
             self.h5_datakey = settings.h5_datakey
@@ -626,7 +665,6 @@ class ESRFlvpDetector:
         else:
             self.h5_azimuths = self._default_h5_azimuths
 
-        
         # load the list of files
         # if os.path.splitext(os.path.basename(calib_frames))[1] == ".h5":
         #     #define where data locations are in the initaition of the class.
@@ -638,7 +676,7 @@ class ESRFlvpDetector:
         imgs_, positions = self._get_sorted_files(calib_frames, debug=False)
         positions = np.deg2rad(positions)
         frames = int(len(positions))
-        
+
         # make list of AzimuthalIntegrator objects for all detector postions
         ais = []
         for i in range(frames):
@@ -736,20 +774,27 @@ class ESRFlvpDetector:
             ax[-1].set_xlabel("Rot3 (°)")
             plt.tight_layout()
 
-
-
     def _read_frames(self, frames, dtype, reduce_by=None):
         return ma.array(
-            [np.flipud(
-                self._reduce_array(np.array(fabio.open(f).data, dtype=dtype), reduce_by=reduce_by)
-                ) for f in frames]
+            [
+                np.flipud(
+                    self._reduce_array(
+                        np.array(fabio.open(f).data, dtype=dtype), reduce_by=reduce_by
+                    )
+                )
+                for f in frames
+            ]
         )
-
 
     # @staticmethod
     def import_image(
-        self, image_name=None, settings=None, mask=None, dtype=None, 
-        reduce_by = None, debug=False
+        self,
+        image_name=None,
+        settings=None,
+        mask=None,
+        dtype=None,
+        reduce_by=None,
+        debug=False,
     ):
         """
         Import the data image into the intensity array.
@@ -795,8 +840,8 @@ class ESRFlvpDetector:
         # read image
         if isinstance(image_name, list):
             # then it is a h5 file containing data from a the spin of the detector.
-                        
-            if self.intensity is None: 
+
+            if self.intensity is None:
                 # Convert the input data from integer to float because the lmfit model values
                 # inherits integer properties from the data.
                 #
@@ -809,24 +854,26 @@ class ESRFlvpDetector:
                         tmp_list = image_name
                         tmp_list[3] = list(tmp_list[3][0])
                         tmp_image = ma.array(h5_functions.get_images(tmp_list))
-                        dtype = self.GetDataType(tmp_image[0], minimumPrecision=False)                
+                        dtype = self.GetDataType(tmp_image[0], minimumPrecision=False)
             else:
                 # inherit the data type from previosuly.
                 dtype = self.intensity.dtype
-            
+
             print("image_name", image_name)
-            self.intensity.data[:] = self._reduce_array(h5_functions.get_images(image_name).astype(dtype), keep_FirstDim=False)
+            self.intensity.data[:] = self._reduce_array(
+                h5_functions.get_images(image_name).astype(dtype), keep_FirstDim=False
+            )
             # flip along axis 2 because elements are otherwise upside down.
             for i in range(self.intensity.shape[0]):
-                self.intensity.data[i,:,:] = np.flipud(self.intensity.data[i,:,:])
-            
-            
-            
+                self.intensity.data[i, :, :] = np.flipud(self.intensity.data[i, :, :])
+
         elif os.path.splitext(os.path.basename(image_name))[1] == ".h5":
             # then it is a h5 file containing data from a the spin of the detector.
-            image_list = h5_functions.get_image_keys_new(str(image_name), self.h5_data, self.h5_data_return)
-                        
-            if self.intensity is None: 
+            image_list = h5_functions.get_image_keys_new(
+                str(image_name), self.h5_data, self.h5_data_return
+            )
+
+            if self.intensity is None:
                 # Convert the input data from integer to float because the lmfit model values
                 # inherits integer properties from the data.
                 #
@@ -836,27 +883,35 @@ class ESRFlvpDetector:
                         # self.intensity has been set before. Inherit the dtype.
                         dtype = self.intensity.dtype
                     else:
-                        tmp_image = ma.array(h5_functions.get_images([[image_name, [self.h5_data,0]]]))
-                        dtype = self.GetDataType(tmp_image[0], minimumPrecision=False)                
+                        tmp_image = ma.array(
+                            h5_functions.get_images([[image_name, [self.h5_data, 0]]])
+                        )
+                        dtype = self.GetDataType(tmp_image[0], minimumPrecision=False)
             else:
                 # inherit the data type from previosuly.
                 dtype = self.intensity.dtype
-            
-            self.intensity.data[:] = self._reduce_array(h5_functions.get_images([[image_name, image_list[0]]]).astype(dtype), keep_FirstDim=True)
+
+            self.intensity.data[:] = self._reduce_array(
+                h5_functions.get_images([[image_name, image_list[0]]]).astype(dtype),
+                keep_FirstDim=True,
+            )
             # flip along axis 2 because elements are otherwise upside down.
             for i in range(self.intensity.shape[0]):
-                self.intensity.data[i,:,:] = np.flipud(self.intensity.data[i,:,:])
-                
+                self.intensity.data[i, :, :] = np.flipud(self.intensity.data[i, :, :])
+
         else:
             # get ordered list of separate tiff, edf, etc. images
             # reduce the size of the data while listing (if called for)
-            frames, detectorangles = self._get_sorted_files(image_name, reduce_by=reduce_by, debug=debug)
+            frames, detectorangles = self._get_sorted_files(
+                image_name, reduce_by=reduce_by, debug=debug
+            )
             self.detector_check(detectorangles=detectorangles)
-            
+
             if logger.is_below_level(level="MOREINFO"):
                 import time
+
                 st = time.time()
-    
+
             if self.intensity is None:
                 # Convert the input data from integer to float because the lmfit model values
                 # inherits integer properties from the data.
@@ -869,26 +924,26 @@ class ESRFlvpDetector:
                     else:
                         tmp_image = ma.array(fabio.open(frames[0]).data)
                         dtype = self.GetDataType(tmp_image[0], minimumPrecision=False)
-    
+
                 self.intensity = self._read_frames(frames, dtype, reduce_by)
-                
-                #make a full size mask and then reduce it if necessary. 
+
+                # make a full size mask and then reduce it if necessary.
                 frame_mask = self._reduce_array(
-                    self.get_mask(mask, self._read_frames(frames, dtype, reduce_by=False)), 
-                    keep_FirstDim=True
+                    self.get_mask(
+                        mask, self._read_frames(frames, dtype, reduce_by=False)
+                    ),
+                    keep_FirstDim=True,
                 )
                 # resize mask to be the same as the intensity
-                self.intensity = ma.array(
-                    self.intensity, mask=frame_mask
-                )
+                self.intensity = ma.array(self.intensity, mask=frame_mask)
             else:
                 # inherit the data type from previosuly.
                 dtype_tmp = self.intensity.dtype
-                
-                # does not need keep_FirstDim=True because iterating over the frame list which 
+
+                # does not need keep_FirstDim=True because iterating over the frame list which
                 # is already reduced
                 self.intensity.data[:] = self._read_frames(frames, dtype_tmp, reduce_by)
-                
+
             # 13th June 2024 - Note on flipud: the flipud command is included to invert the short axis of the detector intensity.
             # If I flip the data then the 'spots' in the reconstructed data are spot like, rather than incoherent
             # intensity diffraction peaks.
@@ -906,11 +961,8 @@ class ESRFlvpDetector:
             #     self.azm_blocks = 45
 
     def _det_check():
-        
-        
         if len(np.unique(detectorangles)) == 1:
             raise ValueError("The detector angles are all the same. this is the")
-
 
     def fill_data(
         self, diff_file=None, settings=None, mask=None, make_zyx=False, debug=False
@@ -966,7 +1018,7 @@ class ESRFlvpDetector:
                 mask = settings.calibration_mask
             else:
                 mask = self.mask_default
-            
+
         if settings.reduce_by is not None:
             self.reduce_by = settings.reduce_by
             # self.h5_azimuths_return[1]["step"] = self.reduce_by
@@ -976,7 +1028,7 @@ class ESRFlvpDetector:
         if self.detector == None:
             # if reduce_by or self.reduce_by then a reduced list of image files is returned
             self.get_detector(settings=settings)
-            
+
         # set default for data type.
         # Fabio defaults to float64 if nothing is set.
         # Float32 or float16 take up much less memoary than flost64.
@@ -985,12 +1037,14 @@ class ESRFlvpDetector:
         array_dtype = np.float32
 
         # get ordered list of images
-        frames, detectorangles = self._get_sorted_files(diff_file, reduce_by=self.reduce_by, debug=debug)
+        frames, detectorangles = self._get_sorted_files(
+            diff_file, reduce_by=self.reduce_by, debug=debug
+        )
         print(frames)
         # stop
         detectorangles = np.deg2rad(detectorangles)
         self.detector_check(calibration_data=diff_file, detectorangles=detectorangles)
-        
+
         # use import_image to fill in the intensity data.
         # No reduction because if reduced then the calibration is nonsence.
         if isinstance(diff_file, list):
@@ -998,42 +1052,56 @@ class ESRFlvpDetector:
         else:
             df = diff_file
         if np.size(self.intensity) <= 1:
-            if diff_file != None and os.path.splitext(os.path.basename(str(df)))[1] != ".h5":
+            if (
+                diff_file != None
+                and os.path.splitext(os.path.basename(str(df)))[1] != ".h5"
+            ):
                 # sets self.intensity
-                self.import_image(diff_file, mask=mask, dtype=array_dtype, reduce_by=self.reduce_by)
-                
+                self.import_image(
+                    diff_file, mask=mask, dtype=array_dtype, reduce_by=self.reduce_by
+                )
+
             else:
                 # empty array
-                self.intensity = self._reduce_array(ma.zeros(
-                    [
-                        len(detectorangles),
-                        self.detector.ais[0].detector.shape[0],
-                        self.detector.ais[0].detector.shape[1],
-                    ],
-                    dtype=array_dtype,
-                ), keep_FirstDim=True)
+                self.intensity = self._reduce_array(
+                    ma.zeros(
+                        [
+                            len(detectorangles),
+                            self.detector.ais[0].detector.shape[0],
+                            self.detector.ais[0].detector.shape[1],
+                        ],
+                        dtype=array_dtype,
+                    ),
+                    keep_FirstDim=True,
+                )
 
-                self.import_image(diff_file, mask=mask, dtype=array_dtype, reduce_by=self.reduce_by)
-                
-                
+                self.import_image(
+                    diff_file, mask=mask, dtype=array_dtype, reduce_by=self.reduce_by
+                )
+
         # create emmpty arrays
-        self.tth = ma.zeros(self.intensity.shape,
+        self.tth = ma.zeros(
+            self.intensity.shape,
             dtype=array_dtype,
         )
-        self.azm = ma.zeros(self.intensity.shape,
+        self.azm = ma.zeros(
+            self.intensity.shape,
             dtype=array_dtype,
         )
         if make_zyx:
             # the x, y, z, arrays are not usually needed.
             # but if created can fill the memory.
             # switched incase ever needed/wanted
-            self.x = ma.zeros(self.intensity.shape,
+            self.x = ma.zeros(
+                self.intensity.shape,
                 dtype=array_dtype,
             )
-            self.y = ma.zeros(self.intensity.shape,
+            self.y = ma.zeros(
+                self.intensity.shape,
                 dtype=array_dtype,
             )
-            self.z = ma.zeros(self.intensity.shape,
+            self.z = ma.zeros(
+                self.intensity.shape,
                 dtype=array_dtype,
             )
         logger.debug(
@@ -1052,21 +1120,30 @@ class ESRFlvpDetector:
         print("frames", frames)
         print(len(self.detector.ais))
         for i in range(len(self.detector.ais)):
-            print(self._reduce_array(np.rad2deg(self.detector.ais[i].twoThetaArray())).shape)
-            self.tth[i, :, :] = self._reduce_array(np.rad2deg(self.detector.ais[i].twoThetaArray()))
-            self.azm[i, :, :] = self._reduce_array(np.rad2deg(self.detector.ais[i].chiArray()), polar=True, keep_FirstDim=False)
+            print(
+                self._reduce_array(
+                    np.rad2deg(self.detector.ais[i].twoThetaArray())
+                ).shape
+            )
+            self.tth[i, :, :] = self._reduce_array(
+                np.rad2deg(self.detector.ais[i].twoThetaArray())
+            )
+            self.azm[i, :, :] = self._reduce_array(
+                np.rad2deg(self.detector.ais[i].chiArray()),
+                polar=True,
+                keep_FirstDim=False,
+            )
             if make_zyx:
                 zyx = self.detector.ais[i].calc_pos_zyx()
                 self.z[i, :, :] = self._reduce_array(zyx[0])
                 self.y[i, :, :] = self._reduce_array(zyx[1])
                 self.x[i, :, :] = self._reduce_array(zyx[2])
         # correct azimuths from pyfai to ID06 refererence frame
-        self.azm = (-self.azm+180)
-        #force self.azm back to be within azm_start -- azm_end
+        self.azm = -self.azm + 180
+        # force self.azm back to be within azm_start -- azm_end
         self.azm[self.azm < self.azm_start] = self.azm[self.azm < self.azm_start] + 360
-        self.azm[self.azm >= self.azm_end]  = self.azm[self.azm >= self.azm_end] - 360
-        
-        
+        self.azm[self.azm >= self.azm_end] = self.azm[self.azm >= self.azm_end] - 360
+
         logger.debug(" ".join(map(str, ["Detector is: %s" % self.detector])))
         if logger.is_below_level(level="DEBUG"):
             # plot all the positions of the AzimuthalIntegrators.
@@ -1109,16 +1186,14 @@ class ESRFlvpDetector:
         self.azm_end = (
             np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
         )
-        
+
         if np.max(self.azm_end) - np.min(self.azm_start) >= 90:
             self.azm_blocks = 45
         elif np.max(self.azm_end) - np.min(self.azm_start) >= 45:
             self.azm_blocks = 22.5
-        
+
         self.tth_start = np.min(self.tth.flatten())
         self.tth_end = np.max(self.tth.flatten())
-        
-        
 
     def get_requirements(self, parameter_settings=None):
         """
@@ -1196,15 +1271,17 @@ class ESRFlvpDetector:
         return required_list
 
     @staticmethod
-    def detector_check(calibration_data=None, settings=None, detectorangles=None, stop_on_error=False):
+    def detector_check(
+        calibration_data=None, settings=None, detectorangles=None, stop_on_error=False
+    ):
         """
-        Function to check if the data is a compound data set from the spinning 
-        detector. 
-        
-        It is is not it either: raises an error or issues an error string. 
-        
-        
-        
+        Function to check if the data is a compound data set from the spinning
+        detector.
+
+        It is is not it either: raises an error or issues an error string.
+
+
+
         Get detector information
         :param settings:
         :param calibration_data:
@@ -1218,12 +1295,9 @@ class ESRFlvpDetector:
                 else:
                     return err_str
         else:
-            #need to work this out.
+            # need to work this out.
             pass
-        
-        
-        
-            
+
             # FIX ME: SAH, June 2024: I dont know if we need this function or if it is ever called.
             # if "Calib_detector" in settings:
             # detector = pyFAI.detector_factory(settings.Calib_detector)
@@ -1241,7 +1315,6 @@ class ESRFlvpDetector:
                 )
             # FIX ME: check the detector type is valid.
             return detector
-
 
     # add common function.
     _get_d_space = _AngleDispersive_common._get_d_space

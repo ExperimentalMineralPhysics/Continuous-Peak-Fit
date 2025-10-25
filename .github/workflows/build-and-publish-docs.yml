@@ -1,0 +1,64 @@
+name: Build and publish documentation
+
+on: [push, pull_request]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish-documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Cairo library (Ubuntu only)
+        # Cairo library needs to be manually installed on Ubuntu in order for
+        # pyCairo to be installed
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt install -y libcairo2-dev
+
+      - name: Install Sphinx
+        run: |
+          pip install -e .  # if you have one
+          pip install sphinx
+
+      - name: Build Sphinx documentation
+        working-directory: ./docs
+        # This builds from source/ into build/html/
+        run: |
+          sphinx-build source build/html
+
+      - name: Confirm index.html exists
+        run: |
+          test -f ./docs/build/html/index.html && \
+            echo "index.html found!" || \
+            (echo "index.html missing!" && exit 1)
+
+      - name: Verify that files are generated
+        run: |
+          echo "Contents of build/html:"
+          ls -lh ./docs/build/html || echo "No files found"
+
+      - name: Deploy preview docs to GitHub Pages
+        if: github.ref != 'refs/heads/master'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/build/html
+          destination_dir: preview/${{ github.head_ref || github.ref_name }}
+
+      - name: Deploy master docs to GitHub Pages
+        if: github.ref == 'refs/heads/master'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/build/html
+          destination_dir: .

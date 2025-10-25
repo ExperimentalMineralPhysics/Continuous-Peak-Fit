@@ -140,11 +140,11 @@ class XYDetector:
         self.azm_end = -np.inf
         self.tth_start = None
         self.tth_end = None
-        
+
         # Image data so contonuous.
         self.Dispersion = "Angle"
         self.continuous_azm = True
-        
+
         self.Dispersionlabel = r"Pixels"
         self.DispersionUnits = r"num"
         self.Azimuthlabel = r"Pixels"
@@ -152,11 +152,11 @@ class XYDetector:
         self.Observationslabel = r"Intensity"
         self.ObservationsUnits = r"a.u."
 
-        #set defualt value, do not asume is diffraction data
+        # set defualt value, do not asume is diffraction data
         self.azm_blocks = 100
-            
+
         self.reduce_by = None
-        
+
         self.calibration = None
         self.conversion_constant = None
         self.detector = None
@@ -170,7 +170,12 @@ class XYDetector:
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
+    def duplicate(
+        self,
+        range_bounds=[-np.inf, np.inf],
+        azi_bounds=[-np.inf, np.inf],
+        with_detector=True,
+    ):
         """
         Makes an independent copy of a XYDetector Instance.
 
@@ -197,14 +202,14 @@ class XYDetector:
         if with_detector:
             new = copy(self)
         else:
-            # copy and then delete the detector and calibration, 
-            # so that anyother non-default values are propagated.             
+            # copy and then delete the detector and calibration,
+            # so that anyother non-default values are propagated.
             new = deepcopy(self)
             new.detector = None
             new.calibration = None
-            
+
             # new = XYDetector()
-            # # must define conversion constants here beacuce this is the only other 
+            # # must define conversion constants here beacuce this is the only other
             # # variable that is REQUIRED.
             # new.conversion_constant = self.conversion_constant
 
@@ -301,7 +306,8 @@ class XYDetector:
 
         if self.calibration == None:
             self.get_calibration(
-                settings=settings, file_name=calibration_file, #, debug=debug
+                settings=settings,
+                file_name=calibration_file,  # , debug=debug
             )
 
         if diffraction_data is None and settings is not None:
@@ -316,8 +322,13 @@ class XYDetector:
 
     # @staticmethod
     def import_image(
-        self, image_name=None, settings=None, mask=None, dtype=None, 
-        reduce_by = None, debug=False
+        self,
+        image_name=None,
+        settings=None,
+        mask=None,
+        dtype=None,
+        reduce_by=None,
+        debug=False,
     ):
         """
         Import the data image into the intensity array.
@@ -387,7 +398,7 @@ class XYDetector:
 
         if self.calibration["x_dim"] != 0:
             im = im.T
-            
+
         # reduce the size of the data (if called for)
         if reduce_by is not None or self.reduce_by is not None:
             if reduce_by is False:
@@ -428,15 +439,17 @@ class XYDetector:
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im)
             return ma.array(im)
-        elif ma.is_masked(self.intensity) == True and self.intensity.mask.shape == im.shape:
+        elif (
+            ma.is_masked(self.intensity) == True
+            and self.intensity.mask.shape == im.shape
+        ):
             # apply mask from previous intensities and all are same size
             self.intensity = ma.array(im, mask=self.intensity.mask)
             return ma.array(im)
-        else:#if mask is not None:
+        else:  # if mask is not None:
             # apply given mask
             self.intensity = ma.array(im, mask=self.get_mask(mask, im))
             return ma.array(im, mask=mask)
-
 
     def fill_data(
         self, diff_file=None, settings=None, mask=None, make_zyx=False, debug=False
@@ -493,7 +506,7 @@ class XYDetector:
 
         if settings.reduce_by is not None:
             self.reduce_by = settings.reduce_by
-            
+
         if self.detector == None:
             self.get_detector(settings=settings)
 
@@ -510,12 +523,12 @@ class XYDetector:
         if self.reduce_by is not None:
             self.intensity = self._reduce_array(self.intensity)
             self.tth = self._reduce_array(self.tth)
-            if (re.findall("azimuth", self.calibration["y_label"].lower())
-                or 
-                re.findall("theta", self.calibration["x_label"].lower())
-                or
-                self.azm_end == self.azm_start + 360):
-                # the data would appear to be diffraction data. 
+            if (
+                re.findall("azimuth", self.calibration["y_label"].lower())
+                or re.findall("theta", self.calibration["x_label"].lower())
+                or self.azm_end == self.azm_start + 360
+            ):
+                # the data would appear to be diffraction data.
                 self.azm = self._reduce_array(self.azm, polar=True)
             else:
                 # data is some other sort of data.
@@ -523,17 +536,21 @@ class XYDetector:
 
         # get new azm_blocks from detector.
         self.azm_blocks = self.detector.azm_blocks
-        
-        self.azm_start = np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        self.azm_end   =  np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+
+        self.azm_start = (
+            np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        )
+        self.azm_end = (
+            np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        )
         self.tth_start = np.min(self.tth.flatten())
-        self.tth_end   = np.max(self.tth.flatten())
-        
+        self.tth_end = np.max(self.tth.flatten())
+
         self.Dispersionlabel = self.detector.calibration["x_label"]
         self.DispersionUnits = self.detector.calibration["x_unit"]
         self.Azimuthlabel = self.detector.calibration["y_label"]
         self.AzimuthUnits = self.detector.calibration["y_unit"]
-        
+
     @staticmethod
     def detector_check(calibration_data, settings=None):
         """
@@ -606,11 +623,11 @@ class XYDetector:
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     _reduce_array = _AngleDispersive_common._reduce_array
     """
-    FIXME: add more flxibility to conversion    
+    FIXME: add more flxibility to conversion
     XYFunctions does not have to be X-ray diffraction but it could be. To pass a
     empty conversion throgh the function set DataClass.conversion_factor=False.
-    But other conversions might be necessary in fiture and so the function may 
-    need further generalisationby by accepting a lambda function. 
+    But other conversions might be necessary in fiture and so the function may
+    need further generalisationby by accepting a lambda function.
     """
 
     # add masking functions to detetor class.
@@ -643,15 +660,15 @@ class OrthogonalDetector:
         self.calib = calibration
         self.max_shape = max_shape
 
-        # initiate a bunch of defaults. 
+        # initiate a bunch of defaults.
         self.calibration = {}
 
         self.calibration["x_dim"] = 0
-        self.calibration["x"] = [0,1]
+        self.calibration["x"] = [0, 1]
         self.calibration["x_start"] = np.nan
         self.calibration["x_end"] = np.nan
         self.calibration["x_scale"] = "linear"
-        self.calibration["y"] = [0,1]
+        self.calibration["y"] = [0, 1]
         self.calibration["y_start"] = np.nan
         self.calibration["y_end"] = np.nan
         self.calibration["y_scale"] = "linear"
@@ -662,9 +679,8 @@ class OrthogonalDetector:
         self.calibration["y_unit"] = "num"
         self.calibration["y_label"] = "pixels"
 
-        #set a default spacing
+        # set a default spacing
         self.azm_blocks = 100
-        
 
         self.calibration["conversion_constant"] = 1
 
@@ -739,12 +755,15 @@ class OrthogonalDetector:
             y_dim = 1
         else:
             y_dim = 0
-        
+
         if "y" in calibration:
             self.calibration["y"] = calibration["y"]
         elif "y_start" in calibration:
             self.calibration["y"][0] = self.calibration["y_start"]
-            self.calibration["y"][1] = (self.calibration["y_end"] - self.calibration["y_start"]) / (self.max_shape[y_dim] - 1),
+            self.calibration["y"][1] = (
+                (self.calibration["y_end"] - self.calibration["y_start"])
+                / (self.max_shape[y_dim] - 1),
+            )
 
         # print(self.calibration["y_label"].lower(), "azimuth", self.calibration["y_label"].lower() == "azimuth")
         if self.calibration["y_label"].lower() == "azimuth":
@@ -754,12 +773,18 @@ class OrthogonalDetector:
 
         if "theta" in self.calibration["x_label"].lower():
             if "$" not in self.calibration["x_label"].lower():
-                self.calibration["x_label"] = re.sub(r'\$\\theta\$|\\theta|theta', "$\theta$", self.calibration["x_label"].lower())
-                # force string to be a raw string. 
-                self.calibration["x_label"] = self.calibration["x_label"].encode('unicode_escape').decode()
+                self.calibration["x_label"] = re.sub(
+                    r"\$\\theta\$|\\theta|theta",
+                    "$\theta$",
+                    self.calibration["x_label"].lower(),
+                )
+                # force string to be a raw string.
+                self.calibration["x_label"] = (
+                    self.calibration["x_label"].encode("unicode_escape").decode()
+                )
             if "x_unit" not in calibration:
                 self.calibration["x_unit"] = "deg"
-            
+
         self.calibration_check
 
     def calibration_check(self):

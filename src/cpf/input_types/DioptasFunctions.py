@@ -19,7 +19,7 @@ if Version(version("pyFAI")).major >= 2025:
     from pyFAI.integrator.azimuthal import AzimuthalIntegrator
 else:
     from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
-from pyFAI.io import ponifile
+from pyFAI.io import DefaultAiWriter, ponifile
 
 import cpf.h5_functions as h5_functions
 from cpf import IO_functions
@@ -27,8 +27,6 @@ from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.util.logging import get_logger
-
-from pyFAI.io import DefaultAiWriter
 
 logger = get_logger("cpf.input_types.DioptasFunctions")
 
@@ -74,7 +72,7 @@ class DioptasDetector:
         self.azm_blocks = 45
 
         self.reduce_by = None
-        
+
         self.calibration = None
         self.conversion_constant = None
         self.detector = None
@@ -84,7 +82,12 @@ class DioptasDetector:
         if self.calibration:
             self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
+    def duplicate(
+        self,
+        range_bounds=[-np.inf, np.inf],
+        azi_bounds=[-np.inf, np.inf],
+        with_detector=True,
+    ):
         """
         Makes an independent copy of a DioptasDetector Instance.
 
@@ -111,8 +114,8 @@ class DioptasDetector:
         if with_detector:
             new = copy(self)
         else:
-            # copy and then delete the detector and calibration, 
-            # so that anyother non-default values are propagated.             
+            # copy and then delete the detector and calibration,
+            # so that anyother non-default values are propagated.
             new = deepcopy(self)
             new.detector = None
             new.calibration = None
@@ -208,7 +211,8 @@ class DioptasDetector:
         """
         if self.calibration == None:
             self.get_calibration(
-                settings=settings, file_name=calibration_file,
+                settings=settings,
+                file_name=calibration_file,
             )
 
         if self.calibration:
@@ -246,8 +250,13 @@ class DioptasDetector:
 
     # @staticmethod
     def import_image(
-        self, image_name=None, settings=None, mask=None, dtype=None, 
-        reduce_by = None, debug=False
+        self,
+        image_name=None,
+        settings=None,
+        mask=None,
+        dtype=None,
+        reduce_by=None,
+        debug=False,
     ):
         """
         Import the data image into the intensity array.
@@ -304,9 +313,16 @@ class DioptasDetector:
         else:
             try:
                 im_all = fabio.open(image_name)
-                logger.moreinfo(" ".join(map(str, [
-                    f"This file contains {im_all.nframes} frame(s) with a combined shape of {im_all.shape}"
-                ])))
+                logger.moreinfo(
+                    " ".join(
+                        map(
+                            str,
+                            [
+                                f"This file contains {im_all.nframes} frame(s) with a combined shape of {im_all.shape}"
+                            ],
+                        )
+                    )
+                )
                 if im_all.nframes == 1:
                     im = np.squeeze(
                         im_all.data
@@ -344,7 +360,7 @@ class DioptasDetector:
         # Dioptas flips the images to match the orientations in Fit2D
         # Therefore implemented here to be consistent with Dioptas.
         im = np.array(im)[::-1]
-        
+
         # reduce the size of the data (if called for)
         if reduce_by is not None or self.reduce_by is not None:
             if reduce_by is False:
@@ -369,11 +385,14 @@ class DioptasDetector:
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im)
             return ma.array(im)
-        elif ma.is_masked(self.intensity) == True and self.intensity.mask.shape == im.shape:
+        elif (
+            ma.is_masked(self.intensity) == True
+            and self.intensity.mask.shape == im.shape
+        ):
             # apply mask from previous intensities and all are same size
             self.intensity = ma.array(im, mask=self.intensity.mask)
             return ma.array(im)
-        else:#if mask is not None:
+        else:  # if mask is not None:
             # apply given mask
             self.intensity = ma.array(im, mask=self.get_mask(mask, im))
             return ma.array(im, mask=mask)
@@ -436,14 +455,14 @@ class DioptasDetector:
 
         if settings.reduce_by is not None:
             self.reduce_by = settings.reduce_by
-            
+
         if self.detector == None:
             self.get_detector(settings=settings)
 
         # get the intensities (without mask) and without reduction.
         # No reduction because if reduced then the calibration is nonsence.
         self.intensity = self.import_image(diff_file, reduce_by=False)
-        
+
         # FIXME: (June 2024) because of how self.detector is instanciated the
         # shape might not be correct (or recognised). Hence the check here and
         # inclusion of the shape in the array getting.
@@ -579,12 +598,12 @@ class DioptasDetector:
                     "are all present."
                 )
         return required_list
-    
+
     def detector_description(self):
         """
-        Returns a text description of the detector. 
-        
-        For Dioptas detectors this is called from PyFAI.  
+        Returns a text description of the detector.
+
+        For Dioptas detectors this is called from PyFAI.
 
         Returns
         -------
@@ -592,7 +611,7 @@ class DioptasDetector:
             Text description of the detector and the calibration.
         """
         description = DefaultAiWriter(None, self.detector).make_headers()
-        description = description.replace('\r\n', '\n')
+        description = description.replace("\r\n", "\n")
         return description
 
     # add common function.

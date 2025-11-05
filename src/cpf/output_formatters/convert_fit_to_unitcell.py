@@ -21,12 +21,6 @@ from cpf.util.logging import get_logger
 def fits_to_unitcell(
         settings_class=None,
         settings_file=None,
-        includeParameters = "all",
-        includeStats=False,
-        includeSeriesValues = False,
-        includeIntensityRanges = False,
-        includeUnitCells = False,
-        includePosition = False,
         *args,
         **kwargs
         ):
@@ -40,15 +34,11 @@ def fits_to_unitcell(
     settings_class : cpf.Settings.settings() Class, optional
         Class containing all the fitting parameters. The default is None.
     settings_file : *.py file, optional
-        text file containing all the fitting parameters. The default is None.
-    includeParameters : list[str], optional
-        List of which peak parameters to return. The default is "all".
-    includeStats : bool, optional
-        Switch to include all fitting statistics in output data frame. The default is False.
-    includeSeriesValues : bool or list, optional
-        Switch to include values derived from the fit parameters. Either a list of parameters returned by  
-        cpf.output_formatters.convert_fit_to_crystallographic or a bool. The default is False.
-
+        text file containing all the fitting parameters. The default is None.    
+    *args
+    
+    **kwargs
+    
     Raises
     ------
     ValueError
@@ -83,7 +73,7 @@ def fits_to_unitcell(
             includeSeriesValues = True,
             includeIntensityRanges = False,
             includeUnitCells = False,
-            includePosition = includePosition,
+            includePosition = True,
             *args,
             **kwargs)
     
@@ -154,7 +144,9 @@ def fits_to_unitcell(
                         if len(glob.glob(f"*{phase[i]}*")) != 1:
                             raise ValueError("There is more than 1 jcpds file")
                         jcpds.append(glob.glob(f"*{phase[i]}*")[0])
-                if len(phase) != len(jcpds):
+                if len(jcpds) == 0:
+                    raise ValueError("There is no jcpds file recognised")
+                elif len(phase) != len(jcpds):
                     raise ValueError("The phase and jcpds files do not match")
                     
             # calculate unit cell properties and return them

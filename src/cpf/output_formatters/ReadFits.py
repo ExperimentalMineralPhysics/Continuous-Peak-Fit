@@ -14,7 +14,7 @@ import pandas as pd
 
 import cpf.peak_functions as pf
 from cpf.output_formatters.convert_fit_to_crystallographic import fourier_to_crystallographic
-from cpf.IO_functions import make_outfile_name, peak_string
+from cpf.IO_functions import make_outfile_name, peak_string, peak_phase, peak_hkl
 from cpf.series_functions import series_properties
 from cpf.util.logging import get_logger
 
@@ -192,6 +192,7 @@ def ReadFits(
     headers = []
     headers.append("num")
     headers.append("DataFile")
+    headers.append("Phase")
     headers.append("Peak")
     headers.append("Range_start")
     headers.append("Range_end")
@@ -273,7 +274,9 @@ def ReadFits(
                 extension=".json",
                 overwrite=True,
             )
-            RowLst["Peak"] = peak_string(fits[lists[z, 0]][lists[z, 1]], peak=[lists[z, 2]], fname=False)
+            # RowLst["Peak"] = peak_string(fits[lists[z, 0]][lists[z, 1]], peak=[lists[z, 2]], fname=False)
+            RowLst["Phase"] = peak_phase(fits[lists[z, 0]][lists[z, 1]], peak=[lists[z, 2]])[0]
+            RowLst["Peak"] = peak_hkl(fits[lists[z, 0]][lists[z, 1]], peak=[lists[z, 2]])[0]
             RowLst["Range_start"] = data_to_write["range"][0][0]
             RowLst["Range_end"] = data_to_write["range"][0][1]
 

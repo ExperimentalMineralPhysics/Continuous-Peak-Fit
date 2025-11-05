@@ -117,9 +117,12 @@ def fourier_to_crystallographic(
 
     # catch 'null' terms in fits
     coefficients = replace_null_terms(coefficients)
-
+    
+    # catch d-spacing that is too short for 3D geometry to work.
+    if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3:
+        SampleGeometry == "2d"
+    
     # %% differential coefficients, errors and covarience
-
     # %%% angle
     # a = sin??
     # b = cos??
@@ -127,8 +130,11 @@ def fourier_to_crystallographic(
     # d (atan(c))/dc = 1/(c^2+1). c = b/a. dc = c.((da/a)^2 + (db/b)^2)^(1/2)
     # out_angerr = dc.
     # FIX ME need to check this.
-    if (
-        len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5 
+    if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3:
+        out_ang = 0
+        out_angerr = 0
+    elif (
+        len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 4
         and coefficients[subpattern]["peak"][peak]["d-space"][4] != 0 
         and coefficients[subpattern]["peak"][peak]["d-space"][3] != 0
     ):
@@ -178,7 +184,7 @@ def fourier_to_crystallographic(
         out_angerr = np.nan
         # FIXME: this is a bodged fix for now. It needs to be calcualted assuming the error is not also zero.
     # correction to make angle correct (otherwise potentially out by pi/2)
-    if len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5 and coefficients[subpattern]["peak"][peak]["d-space"][4] > 0:
+    if len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 4 and coefficients[subpattern]["peak"][peak]["d-space"][4] > 0:
         if coefficients[subpattern]["peak"][peak]["d-space"][3] <= 0:
             out_ang += np.pi / 2
         else:
@@ -188,13 +194,17 @@ def fourier_to_crystallographic(
     out_angerr = np.rad2deg(out_angerr)
     
     # deal with sin/cos wrapping
-    if coefficients[subpattern]["peak"][peak]["d-space"][3] > 0:
+    if (len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 4 and 
+           coefficients[subpattern]["peak"][peak]["d-space"][3] > 0):
         out_ang += 180
     
 
     # %%% differential strain
     # differentail (3d) = (a2^2+b2^2)^(1/2)
-    if len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5:
+    if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3:
+        out_dd = 0
+        out_dderr = 0
+    elif len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5:
         out_dd = np.sqrt(
             coefficients[subpattern]["peak"][peak]["d-space"][3] ** 2
             + coefficients[subpattern]["peak"][peak]["d-space"][4] ** 2
@@ -215,7 +225,7 @@ def fourier_to_crystallographic(
             ** 2
         ) ** (1 / 4)
     else:
-        out_dd = np.nan
+        out_dd = 0
         out_dderr = np.nan
     
     #%%% d_max and d_min.
@@ -241,7 +251,7 @@ def fourier_to_crystallographic(
             pass
         elif SampleDeformation == "extension":
             pass  # out_ang += 90
-
+            
     elif SampleGeometry == "3d" and SampleDeformation == "compression":
         # 1/3 of the way from the middle to the maximum d-spacing (miniminm strain)
         out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] + out_dd / 3

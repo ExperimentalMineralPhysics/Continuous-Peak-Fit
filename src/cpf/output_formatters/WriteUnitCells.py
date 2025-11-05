@@ -90,12 +90,6 @@ def WriteOutput(
     
     # get the unit cells from settings.
     df = fits_to_unitcell(settings_file=settings_file,
-                includeStats=False,
-                includeParameters=False,
-                includeSeriesValues = False,
-                includeIntensityRanges = False,
-                includeUnitCells = True,
-                includePosition = False,
                 **kwargs
                 )
     

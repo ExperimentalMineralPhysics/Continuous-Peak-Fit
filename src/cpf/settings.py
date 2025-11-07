@@ -79,6 +79,7 @@ class Settings:
         ] = "INFO",
         debug: bool = False,
         mode: Literal["fit"] = "fit",
+        **kwargs
     ):
         """
         Initialise the cpf settings class.
@@ -107,7 +108,11 @@ class Settings:
         Optional settings for the outputs are sored in a dictionary.
 
         """
-
+        
+        self.settings_file: str = None
+        self.datafile_basename: str = None 
+        self.datafile_directory: str = None
+        
         self.datafile_list: list[str | Path] = []
         self.datafile_number: int = 0
         self.image_list: list[str | Path] = []
@@ -174,7 +179,7 @@ class Settings:
         self.settings_file = settings_file
         # read the settings file given
         if self.settings_file is not None:
-            self.populate(report=report)
+            self.populate(report=report, **kwargs)
 
         # #set the fitting defaults to carry around
         # self.refine=True,
@@ -220,6 +225,7 @@ class Settings:
         out_type=None,
         report=False,
         debug=False,
+        **kwargs
     ):
         """
         Fills the settings class from the settings file.
@@ -244,6 +250,10 @@ class Settings:
         if settings is None:
             raise ValueError("The settings needs to be specified: it is either a file string, a file path or a dictionary.")
 
+        elif isinstance(settings, type(Settings())):
+            logger.info("The settings are already a cpf Settings class instance. No initiation.")
+            return
+        
         elif isinstance(settings, dict):
             
             if "run_name" in settings:         
@@ -326,7 +336,6 @@ class Settings:
         # then sort them in a useful way...
 
         ##all_settings_from_input = dir(self.settings_from_input)#
-
 
         # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
         if "datafile_Basename" in dir(self.settings_from_input):
@@ -493,6 +502,10 @@ class Settings:
         Fails with missing parameters if not complete.
         """
 
+        # make a header in the log file so that we know where the processing starts
+        logger.info("-----------------------------------------------------------------")
+        logger.info(f"Validation of settings for {self.settings_file}")    
+        
         # check data files and directory
         if self.datafile_basename != None or self.datafile_directory != None:
             self.validate_datafiles()
@@ -523,6 +536,10 @@ class Settings:
         # validate output types
         if self.output_types:
             self.validate_output_types()
+            
+            
+        logger.info("End of Validation")
+        logger.info("-----------------------------------------------------------------")
 
     def check_files_exist(
         self,
@@ -540,26 +557,29 @@ class Settings:
 
         missing_files = []
         missing_indicies = []
-        progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
-        for j in progress.iter_bar(image_files=range(len(files_to_check))):
-            if not glob.glob(str(files_to_check[j])):
-                # use glob.glob for a file search to account for compund detectors of ESRFlvp detectors
-                missing_files.append(files_to_check[j])
-                missing_indicies.append(j)
-            else:
-                logger.moreinfo(" ".join(map(str, [(f"{files_to_check[j]} exists.")])))
-        
-        if len(missing_files) != 0:
-            if len(missing_files) <= 30:
-                raise ImportError(
-                    f"The file {missing_files} is not found but is required."
-                )
-            else:
-                raise ImportError(
-                    f"The files missing from the sequece are:  {missing_indicies}."
-                )
+        if len(files_to_check) == 0:
+            logger.warning("There are no data files in the settings.")
         else:
-            logger.info(" ".join(map(str, [(f"{files_to_check[j]} exists.")])))
+            progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
+            for j in progress.iter_bar(image_files=range(len(files_to_check))):
+                if not glob.glob(str(files_to_check[j])):
+                    # use glob.glob for a file search to account for compund detectors of ESRFlvp detectors
+                    missing_files.append(files_to_check[j])
+                    missing_indicies.append(j)
+                else:
+                    logger.moreinfo(" ".join(map(str, [(f"{files_to_check[j]} exists.")])))
+            
+            if len(missing_files) != 0:
+                if len(missing_files) <= 30:
+                    raise ImportError(
+                        f"The file {missing_files} is not found but is required."
+                    )
+                else:
+                    raise ImportError(
+                        f"The files missing from the sequece are:  {missing_indicies}."
+                    )
+            else:
+                logger.info(" ".join(map(str, [(f"{files_to_check[j]} exists.")])))
 
 
     def check_directory_exists(
@@ -572,13 +592,14 @@ class Settings:
         Check if a directory exists. Make it if make_dir==True or issue an error.
         """
         if directory.exists() is False:
-            if make_dir == False:
-                raise FileNotFoundError(
-                    f"The directory {directory.name!r} is not found but is required."
-                )
-            else:
-                os.makedirs(directory)
-                logger.info(" ".join(map(str, [(f"{directory.name!r} was created.")])))
+            pass
+            # if make_dir == False:
+            #     raise FileNotFoundError(
+            #         f"The directory {directory.name!r} is not found but is required."
+            #     )
+            # else:
+            #     os.makedirs(directory)
+            #     logger.info(" ".join(map(str, [(f"{directory.name!r} was created.")])))
         else:
             logger.info(" ".join(map(str, [(f"{directory.name!r} exists.")])))
 
@@ -1362,6 +1383,36 @@ class Settings:
         self.subfit_order_position = number_subpattern
         self.subfit_orders = self.fit_orders[number_subpattern]
 
+    def is_empty(self, raise_error: bool = True):
+        """
+        Test if the settings given are an empty instance of the cpf settings class.
+
+        Parameters
+        ----------
+        raise_error : bool, optional
+            Exit by raising an error (True) or by issuing bool (False). The default is True.
+
+        Raises
+        ------
+        ValueError
+            Error if the settings class is empty. 
+            
+        Returns
+        -------
+        bool
+            True if empty class; False (or error) if not the same as empty class.
+
+        """
+        if self.__dict__ == Settings().__dict__:
+            if raise_error is True:
+                err_str = "The settings class is empty. There is nothing to process"
+                logger.error(err_str)
+                raise ValueError(err_str)
+            else:
+                return True
+        else:
+            return False
+
     def save_settings(
         self, filename: str = "settings.py", filepath: Path = Path(".")
     ):
@@ -1497,6 +1548,64 @@ def detector_factory(fit_settings: Settings):
     else:
         raise ValueError(f"Unrecognized calibration type, {fit_settings.calibration_type}")
 
+def is_settings(settings):
+    """
+    Test if the class is a cpf settings class.
+
+    Parameters
+    ----------
+    settings : cpf settings class
+        Any variable or class for testing.
+
+    Returns
+    -------
+    bool
+        True if cpf.settings.Settings() instance; otherwise false.
+
+    """
+    import cpf
+    import cpf.settings as sttng
+    # the different ways of importing settings seems to give differnet answers. 
+    # therefore have to test all of them.
+    if isinstance(settings, type(Settings())) == True:
+        return True
+    elif isinstance(settings, type(cpf.settings.Settings())) == True:
+        return True
+    elif isinstance(settings, type(sttng.Settings())) == True:
+        return True
+    elif all(map(lambda v: v in dir(settings), dir(Settings()))):
+        # check if all the same methods and variables are present. 
+        return True
+    else:
+        return False
+    """
+    ## test code   
+    import cpf
+    test1 = cpf.settings.Settings()
+    from cpf.settings import Settings as Settings1
+    test2 = Settings1()
+
+    a = cpf.settings.is_settings(test1)
+    b = cpf.settings.is_settings(test2)
+    c = cpf.settings.is_settings("test2")
+    
+    ## expected outputs
+    if a==True:
+        print("pass")
+    else:
+        print("fail")
+    if b==True:
+        print("pass")
+    else:
+        print("fail")
+    if c==False:
+        print("pass")
+    else:
+        print("fail")
+    """
+    
+    
+    
 
 if __name__ == "__main__":
     Settings

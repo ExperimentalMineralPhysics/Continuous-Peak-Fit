@@ -28,7 +28,7 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.settings import Settings
+from cpf.settings import Settings, is_settings
 from cpf.util.logging import get_logger, set_global_log_level
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 
@@ -39,6 +39,11 @@ np.set_printoptions(threshold=sys.maxsize)
 
 
 logger = get_logger("cpf.XRD_FitPattern")
+
+
+
+__doc__ = "This is the main function for fitting the diffraction (or dispersed) peak data. "
+
 
 
 def register_default_formats() -> dict[str, ModuleType]:
@@ -60,7 +65,7 @@ output_methods_modules = register_default_formats()
 
 
 def initiate(
-    settings: Optional[str | Path | dict] = None,
+    settings: [str | Path | dict | Settings()],
     inputs=None,
     out_type=None,
     report: Literal[
@@ -71,10 +76,10 @@ def initiate(
     """
     Run checks on input files, initiate data class and check output options
 
+    :param settings:
     :param report:
     :param out_type:
     :param initiate_data:
-    :param settings_file:
     :param inputs:
     :return fit_parameters:
     :return fit_settings:
@@ -86,8 +91,12 @@ def initiate(
     # Add a file handler to this logger
     if isinstance(settings, dict):
         running_name = settings["run_name"]
-    else:
+    elif isinstance(settings, str):
         running_name = settings
+    elif is_settings(settings) and settings.settings_file is not None: #isinstance(settings, type(Settings()))
+        running_name = settings.settings_file
+    else:
+        running_name = "cpf_log_file"        
     log_file = log_file = make_outfile_name(
         base_filename=running_name, extension=".log", overwrite=True
     )
@@ -101,35 +110,47 @@ def initiate(
 
     # Fail gracefully
     if settings is None:
-        raise ValueError(
-            "Either the settings file or the parameter dictionary need to be specified."
-        )
-    # Convert to Path object
-    if isinstance(settings, str):
-        try:
-            settings = Path(settings)
-        except Exception as error:
-            raise error
+        err_str = "Either the settings file or the parameter dictionary need to be specified."
+        logger.error(err_str)
+        raise ValueError(err_str)
+    elif is_settings(settings):#isinstance(settings, type(Settings())):
+        # the settings input are already a setttings class. 
+        # validate the class.
+        if settings.is_empty():
+            err_str = "The settings class is empty; there is nothing to process."
+            logger.error(err_str)
+            raise ValueError(err_str)
+        else:
+            settings.validate_settings_file()
+            settings_class = settings
+    else:
+        # initiate a settings class. 
+        
+        # Convert to Path object
+        if isinstance(settings, str):
+            try:
+                settings = Path(settings)
+            except Exception as error:
+                raise error
+    
+        # make a header in the log file so that we know where the processing starts
+        logger.info("")
+        logger.info("=================================================================")
+        logger.info("")
+        logger.info(f"Starting data proceesing using settings {'dictionary' if isinstance(settings, dict) else 'file'}: {running_name}")    
+        logger.info("")
+        logger.info("=================================================================")
+        logger.info("")
+    
+        # If no params_dict then initiate. Check all the output functions are present and valid.
+        settings_class = Settings()
+        settings_class.populate(settings=settings, report=report, **kwargs)
 
-    # make a header in the log file so that we know where the processing starts
-    logger.info("")
-    logger.info("=================================================================")
-    logger.info("")
-    logger.info(f"Starting data proceesing using settings {'dictionary' if isinstance(settings, dict) else 'file'}: {running_name}")    
-    logger.info("")
-    logger.info("=================================================================")
-    logger.info("")
-
-    # If no params_dict then initiate. Check all the output functions are present and valid.
-    settings_for_fit = Settings()
-    settings_for_fit.populate(settings=settings, report=report)
-
-    return settings_for_fit
+    return settings_class
 
 
 def view(
-    settings_file=None,
-    settings_class=None,
+    settings: [str | Path | dict | Settings()],
     inputs=None,
     debug=False,
     refine=True,
@@ -145,7 +166,7 @@ def view(
     ] = "INFO",
 ):
     """
-    :param settings_file:
+    :param settings:
     :param inputs:
     :param debug:
     :param refine:
@@ -158,23 +179,22 @@ def view(
     :param kwargs:
     :return:
     """
-
-    if settings_class is None:
-        settings_for_fit = initiate(settings_file, inputs=inputs, report=report)
+    if not is_settings(settings):
+        settings_class = initiate(settings, report=report)
     else:
-        settings_for_fit = settings_class
+        settings_class = settings
 
     # view the listed file only
     if pattern != "all":
         # restrict file list to first file
-        settings_for_fit.set_data_files(keep=pattern)
+        settings_class.set_data_files(keep=pattern)
 
-    write_output(settings_file=settings_file, out_type="CollectionMovie")
+    write_output(settings_class, out_type="CollectionMovie")
     
     # write_output(settings_file=settings_file, out_type="RangesMovie")
 
     # execute(
-    #     settings_class=settings_for_fit,
+    #     settings_class=settings_class,
     #     debug=debug,
     #     refine=refine,
     #     save_all=save_all,
@@ -186,8 +206,7 @@ def view(
 
 
 def set_range(
-    settings_file: Optional[str | Path] = None,
-    settings_class: Optional[Settings] = None,
+    settings: [str | Path | dict | Settings()],
     inputs=None,
     debug: bool = False,
     refine: bool = True,
@@ -202,7 +221,7 @@ def set_range(
     ] = "INFO",
 ):
     """
-    :param settings_file:
+    :param settings:
     :param inputs:
     :param debug:
     :param refine:
@@ -215,22 +234,20 @@ def set_range(
     :param kwargs:
     :return:
     """
-
-    settings_for_fit: Settings = (
-        initiate(settings_file, inputs=inputs, report=report)
-        if settings_class is None
-        else settings_class
-    )
+    if not is_settings(settings):
+        settings_class = initiate(settings, report=report)
+    else:
+        settings_class = settings
 
     # search over the first file only
     # restrict file list to first file
-    settings_for_fit.set_data_files(keep=0)
+    settings_class.set_data_files(keep=0)
 
     # restrict to sub-patterns listed
-    settings_for_fit.set_subpatterns(subpatterns=subpattern)
+    settings_class.set_subpatterns(subpatterns=subpattern)
 
     execute(
-        settings_class=settings_for_fit,
+        settings_class,
         debug=debug,
         refine=refine,
         save_all=save_all,
@@ -242,8 +259,7 @@ def set_range(
 
 
 def initial_peak_position(
-    settings_file: Optional[str | Path] = None,
-    settings_class: Optional[Settings] = None,
+    settings: [str | Path | dict | Settings()],
     inputs=None,
     debug: bool = False,
     refine: bool = True,
@@ -263,7 +279,7 @@ def initial_peak_position(
     The event handler code is copied from:
     https://matplotlib.org/stable/users/event_handling.html for how to make work
 
-    :param settings_file:
+    :param settings:
     :param inputs:
     :param debug:
     :param refine:
@@ -276,18 +292,16 @@ def initial_peak_position(
     :param kwargs:
     :return:
     """
-
-    settings_for_fit: Settings = (
-        initiate(settings_file, inputs=inputs, report=report)
-        if settings_class is None
-        else settings_class
-    )
+    if not is_settings(settings):
+        settings_class = initiate(settings, report=report)
+    else:
+        settings_class = settings
 
     # search over the first file only
-    settings_for_fit.set_data_files(keep=0)
+    settings_class.set_data_files(keep=0)
 
     # restrict to sub-patterns listed
-    settings_for_fit.set_subpatterns(subpatterns=subpattern)
+    settings_class.set_subpatterns(subpatterns=subpattern)
 
     logger.info("\n'initial_peak_position' needs an interactive matplotlib figure.")
     logger.info(
@@ -319,7 +333,7 @@ def initial_peak_position(
     )
 
     execute(
-        settings_class=settings_for_fit,
+        settings_class,
         debug=debug,
         refine=refine,
         save_all=save_all,
@@ -419,8 +433,7 @@ class PointBuilder:
 
 
 def order_search(
-    settings_file: Optional[str | Path] = None,
-    settings_class: Optional[Settings] = None,
+    settings: [str | Path | dict | Settings()],
     inputs=None,
     refine: bool = True,
     save_all: bool = False,
@@ -452,9 +465,7 @@ def order_search(
 
     Parameters
     ----------
-    settings_class : cpf.Settings.settings() Class, optional
-        Class containing all the fitting parameters. The default is None.
-    settings_file : *.py file, optional
+    settings : *.py file, string, Path or cpf Settings
         text file containing all the fitting parameters. The default is None.
     inputs : TYPE, optional
         DESCRIPTION. The default is None.
@@ -484,20 +495,16 @@ def order_search(
 
     """
 
-    settings_for_fit: Settings = (
-        initiate(settings_file, inputs=inputs, report=report)
-        if settings_class is None
-        else settings_class
-    )
+    settings_class = initiate(settings, inputs=inputs, report=report)
 
     # search over the first file only
-    settings_for_fit.set_data_files(keep=0)
+    settings_class.set_data_files(keep=0)
 
     # loop over the peaks in turn unless forced
     if subpattern =="force all":
         subpattern = ["all"]
     elif subpattern =="all":
-        subpattern = list(range(len(settings_for_fit.fit_orders)))
+        subpattern = list(range(len(settings_class.fit_orders)))
     elif not isinstance(subpattern, list):
         subpattern = [subpattern]
 
@@ -505,16 +512,16 @@ def order_search(
 
         logger.info(f"Performing order_search for peak {i}")
         
-        # set search orders
-        settings_for_fit.set_order_search(
+        # set search orders and execute
+        settings_class.set_order_search(
             search_parameter=search_parameter,
             search_over=search_over,
             subpatterns=subpattern[i],
             search_peak=search_peak,
             search_series=search_series,
         )
-        settings_for_fit.fit_propagate = False
-        settings_for_fit.file_label = (
+        settings_class.fit_propagate = False
+        settings_class.file_label = (
             "search="
             + search_parameter
             + "_subpattern="
@@ -524,7 +531,7 @@ def order_search(
         )
         
         execute(
-            settings_class=settings_for_fit,
+            settings_class,
             refine=refine,
             save_all=save_all,
             mode="search",
@@ -534,26 +541,22 @@ def order_search(
     
         # call WriteOrderSearchFigures to make the figures.
         write_output(
-            # settings_file=settings_file,
-            settings_class=settings_for_fit,
+            settings_class,
             debug=True,
             out_type="OrderSearchFigures",
         )
+        
         write_output(
-            # settings_file=settings_file,
-            settings_class=settings_for_fit,
+            settings_class,
             debug=True,
             out_type="OrderSearchMovie",
         )
 
-        settings_for_fit.unset_order_search()
+        settings_class.unset_order_search()
     logger.info("Order searches are completed.")
 
 def write_output(
-    settings_file: Optional[str | Path] = None,
-    settings_class: Optional[Settings] = None,
-    # fit_settings=None,
-    # fit_parameters=None,
+    settings,
     parms_dict=None,
     out_type=None,
     det=None,
@@ -566,11 +569,12 @@ def write_output(
     **kwargs,
 ):
     """
+    
+    :param settings : *.py file, string, Path or cpf Settings
     :param debug:
     :param fit_parameters:
     :param use_bounds:
     :param differential_only:
-    :param settings_file:
     :param fit_settings:
     :param parms_dict:
     :param out_type:
@@ -578,11 +582,10 @@ def write_output(
     :return:
     """
 
-    settings_class = (
-        initiate(settings_file, report=report, out_type=out_type)
-        if settings_class is None
-        else settings_class
-    )
+    if not is_settings(settings):
+        settings_class = initiate(settings, report=report)
+    else:
+        settings_class = settings
 
     if out_type is not None:
         logger.moreinfo(  # type: ignore
@@ -618,8 +621,7 @@ def write_output(
             logger.info(" ".join(map(str, [("Writing output file(s) using %s" % mod)])))
             wr = output_methods_modules[mod]
             wr.WriteOutput(
-                settings_class=settings_class,
-                settings_file=settings_file,
+                settings_class,
                 differential_only=differential_only,
                 debug=debug,
                 **kwargs,
@@ -627,8 +629,7 @@ def write_output(
 
 
 def execute(
-    settings_file: Optional[Path] = None,
-    settings_class=None,
+    settings: [str | Path | dict | Settings()],
     # fit_settings=None,
     # fit_parameters=None,
     inputs=None,
@@ -646,9 +647,9 @@ def execute(
     fit_method: str = "leastsq",
 ):
     """
+    :param settings : *.py file, string, Path or cpf Settings
     :param fit_parameters:
     :param fit_settings:
-    :param settings_file:
     :param parallel:
     :param report:
     :param mode:
@@ -661,29 +662,33 @@ def execute(
     :param iterations:
     :return:
     """
-
-    if settings_class is None:
-        settings_for_fit = initiate(settings_file, inputs=inputs, report=report)
+    
+    if not is_settings(settings):
+        settings_class = initiate(settings, report=report)
     else:
-        settings_for_fit = settings_class
-    new_data = settings_for_fit.data_class
+        settings_class = settings
+    # if settings_class is None:
+    #     settings_class = initiate(settings_file, inputs=inputs, report=report)
+    # else:
+    #     settings_for_fit = settings_class
+    new_data = settings_class.data_class
 
     # Define locally required names
     temporary_data_file = make_outfile_name(
         "PreviousFit_JSON",
-        directory=settings_for_fit.output_directory,
+        directory=settings_class.output_directory,
         extension=".dat",
         overwrite=True,
     )
 
-    if settings_for_fit.calibration_data:
-        data_to_fill = Path(settings_for_fit.calibration_data).resolve()
+    if settings_class.calibration_data:
+        data_to_fill = Path(settings_class.calibration_data).resolve()
     else:
-        data_to_fill = settings_for_fit.image_list[0]
+        data_to_fill = settings_class.image_list[0]
 
     new_data.fill_data(
         data_to_fill,
-        settings=settings_for_fit,
+        settings=settings_class,
         debug=debug,
     )
 
@@ -694,7 +699,7 @@ def execute(
     # plot calibration file
     if (
         logger.is_below_level(level="DEBUG")
-        and settings_for_fit.calibration_data is not None
+        and settings_class.calibration_data is not None
     ):
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
@@ -705,7 +710,7 @@ def execute(
 
     # if parallel processing start the pool
     if parallel is True:
-        nodes = int(np.min([cpu_count(), len(settings_for_fit.fit_orders)]))
+        nodes = int(np.min([cpu_count(), len(settings_class.fit_orders)]))
         pool = ParallelPool(nodes=nodes)
         # Since we may have already closed the pool, try to restart it
         try:
@@ -714,9 +719,9 @@ def execute(
             pass
 
     # Process the diffraction patterns
-    # for j in range(settings_for_fit.image_number):
+    # for j in range(settings_class.image_number):
     progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
-    for j in progress.iter_bar(iteration=range(settings_for_fit.image_number)):
+    for j in progress.iter_bar(iteration=range(settings_class.image_number)):
         logger.info(
             " ".join(
                 map(
@@ -725,7 +730,7 @@ def execute(
                         (
                             "Processing %s"
                             % title_file_names(
-                                image_name=settings_for_fit.image_list[j]
+                                image_name=settings_class.image_list[j]
                             )
                         )
                     ],
@@ -734,13 +739,13 @@ def execute(
         )
 
         # Get diffraction pattern to process.
-        new_data.import_image(settings_for_fit.image_list[j], debug=debug)
+        new_data.import_image(settings_class.image_list[j], debug=debug)
 
-        if settings_for_fit.datafile_preprocess is not None:
+        if settings_class.datafile_preprocess is not None:
             # needed because image preprocessing adds to the mask and is different for each image.
             new_data.mask_restore()
-            if "cosmics" in settings_for_fit.datafile_preprocess:
-                new_data = cosmicsimage_preprocess(new_data, settings_for_fit)
+            if "cosmics" in settings_class.datafile_preprocess:
+                new_data = cosmicsimage_preprocess(new_data, settings_class)
         else:
             # nothing is done here.
             pass
@@ -751,12 +756,12 @@ def execute(
             ax = fig.add_subplot(1, 1, 1)
             ax_o1 = plt.subplot(111)
             new_data.plot_calibrated(fig_plot=fig, axis_plot=ax, show="intensity")
-            plt.title(title_file_names(settings_for_fit=settings_for_fit, num=j))
+            plt.title(title_file_names(settings_for_fit=settings_class, num=j))
             plt.show()
             if mode == "view":
                 filename = make_outfile_name(
-                    settings_for_fit.image_list[j],
-                    directory=settings_for_fit.output_directory,
+                    settings_class.image_list[j],
+                    directory=settings_class.output_directory,
                     extension=".png",
                     overwrite=True,
                 )
@@ -767,13 +772,13 @@ def execute(
             ax = fig.add_subplot(1, 1, 1)
             ax_o1 = plt.subplot(111)
             new_data.plot_integrated(fig_plot=fig, axis_plot=ax, show="intensity")
-            # plt.title(os.path.basename(settings_for_fit.datafile_list[j]))
-            plt.title(title_file_names(settings_for_fit=settings_for_fit, num=j))
+            # plt.title(os.path.basename(settings_class.datafile_list[j]))
+            plt.title(title_file_names(settings_for_fit=settings_class, num=j))
             plt.show()
             if mode == "view":
                 filename = make_outfile_name(
-                    settings_for_fit.image_list[j],
-                    directory=settings_for_fit.output_directory,
+                    settings_class.image_list[j],
+                    directory=settings_class.output_directory,
                     additional_text = "integrated",
                     extension=".png",
                     overwrite=True,
@@ -788,7 +793,7 @@ def execute(
         # Get previous fit (if it exists and is required)
         if (
             Path(temporary_data_file).is_file()
-            and settings_for_fit.fit_propagate is True
+            and settings_class.fit_propagate is True
             and mode == "fit"
             and j != 0  # not the first data in series.
         ):
@@ -811,25 +816,25 @@ def execute(
 
                 # if the previous_fit is not the same size as fit_orders the inout file must have been changed.
                 # so discard the previous fit and start again.
-                if len(previous_fit) != len(settings_for_fit.fit_orders):
+                if len(previous_fit) != len(settings_class.fit_orders):
                     del previous_fit
 
         # Switch to save the first fit in each sequence.
-        save_figs = True if (j == 0 or save_all is True) else False
+        save_figs = False#True if (j == 0 or save_all is True) else False
 
         # Pass each sub-pattern to Fit_Subpattern for fitting in turn.
         fitted_param = []
         lmfit_models = []
         parallel_pile = []
 
-        for i in range(len(settings_for_fit.fit_orders)):
+        for i in range(len(settings_class.fit_orders)):
             
             if parallel == False:
-                serial_string = f"Fitting range {i+1}/{len(settings_for_fit.fit_orders)}"
+                serial_string = f"Fitting range {i+1}/{len(settings_class.fit_orders)}"
                 logger.info(serial_string)
 
             # get settings for current subpattern
-            settings_for_fit.set_subpattern(j, i)
+            settings_class.set_subpattern(j, i)
 
             if "previous_fit" in locals() and mode == "fit":
                 params = previous_fit[i]
@@ -839,8 +844,8 @@ def execute(
             # Track the position of the peak centroid
             # FIXME: This is crude - the range doesn't change width. so can't account for massive change in stress.
             # But does it need to?
-            tth_range = np.array(settings_for_fit.subfit_orders["range"])
-            if settings_for_fit.fit_track is True and "previous_fit" in locals():
+            tth_range = np.array(settings_class.subfit_orders["range"])
+            if settings_class.fit_track is True and "previous_fit" in locals():
                 clean = any_terms_null(params, val_to_find=None)
                 if not clean:
                     # the previous fit has problems so discard it
@@ -871,8 +876,8 @@ def execute(
 
                     # update tth_range and settings
                     tth_range = tth_range + move_by
-                    settings_for_fit.fit_orders[i]["range"] = (
-                        settings_for_fit.fit_orders[i]["range"] + move_by
+                    settings_class.fit_orders[i]["range"] = (
+                        settings_class.fit_orders[i]["range"] + move_by
                     )
 
                     logger.moreinfo(  # type: ignore
@@ -889,42 +894,42 @@ def execute(
                     )
 
                     # The PeakPositionSelections are only used if the fits are not being propagated
-                    if "PeakPositionSelection" in settings_for_fit.fit_orders[i]:
+                    if "PeakPositionSelection" in settings_class.fit_orders[i]:
                         for k in range(
-                            len(settings_for_fit.fit_orders[i]["PeakPositionSelection"])
+                            len(settings_class.fit_orders[i]["PeakPositionSelection"])
                         ):
-                            settings_for_fit.fit_orders[i]["PeakPositionSelection"][k][
+                            settings_class.fit_orders[i]["PeakPositionSelection"][k][
                                 2
                             ] = (
-                                settings_for_fit.fit_orders[i]["PeakPositionSelection"][
+                                settings_class.fit_orders[i]["PeakPositionSelection"][
                                     k
                                 ][2]
                                 + move_by
                             )
 
                     # re-get settings for current subpattern
-                    settings_for_fit.set_subpattern(j, i)
+                    settings_class.set_subpattern(j, i)
 
             sub_data = new_data.duplicate_without_detector(range_bounds=tth_range)
             # sub_data.set_limits(range_bounds=tth_range)
 
             # Mask the subpattern by intensity if called for
             if (
-                "imax" in settings_for_fit.subfit_orders
-                or "imin" in settings_for_fit.subfit_orders
+                "imax" in settings_class.subfit_orders
+                or "imin" in settings_class.subfit_orders
             ):
-                sub_data = SpotProcess(sub_data, settings_for_fit)
+                sub_data = SpotProcess(sub_data, settings_class)
 
             if mode == "set-range":
                 fig_1 = plt.figure()
                 sub_data.plot_masked(fig_plot=fig_1)
-                plt.suptitle(peak_string(settings_for_fit.subfit_orders) + "; masking")
+                plt.suptitle(peak_string(settings_class.subfit_orders) + "; masking")
 
                 filename = make_outfile_name(
-                    settings_for_fit.image_list[j],
-                    directory=settings_for_fit.output_directory,
+                    settings_class.image_list[j],
+                    directory=settings_class.output_directory,
                     additional_text="mask",
-                    orders=settings_for_fit.subfit_orders,
+                    orders=settings_class.subfit_orders,
                     extension=".png",
                     overwrite=True,
                 )
@@ -933,7 +938,7 @@ def execute(
 
                 # if debug:
                 plt.show()
-                # plt.close()
+                plt.close()
 
 
             elif mode == "view":
@@ -944,14 +949,14 @@ def execute(
                     fig_plot=fig, axis_plot=ax, show="intensity", rastered="scatter"
                 )
                 plt.suptitle(
-                    peak_string(settings_for_fit.subfit_orders) + "; calibrated"
+                    peak_string(settings_class.subfit_orders) + "; calibrated"
                 )
 
                 filename = make_outfile_name(
-                    settings_for_fit.image_list[j],
-                    directory=settings_for_fit.output_directory,
+                    settings_class.image_list[j],
+                    directory=settings_class.output_directory,
                     additional_text="range",
-                    orders=settings_for_fit.subfit_orders,
+                    orders=settings_class.subfit_orders,
                     extension=".png",
                     overwrite=True,
                 )
@@ -971,7 +976,7 @@ def execute(
                 sub_data.plot_calibrated(
                     fig_plot=fig_1, axis_plot=ax, y_axis="azimuth", limits=[0, 100]
                 )
-                plt.title(peak_string(settings_for_fit.subfit_orders))
+                plt.title(peak_string(settings_class.subfit_orders))
 
                 (points,) = fig_1.get_axes()[0].plot(
                     [],
@@ -991,7 +996,7 @@ def execute(
                             [
                                 (
                                     "Selected points for %s peak(s): ["
-                                    % peak_string(settings_for_fit.subfit_orders)
+                                    % peak_string(settings_class.subfit_orders)
                                 )
                             ],
                         )
@@ -1011,23 +1016,23 @@ def execute(
                         "debug": debug,
                         "refine": refine,
                         "iterations": iterations,
-                        "min_data_intensity": settings_for_fit.fit_min_data_intensity,
-                        "min_peak_intensity": settings_for_fit.fit_min_peak_intensity,
+                        "min_data_intensity": settings_class.fit_min_data_intensity,
+                        "min_peak_intensity": settings_class.fit_min_peak_intensity,
                     }
-                    arg = (sub_data, settings_for_fit.duplicate_without_dataclass())
+                    arg = (sub_data, settings_class.duplicate_without_dataclass())
                     parallel_pile.append((arg, kwargs))
 
                 else:  # non-parallel version
                     tmp = fit_sub_pattern(
                         sub_data,
-                        settings_for_fit,  # added
+                        settings_class,  # added
                         params,
                         save_fit=save_figs,
                         debug=debug,
                         refine=refine,
                         iterations=iterations,
-                        min_data_intensity=settings_for_fit.fit_min_data_intensity,
-                        min_peak_intensity=settings_for_fit.fit_min_peak_intensity,
+                        min_data_intensity=settings_class.fit_min_data_intensity,
+                        min_peak_intensity=settings_class.fit_min_peak_intensity,
                         fit_method=fit_method,
                     )
                     fitted_param.append(tmp[0])
@@ -1037,19 +1042,19 @@ def execute(
         if mode == "fit" or mode == "search":
             if parallel is True:
                 tmp = pool.map(parallel_processing, parallel_pile)
-                for i in range(len(settings_for_fit.fit_orders)):
+                for i in range(len(settings_class.fit_orders)):
                     fitted_param.append(tmp[i][0])
                     lmfit_models.append(tmp[i][1])
 
             # store the fit parameters' information as a JSON file.
             if mode == "search":
-                additional_text = settings_for_fit.file_label
+                additional_text = settings_class.file_label
             else:
                 additional_text = None
 
             filename = make_outfile_name(
-                settings_for_fit.subfit_filename,
-                directory=settings_for_fit.output_directory,
+                settings_class.subfit_filename,
+                directory=settings_class.output_directory,
                 additional_text=additional_text,
                 extension=".json",
                 overwrite=True,
@@ -1065,7 +1070,7 @@ def execute(
                 )
 
             # if propagating the fits write them to a temporary file
-            if settings_for_fit.fit_propagate:
+            if settings_class.fit_propagate:
                 with open(temporary_data_file, "w") as TempFile:
                     # Write a JSON string into the file.
                     json.dump(
@@ -1079,7 +1084,7 @@ def execute(
     if mode == "fit":
         # Write the output files.
         write_output(
-            settings_file=settings_file, settings_class=settings_for_fit, debug=debug
+            settings_class, debug=debug
         )
 
     if parallel is True:
@@ -1092,18 +1097,18 @@ def parallel_processing(p):
 if __name__ == "__main__":
     # Load settings fit settings file.
     sys.path.append(str(Path().cwd()))
-    settings_file = Path(sys.argv[1])
-    logger.info(" ".join(map(str, [(settings_file)])))
+    settings = Path(sys.argv[1])
+    logger.info(" ".join(map(str, [(settings)])))
     # Safely exit the program
     for handler in logging.getLogger().handlers:
         handler.flush()
     # sys.exit()
     execute(
+        settings,
         inputs=None,
         debug=False,
         refine=True,
         save_all=False,
         iterations=1,
-        settings_file=settings_file,
         parallel=False,
     )

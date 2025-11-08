@@ -7,6 +7,7 @@ __all__ = ["execute", "write_output"]
 import json
 import logging
 import sys
+import inspect
 from importlib import import_module
 from os import cpu_count
 from pathlib import Path
@@ -91,24 +92,49 @@ def initiate(
     # Add a file handler to this logger
     if isinstance(settings, dict):
         running_name = settings["run_name"]
-    elif isinstance(settings, str):
+        setting_type = "dictionary"
+    elif isinstance(settings, str) or isinstance(settings, Path):
         running_name = settings
-    elif is_settings(settings) and settings.settings_file is not None: #isinstance(settings, type(Settings()))
-        running_name = settings.settings_file
-    else:
-        running_name = "cpf_log_file"        
+        setting_type = "file" #assume string deontes file name
+    elif is_settings(settings): #isinstance(settings, type(Settings()))
+        setting_type = "class"
+        if settings.settings_file is not None:
+            #there is a file name or run label in the settings class
+            running_name = settings.settings_file
+        else:
+            running_name = "cpf settings class"     
+    else: #unknown
+        setting_type = "Unknown"
+        running_name = "cpf_run"     
     log_file = log_file = make_outfile_name(
         base_filename=running_name, extension=".log", overwrite=True
     )
     logger.add_file_handler(log_file)
-     
-    # if settings_file:
-    #     log_file = make_outfile_name(
-    #         base_filename=settings_file, extension=".log", overwrite=True
-    #     )
-    #     logger.add_file_handler(log_file)
+
+    # make a header in the log file so that we know where the processing starts
+    # It is the first pass through the method if: 
+    # 1. if settings is not a settings class then it has to be new.
+    # 2. if it is a settings class and is not validated then is likely to be new
+    # 3. but it could be a validated settings class and also new executeion. 
+    #       but in normal use this will not be the case. Therefore can ignore for now.
+    #       and if the settings class has been validated then it will appear in the log 
+    #       file as an initiation or validation.
+    # all calls to the methods in here pass around a settings class once it is made and 
+    # so is_settings == True.
+    if (not is_settings(settings) or 
+        (is_settings(settings) and settings.is_valid()==False)
+        ): 
+        logger.info("")
+        logger.info("=================================================================")
+        logger.info("")
+        logger.info(f"Starting data proceesing using settings {setting_type}{' from' if setting_type != 'file' else ''}: {running_name}")    
+        logger.info("")
+        logger.info("=================================================================")
+        logger.info("")
 
     # Fail gracefully
+    
+    
     if settings is None:
         err_str = "Either the settings file or the parameter dictionary need to be specified."
         logger.error(err_str)
@@ -120,8 +146,11 @@ def initiate(
             err_str = "The settings class is empty; there is nothing to process."
             logger.error(err_str)
             raise ValueError(err_str)
-        else:
+        elif settings.is_valid() == False:
+            # only validate the setttings if changed. 
             settings.validate_settings_file()
+            settings_class = settings
+        else: #must be populated and valid.
             settings_class = settings
     else:
         # initiate a settings class. 
@@ -132,16 +161,6 @@ def initiate(
                 settings = Path(settings)
             except Exception as error:
                 raise error
-    
-        # make a header in the log file so that we know where the processing starts
-        logger.info("")
-        logger.info("=================================================================")
-        logger.info("")
-        logger.info(f"Starting data proceesing using settings {'dictionary' if isinstance(settings, dict) else 'file'}: {running_name}")    
-        logger.info("")
-        logger.info("=================================================================")
-        logger.info("")
-    
         # If no params_dict then initiate. Check all the output functions are present and valid.
         settings_class = Settings()
         settings_class.populate(settings=settings, report=report, **kwargs)
@@ -164,6 +183,7 @@ def view(
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
     ] = "INFO",
+    **kwargs
 ):
     """
     :param settings:
@@ -179,10 +199,17 @@ def view(
     :param kwargs:
     :return:
     """
-    if not is_settings(settings):
-        settings_class = initiate(settings, report=report)
-    else:
-        settings_class = settings
+    
+    settings_class = initiate(settings, report=report, **kwargs)
+    # make a note in the logger.
+    # suppress output if called by another module.
+    for i in range(len(inspect.stack())-1,-1,-1):
+        if inspect.stack()[i].function == "<module>":          
+            base_call = inspect.stack()[i-1].function
+    if base_call == "view":
+        logger.info("")
+        logger.info(f"Running: XRD_FitPattern.view with settings: {settings_class.settings_file}")
+        logger.info("")
 
     # view the listed file only
     if pattern != "all":
@@ -219,6 +246,7 @@ def set_range(
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
     ] = "INFO",
+    **kwargs
 ):
     """
     :param settings:
@@ -234,18 +262,26 @@ def set_range(
     :param kwargs:
     :return:
     """
-    if not is_settings(settings):
-        settings_class = initiate(settings, report=report)
-    else:
-        settings_class = settings
 
+    settings_class = initiate(settings, report=report, **kwargs)
+    # make a note in the logger.
+    # suppress output if called by another module.
+    for i in range(len(inspect.stack())-1,-1,-1):
+        if inspect.stack()[i].function == "<module>":          
+            base_call = inspect.stack()[i-1].function
+    if base_call == "set_range":
+        logger.info("")
+        logger.info(f"Running: XRD_FitPattern.set_range with settings: {settings_class.settings_file}")
+        logger.info("")
+    
     # search over the first file only
     # restrict file list to first file
     settings_class.set_data_files(keep=0)
-
     # restrict to sub-patterns listed
     settings_class.set_subpatterns(subpatterns=subpattern)
-
+    # circulment revalidating the settings class
+    settings_class._unmodified_self = settings_class._validation_copy()
+    
     execute(
         settings_class,
         debug=debug,
@@ -272,6 +308,7 @@ def initial_peak_position(
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
     ] = "INFO",
+    **kwargs
 ):
     """
     Calls interactive graph to set the inital peak postion guesses.
@@ -292,32 +329,26 @@ def initial_peak_position(
     :param kwargs:
     :return:
     """
-    if not is_settings(settings):
-        settings_class = initiate(settings, report=report)
-    else:
-        settings_class = settings
-
+    
+    settings_class = initiate(settings, report=report, **kwargs)
+    # make a note in the logger.
+    # suppress output if called by another module.
+    for i in range(len(inspect.stack())-1,-1,-1):
+        if inspect.stack()[i].function == "<module>":          
+            base_call = inspect.stack()[i-1].function
+    if base_call == "initial_peak_position":
+        logger.info("")
+        logger.info(f"Running: XRD_FitPattern.initial_peak_position with settings: {settings_class.settings_file}")
+        logger.info("")
+    
     # search over the first file only
     settings_class.set_data_files(keep=0)
-
     # restrict to sub-patterns listed
     settings_class.set_subpatterns(subpatterns=subpattern)
+    # circulment revalidating the settings class
+    settings_class._unmodified_self = settings_class._validation_copy()
 
     logger.info("\n'initial_peak_position' needs an interactive matplotlib figure.")
-    logger.info(
-        " ".join(
-            map(
-                str,
-                [
-                    (
-                        "If you are using sypder with inline figures, call '%matplotlib qt', then rerun the script"
-                    )
-                ],
-            )
-        )
-    )
-    logger.info(
-        " ".join(
             map(
                 str,
                 [
@@ -494,8 +525,17 @@ def order_search(
     None.
 
     """
-
-    settings_class = initiate(settings, inputs=inputs, report=report)
+    
+    settings_class = initiate(settings, report=report, **kwargs)
+    # make a note in the logger.
+    # suppress output if called by another module.
+    for i in range(len(inspect.stack())-1,-1,-1):
+        if inspect.stack()[i].function == "<module>":          
+            base_call = inspect.stack()[i-1].function
+    if base_call == "order_search":
+        logger.info("")
+        logger.info(f"Running: XRD_FitPattern.order_search with settings: {settings_class.settings_file}")
+        logger.info("")
 
     # search over the first file only
     settings_class.set_data_files(keep=0)
@@ -529,6 +569,8 @@ def order_search(
             + "_peak="
             + str(search_peak)
         )
+        # circulment revalidating the settings class
+        settings_class._unmodified_self = settings_class._validation_copy()
         
         execute(
             settings_class,
@@ -581,26 +623,20 @@ def write_output(
     :param det:
     :return:
     """
-
-    if not is_settings(settings):
-        settings_class = initiate(settings, report=report)
-    else:
-        settings_class = settings
+    
+    settings_class = initiate(settings, report=report, **kwargs)
+    # make a note in the logger.
+    # suppress output if called by another module.
+    for i in range(len(inspect.stack())-1,-1,-1):
+        if inspect.stack()[i].function == "<module>":          
+            base_call = inspect.stack()[i-1].function
+    if base_call == "write_output":
+        logger.info("")
+        logger.info(f"Running: XRD_FitPattern.write_output with settings: {settings_class.settings_file}")
+        logger.info("")
 
     if out_type is not None:
-        logger.moreinfo(  # type: ignore
-            " ".join(
-                map(
-                    str,
-                    [
-                        (
-                            "Output_type was provided as an option; will use %s "
-                            % out_type
-                        )
-                    ],
-                )
-            )
-        )
+        logger.moreinfo(f"Output_type was provided as an option; will use {out_type}")
         settings_class.set_output_types(out_type_list=out_type)
 
     if settings_class.output_types is None:
@@ -609,13 +645,10 @@ def write_output(
                 map(
                     str,
                     [
-                        (
-                            "There are no output types. Add 'Output_type' to input file or specify 'out_type' in command."
-                        )
                     ],
                 )
             )
-        )
+        logger.warning("There are no output types. Add 'Output_type' to input file or specify 'out_type' in command.")
     else:
         for mod in settings_class.output_types:
             logger.info(" ".join(map(str, [("Writing output file(s) using %s" % mod)])))
@@ -663,14 +696,19 @@ def execute(
     :return:
     """
     
-    if not is_settings(settings):
-        settings_class = initiate(settings, report=report)
-    else:
-        settings_class = settings
-    # if settings_class is None:
-    #     settings_class = initiate(settings_file, inputs=inputs, report=report)
-    # else:
-    #     settings_for_fit = settings_class
+    # if not is_settings(settings):
+    settings_class = initiate(settings, report=report, **kwargs)
+    # make note in logger
+    # suppress output if called by another module.
+    for i in range(len(inspect.stack())-1,-1,-1):
+        if inspect.stack()[i].function == "<module>":          
+            base_call = inspect.stack()[i-1].function
+    if base_call == "execute":
+        logger.info("")
+        logger.info(f"Running: XRD_FitPattern.execute with settings: {settings_class.settings_file}")
+        logger.info("")
+    
+    #get data from settings class
     new_data = settings_class.data_class
 
     # Define locally required names
@@ -722,20 +760,6 @@ def execute(
     # for j in range(settings_class.image_number):
     progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
     for j in progress.iter_bar(iteration=range(settings_class.image_number)):
-        logger.info(
-            " ".join(
-                map(
-                    str,
-                    [
-                        (
-                            "Processing %s"
-                            % title_file_names(
-                                image_name=settings_class.image_list[j]
-                            )
-                        )
-                    ],
-                )
-            )
         )
 
         # Get diffraction pattern to process.

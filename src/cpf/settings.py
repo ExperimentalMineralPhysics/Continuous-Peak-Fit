@@ -177,6 +177,9 @@ class Settings:
         self.subfit_orders = None
 
         self.settings_file = settings_file
+
+        self._unmodified_self = self._validation_copy()
+
         # read the settings file given
         if self.settings_file is not None:
             self.populate(report=report, **kwargs)
@@ -217,6 +220,24 @@ class Settings:
         new = self.duplicate()
         delattr(new, 'data_class')
         return new
+
+    def _validation_copy(self):
+        """
+        Return a dictionary of the class without the 
+        parts that will prevent parallelisation
+
+        Returns
+        -------
+        copy : dict
+            Data class as dictionary, with some parts removed.
+
+        """
+        copy = self.__dict__.copy()
+        # remove data_class to allow parallel processing
+        copy.pop("data_class", None)
+        # remove any possible previous unmodified previous variable.
+        copy.pop('_unmodified_self', None)
+        return copy
 
 
     def populate(
@@ -536,11 +557,35 @@ class Settings:
         # validate output types
         if self.output_types:
             self.validate_output_types()
-            
-            
+        
+        #if it gets to here the settings file has passed all the tests.
+        self._unmodified_self = self._validation_copy()
+        
         logger.info("End of Validation")
         logger.info("-----------------------------------------------------------------")
 
+
+    def is_valid(self):
+        """
+        Checks if the settings class is the same as SettingsClass._unmodified_self
+        ool for if.
+        
+        Can only be true if the settings class has passed validation tests in 
+        Settings.validate_settings_file
+
+        Returns
+        -------
+        bool
+            True if unmodified; False if changed.
+
+        """
+        # make dictionary to check against. 
+        check = self._validation_copy()
+        if check == self._unmodified_self:
+            return True
+        else:
+            return False
+        
     def check_files_exist(
         self,
         files_to_check: list[Path] | Path

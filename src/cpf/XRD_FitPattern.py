@@ -349,19 +349,9 @@ def initial_peak_position(
     settings_class._unmodified_self = settings_class._validation_copy()
 
     logger.info("\n'initial_peak_position' needs an interactive matplotlib figure.")
-            map(
-                str,
-                [
-                    (
-                        "To restore the inline plotting afterwards call '%matplotlib inline'"
-                    )
-                ],
-            )
-        )
-    )
-    logger.info(
-        " ".join(map(str, [("To move to the next peak selection close the window.\n")]))
-    )
+    logger.info("If you are using sypder with inline figures, call '%matplotlib qt', then rerun the script")
+    logger.info("To restore the inline plotting afterwards call '%matplotlib inline'")
+    logger.info("To move to the next peak selection close the window.\n")
 
     execute(
         settings_class,
@@ -477,6 +467,7 @@ def order_search(
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
     ] = "INFO",
+    **kwargs
 ):
     """
     Searches for the best order to use for 'search_parameter', where 'search_over'
@@ -640,14 +631,6 @@ def write_output(
         settings_class.set_output_types(out_type_list=out_type)
 
     if settings_class.output_types is None:
-        logger.warning(
-            " ".join(
-                map(
-                    str,
-                    [
-                    ],
-                )
-            )
         logger.warning("There are no output types. Add 'Output_type' to input file or specify 'out_type' in command.")
     else:
         for mod in settings_class.output_types:
@@ -678,6 +661,7 @@ def execute(
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
     ] = "INFO",
     fit_method: str = "leastsq",
+    **kwargs,
 ):
     """
     :param settings : *.py file, string, Path or cpf Settings
@@ -760,7 +744,7 @@ def execute(
     # for j in range(settings_class.image_number):
     progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
     for j in progress.iter_bar(iteration=range(settings_class.image_number)):
-        )
+        logger.info(f"Processing {title_file_names(image_name=settings_class.image_list[j])}")
 
         # Get diffraction pattern to process.
         new_data.import_image(settings_class.image_list[j], debug=debug)

@@ -91,7 +91,7 @@ def initiate(
 
     # Add a file handler to this logger
     if isinstance(settings, dict):
-        running_name = settings["run_name"]
+        running_name = settings.get("run_name", "cpf_logging_file")
         setting_type = "dictionary"
     elif isinstance(settings, str) or isinstance(settings, Path):
         running_name = settings

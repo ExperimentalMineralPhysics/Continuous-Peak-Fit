@@ -73,7 +73,7 @@ def json_numpy_serializer(o):
         )
 
 
-def image_list(fit_parameters, fit_settings):
+def image_list(fit_parameters):
     """
     From the Settings make a list of all the data images to be processed.
     If the images are h5 type files a list of files is made first then the list is expanded for the images in the h5 files.
@@ -98,29 +98,29 @@ def image_list(fit_parameters, fit_settings):
     import cpf.h5_functions as h5_functions
 
     # make the file list
-    diff_files, n_diff_files = file_list(fit_parameters, fit_settings)
+    diff_files, n_diff_files = file_list(fit_parameters)
 
     # iterate for h5 files.
     image_list = []
 
-    if "h5_datakey" in fit_parameters:
+    if "h5_datakey" in list(fit_parameters):
         # if new h5 format is present then call it.
         for i in range(n_diff_files):
             h5_list = h5_functions.get_image_keys_new(
                 diff_files[i],
-                h5key_data=fit_settings.h5_datakey,
-                h5_iterate=fit_settings.h5_iterate,
+                h5key_data=fit_parameters["h5_datakey"],
+                h5_iterate=fit_parameters["h5_iterate"],
             )
             for j in range(len(h5_list)):
                 tmp = [diff_files[i]]
                 tmp.extend(h5_list[j])
                 image_list.append(tmp)
 
-    elif "h5_key_list" in fit_parameters:
+    elif "h5_key_list" in list(fit_parameters):
         # if the input contains the old hdf5 file instircutions make the new
         # dictionary based format and call that
         h5datakey, h5iterations = h5_functions.update_key_structure(
-            fit_parameters, fit_settings
+            fit_parameters
         )
         for i in range(n_diff_files):
             h5_list = h5_functions.get_image_keys_new(
@@ -190,7 +190,7 @@ def image_list(fit_parameters, fit_settings):
     return diff_files, n_diff_files, image_list, n_images
 
 
-def file_list(fit_parameters, fit_settings):
+def file_list(fit_parameters):
     """
     From the Settings make a list of all the data files.
     This function is called by the output writing scripts to make sure the file names are called consistently.
@@ -230,82 +230,90 @@ def file_list(fit_parameters, fit_settings):
     :return:
     """
     # Define step
-    if "datafile_Step" in fit_parameters:
-        step = fit_settings.datafile_Step
+    if "datafile_Step" in list(fit_parameters):
+        step = fit_parameters["datafile_Step"]
     else:
         step = 1
 
-    if "datafile_NumDigit" not in fit_parameters:
-        fit_settings.datafile_NumDigit = 1
+    if "datafile_NumDigit" not in list(fit_parameters):
+        fit_parameters["datafile_NumDigit"] = 1
 
     # Diffraction patterns -- make list of files
     diff_files = []
-    if "datafile_Files" not in fit_parameters and "datafile_StartNum" not in fit_parameters:
+    if "datafile_Files" not in list(fit_parameters) and "datafile_StartNum" not in list(fit_parameters):
         # There is only a single file because nothing else is defined
         n_diff_files = 1
         diff_files.append(
             os.path.abspath(
-                getattr(fit_settings, 'datafile_directory', '.')  
+                fit_parameters.get("datafile_directory", ".")
                 + os.sep
-                + getattr(fit_settings, 'datafile_Basename', '')  
-                + getattr(fit_settings, 'datafile_Ending', '')  
+                + fit_parameters.get("datafile_Basename", "")
+                + fit_parameters.get("datafile_Ending", "")
             )
         )
-    elif "datafile_Files" not in fit_parameters:
+        # diff_files.append(
+        #     os.path.abspath(
+        #         getattr(fit_settings, 'datafile_directory', '.')  
+        #         + os.sep
+        #         + getattr(fit_settings, 'datafile_Basename', '')  
+        #         + getattr(fit_settings, 'datafile_Ending', '')  
+        #     )
+        # )
+    elif "datafile_Files" not in list(fit_parameters):
         n_diff_files = int(
             np.floor(
-                np.abs(fit_settings.datafile_EndNum - fit_settings.datafile_StartNum)
+                np.abs(fit_parameters["datafile_EndNum"] - fit_parameters["datafile_StartNum"])
                 / np.abs(step)
             )
             + 1
         )
         for j in range(n_diff_files):
             # Make list of diffraction pattern names and no. of pattern
-            if fit_settings.datafile_EndNum >= fit_settings.datafile_StartNum:
-                n = str(fit_settings.datafile_StartNum + (j * np.abs(step))).zfill(
-                    fit_settings.datafile_NumDigit
+            if fit_parameters["datafile_EndNum"] >= fit_parameters["datafile_StartNum"]:
+                n = str(fit_parameters["datafile_StartNum"] + (j * np.abs(step))).zfill(
+                    fit_parameters["datafile_NumDigit"]
                 )
             else:
-                n = str(fit_settings.datafile_StartNum + (j * -np.abs(step))).zfill(
-                    fit_settings.datafile_NumDigit
+                n = str(fit_parameters["datafile_StartNum"] + (j * -np.abs(step))).zfill(
+                    fit_parameters["datafile_NumDigit"]
                 )
             # Append diffraction pattern name and directory
             diff_files.append(
                 os.path.abspath(
-                    fit_settings.datafile_directory
+                    fit_parameters.get("datafile_directory", ".")
                     + os.sep
-                    + fit_settings.datafile_Basename
+                    + fit_parameters.get("datafile_Basename", "")
                     + n
-                    + fit_settings.datafile_Ending
+                    + fit_parameters.get("datafile_Ending", "")
                 )
             )
         if step < 0:
             diff_files = diff_files[::-1]
 
-    elif "datafile_Files" in fit_parameters:
-        n_diff_files = int(np.round(len(fit_settings.datafile_Files) / np.abs(step)))
+    elif "datafile_Files" in list(fit_parameters):
+        n_diff_files = int(np.round(len(fit_parameters["datafile_Files"]) / np.abs(step)))
         for j in range(n_diff_files):
             # Make list of diffraction pattern names and no. of pattern
             if step < 0:
-                n = str(fit_settings.datafile_Files[j * step - 1]).zfill(
-                    fit_settings.datafile_NumDigit
+                n = str(fit_parameters["datafile_Files"][j * step - 1]).zfill(
+                    fit_parameters["datafile_NumDigit"]
                 )
             else:
-                n = str(fit_settings.datafile_Files[j * step]).zfill(
-                    fit_settings.datafile_NumDigit
+                n = str(fit_parameters["datafile_Files"][j * step]).zfill(
+                    fit_parameters["datafile_NumDigit"]
                 )
             # Append diffraction pattern name and directory
             diff_files.append(
                 os.path.abspath(
-                    fit_settings.datafile_directory
+                    fit_parameters.get("datafile_directory", ".")
                     + os.sep
-                    + fit_settings.datafile_Basename
+                    + fit_parameters.get("datafile_Basename", "")
                     + n
-                    + fit_settings.datafile_Ending
+                    + fit_parameters.get("datafile_Ending", "")
                 )
             )
     else:
-        n_diff_files = int(len(fit_settings.datafile_Files) / step + 1)
+        n_diff_files = int(len(fit_parameters["datafile_Files"]) / step + 1)
     return diff_files, n_diff_files
 
 

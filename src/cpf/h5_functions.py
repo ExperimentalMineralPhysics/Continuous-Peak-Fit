@@ -568,7 +568,7 @@ def DefaultProcessDictionary(types=False):
         }
 
 
-def update_key_structure(fit_parameters, fit_settings):
+def update_key_structure(fit_parameters):
     """
     For backwards compatability. Can be removed in future release.
 
@@ -622,39 +622,39 @@ def update_key_structure(fit_parameters, fit_settings):
     """
     # convert old "h5_key_list" into new "h5datakey".
     h5datakey = ""
-    for i in range(len(fit_settings.h5_key_list)):
-        if fit_settings.h5_key_list[i][0] != "/":
+    for i in range(len(fit_parameters["h5_key_list"])):
+        if fit_parameters["h5_key_list"][i][0] != "/":
             h5datakey += "/"
-        h5datakey += fit_settings.h5_key_list[i]
-        if i < len(fit_settings.h5_key_list) and i != len(fit_settings.h5_key_list) - 1:
+        h5datakey += fit_parameters["h5_key_list"][i]
+        if i < len(fit_parameters["h5_key_list"]) and i != len(fit_parameters["h5_key_list"]) - 1:
             h5datakey += "*"
 
     # convert everything else into a dictionary.
     h5iterations = []
     lowerKey = ""
-    for i in range(len(fit_settings.h5_key_list)):
+    for i in range(len(fit_parameters["h5_key_list"])):
         # make 1 dictionary for each level.
         loop = DefaultProcessDictionary()
 
-        loop["from"] = fit_settings.h5_key_start[i]
-        loop["to"] = fit_settings.h5_key_end[i]
-        loop["step"] = fit_settings.h5_key_step[i]
+        loop["from"] = fit_parameters["h5_key_start"][i]
+        loop["to"] = fit_parameters["h5_key_end"][i]
+        loop["step"] = fit_parameters["h5_key_step"][i]
 
-        if i < len(fit_settings.h5_key_list):
+        if i < len(fit_parameters["h5_key_list"]):
             loop["using"] = "value"
         else:
             loop["using"] = "position"
 
-        if isinstance(fit_settings.h5_key_names, str):
-            fit_settings.h5_key_names == [fit_settings.h5_key_names]
+        if isinstance(fit_parameters["h5_key_names"], str):
+            fit_parameters["h5_key_names"] == [fit_parameters["h5_key_names"]]
         loop["label"] = []
-        for j in range(len(fit_settings.h5_key_names[i])):
-            if fit_settings.h5_key_names[i][j] == "":
+        for j in range(len(fit_parameters["h5_key_names"][i])):
+            if fit_parameters["h5_key_names"][i][j] == "":
                 loop["label"].append("pos")
-            elif fit_settings.h5_key_names[i][j] == "/":
+            elif fit_parameters["h5_key_names"][i][j] == "/":
                 loop["label"].append("value")
             else:
-                loop["label"].append(lowerKey + fit_settings.h5_key_names[i][j])
+                loop["label"].append(lowerKey + fit_parameters["h5_key_names"][i][j])
         lowerKey += "*/"
         h5iterations.append(loop)
 
@@ -662,7 +662,7 @@ def update_key_structure(fit_parameters, fit_settings):
 
 
 def image_key_validate_new(
-    fit_parameters=None, fit_settings=None, h5_iterate=None, end_if_errors=False
+    fit_settings=None, h5_iterate=None, end_if_errors=False
 ):
     """
     Validates the lengths and structure of h5_iterate, which is the list/dictionary
@@ -674,7 +674,6 @@ def image_key_validate_new(
 
     Parameters
     ----------
-    fit_parameters : continuous peak fit parameter list, optional
     fit_settings : continuous peak fit settings class, optional
         continuous peak fit settings class with h5 description in it.
     h5_iterate : dictionary

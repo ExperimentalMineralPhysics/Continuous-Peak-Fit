@@ -243,6 +243,7 @@ class Settings:
     def populate(
         self,
         settings: Optional[str | Path | dict] = None,
+        validate = True,
         out_type=None,
         report=False,
         debug=False,
@@ -266,7 +267,6 @@ class Settings:
             Verbose outputs to find errors.
 
         """
-
         # Fail gracefully
         if settings is None:
             raise ValueError("The settings needs to be specified: it is either a file string, a file path or a dictionary.")
@@ -276,11 +276,11 @@ class Settings:
             return
         
         elif isinstance(settings, dict):
-            
             if "run_name" in settings:         
                 # I dont think that an input file name is needed later in the processing.
                 # But incase it is one is forced here.
                 self.settings_file = settings["run_name"]
+                self.run_name = settings["run_name"]
             else:
                 raise ValueError("NEEDS TO BE SPECIFICED ")
                             
@@ -291,7 +291,8 @@ class Settings:
                             value = RecursiveObject(value)
                         setattr(self, key, value)
 
-            self.settings_from_input = RecursiveObject(dictionary = settings)
+            self.settings_from_input = settings#RecursiveObject(dictionary = settings)
+            
             
         else:
             
@@ -304,6 +305,8 @@ class Settings:
             self.settings_file = settings
             if not self.settings_file.suffix == ".py":
                 self.settings_file = self.settings_file.with_suffix(".py")
+            
+            self.run_name = self.settings_file.stem
     
             self.check_files_exist(self.settings_file)
             
@@ -312,12 +315,12 @@ class Settings:
             spec = importlib.util.spec_from_file_location(module_name, self.settings_file)
             self.settings_from_input = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(self.settings_from_input)
+            #convert to a dictionary
+            self.settings_from_input = self.settings_from_input.__dict__
+            self.settings_from_input["run_name"] = str(settings)
+          
+        self.fill_settings(validate=validate)
             
-            
-        self.fill_settings()
-            
-            
-
         # override the files output settings.
         if not out_type is None:
             self.set_output_types(out_type_list=out_type)
@@ -328,7 +331,7 @@ class Settings:
         """
         self.populate()
 
-    def fill_settings(self):
+    def fill_settings(self, validate = True):
         """
         adds values to the class from the settings file.
         Fails with a list of missing parameters if not complete.
@@ -356,62 +359,62 @@ class Settings:
         
         # then sort them in a useful way...
 
-        ##all_settings_from_input = dir(self.settings_from_input)#
+        ##all_settings_from_input = list(self.settings_from_input)#
 
         # FIXME: datafile_base name should probably go because it is not a required variable it is only used in writing the outputs.
-        if "datafile_Basename" in dir(self.settings_from_input):
-            self.datafile_basename: str = self.settings_from_input.datafile_Basename
-        if "datafile_Ending" in dir(self.settings_from_input):
-            self.datafile_ending: str = self.settings_from_input.datafile_Ending
+        if "datafile_Basename" in list(self.settings_from_input):
+            self.datafile_basename: str = self.settings_from_input["datafile_Basename"]
+        if "datafile_Ending" in list(self.settings_from_input):
+            self.datafile_ending: str = self.settings_from_input["datafile_Ending"]
 
         # add output directory if listed.
         # change if listed among the inputs
-        if "Output_directory" in dir(self.settings_from_input):
-            self.output_directory = self.settings_from_input.Output_directory
+        if "Output_directory" in list(self.settings_from_input):
+            self.output_directory = self.settings_from_input["Output_directory"]
             if isinstance(self.output_directory, str):
                 self.output_directory = Path(self.output_directory)
 
         # Load the detector class here to access relevant functions and check required parameters are present
-        if "Calib_type" in dir(self.settings_from_input):
-            self.calibration_type = self.settings_from_input.Calib_type
-        if "Calib_param" in dir(self.settings_from_input):
-            self.calibration_parameters = self.settings_from_input.Calib_param
+        if "Calib_type" in list(self.settings_from_input):
+            self.calibration_type = self.settings_from_input["Calib_type"]
+        if "Calib_param" in list(self.settings_from_input):
+            self.calibration_parameters = self.settings_from_input["Calib_param"]
             if isinstance(self.calibration_parameters, str):
                 self.calibration_parameters = Path(self.calibration_parameters)
 
-        if "Calib_data" in dir(self.settings_from_input):
-            self.calibration_data = self.settings_from_input.Calib_data
+        if "Calib_data" in list(self.settings_from_input):
+            self.calibration_data = self.settings_from_input["Calib_data"]
             if isinstance(self.calibration_data, str):
                 self.calibration_data = Path(self.calibration_data)
-        if "Calib_mask" in dir(self.settings_from_input):
-            self.calibration_mask = self.settings_from_input.Calib_mask
+        if "Calib_mask" in list(self.settings_from_input):
+            self.calibration_mask = self.settings_from_input["Calib_mask"]
             if isinstance(self.calibration_mask, str):
                 self.calibration_mask = Path(self.calibration_mask)
-        if "Calib_detector" in dir(self.settings_from_input):
-            self.calibration_detector = self.settings_from_input.Calib_detector
-        if "Calib_pixels" in dir(self.settings_from_input):
-            self.calibration_pixel_size: int = self.settings_from_input.Calib_pixels
+        if "Calib_detector" in list(self.settings_from_input):
+            self.calibration_detector = self.settings_from_input["Calib_detector"]
+        if "Calib_pixels" in list(self.settings_from_input):
+            self.calibration_pixel_size: int = self.settings_from_input["Calib_pixels"]
 
-        if "reduce_by" in dir(self.settings_from_input):
-            self.reduce_by = self.settings_from_input.reduce_by
+        if "reduce_by" in list(self.settings_from_input):
+            self.reduce_by = self.settings_from_input["reduce_by"]
 
         # load the data class.
         self.data_class = detector_factory(settings_class=self)
 
-        if "Image_prepare" in dir(self.settings_from_input):
+        if "Image_prepare" in list(self.settings_from_input):
             logger.warning(
                 "'Image_prepare' is depreciated nomenclature. Has been replased by 'image_preprocess'"
             )
-            self.settings_from_input.image_preprocess = (
-                self.settings_from_input.Image_prepare
+            self.settings_from_input["image_preprocess"] = (
+                self.settings_from_input["Image_prepare"]
             )
 
-        if "image_preprocess" in dir(self.settings_from_input):
-            self.datafile_preprocess = self.settings_from_input.Image_prepare
+        if "image_preprocess" in list(self.settings_from_input):
+            self.datafile_preprocess = self.settings_from_input["Image_prepare"]
 
 
         # add data directory and data files
-        self.datafile_directory = self.settings_from_input.datafile_directory
+        self.datafile_directory = self.settings_from_input["datafile_directory"]
         if isinstance(self.datafile_directory, str):  # Convert to Path object
             self.datafile_directory = Path(self.datafile_directory)
 
@@ -420,7 +423,7 @@ class Settings:
             self.datafile_number,
             self.image_list,
             self.image_number,
-        ) = image_list(dir(self.settings_from_input), self.settings_from_input)
+        ) = image_list(self.settings_from_input)
         # Convert datafile list entries to Path objects, if they exist
         if len(self.datafile_list) > 0:
             try:
@@ -438,17 +441,17 @@ class Settings:
         if (len(self.datafile_list) == 1 
                 and (self.datafile_list[0].suffix == ".h5" 
                 or self.datafile_list[0].suffix == ".nxs")):
-            if "h5_datakey" not in dir(self.settings_from_input):
+            if "h5_datakey" not in list(self.settings_from_input):
                 if "_default_h5_datakey" in dir(self.data_class):
-                    self.settings_from_input.h5_datakey = self.data_class._default_h5_datakey
+                    self.settings_from_input["h5_datakey"] = self.data_class._default_h5_datakey
                 else:
                     logger.warning(
                         "The data class has no value for '_default_h5_datakey'. Need to define 'h5_datakey' in settings." 
                     )
                     raise ValueError("The data class has no value for '_default_h5_datakey'.")
-            if "h5_iterate" not in dir(self.settings_from_input):
+            if "h5_iterate" not in list(self.settings_from_input):
                 if "_default_h5_iterate" in dir(self.data_class):
-                    self.settings_from_input.h5_iterate = self.data_class._default_h5_iterate
+                    self.settings_from_input["h5_iterate"] = self.data_class._default_h5_iterate
                 else:
                     logger.warning(
                         "The data class has no value for '_default_h5_iterate'. Need to define 'h5_iterate' in settings."
@@ -460,7 +463,7 @@ class Settings:
                 self.datafile_number,
                 self.image_list,
                 self.image_number,
-            ) = image_list(dir(self.settings_from_input), self.settings_from_input)
+            ) = image_list(list(self.settings_from_input), self.settings_from_input)
             # Convert datafile list entries to Path objects, if they exist
             if len(self.datafile_list) > 0:
                 try:
@@ -471,51 +474,52 @@ class Settings:
                     raise error
 
         # organise the cascade properties
-        if "cascade_number_bins" in dir(self.settings_from_input):
-            self.cascade_number_bins = self.settings_from_input.cascade_number_bins
+        if "cascade_number_bins" in list(self.settings_from_input):
+            self.cascade_number_bins = self.settings_from_input["cascade_number_bins"]
             self.cascade_bin_type = 1
-        if "cascade_per_bin" in dir(self.settings_from_input):
-            self.cascade_per_bin = self.settings_from_input.cascade_per_bin
+        if "cascade_per_bin" in list(self.settings_from_input):
+            self.cascade_per_bin = self.settings_from_input["cascade_per_bin"]
             self.cascade_bin_type = 0
-        if "cascade_bin_type" in dir(self.settings_from_input):
-            self.cascade_bin_type = self.settings_from_input.cascade_bin_type
-        if "cascade_historgram_type" in dir(self.settings_from_input):
+        if "cascade_bin_type" in list(self.settings_from_input):
+            self.cascade_bin_type = self.settings_from_input["cascade_bin_type"]
+        if "cascade_historgram_type" in list(self.settings_from_input):
             self.cascade_historgram_type = (
-                self.settings_from_input.cascade_historgram_type
+                self.settings_from_input["cascade_historgram_type"]
             )
-        if "cascade_historgram_bins" in dir(self.settings_from_input):
+        if "cascade_historgram_bins" in list(self.settings_from_input):
             self.cascade_historgram_bins = (
-                self.settings_from_input.cascade_historgram_bins
+                self.settings_from_input["cascade_historgram_bins"]
             )
 
         # organise the fits
-        if "fit_orders" in dir(self.settings_from_input):
-            self.fit_orders = self.settings_from_input.fit_orders
-        if "fit_bounds" in dir(self.settings_from_input):
-            self.fit_bounds = self.settings_from_input.fit_bounds
-        if "fit_track" in dir(self.settings_from_input):
-            self.fit_track = self.settings_from_input.fit_track
-        if "fit_propagate" in dir(self.settings_from_input):
-            self.fit_propagate = self.settings_from_input.fit_propagate
-        if "fit_min_data_intensity" in dir(self.settings_from_input):
-            self.fit_min_data_intensity = self.settings_from_input.fit_min_data_intensity
-        if "fit_min_peak_intensity" in dir(self.settings_from_input):
-            self.fit_min_peak_intensity = self.settings_from_input.fit_min_peak_intensity
+        if "fit_orders" in list(self.settings_from_input):
+            self.fit_orders = self.settings_from_input["fit_orders"]
+        if "fit_bounds" in list(self.settings_from_input):
+            self.fit_bounds = self.settings_from_input["fit_bounds"]
+        if "fit_track" in list(self.settings_from_input):
+            self.fit_track = self.settings_from_input["fit_track"]
+        if "fit_propagate" in list(self.settings_from_input):
+            self.fit_propagate = self.settings_from_input["fit_propagate"]
+        if "fit_min_data_intensity" in list(self.settings_from_input):
+            self.fit_min_data_intensity = self.settings_from_input["fit_min_data_intensity"]
+        if "fit_min_peak_intensity" in list(self.settings_from_input):
+            self.fit_min_peak_intensity = self.settings_from_input["fit_min_peak_intensity"]
 
-        if "AziDataPerBin" in dir(self.settings_from_input):
-            self.fit_per_bin = self.settings_from_input.AziDataPerBin
+        if "AziDataPerBin" in list(self.settings_from_input):
+            self.fit_per_bin = self.settings_from_input["AziDataPerBin"]
             self.fit_bin_type = 0
-        elif "AziBins" in dir(self.settings_from_input):
-            self.fit_number_bins = self.settings_from_input.AziBins
+        elif "AziBins" in list(self.settings_from_input):
+            self.fit_number_bins = self.settings_from_input["AziBins"]
             self.fit_bin_type = 1
-        if "AziBinType" in dir(self.settings_from_input):
-            self.fit_bin_type = self.settings_from_input.AziBinType
+        if "AziBinType" in list(self.settings_from_input):
+            self.fit_bin_type = self.settings_from_input["AziBinType"]
 
-        if "Output_type" in dir(self.settings_from_input):
-            self.set_output_types(out_type_list=self.settings_from_input.Output_type)
+        if "Output_type" in list(self.settings_from_input):
+            self.set_output_types(out_type_list=self.settings_from_input["Output_type"])
 
-        self.validate_settings_file()
-        # FIXME: it needs to fail if everything is not present as needed and report what is missing
+        if validate == True:
+            self.validate_settings_file()
+            # FIXME: it needs to fail if everything is not present as needed and report what is missing
 
     def validate_settings_file(self):
         """
@@ -1411,8 +1415,8 @@ class Settings:
         """
         Restores the fot_orders from input. Used after Settings.set_order_search
         """
-        if "fit_orders" in dir(self.settings_from_input):
-            self.fit_orders = self.settings_from_input.fit_orders
+        if "fit_orders" in list(self.settings_from_input):
+            self.fit_orders = self.settings_from_input["fit_orders"]
         else:
             raise ValueError("Unable to restore fit_orders")
             

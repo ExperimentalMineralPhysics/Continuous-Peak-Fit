@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from moviepy.video.VideoClip import VideoClip
 
+from  cpf.settings import get_settings
 from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
 from cpf.IO_functions import (
@@ -35,7 +36,7 @@ def Requirements():
     return RequiredParams, OptionalParams
 
 
-def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
+def WriteOutput(settings, debug=False, **kwargs):
     """
     Writes a *.?? file of the fits.
 
@@ -43,10 +44,10 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
 
     Parameters
     ----------
-    FitSettings : TYPE
-        DESCRIPTION.
-    parms_dict : TYPE
-        DESCRIPTION.
+    settings : [str | Path | dict | Settings()]
+        Class containing all variables and options needed for the fitting, or 
+        dictionary of all the settings or 
+        string or path to a file with the settings in.
     debug : TYPE, optional
         DESCRIPTION. The default is True.
     **kwargs : TYPE
@@ -58,6 +59,9 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
 
     """
 
+    # make sure settings is a class
+    settings_class = get_settings(settings)
+    
     if not "file_types" in kwargs:
         file_types = ".mp4"
     # make sure file_types is a list.
@@ -67,15 +71,6 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
         fps = 10
     elif not isinstance(fps, float):
         raise ValueError("The frames per second needs to be a number.")
-
-    if settings_class is None and settings_file is None:
-        raise ValueError(
-            "Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
-
-        settings_class = initiate(settings_file)
 
     # make the base file name
     base = settings_class.datafile_basename

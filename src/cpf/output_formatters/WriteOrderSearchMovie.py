@@ -15,6 +15,7 @@ from cpf.IO_functions import make_outfile_name
 from cpf.util.logging import get_logger
 from cpf.XRD_FitSubpattern import plot_FitAndModel
 from cpf.BrightSpots import SpotProcess
+from  cpf.settings import get_settings
 from cpf.IO_functions import (
     figure_suptitle_space,
     make_outfile_name,
@@ -53,8 +54,7 @@ def Requirements():
 
 
 def WriteOutput(
-    settings_class=None,
-    settings_file=None,
+    settings,
     file_label = None,
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
@@ -69,10 +69,10 @@ def WriteOutput(
     
     Parameters
     ----------
-    settings_class : cpf.Settings.settings class, optional
-        Cpf settings class. The default is None.
-    settings_file : str, optional
-        Cpf settings file. Must be present if settings_class is absent. The default is None.
+    settings : [str | Path | dict | Settings()]
+        Class containing all variables and options needed for the fitting, or 
+        dictionary of all the settings or 
+        string or path to a file with the settings in.
     file_label : str, optional
         String added to the names of the files made. The default is None.
     report : Literal[        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"    ], optional
@@ -92,14 +92,9 @@ def WriteOutput(
     None.
 
     """
-    # make sure settings exist
-    if settings_class is None and settings_file is None:
-        raise ValueError(
-            "Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
-        settings_class = initiate(settings_file)
+
+    # make sure settings is a class
+    settings_class = get_settings(settings)
     
     if file_label is not None:
         settings_class.file_label = file_label
@@ -110,7 +105,6 @@ def WriteOutput(
         file_types = [file_types]
     if not isinstance(fps, float):
         raise ValueError("The frames per second needs to be a number.")
-
 
     # make the base file name
     base = settings_class.datafile_basename

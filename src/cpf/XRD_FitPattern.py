@@ -131,10 +131,39 @@ def initiate(
         logger.info("")
         logger.info("=================================================================")
         logger.info("")
+        
+    settings_class = get_settings(settings, **kwargs)
+    
+    return settings_class
+    
 
-    # Fail gracefully
+
+def get_settings(
+    settings: [str | Path | dict | Settings()],
+    **kwargs,):
+    """
     
-    
+
+    Parameters
+    ----------
+    settings : [str | Path | dict | Settings()]
+        DESCRIPTION.
+    **kwargs : TYPE
+        DESCRIPTION.
+
+    Raises
+    ------
+    ValueError
+        DESCRIPTION.
+    error
+        DESCRIPTION.
+
+    Returns
+    -------
+    settings_class : cpf.settings.Settings() instance
+        Class holding all settings for Continuous Peak Fit.
+
+    """
     if settings is None:
         err_str = "Either the settings file or the parameter dictionary need to be specified."
         logger.error(err_str)
@@ -163,7 +192,7 @@ def initiate(
                 raise error
         # If no params_dict then initiate. Check all the output functions are present and valid.
         settings_class = Settings()
-        settings_class.populate(settings=settings, report=report, **kwargs)
+        settings_class.populate(settings=settings, **kwargs)
 
     return settings_class
 

@@ -26,15 +26,15 @@ def reset_working_directory():
 execute_test_matrix = (
     # Dataset | Input file
     ("Example1-Fe", "BCC1_Dioptas_EmptyRanges_input.py"),
-    ("Example1-Fe", "BCC1_Dioptas_EqualParams_input.py"),
     ("Example1-Fe", "BCC1_Dioptas_input.py"),
     ("Example1-Fe", "BCC1_Dioptas_MultiPeak_input.py"),
-    ("Example1-Fe", "BCC1_Dioptas_SeriesFunctions_input.py"),
     ("Example1-Fe", "BCC1_Dioptas_SymmFixed_input.py"),
-    ("Example2-MgO", "CoSi22_MgO_DetectorPosition_input.py"),
+    ("Example1-Fe", "BCC1_Dioptas_SeriesFunctions_input.py"),
+    ("Example1-Fe", "BCC1_Dioptas_EqualParams_input.py"),
     ("Example2-MgO", "CoSi22_MgO_input.py"),
-    ("Example2-MgO", "CoSi22_MgO_Reverse_input.py"),
     ("Example2-MgO", "CoSi22_MgO_Track_input.py"),
+    ("Example2-MgO", "CoSi22_MgO_Reverse_input.py"),
+    ("Example2-MgO", "CoSi22_MgO_DetectorPosition_input.py"),
 )
 
 

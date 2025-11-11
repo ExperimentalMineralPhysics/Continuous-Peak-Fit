@@ -9,6 +9,7 @@ import numpy as np
 from moviepy.video.VideoClip import VideoClip
 
 # import cpf.IO_functions as IO
+from  cpf.settings import get_settings
 from cpf.IO_functions import make_outfile_name, title_file_names
 from cpf.util.logging import get_logger
 from cpf.util.output_formatters import mplfig_to_npimage
@@ -27,7 +28,7 @@ def Requirements():
     return RequiredParams, OptionalParams
 
 
-def WriteOutput(settings_class=None, setting_file=None, debug=False, **kwargs):
+def WriteOutput(settings, debug=False, **kwargs):
     """
     Writes a *.mov file of raw data.
 
@@ -35,8 +36,10 @@ def WriteOutput(settings_class=None, setting_file=None, debug=False, **kwargs):
 
     Parameters
     ----------
-    FitSettings : TYPE
-        DESCRIPTION.
+    settings : [str | Path | dict | Settings()]
+        Class containing all variables and options needed for the fitting, or 
+        dictionary of all the settings or 
+        string or path to a file with the settings in.
     parms_dict : TYPE
         DESCRIPTION.
     debug : TYPE, optional
@@ -52,6 +55,9 @@ def WriteOutput(settings_class=None, setting_file=None, debug=False, **kwargs):
 
     # FIXME: make so that it can iterate over each range and make a movie of each selected range.
 
+    # make sure settings is a class
+    settings_class = get_settings(settings)
+
     if not "file_types" in kwargs:
         file_types = ".mp4"
     # make sure file_types is a list.
@@ -62,20 +68,11 @@ def WriteOutput(settings_class=None, setting_file=None, debug=False, **kwargs):
     elif not isinstance(fps, float):
         raise ValueError("The frames per second needs to be a number.")
 
-    if settings_class is None and setting_file is None:
-        raise ValueError(
-            "Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
-
-        settings_class = initiate(setting_file)
-
     # make the base file name
-    if setting_file:
-        base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
-    else:
+    if settings_class:
         base = settings_class.datafile_basename
+    else:
+        base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
     if base is None or len(base) == 0:
         logger.info(
             " ".join(

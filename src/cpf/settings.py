@@ -396,7 +396,7 @@ class Settings:
             self.reduce_by = self.settings_from_input.reduce_by
 
         # load the data class.
-        self.data_class = detector_factory(fit_settings=self)
+        self.data_class = detector_factory(settings_class=self)
 
         if "Image_prepare" in dir(self.settings_from_input):
             logger.warning(
@@ -1572,7 +1572,7 @@ def get_output_options(output_type: list[str]):
     return output_mod_type
 
 
-def detector_factory(fit_settings: Settings):
+def detector_factory(settings_class: Settings):
     """
     Factory function to provide appropriate class for data dependent on type.
     *should* support any option that is named *Functions and contains *Detector as class.
@@ -1583,15 +1583,15 @@ def detector_factory(fit_settings: Settings):
     :return:
     """
 
-    def_func = fit_settings.calibration_type + "Functions"
-    def_def = fit_settings.calibration_type + "Detector"
+    def_func = settings_class.calibration_type + "Functions"
+    def_def = settings_class.calibration_type + "Detector"
 
     if def_func in input_types.module_list:
         detector = getattr(input_types, def_func)
         detector_class = getattr(detector, def_def)
-        return detector_class()#settings_class=fit_settings)
+        return detector_class(settings_class=settings_class)
     else:
-        raise ValueError(f"Unrecognized calibration type, {fit_settings.calibration_type}")
+        raise ValueError(f"Unrecognized calibration type, {settings_class.calibration_type}")
 
 def is_settings(settings):
     """
@@ -1649,6 +1649,64 @@ def is_settings(settings):
         print("fail")
     """
     
+
+def get_settings(
+    settings: [str | Path | dict | Settings()],
+    **kwargs,):
+    """
+    
+
+    Parameters
+    ----------
+    settings : [str | Path | dict | Settings()]
+        DESCRIPTION.
+    **kwargs : TYPE
+        DESCRIPTION.
+
+    Raises
+    ------
+    ValueError
+        DESCRIPTION.
+    error
+        DESCRIPTION.
+
+    Returns
+    -------
+    settings_class : cpf.settings.Settings() instance
+        Class holding all settings for Continuous Peak Fit.
+
+    """
+    if settings is None:
+        err_str = "Either the settings file or the parameter dictionary need to be specified."
+        logger.error(err_str)
+        raise ValueError(err_str)
+    elif is_settings(settings):#isinstance(settings, type(Settings())):
+        # the settings input are already a setttings class. 
+        # validate the class.
+        if settings.is_empty():
+            err_str = "The settings class is empty; there is nothing to process."
+            logger.error(err_str)
+            raise ValueError(err_str)
+        elif settings.is_valid() == False:
+            # only validate the setttings if changed. 
+            settings.validate_settings_file()
+            settings_class = settings
+        else: #must be populated and valid.
+            settings_class = settings
+    else:
+        # initiate a settings class. 
+        
+        # Convert to Path object
+        if isinstance(settings, str):
+            try:
+                settings = Path(settings)
+            except Exception as error:
+                raise error
+        # If no params_dict then initiate. Check all the output functions are present and valid.
+        settings_class = Settings()
+        settings_class.populate(settings=settings, **kwargs)
+
+    return settings_class
     
     
 

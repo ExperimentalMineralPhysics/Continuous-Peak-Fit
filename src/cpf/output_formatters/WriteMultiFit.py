@@ -7,6 +7,7 @@ import os
 import numpy as np
 
 import cpf.series_functions as sf
+from  cpf.settings import get_settings
 from cpf.IO_functions import make_outfile_name, replace_null_terms
 from cpf.util.logging import get_logger
 
@@ -31,8 +32,7 @@ def Requirements():
 
 # def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
 def WriteOutput(
-    settings_class=None,
-    settings_file=None,
+    settings,
     differential_only=False,
     debug=True,
     **kwargs,
@@ -41,14 +41,9 @@ def WriteOutput(
     # writes a separate file for each diffraction pattern.
     # uses the parameters in the json files to do so.
 
-    if settings_class is None and settings_file is None:
-        raise ValueError(
-            "Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
 
-        settings_class = initiate(settings_file)
+    # make sure settings is a class
+    settings_class = get_settings(settings)
 
     # FitParameters = dir(FitSettings)
 

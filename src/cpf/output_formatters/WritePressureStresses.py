@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 import cpf.peak_functions as pf
+from  cpf.settings import get_settings
 from cpf.output_formatters.convert_fit_to_unitcell import fits_to_unitcell
 from cpf.IO_functions import make_outfile_name
 from cpf.util.logging import get_logger
@@ -39,8 +40,7 @@ def Requirements():
 
 # def WriteOutput(FitSettings, parms_dict, **kwargs):
 def WriteOutput(
-    settings_class=None,
-    settings_file=None,
+    settings,
     fitStats=True,
     *args,
     **kwargs,
@@ -65,6 +65,10 @@ def WriteOutput(
 
     """
 
+
+    # make sure settings is a class
+    settings_class = get_settings(settings)
+
     # define defaults
     dp = 6  # how many decimal points to write out
     col_width = 15  # default column width for csv file.
@@ -77,15 +81,6 @@ def WriteOutput(
 
     ordering_of_output = "peak"
 
-    if settings_class is None and settings_file is None:
-        raise ValueError(
-            "Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
-
-        settings_class = initiate(settings_file)
-    
     # get the unit cells from settings.
     df = fits_to_unitcell(settings_file=settings_file,
                 includeStats=False,

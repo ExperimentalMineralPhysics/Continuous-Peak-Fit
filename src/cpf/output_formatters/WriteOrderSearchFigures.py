@@ -11,6 +11,7 @@ from typing import Literal, Optional
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
+from  cpf.settings import get_settings
 from cpf.output_formatters.ReadFits import ReadFits
 from cpf.IO_functions import make_outfile_name
 from cpf.util.logging import get_logger
@@ -35,8 +36,7 @@ def Requirements():
 
 # def WriteOutput(FitSettings, parms_dict, **kwargs):
 def WriteOutput(
-    settings_class=None,
-    settings_file=None,
+    settings,
     file_label = None,
     statistic: Literal["bic", "aic", "RedChiSq", "ChiSq"] = "bic",
     key_parameter = ["d-space0", "differential"],
@@ -53,10 +53,10 @@ def WriteOutput(
 
     Parameters
     ----------
-    settings_class : cpf.Settings.settings() Class, optional
-        Class containing all the fitting parameters. The default is None.
-    settings_file : *.py file, optional
-        text file containing all the fitting parameters. The default is None.
+    settings : [str | Path | dict | Settings()]
+        Class containing all variables and options needed for the fitting, or 
+        dictionary of all the settings or 
+        string or path to a file with the settings in.
     file_label : string, optional
         Additional text in json file name added by cpf.XRD_FitPattern.order_search(). 
         If not present the default is to use the newest file. The default is None.
@@ -76,14 +76,8 @@ def WriteOutput(
         Dateframe containing all the parameters from the fits.
     """
 
-    if settings_class is None and settings_file is None:
-        raise ValueError(
-            "Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
-
-        settings_class = initiate(settings_file)
+    # make sure settings is a class
+    settings_class = get_settings(settings)
     
     settings_class.set_data_files(start=0, end=1)
     
@@ -104,7 +98,7 @@ def WriteOutput(
             settings_class.file_label = os.path.splitext(os.path.basename(fls[latest]))[0].split("__")[1]
     
     # read the data.
-    df = ReadFits(settings_class=settings_class, includeStats=True, includeSeriesValues=True, includePosition=True)
+    df = ReadFits(settings=settings_class, includeStats=True, includeSeriesValues=True, includePosition=True)
     headers = list(df.columns.values)
     
     # split the notes column into columns and calculate some new values

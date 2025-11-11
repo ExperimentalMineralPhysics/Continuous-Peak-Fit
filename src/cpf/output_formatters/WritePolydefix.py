@@ -8,6 +8,7 @@ import numpy as np
 
 import cpf.output_formatters.WriteMultiFit as WriteMultiFit
 from cpf.output_formatters.crystallographic_operations import indicies4to3
+from  cpf.settings import get_settings
 from cpf.IO_functions import make_outfile_name
 from cpf.util.logging import get_logger
 
@@ -43,8 +44,7 @@ def Requirements():
 
 # def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
 def WriteOutput(
-    settings_class=None,
-    settings_file=None,
+    settings,
     differential_only=False,
     debug=False,
     **kwargs,
@@ -53,21 +53,15 @@ def WriteOutput(
     # writes *.exp files required by polydefix.
     # N.B. this is a different file than that required by polydefix for energy dispersive diffraction.
 
-    if settings_class is None and settings_file is None:
-        raise ValueError(
-            "bummer Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
-
-        settings_class = initiate(settings_file)
+    # make sure settings is a class
+    settings_class = get_settings(settings)
 
     # Write fit files
     # WriteMultiFit.WriteOutput(
     #     FitSettings, parms_dict, differential_only=differential_only
     # )
     WriteMultiFit.WriteOutput(
-        settings_class=settings_class, differential_only=False, debug=debug
+        settings_class, differential_only=False, debug=debug
     )
 
     # FitParameters = dir(FitSettings)

@@ -6,6 +6,7 @@ import os
 # from cpf.Cascade import read_saved_chunks
 import pandas as pd
 
+from  cpf.settings import get_settings
 from cpf.IO_functions import make_outfile_name, peak_string
 from cpf.util.logging import get_logger
 
@@ -27,7 +28,7 @@ def Requirements():
 
 
 # def WriteOutput(FitSettings, parms_dict, **kwargs):
-def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwargs):
+def WriteOutput(settings, debug=False, *args, **kwargs):
     """
     Writes some of the fitted chunk's coeficients to a table.
 
@@ -37,10 +38,10 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
 
     Parameters
     ----------
-    setting_class : TYPE, optional
-        DESCRIPTION. The default is None.
-    setting_file : TYPE, optional
-        DESCRIPTION. The default is None.
+    settings : [str | Path | dict | Settings()]
+        Class containing all variables and options needed for the fitting, or 
+        dictionary of all the settings or 
+        string or path to a file with the settings in.
     debug : TYPE, optional
         DESCRIPTION. The default is False.
     *args : TYPE
@@ -59,24 +60,16 @@ def WriteOutput(setting_class=None, setting_file=None, debug=False, *args, **kwa
 
     """
 
-    if setting_class is None and setting_file is None:
-        file_list = glob.glob("./results/*chunks.json")
-        file_number = len(file_list)
+    # make sure settings is a class
+    settings_class = get_settings(settings)
 
-        raise ValueError(
-            "Either the settings file or the setting class need to be specified."
-        )
-    elif setting_class is None:
-        import cpf.XRD_FitPattern.initiate as initiate
 
-        setting_class = initiate(setting_file)
-    else:
-        file_list = setting_class.image_list
-        file_number = len(file_list)
-        fits = len(setting_class.fit_orders)
-        pks = []
-        for j in range(fits):
-            pks.append(len(setting_class.fit_orders[j]["peak"]))
+    file_list = setting_class.image_list
+    file_number = len(file_list)
+    fits = len(setting_class.fit_orders)
+    pks = []
+    for j in range(fits):
+        pks.append(len(setting_class.fit_orders[j]["peak"]))
 
     # get what to write
     if "coefs_write" in kwargs:

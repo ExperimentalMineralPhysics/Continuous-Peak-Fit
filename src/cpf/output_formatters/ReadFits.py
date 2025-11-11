@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 
 import cpf.peak_functions as pf
+from cpf.settings import get_settings
 from cpf.output_formatters.convert_fit_to_crystallographic import fourier_to_crystallographic
 from cpf.IO_functions import make_outfile_name, peak_string, peak_phase, peak_hkl
 from cpf.series_functions import series_properties
@@ -22,8 +23,7 @@ logger = get_logger("cpf.output_formatters.ReadFits")
 
 
 def ReadFits(
-    settings_class=None,
-    settings_file=None,
+    settings,
     includeParameters = "all",
     includeStats=False,
     includeSeriesValues = False,
@@ -38,10 +38,10 @@ def ReadFits(
 
     Parameters
     ----------
-    settings_class : cpf.Settings.settings() Class, optional
-        Class containing all the fitting parameters. The default is None.
-    settings_file : *.py file, optional
-        text file containing all the fitting parameters. The default is None.
+    settings : [str | Path | dict | Settings()]
+        Class containing all variables and options needed for the fitting, or 
+        dictionary of all the settings or 
+        string or path to a file with the settings in.
     includeParameters : list[str], optional
         List of which peak parameters to return. The default is "all".
     includeStats : bool, optional
@@ -61,18 +61,13 @@ def ReadFits(
         Data frame contiaing all the fits made when calling the settings_class/file.
 
     """
-    
+
+    # make sure settings is a class
+    settings_class = get_settings(settings)
+
     # force all the kwargs that might be needed
     kwargs.pop("SampleGeometry", "3d")
-    kwargs.pop("SampleDeformation", "compression")    
-
-    if settings_class is None and settings_file is None:
-        raise ValueError(
-            "Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
-        settings_class = initiate(settings_file, require_datafiles=False)
+    kwargs.pop("SampleDeformation", "compression")
 
     # get what to write
     if includeParameters is False:

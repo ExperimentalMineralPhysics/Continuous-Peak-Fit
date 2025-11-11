@@ -8,6 +8,7 @@ import re
 # from uncertainties import ufloat
 
 from cpf.output_formatters.jcpds import jcpds
+from cpf.settings import get_settings
 from cpf.IO_functions import peak_hkl
 from cpf.output_formatters.ReadFits import ReadFits
 from cpf.IO_functions import replace_null_terms
@@ -19,8 +20,7 @@ from cpf.util.logging import get_logger
 
 
 def fits_to_unitcell(
-        settings_class=None,
-        settings_file=None,
+        settings,
         *args,
         **kwargs
         ):
@@ -50,13 +50,9 @@ def fits_to_unitcell(
         Data frame contiaing all the fits made when calling the settings_class/file.
 
     """
-    if settings_class is None and settings_file is None:
-        raise ValueError(
-            "Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
-        settings_class = initiate(settings_file, require_datafiles=False)
+    
+    # make sure settings is a class
+    settings_class = get_settings(settings)
         
     # force all the kwargs that might be needed
     kwargs.pop("SampleGeometry", "3d")
@@ -66,8 +62,7 @@ def fits_to_unitcell(
     SampleDeformation = kwargs.get("SampleDeformation", "compression")
         
     df = ReadFits(
-            settings_class=settings_class,
-            settings_file=settings_file,
+            settings_class,
             includeParameters = False,
             includeStats=False,
             includeSeriesValues = True,

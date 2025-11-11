@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 import cpf.peak_functions as pf
+from  cpf.settings import get_settings
 from cpf.output_formatters.ReadFits import ReadFits
 from cpf.IO_functions import make_outfile_name
 from cpf.util.logging import get_logger
@@ -34,8 +35,7 @@ def Requirements():
 
 # def WriteOutput(FitSettings, parms_dict, **kwargs):
 def WriteOutput(
-    settings_class=None,
-    settings_file=None,
+    settings,
     fitStats=True,
     *args,
     **kwargs,
@@ -43,10 +43,11 @@ def WriteOutput(
     """
     Write coefficents from fits to table/csv file. 
     
-    :param settings_class: DESCRIPTION, defaults to None
-    :type settings_class: TYPE, optional
-    :param settings_file: DESCRIPTION, defaults to None
-    :type settings_file: TYPE, optional
+    
+    settings : [str | Path | dict | Settings()]
+        Class containing all variables and options needed for the fitting, or 
+        dictionary of all the settings or 
+        string or path to a file with the settings in.
     :param fitStats: DESCRIPTION, defaults to True
     :type fitStats: TYPE, optional
     :param *args: DESCRIPTION
@@ -58,6 +59,9 @@ def WriteOutput(
     :rtype: TYPE
 
     """
+
+    # make sure settings is a class
+    settings_class = get_settings(settings)
 
     # define defaults
     dp = 6  # how many decimal points to write out
@@ -71,17 +75,8 @@ def WriteOutput(
 
     ordering_of_output = "peak"
 
-    if settings_class is None and settings_file is None:
-        raise ValueError(
-            "Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
-
-        settings_class = initiate(settings_file)
-    
     # read the data.
-    df = ReadFits(settings_class=settings_class, fitStats=fitStats)
+    df = ReadFits(settings=settings_class, fitStats=fitStats)
     headers = list(df.columns.values)
 
     # make filename for output

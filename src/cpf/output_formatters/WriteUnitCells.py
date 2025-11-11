@@ -47,10 +47,7 @@ def WriteOutput(
     Write unit-cell volumes derived from fitted peak centroids. Writes the values 
     to table/csv file. 
     
-    :param settings_class: DESCRIPTION, defaults to None
-    :type settings_class: TYPE, optional
-    :param settings_file: DESCRIPTION, defaults to None
-    :type settings_file: TYPE, optional
+    :param settings: cpf.settings.Settings() class
     :param fitStats: DESCRIPTION, defaults to True
     :type fitStats: TYPE, optional
     :param *args: DESCRIPTION
@@ -65,7 +62,7 @@ def WriteOutput(
 
     # make sure settings is a class
     settings_class = get_settings(settings)
-    
+
     # force all the kwargs that might be needed
     kwargs.pop("temperature", np.nan) # supress calculations of pressure in outputs
 

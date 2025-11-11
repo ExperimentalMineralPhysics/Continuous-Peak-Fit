@@ -915,6 +915,8 @@ class MedDetector:
         # tidy layout
         plt.tight_layout()
 
+        return fig_plot
+
     def plot_collected(
         self,
         fig_plot=None,

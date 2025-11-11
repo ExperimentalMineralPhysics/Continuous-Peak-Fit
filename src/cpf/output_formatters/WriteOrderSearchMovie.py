@@ -6,7 +6,9 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Literal, Optional
-from moviepy.editor import ImageClip, concatenate
+from moviepy import ImageClip
+# from moviepy import concatenate
+from moviepy import VideoFileClip, concatenate_videoclips
 
 from cpf.output_formatters.ReadFits import ReadFits
 from cpf.IO_functions import make_outfile_name
@@ -270,10 +272,10 @@ def WriteOutput(
             #     pass
             # make the video clip
             # just addes the figure as a frame to the proto-video. 
-            frames.append(ImageClip(mplfig_to_npimage(fig)).set_duration(1))        
+            frames.append(ImageClip(mplfig_to_npimage(fig)).with_duration(1))        
 
         # convert to video and write
-        video = concatenate(frames, method='compose')
+        video = concatenate_videoclips(frames, method='compose')
         for f in range(len(file_types)):
             settings_class.file_label = (
                 "search="

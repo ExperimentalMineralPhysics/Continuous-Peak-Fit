@@ -598,6 +598,7 @@ def spline_expand(
         k = 2
     elif kind == "linear" or kind == "independent":
         k = 1
+        bc_type = None # catch error feeding into make_interp_spline
     else:
         raise ValueError("Unknown spline type.")
 

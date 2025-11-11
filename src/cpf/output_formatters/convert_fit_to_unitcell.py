@@ -60,15 +60,14 @@ def fits_to_unitcell(
     
     SampleGeometry = kwargs.get("SampleGeometry", "3d")
     SampleDeformation = kwargs.get("SampleDeformation", "compression")
-        
+    
+    
+    # set the kwargs as needed.
+    kwargs["includeSeriesValues"] = kwargs.get("includeSeriesValues", True)
+    kwargs["includePosition"] = kwargs.get("includePosition", True)
+    
     df = ReadFits(
             settings_class,
-            includeParameters = False,
-            includeStats=False,
-            includeSeriesValues = True,
-            includeIntensityRanges = False,
-            includeUnitCells = False,
-            includePosition = True,
             *args,
             **kwargs)
     

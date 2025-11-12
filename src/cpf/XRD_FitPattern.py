@@ -883,8 +883,8 @@ def execute(
             # But does it need to?
             tth_range = np.array(settings_class.subfit_orders["range"])
             if settings_class.fit_track is True and "previous_fit" in locals():
-                clean = any_terms_null(params, val_to_find=None)
-                if not clean:
+                null_terms = any_terms_null(params, val_to_find=None)
+                if null_terms == True:
                     # the previous fit has problems so discard it
                     logger.moreinfo(  # type: ignore
                         " ".join(

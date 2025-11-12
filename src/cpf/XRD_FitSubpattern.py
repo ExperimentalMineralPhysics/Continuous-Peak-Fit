@@ -293,9 +293,9 @@ def fit_sub_pattern(
     if previous_params:
         # check if the previous fit was 'good' i.e. constrains no 'null' values.
         # N.B. null values in json file are read in as None
-        clean = any_terms_null(previous_params, val_to_find=None)
-        clean = any_errors_huge(previous_params, large_errors=large_errors, clean=clean)
-        if clean == 0:
+        any_bad_vals = any_terms_null(previous_params, val_to_find=None)
+        any_bad_vals = any_errors_huge(previous_params, large_errors=large_errors, any_huge=any_bad_vals)
+        if any_bad_vals == True:
             # the previous fit has problems so discard it
             logger.moreinfo(
                 " ".join(
@@ -832,7 +832,7 @@ def fit_sub_pattern(
             elif (
                 fout.success == 1
                 and previous_params != None
-                and any_terms_null(master_params, val_to_find=None) == 0
+                and any_terms_null(master_params, val_to_find=None) == True
             ):
                 logger.moreinfo(
                     " ".join(

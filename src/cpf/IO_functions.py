@@ -500,42 +500,54 @@ def StartStopFilesToList(
     return FKlist, len(FKlist)
 
 
-def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", clean=None):
+def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", any_null=False):
     """
     This function accepts a nested dictionary and list as argument
     and iterates over all values of nested dictionaries and lists.
-    If any of the values are "Null" it returns 0
-    :param obj_to_inspect:
-    :param val_to_find:
-    :param index_path:
-    :param clean:
-    :return:
+    If any of the values are "Null" (or 'val_to_find') it returns True
+
+    Parameters
+    ----------
+    obj_to_inspect : dict, list
+        Nested dictionary or list of parameters to inspect.
+    val_to_find : str, float
+        Value or string to find in the dictionary. The default is None.
+    index_path : str
+        Index to look at in dictionary. The default is "".
+    any_null : bool, optional
+        Boolian for if 'val_to_find' are in dictionary. Used for iterating through nested structures.
+        The default is False.
+
+
+    Returns
+    -------
+    any_null : bool
+        True - if any instances of 'val_to_find' have been found in the dicionary
+        False - if 'val_to_find' is not in dictionary.
+
     """
     # copied from https://python-forum.io/thread-24856.html
     # on 26th June 2021
-    if clean is None:
-        clean = 1
-
     if isinstance(obj_to_inspect, dict):
         for key, value in obj_to_inspect.items():
-            clean = any_terms_null(
-                value, val_to_find, index_path + f"['{key}']", clean=clean
+            any_null = any_terms_null(
+                value, val_to_find, index_path + f"['{key}']", any_null=any_null
             )
 
     if isinstance(obj_to_inspect, list):
         for key, value in enumerate(obj_to_inspect):
-            clean = any_terms_null(
-                value, val_to_find, index_path + f"[{key}]", clean=clean
+            any_null = any_terms_null(
+                value, val_to_find, index_path + f"[{key}]", any_null=any_null
             )
 
     if obj_to_inspect == val_to_find:
-        clean = 0
+        any_null = True
         logger.moreinfo(
             " ".join(map(str, [(f"Value {val_to_find} found at {index_path}")]))
         )
         # could be verbose if verbose logger.
 
-    return clean
+    return any_null
 
 
 def replace_null_terms(
@@ -575,23 +587,38 @@ def replace_null_terms(
     return obj_to_inspect
 
 
-def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
+def any_errors_huge(obj_to_inspect, large_errors=3, any_huge=False):
     """
     This function accepts a nested dictionary and list as argument
     and iterates over all values of nested dictionaries and lists.
     If any of the error values are more than scale times the fitted value it
-    flags the errors as huge
-    :param obj_to_inspect:
-    :param large_errors:
-    :param clean:
-    :return:
+    flags the errors as huge    
+
+    Huge errors are flagged if:
+        1. value_err/value >= large_errors
+        2. abs(value)-value_err >= 0  (i.e. not within error of 0)
+
+    Parameters
+    ----------
+    obj_to_inspect : dict, list
+        Nested dictionary or list of parameters to inspect.
+    large_errors : float, optional
+        Scale factor for how big large errors are before being flagged. The default is 3.
+    any_huge : bool, optional
+        Boolian for if large errors are found. Used for iterating through nested structures.
+        The default is False.
+
+    Returns
+    -------
+    any_huge : bool
+        True - if large errors have been found in the dicionary
+        False - if no large errors are present.
+
     """
 
     # Local import to avoid circular import errors
     import cpf.peak_functions as pf
 
-    if clean is None:
-        clean = 1
     for k in range(len(obj_to_inspect["background"])):
         for j in range(len(obj_to_inspect["background"][k])):
             if (
@@ -603,7 +630,7 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
                 / obj_to_inspect["background"][k][j]
                 >= large_errors
             ):
-                clean = 0
+                any_huge = True
                 err_rat = (
                     obj_to_inspect["background_err"][k][j]
                     / obj_to_inspect["background"][k][j]
@@ -645,7 +672,7 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
                     - obj_to_inspect["peak"][k][comp + "_err"][j]
                     >= 0
                 ):
-                    clean = 0
+                    any_huge = True
                     err_rat = (
                         obj_to_inspect["peak"][k][comp + "_err"][j]
                         / obj_to_inspect["peak"][k][comp][j]
@@ -662,7 +689,7 @@ def any_errors_huge(obj_to_inspect, large_errors=3, clean=None):
                             )
                         )
                     )
-    return clean
+    return any_huge
 
 
 def peak_string(orders, fname=False, peak="all"):

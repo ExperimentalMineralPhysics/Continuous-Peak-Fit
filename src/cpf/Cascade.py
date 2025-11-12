@@ -279,8 +279,8 @@ def execute(
             # But does it need to?
             tth_range = settings_for_fit.subfit_orders["range"]
             if settings_for_fit.cascade_track is True and "previous_fit" in locals():
-                clean = any_terms_null(params, val_to_find=None)
-                if clean == 0:
+                null_terms = any_terms_null(params, val_to_find=None)
+                if null_terms == True:
                     # the previous fit has problems so discard it
                     logger.info(
                         " ".join(

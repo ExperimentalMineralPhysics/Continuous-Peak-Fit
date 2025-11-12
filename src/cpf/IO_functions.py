@@ -551,17 +551,31 @@ def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", any_null=Fal
 
 
 def replace_null_terms(
-    obj_to_inspect, val_to_find=None, index_path="", clean=None, replace_with=0
+    obj_to_inspect, val_to_find=None, index_path="", replace_with=0
 ):
     """
     This function accepts a nested dictionary and list as argument
     and iterates over all values of nested dictionaries and lists.
-    If any of the values are "Null" it returns 0
-    :param obj_to_inspect:
-    :param val_to_find:
-    :param index_path:
-    :param clean:
-    :return:
+    If any of the values are "Null" (or 'val_to_find') it replaces it with 
+    the value in 'replace_with'
+    
+    Parameters
+    ----------
+    obj_to_inspect : dict, list
+        Nested dictionary or list of parameters to inspect.
+    val_to_find : str, float
+        Value or string to find in the dictionary. The default is None.
+    index_path : str
+        Index to look at in dictionary. The default is "".
+    replace_with : str, float
+        Value or string to use as replacement in the dictionary. 
+        The default is 0.
+
+    Returns
+    -------
+    obj_to_inspect :  dict, list
+        Nested dictionary or list of parameters.
+
     """
     # copied from https://python-forum.io/thread-24856.html
     # on 26th June 2021
@@ -569,16 +583,16 @@ def replace_null_terms(
     if isinstance(obj_to_inspect, dict):
         for key, value in obj_to_inspect.items():
             obj_to_inspect[key] = replace_null_terms(
-                value, val_to_find, index_path + f"['{key}']", clean=clean
+                deepcopy(value), val_to_find, index_path + f"['{key}']", replace_with=replace_with
             )
 
     if isinstance(obj_to_inspect, list):
         for key, value in enumerate(obj_to_inspect):
             obj_to_inspect[key] = replace_null_terms(
-                value, val_to_find, index_path + f"[{key}]", clean=clean
+                deepcopy(value), val_to_find, index_path + f"[{key}]", replace_with=replace_with
             )
 
-    if val_to_find is not None and obj_to_inspect == val_to_find:
+    if obj_to_inspect == val_to_find:# and val_to_find is not None:
         obj_to_inspect = replace_with
         logger.moreinfo(
             " ".join(map(str, [(f"Value {val_to_find} found at {index_path}")]))

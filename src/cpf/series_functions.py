@@ -812,7 +812,7 @@ def series_properties(
         raise ValueError("The coefficients need to be a list of dictionaries.")
 
     # catch 'null' terms in fits
-    coefficients = replace_null_terms(coefficients)
+    coefficients = replace_null_terms(coefficients, replace_with=np.nan)
 
     properties = {}
 

@@ -735,11 +735,12 @@ class jcpds(object):
         #get weights from observation errors
         weights = []
         obs = np.array([])
+        weights = np.array([])
         for i in self.get_reflections():
             try:
-                weights.append(1/i.dobs.std_dev**2)
+                weights = np.append(weights, 1/i.dobs.std_dev**2)
             except:
-                weights.append(np.nan)
+                weights = np.append(weights, np.nan)
             try:
                 obs = np.append(obs, i.dobs.nominal_value)
             except:
@@ -747,9 +748,9 @@ class jcpds(object):
             
         cmodel = lmfit.Model(self._lattice_params_model)
         if weighted is True:
-            out = cmodel.fit(obs, params, jcpds=None, weights=weights)   
+            out = cmodel.fit(obs, params, jcpds=None, weights=weights, nan_policy='omit')   
         else:
-            out = cmodel.fit(obs, params, jcpds=None)   
+            out = cmodel.fit(obs, params, jcpds=None, nan_policy='omit')    
             
         # copy parameters back into self.
         for ind in self.get_unique_unitcell_params():
@@ -790,8 +791,12 @@ class jcpds(object):
          calc = []
          obs = []
          for i in range(len(r)):
-             if r[i].dobs != None:
-                 obs.append(r[i].dobs)
+             if type(r[i].dobs)== type(ufloat(0,1)):
+                 obs_val = r[i].dobs.nominal_value
+             else:
+                 obs_val = r[i].dobs
+             if obs_val != None and not np.isnan(obs_val):
+                 obs.append(obs_val)
                  calc.append(r[i].d)
          return np.array(calc)
 

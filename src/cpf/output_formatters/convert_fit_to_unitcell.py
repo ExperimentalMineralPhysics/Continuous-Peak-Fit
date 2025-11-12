@@ -134,12 +134,16 @@ def fits_to_unitcell(
             else:
                 jcpds = []
                 for i in range(len(phase)):
-                    if glob.glob(f"*{phase[i]}*"):
-                        if len(glob.glob(f"*{phase[i]}*")) != 1:
+                    if glob.glob(f"*{phase[i]}*.jcpds"):
+                        if len(glob.glob(f"*{phase[i]}*.jcpds")) != 1:
                             raise ValueError("There is more than 1 jcpds file")
-                        jcpds.append(glob.glob(f"*{phase[i]}*")[0])
+                        jcpds.append(glob.glob(f"*{phase[i]}*.jcpds")[0])
+                    elif glob.glob(f"*{phase[i]}*.cif"):
+                        if len(glob.glob(f"*{phase[i]}*.cif")) != 1:
+                            raise ValueError("There is more than 1 cif file")
+                        jcpds.append(glob.glob(f"*{phase[i]}*.cif")[0])
                 if len(jcpds) == 0:
-                    raise ValueError("There is no jcpds file recognised")
+                    raise ValueError("There is no jcpds or cif file recognised")
                 elif len(phase) != len(jcpds):
                     raise ValueError("The phase and jcpds files do not match")
                     

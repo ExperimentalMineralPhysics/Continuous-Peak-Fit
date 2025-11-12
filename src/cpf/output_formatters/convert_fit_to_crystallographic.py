@@ -116,7 +116,7 @@ def fourier_to_crystallographic(
         raise ValueError("The coefficients need to be a list of dictionaries.")
 
     # catch 'null' terms in fits
-    coefficients = replace_null_terms(coefficients)
+    coefficients = replace_null_terms(coefficients, replace_with = np.nan)
     
     # catch d-spacing that is too short for 3D geometry to work.
     if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3:
@@ -490,7 +490,7 @@ def fourier_to_unitcellvolume(
         raise ValueError("The coefficients need to be a list of dictionaries.")
 
     # catch 'null' terms in fits
-    coefficients = replace_null_terms(coefficients)
+    coefficients = replace_null_terms(coefficients, replace_with=np.nan)
 
     # get or guess phase
     if phase is None:

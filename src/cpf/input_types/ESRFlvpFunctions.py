@@ -606,7 +606,11 @@ class ESRFlvpDetector:
         elif settings.calibration_data is not None:
             calib_frames = settings.calibration_data
         elif settings.image_list is not None:
-            calib_frames = settings.image_list[0]
+            if len(settings.image_list) == 1:
+                # there is only 1 file and so take the entire list
+                calib_frames = settings.image_list
+            else:
+                calib_frames = settings.image_list[0]
         else:
             raise ValueError("There is no data to construct the detector from.")
 

@@ -457,8 +457,8 @@ class ESRFlvpDetector:
 
         """
         # load the list of files
-        print("file_string", file_string)
-        print(file_string)
+        # print("file_string", file_string)
+        # print(file_string)
         if isinstance(file_string, list) and os.path.splitext(os.path.basename(file_string[0]))[1] == ".h5":
             #define where data locations are in the initaition of the class.
             
@@ -467,10 +467,10 @@ class ESRFlvpDetector:
             
             files_list = h5_functions.get_image_keys_new(str(file_string[0]), self.h5_datakey, self.h5_iterate)
             azm_list = h5_functions.get_image_keys_new(str(file_string[0]), self.h5_azimuths, self.h5_iterate)
-            print("for get images", [str(file_string[0])] + azm_list[0])
+            # print("for get images", [str(file_string[0])] + azm_list[0])
             positions = h5_functions.get_images([str(file_string[0])] + azm_list[0])
             
-            print("reduce_by", reduce_by, self.reduce_by)
+            # print("reduce_by", reduce_by, self.reduce_by)
             if reduce_by is not None or self.reduce_by is not None:
                 if reduce_by is False:
                     # used to allow the full data image to be read by data_fill as part of reading the calibrations
@@ -489,13 +489,13 @@ class ESRFlvpDetector:
                     files_list = [file_string[2][i] for i in keep]
                     positions = positions[keep]
                 else:
-                    print("ran through here")
+                    # print("ran through here")
                     pass            
 
             
-            print("files_list", files_list)
-            print("azm_list", azm_list)
-            print("positions", positions)
+            # print("files_list", files_list)
+            # print("azm_list", azm_list)
+            # print("positions", positions)
             
             """
             # reduce the size of the data set (if called for) by skipping over images.
@@ -538,6 +538,12 @@ class ESRFlvpDetector:
             files_list = [files_list[i] for i in order]
             if not files_list:
                 raise ValueError("No image files are found")
+                
+                # the data files are absent. Issue a major warming and assume 
+                # that there should be 360 files
+                # logger.warning("The detector files are missing. Assume there are 360 files and proceed.")
+                # positions = np.linspace(0, 360, 361)
+                # files_list = list(positions)
     
             # reduce the size of the data set (if called for) by skipping over images.
             # this will only work for none h5 ESRF data sets.
@@ -614,7 +620,8 @@ class ESRFlvpDetector:
         else:
             raise ValueError("There is no data to construct the detector from.")
 
-        print("calib_frames", calib_frames)
+        # print("calib_frames", calib_frames)
+        
         # copy h5 settings in to self if they exist. 
         # used to make sure the data class has these properties
         if "h5_datakey" in dir(settings):
@@ -818,7 +825,7 @@ class ESRFlvpDetector:
                 # inherit the data type from previosuly.
                 dtype = self.intensity.dtype
             
-            print("image_name", image_name)
+            # print("image_name", image_name)
             self.intensity.data[:] = self._reduce_array(h5_functions.get_images(image_name).astype(dtype), keep_FirstDim=False)
             # flip along axis 2 because elements are otherwise upside down.
             for i in range(self.intensity.shape[0]):
@@ -990,7 +997,7 @@ class ESRFlvpDetector:
 
         # get ordered list of images
         frames, detectorangles = self._get_sorted_files(diff_file, reduce_by=self.reduce_by, debug=debug)
-        print(frames)
+        # print(frames)
         # stop
         detectorangles = np.deg2rad(detectorangles)
         self.detector_check(calibration_data=diff_file, detectorangles=detectorangles)
@@ -1053,10 +1060,10 @@ class ESRFlvpDetector:
         )
 
         # fill the arrays
-        print("frames", frames)
-        print(len(self.detector.ais))
+        # print("frames", frames)
+        # print(len(self.detector.ais))
         for i in range(len(self.detector.ais)):
-            print(self._reduce_array(np.rad2deg(self.detector.ais[i].twoThetaArray())).shape)
+            # print(self._reduce_array(np.rad2deg(self.detector.ais[i].twoThetaArray())).shape)
             self.tth[i, :, :] = self._reduce_array(np.rad2deg(self.detector.ais[i].twoThetaArray()))
             self.azm[i, :, :] = self._reduce_array(np.rad2deg(self.detector.ais[i].chiArray()), polar=True, keep_FirstDim=False)
             if make_zyx:

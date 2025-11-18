@@ -166,9 +166,10 @@ class XYDetector:
         # self.end   = np.inf
 
         if settings_class:
-            self.get_calibration(settings=settings_class)
-        if self.calibration:
-            self.detector = self.get_detector(settings=settings_class)
+            if settings_class.calibration_parameters != None:
+                self.get_calibration(settings=settings_class)
+            if self.calibration:
+                self.detector = self.get_detector(settings=settings_class)
 
     def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
         """

@@ -463,7 +463,7 @@ class Settings:
                 self.datafile_number,
                 self.image_list,
                 self.image_number,
-            ) = image_list(list(self.settings_from_input), self.settings_from_input)
+            ) = image_list(self.settings_from_input)
             # Convert datafile list entries to Path objects, if they exist
             if len(self.datafile_list) > 0:
                 try:

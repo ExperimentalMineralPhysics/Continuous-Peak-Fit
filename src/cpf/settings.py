@@ -398,9 +398,6 @@ class Settings:
         if "reduce_by" in list(self.settings_from_input):
             self.reduce_by = self.settings_from_input["reduce_by"]
 
-        # load the data class.
-        self.data_class = detector_factory(settings_class=self)
-
         if "Image_prepare" in list(self.settings_from_input):
             logger.warning(
                 "'Image_prepare' is depreciated nomenclature. Has been replased by 'image_preprocess'"
@@ -417,6 +414,7 @@ class Settings:
         self.datafile_directory = self.settings_from_input["datafile_directory"]
         if isinstance(self.datafile_directory, str):  # Convert to Path object
             self.datafile_directory = Path(self.datafile_directory)
+        self.check_directory_exists(self.datafile_directory, make_dir = False)
 
         (
             self.datafile_list,
@@ -433,6 +431,9 @@ class Settings:
             except Exception as error:
                 raise error
 
+        # load the data class.
+        self.data_class = detector_factory(settings_class=self)
+        
         # h5 or nxs file types
         # --------------------
         # If the file type is h5/nxs and there is no h5 related settings in the input then read defaults from the detector class. 
@@ -641,14 +642,13 @@ class Settings:
         Check if a directory exists. Make it if make_dir==True or issue an error.
         """
         if directory.exists() is False:
-            pass
-            # if make_dir == False:
-            #     raise FileNotFoundError(
-            #         f"The directory {directory.name!r} is not found but is required."
-            #     )
-            # else:
-            #     os.makedirs(directory)
-            #     logger.info(" ".join(map(str, [(f"{directory.name!r} was created.")])))
+            if make_dir == False:
+                raise FileNotFoundError(
+                    f"The directory {directory.name!r} is not found but is required."
+                )
+            else:
+                os.makedirs(directory)
+                logger.info(" ".join(map(str, [(f"{directory.name!r} was created.")])))
         else:
             logger.info(" ".join(map(str, [(f"{directory.name!r} exists.")])))
 

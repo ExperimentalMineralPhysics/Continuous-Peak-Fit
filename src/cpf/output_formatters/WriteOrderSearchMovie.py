@@ -106,17 +106,6 @@ def WriteOutput(
     if not isinstance(fps, float):
         raise ValueError("The frames per second needs to be a number.")
 
-    # make the base file name
-    base = settings_class.datafile_basename
-    base = None
-    if base is None or len(base) == 0:
-        logger.info(
-            "No base filename, trying ending without extension instead."
-            )
-        base = settings_class.datafile_ending
-    if base is None:
-        logger.info("No base filename, using input filename instead.")
-        base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
     # make the data class.
     data_to_fill = settings_class.image_list[0]
     data_class = settings_class.data_class
@@ -125,7 +114,7 @@ def WriteOutput(
         settings=settings_class,
     )
 
-    #restrict to just hte first file (as per order search)
+    #restrict to just the first file (as per order search)
     settings_class.set_data_files(start=0, end=1)
     
     #this is search data so there is a postscript in the json file label.
@@ -142,7 +131,7 @@ def WriteOutput(
             settings_class.file_label = os.path.splitext(os.path.basename(fls[latest]))[0].split("__")[1]
     
     # read the data.
-    df = ReadFits(settings_class=settings_class, includeStats=True, includeSeriesValues=True, includeIntensityRanges=True, includePosition=True)
+    df = ReadFits(settings=settings_class, includeStats=True, includeSeriesValues=True, includeIntensityRanges=True, includePosition=True)
     headers = list(df.columns.values)
     # split the notes column into columns and calculate some new values
     f = lambda x: x.split("|")[0].split("=")[1]

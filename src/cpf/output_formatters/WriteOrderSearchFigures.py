@@ -13,7 +13,7 @@ from matplotlib.ticker import MaxNLocator
 
 from  cpf.settings import get_settings
 from cpf.output_formatters.ReadFits import ReadFits
-from cpf.IO_functions import make_outfile_name
+from cpf.IO_functions import make_outfile_name, peak_string
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WriteCoefficientTable")
@@ -124,7 +124,11 @@ def WriteOutput(
     for i in range(len(peaks)):
         fig, ax = plt.subplots(int(np.ceil(len(param_plot))/cols), cols, sharex=True, figsize=[8*fig_scale,6*fig_scale])
         ax = ax.flat
-        fig.suptitle(peaks[i])
+        title_str = ("Order Search - " + 
+            peak_string(settings_class.subfit_orders) +
+            " - " + df["search_over"][0]
+        )
+        fig.suptitle(title_str)
         for h in range(len(param_plot)):
             for j in range(len(searches)):
                 

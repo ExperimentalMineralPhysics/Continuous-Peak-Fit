@@ -29,7 +29,7 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.settings import Settings, is_settings
+from cpf.settings import Settings, is_settings, get_settings
 from cpf.util.logging import get_logger, set_global_log_level
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 
@@ -134,66 +134,6 @@ def initiate(
         
     settings_class = get_settings(settings, **kwargs)
     
-    return settings_class
-    
-
-
-def get_settings(
-    settings: [str | Path | dict | Settings()],
-    **kwargs,):
-    """
-    
-
-    Parameters
-    ----------
-    settings : [str | Path | dict | Settings()]
-        DESCRIPTION.
-    **kwargs : TYPE
-        DESCRIPTION.
-
-    Raises
-    ------
-    ValueError
-        DESCRIPTION.
-    error
-        DESCRIPTION.
-
-    Returns
-    -------
-    settings_class : cpf.settings.Settings() instance
-        Class holding all settings for Continuous Peak Fit.
-
-    """
-    if settings is None:
-        err_str = "Either the settings file or the parameter dictionary need to be specified."
-        logger.error(err_str)
-        raise ValueError(err_str)
-    elif is_settings(settings):#isinstance(settings, type(Settings())):
-        # the settings input are already a setttings class. 
-        # validate the class.
-        if settings.is_empty():
-            err_str = "The settings class is empty; there is nothing to process."
-            logger.error(err_str)
-            raise ValueError(err_str)
-        elif settings.is_valid() == False:
-            # only validate the setttings if changed. 
-            settings.validate_settings_file()
-            settings_class = settings
-        else: #must be populated and valid.
-            settings_class = settings
-    else:
-        # initiate a settings class. 
-        
-        # Convert to Path object
-        if isinstance(settings, str):
-            try:
-                settings = Path(settings)
-            except Exception as error:
-                raise error
-        # If no params_dict then initiate. Check all the output functions are present and valid.
-        settings_class = Settings()
-        settings_class.populate(settings=settings, **kwargs)
-
     return settings_class
 
 

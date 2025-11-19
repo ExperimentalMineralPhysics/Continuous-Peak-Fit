@@ -533,6 +533,7 @@ def DefaultProcessDictionary(types=False):
         "from":  {"type": (int, float, np.ndarray)},
         "to":    {"type": (int, float, np.ndarray)},
         "step":  {"type": (int)},
+        "list":  {"type": list},
         "dim":   {"type": (int)},
         "using": {"type": str,
                   "values": ["value", "position"]},
@@ -559,10 +560,10 @@ def DefaultProcessDictionary(types=False):
         return {
             "do": {"type": str, "values": ["sum", "iterate", "combine"]},
             "from": {"type": (int, float, np.ndarray)},
-            "to": {"type": (int, float, np.ndarray)},
+            "to":   {"type": (int, float, np.ndarray)},
             "step": {"type": (int)},
-            # "list":   {"type": list}, # this is possible but not in the detault set.
-            "dim": {"type": (int)},
+            "list": {"type": list}, # this is possible but not in the default set.
+            "dim":  {"type": (int)},
             "using": {"type": str, "values": ["value", "position"]},
             "label": {"type": (list, str)},
         }
@@ -883,7 +884,7 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
     
     if loops:
         for i in range(len(loops)):
-            # FIXME this loop should be an iterative loop. so thatit can iterate
+            # FIXME this loop should be an iterative loop. so that it can iterate
             # over as many keys as required.
     
             # find part of key before wildcard.
@@ -966,12 +967,16 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
         if itera["using"] == "value":
             # make list of values to keep from parameter dictionary
 
-            if itera["from"] == 0:
-                itera["from"] = float(vals[0][0])
-            if itera["to"] == -1:
-                itera["to"] = float(vals[-1][0])
-
-            keep, _ = StartStopFilesToList(paramDict=itera)
+            if "list" in itera:
+                keep = itera["list"]
+            else:
+                if itera["from"] == 0:
+                    itera["from"] = float(vals[0][0])
+                if itera["to"] == -1:
+                    itera["to"] = float(vals[-1][0])
+    
+    
+                keep, _ = StartStopFilesToList(paramDict=itera)
             present = np.atleast_1d(
                 np.array(
                     [
@@ -986,11 +991,14 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
 
         elif itera["using"] == "position":
             # make list of positions to keep from parameter dictionary
+            if "list" in itera:
+                keep = itera["list"]
+            else:
+                # itera["from"] = itera["from"] does not need to be set
+                if itera["to"] == -1:
+                    itera["to"] = int(len(vals)) - 1
 
-            if itera["to"] == -1:
-                itera["to"] = int(len(vals)) - 1
-
-            keep, _ = StartStopFilesToList(paramDict=itera)
+                keep, _ = StartStopFilesToList(paramDict=itera)
             keylist = [keylist[x] for x in keep]
             vals = [vals[x] for x in keep]
 
@@ -1034,9 +1042,12 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
             number_data = df[keylist[i]].shape[itera["dim"]]
             if itera["do"] == "sum":
                 # index_values = list([*range(itera["start"], itera["stop"], itera["step"])])
-                if itera["to"] == -1:
-                    itera["to"] = number_data - 1
-                index_values, _ = StartStopFilesToList(paramDict=itera)
+                if "list" in itera:
+                    index_values = itera["list"]
+                else:
+                    if itera["to"] == -1:
+                        itera["to"] = number_data - 1
+                    index_values, _ = StartStopFilesToList(paramDict=itera)
                 # get the labels -- only need labels from layers above because summing the data.
                 lbls = labels[i]
                 # lbls = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
@@ -1044,9 +1055,12 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
 
             elif itera["do"] == "combine":
                 # index_values = list([*range(itera["start"], itera["stop"], itera["step"])])
-                if itera["to"] == -1:
-                    itera["to"] = number_data - 1
-                index_values, _ = StartStopFilesToList(paramDict=itera)
+                if "list" in itera:
+                    index_values = itera["list"]
+                else:
+                    if itera["to"] == -1:
+                        itera["to"] = number_data - 1
+                    index_values, _ = StartStopFilesToList(paramDict=itera)
                 # get the labels -- only need labels from layers above because returning data array.
                 lbls = labels[i]
                 # lbls = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
@@ -1054,9 +1068,13 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                 
             elif itera["do"] == "iterate":
                 # iterate over the size of the array in the h5 group.
-                if itera["to"] == -1:
-                    itera["to"] = number_data - 1
-                for j in np.arange(itera["from"], itera["to"] + 1, itera["step"]):
+                if "list" in itera:
+                    over = itera["list"]
+                else:
+                    if itera["to"] == -1:
+                        itera["to"] = number_data - 1
+                    over = np.arange(itera["from"], itera["to"] + 1, itera["step"])
+                for j in over:
                     index_values = j
                     lbls = labels[i]
                     additional_label = get_labels(

@@ -223,8 +223,21 @@ class Settings:
 
     def _validation_copy(self):
         """
-        Return a dictionary of the class without the 
-        parts that will prevent parallelisation
+        Return a dictionary of the class without:
+        (a) the parts that will prevent parallelisation
+        and 
+        (b) vaiables that can be changed without affecting the validity of the class
+        
+        The list of parts that is removed is: 
+            _unmodified_self
+            data_class
+            subfit_file_position
+            subfit_filename
+            subfit_order_position
+            subfit_orders
+            output_types
+
+        Used for validation
 
         Returns
         -------
@@ -237,6 +250,13 @@ class Settings:
         copy.pop("data_class", None)
         # remove any possible previous unmodified previous variable.
         copy.pop('_unmodified_self', None)
+        # remove following from check becuase these can be changed without invalidating the settings class. 
+        copy.pop('subfit_file_position', None)
+        copy.pop('subfit_filename', None)
+        copy.pop('subfit_order_position', None)
+        copy.pop('subfit_orders', None)
+        copy.pop('output_types', None)
+        
         return copy
 
 

@@ -421,7 +421,7 @@ class Settings:
             self.datafile_number,
             self.image_list,
             self.image_number,
-        ) = image_list(self.settings_from_input)
+        ) = image_list(self.settings_from_input, files_only=True)
         # Convert datafile list entries to Path objects, if they exist
         if len(self.datafile_list) > 0:
             try:
@@ -430,9 +430,6 @@ class Settings:
                 ]
             except Exception as error:
                 raise error
-
-        # load the data class.
-        self.data_class = detector_factory(settings_class=self)
         
         # h5 or nxs file types
         # --------------------
@@ -442,29 +439,43 @@ class Settings:
         if (len(self.datafile_list) == 1 
                 and (self.datafile_list[0].suffix == ".h5" 
                 or self.datafile_list[0].suffix == ".nxs")):
+            
+            #both "h5_datakey" and "h5_iterate" are required for the h5 file reading to work
             if "h5_datakey" not in list(self.settings_from_input):
-                if "_default_h5_datakey" in dir(self.data_class):
-                    self.settings_from_input["h5_datakey"] = self.data_class._default_h5_datakey
+                
+                # need to load a data class so we know what the h5 defaults are
+                temp_settings = Settings()
+                temp_settings.calibration_type = self.settings_from_input["Calib_type"]
+                temp_data_class = detector_factory(settings_class=temp_settings)
+                
+                if "_default_h5_datakey" in dir(temp_data_class):
+                    self.settings_from_input["h5_datakey"] = temp_data_class._default_h5_datakey
+                    self.h5_datakey = temp_data_class._default_h5_datakey
                 else:
-                    logger.warning(
-                        "The data class has no value for '_default_h5_datakey'. Need to define 'h5_datakey' in settings." 
-                    )
-                    raise ValueError("The data class has no value for '_default_h5_datakey'.")
+                    err_str = "The data class has no value for '_default_h5_datakey'. Need to define 'h5_datakey' in settings." 
+                    logger.warning(err_str)
+                    raise ValueError(err_str)
             if "h5_iterate" not in list(self.settings_from_input):
-                if "_default_h5_iterate" in dir(self.data_class):
-                    self.settings_from_input["h5_iterate"] = self.data_class._default_h5_iterate
+                
+                # need to load a data class so we know what the h5 defaults are
+                temp_settings = Settings()
+                temp_settings.calibration_type = self.settings_from_input["Calib_type"]
+                temp_data_class = detector_factory(settings_class=temp_settings)
+                
+                if "_default_h5_iterate" in dir(temp_data_class):
+                    self.settings_from_input["h5_iterate"] = temp_data_class._default_h5_iterate
+                    self.h5_iterate = temp_data_class._default_h5_iterate
                 else:
-                    logger.warning(
-                        "The data class has no value for '_default_h5_iterate'. Need to define 'h5_iterate' in settings."
-                    )
-                    raise ValueError("The data class has no value for '_default_h5_iterate'.")
-            # FIXME: this should raise errors to the logger if the values are not present.
+                    err_str = "The data class has no value for '_default_h5_iterate'. Need to define 'h5_iterate' in settings."  
+                    logger.warning(err_str)
+                    raise ValueError(err_str)
+
             (
                 self.datafile_list,
                 self.datafile_number,
                 self.image_list,
                 self.image_number,
-            ) = image_list(self.settings_from_input)
+            ) = image_list(self.settings_from_input, files_only=False)
             # Convert datafile list entries to Path objects, if they exist
             if len(self.datafile_list) > 0:
                 try:
@@ -521,6 +532,9 @@ class Settings:
         if validate == True:
             self.validate_settings_file()
             # FIXME: it needs to fail if everything is not present as needed and report what is missing
+
+        # load the data class.
+        self.data_class = detector_factory(settings_class=self)
 
     def validate_settings_file(self):
         """
@@ -1390,8 +1404,8 @@ class Settings:
                                 bg_pos = 0
                             else:
                                 bg_pos = int(re.sub("background","",search_parameter))
-                            orders_s[search_parameter][bg_pos] = search[k]
-                            orders_s[search_parameter + "_type"] = (
+                            orders_s["background"][bg_pos] = search[k]
+                            orders_s["background" + "_type"] = (
                                 search_series[j]
                             )
                         if len(tmp_order) > 1:

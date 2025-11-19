@@ -134,7 +134,6 @@ class _masks:
             if len(mask[lbl_str])==2 and not isinstance(mask[lbl_str][0],list) and not isinstance(mask[lbl_str][1],list):
                 #if the masks are not a list of lists then wrap in a list.
                 mask[lbl_str] = [mask[lbl_str]]
-            im_mask = np.asarray(im_mask)
             for lims in mask[lbl_str]:
                 im_mask = (
                     im_mask
@@ -146,11 +145,14 @@ class _masks:
                 lbl_str = "azm"
             else:
                 lbl_str = "azimuth"
-            limits = mask[lbl_str]
-            im_mask = (
-                np.asarray(im_mask)
-                | ma.masked_inside(self.azm, limits[0], limits[1]).mask
-            )
+            if len(mask[lbl_str])==2 and not isinstance(mask[lbl_str][0],list) and not isinstance(mask[lbl_str][1],list):
+                #if the masks are not a list of lists then wrap in a list.
+                mask[lbl_str] = [mask[lbl_str]]
+            for lims in mask[lbl_str]:
+                im_mask = (
+                    im_mask
+                    | ma.masked_inside(self.tth, lims[0], lims[1]).mask
+                )
 
         # FIX ME: Should also add circles and other polygons as per GSAS-II masks
 

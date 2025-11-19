@@ -1049,7 +1049,7 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                         itera["to"] = number_data - 1
                     index_values, _ = StartStopFilesToList(paramDict=itera)
                 # get the labels -- only need labels from layers above because summing the data.
-                lbls = labels[i]
+                lbls = licit_filename(labels[i], replacement="+", exclude_dir=False)
                 # lbls = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
                 out.append([keylist[i], index_values, lbls])
 
@@ -1062,7 +1062,7 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                         itera["to"] = number_data - 1
                     index_values, _ = StartStopFilesToList(paramDict=itera)
                 # get the labels -- only need labels from layers above because returning data array.
-                lbls = labels[i]
+                lbls = licit_filename(labels[i], replacement="+", exclude_dir=False)
                 # lbls = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
                 out.append([keylist[i], index_values, lbls])
                 
@@ -1076,7 +1076,7 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                     over = np.arange(itera["from"], itera["to"] + 1, itera["step"])
                 for j in over:
                     index_values = j
-                    lbls = labels[i]
+                    lbls = licit_filename(labels[i], replacement="+", exclude_dir=False)
                     additional_label = get_labels(
                         df,
                         itera["label"],

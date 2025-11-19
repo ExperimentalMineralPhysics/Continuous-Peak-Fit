@@ -958,18 +958,24 @@ def number_to_string(number, replace=".", withthis="pt"):
 def licit_filename(fname, replacement="==", exclude_dir=True):
     """
     This makes sure that a file name generated from a string is licit.
-    It replaces the illegal characters [<>:/\|?*] with a replacement character
+    It replaces the illegal characters [<>:|?*] with a replacement character
+    If exclude_dir==False it also replaces / and \
     It also replaces all '.' with 'pt' -- assuming any occurance is a number.
 
     after https://gist.github.com/AaronLaw/a936bebfbbd691fc954252444767e6de -- Find NTFS illegal characters in black list and rename filename.
     """
     blacklist = r"[<>:|?*]"
     # the file name might include a directory link...
-    if exclude_dir == False:
-        blacklist += r"\/"
+    # if exclude_dir == False:
+    #     blacklist += r"/\\"
 
     fname = re.sub(blacklist, replacement, fname)
 
+    # the file name might include a directory link...
+    if exclude_dir == False:
+        fname=fname.replace("/",replacement)
+        fname=fname.replace("\\",replacement)
+    
     fname = number_to_string(fname)
 
     return fname

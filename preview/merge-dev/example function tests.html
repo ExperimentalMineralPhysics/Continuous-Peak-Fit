@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>XRD_FitPattern’s examples and the features they test. &#8212; Continuous-Peak-Fit 0.0 alpha documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/agogo.css?v=08520df9" />
+    <script src="_static/documentation_options.js?v=cddd5768"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Release Notes" href="whatsnew.html" />
+    <link rel="prev" title="Output files:" href="output_file_structure.html" /> 
+  </head><body>
+    <div class="header-wrapper" role="banner">
+      <div class="header">
+        <div class="headertitle"><a
+          href="index.html">Continuous-Peak-Fit 0.0 alpha documentation</a></div>
+        <div class="rel" role="navigation" aria-label="Related">
+          <a href="output_file_structure.html" title="Output files:"
+             accesskey="P">previous</a> |
+          <a href="whatsnew.html" title="Release Notes"
+             accesskey="N">next</a> |
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="xrd-fitpattern-s-examples-and-the-features-they-test">
+<h1>XRD_FitPattern’s examples and the features they test.<a class="headerlink" href="#xrd-fitpattern-s-examples-and-the-features-they-test" title="Link to this heading">¶</a></h1>
+<p>Each input file in the examples is made to demonstrate (and test) a separate feature of the code.
+The test files and their demonstrated feature are as follows:</p>
+<section id="example-1-monochromatic-x-ray-diffraction">
+<h2>Example 1: Monochromatic X-ray diffraction<a class="headerlink" href="#example-1-monochromatic-x-ray-diffraction" title="Link to this heading">¶</a></h2>
+<p>The sample in these examples is BCC iron at c. 2 GPa.</p>
+<ol class="arabic simple">
+<li><dl class="simple">
+<dt><strong>‘BCC1_Dioptas_input.py’ – basic test</strong></dt><dd><p>This function tests the basic fitting and outputs with no constraints on the fit. The series are all the default Fourier series.
+The example creates all the default output types: ‘Polydefix’, ‘DifferentialStrain’, ‘FitMovie’, ‘CoefficientTable’, ‘CollectionMovie’. All with default settings.</p>
+</dd>
+</dl>
+</li>
+</ol>
+<dl class="simple">
+<dt>1b. <strong>‘BCC1_Dioptas_EmptyRanges_input.py’ – basic test</strong></dt><dd><p>This is an empty case; see that everything runs when there are no peaks in the data.</p>
+</dd>
+</dl>
+<ol class="arabic" start="2">
+<li><dl>
+<dt><strong>‘BCC1_Dioptas_SymmFixed_input.py’ – symmetry, fixed profile and intensity clipping test</strong></dt><dd><p>This input file has fixed peak profiles and applies a symmetry to the diffraction data.
+The intensity in each range is clipped to being between “imin” and “imax”.
+Changes the fit_bounds applied to the fitting
+Change the number of bins used to inital fitting of the Fourier series
+The example creates output types: ‘Polydefix’ (with custom settings), ‘CoefficientTable’, ‘CollectionMovie’.</p>
+<p>N.B. The restrictions to imin and imax are not (necessarily) useful restrictions to this data. It is for testing purposes</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>‘BCC1_Dioptas_MultiPeak_input.py’ – multipeak test</strong></dt><dd><p>This example fits two peaks in the same range.
+It also applies the PeakPositionSelection to a range with a single peak.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>‘BCC1_Dioptas_SeriesFunctions_input.py’ – multipeak test</strong></dt><dd><p>Demonstrates all the different series types, except for “independent” (see Example 2).
+Also demonstrates restrictions on the coefficients active in the series.
+Some series have more than 1 acceptable name, see series documentation for full details.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>‘BCC1_Dioptas_ConstrainedParams_input.py’ – parameter constraint test</strong></dt><dd><p>This example demonstrates foring the coeficcients in two peaks in the same range to have the same values. It is only applicable to ranges with more than 1 peak.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>‘BCC1_Dioptas_h5_input.py’ – test of h5 file functions</strong></dt><dd><p>Implemented. No test file though.</p>
+</dd>
+</dl>
+</li>
+</ol>
+<ol class="arabic simple" start="8">
+<li><dl class="simple">
+<dt><strong>‘BCC1_Dioptas_ImPrepare_input.py’ – test of different image pre-filtering functions</strong></dt><dd><p>Partially implemented. Not completed. No test file</p>
+</dd>
+</dl>
+</li>
+</ol>
+<ol class="arabic simple" start="8">
+<li><dl class="simple">
+<dt><strong>‘BCC1_Dioptas_PeakShape_input.py’ – test of different peak shape test</strong></dt><dd><p>Not implmented</p>
+</dd>
+</dl>
+</li>
+</ol>
+</section>
+<section id="example-2-angle-dispersive-x-ray-diffraction">
+<h2>Example 2: Angle dispersive X-ray diffraction<a class="headerlink" href="#example-2-angle-dispersive-x-ray-diffraction" title="Link to this heading">¶</a></h2>
+<p>The sample in these examples is MgO at c. 4 GPa.
+The data was collected at the X17B2 beamline at the NSLS, using the 10-element detector of Weidner et al (2010).</p>
+<ol class="arabic simple">
+<li><dl class="simple">
+<dt><strong>‘Co22_MgO_input.py’ – basic test</strong></dt><dd><p>This function tests the basic fitting and outputs with no constraints on the fit. The series are all the default Fourier series.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>‘Co22_MgO_Track_input.py’ – track centrod test</strong></dt><dd><p>Run fitting tracking the centroid.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>‘Co22_MgO_Reverse_input.py’ – run backwards test</strong></dt><dd><p>Run fitting in reverse order.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>‘Co22_MgO_DetectorPosition_input.py’ – detctor position test</strong></dt><dd><p>Set detector positions from data file, rather than using defaults and fit.</p>
+</dd>
+</dl>
+</li>
+</ol>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          
+          <h3>Table of Contents</h3>
+          <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="x-ray%20diffraction.html">X-ray diffraction fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="algorithm.html">Algorithm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="running%20cpf.html"><em>Continuous peak fit</em>, via the command line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file%20short.html">Input file structure (short)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file.html">Input file structure (long)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file%20h5%20syntax.html">Sytax for iterating over hdf5 files.</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subpattern%20structure.html">Subpatterns and peaks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bounds.html">Bounds</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output_file_structure.html">Output files:</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">XRD_FitPattern’s examples and the features they test.</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#example-1-monochromatic-x-ray-diffraction">Example 1: Monochromatic X-ray diffraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example-2-angle-dispersive-x-ray-diffraction">Example 2: Angle dispersive X-ray diffraction</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="whatsnew.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">APIs</a></li>
+</ul>
+
+          <search role="search">
+            <h3 style="margin-top: 1.5em;">Search</h3>
+            <form class="search" action="search.html" method="get">
+                <input type="text" name="q" />
+                <input type="submit" value="Go" />
+            </form>
+          </search>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+          <div role="navigation" aria-label="Related">
+            <a href="output_file_structure.html" title="Output files:"
+              >previous</a> |
+            <a href="whatsnew.html" title="Release Notes"
+              >next</a> |
+            <a href="py-modindex.html" title="Python Module Index"
+              >modules</a> |
+            <a href="genindex.html" title="General Index"
+              >index</a>
+          </div>
+          <div role="note" aria-label="source link">
+              <br/>
+              <a href="_sources/example function tests.rst.txt"
+                rel="nofollow">Show Source</a>
+          </div>
+        </div>
+
+        <div class="right">
+          
+    <div class="footer" role="contentinfo">
+    &#169; Copyright Simon Hunt &amp; Danielle Fenech, 2020.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+  </body>
+</html>

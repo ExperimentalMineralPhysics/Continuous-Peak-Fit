@@ -657,6 +657,7 @@ def fit_chunks(
                         )
                     )
                     plt.show()
+                    plt.pause(3)
             else:
                 # there are not enough data to fit for the chunks
                 pass
@@ -728,10 +729,8 @@ def fit_series(
             comp = comp_list[cp]
             if comp == "d":
                 symmetry = 1
-            if "symmetry" in orders["peak"][j]:
-                symmetry = orders["peak"][j]["symmetry"]
             else:
-                symmetry = 1
+                symmetry = orders["peak"][j]["symmetry"]
 
             if comp_names[cp] + "_fixed" in orders["peak"][j]:
                 fixed = 1
@@ -912,7 +911,8 @@ def fit_series(
                 overwrite=False,
             )
             fig.savefig(filename)
-        plt.show()
+        plt.show(block=True)
+        plt.pause(3)
         plt.close()
 
     return master_params

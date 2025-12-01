@@ -7,8 +7,16 @@ The documentation is undercooked and much of it has not been written. If you wan
 The development of the code is ongoing. Each new data set we process finds new limits to the code and I am happy to fix such issues as they arise.
 
 ## Installation
+The following instructions are given for Python 3 on Ubuntu. The equivalent of the `apt` package manager on MacOS is to use Homebrew for package management via the `brew` command.
+
 
 Installation is available through Git or via pip. In order for some of the dependencies to be compiled and installed, Microsoft Visual C++ 14.0 or greater is required. The simplest way to acquire it is to download and install "Microsoft Visual C++ Build Tools" using the following link: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+
+### Install Python and Pip
+Ensure python and pip are installed on the system:
+
+`sudo apt install python python3-pip python3-dev`
+
 
 ### Using Git
 
@@ -28,11 +36,23 @@ Continuous-Peak-Fit can also be installed directly from PyPI using the following
 
 This should automatically install the package and its required dependencies.
 
+
+### Install pre-requisites
+Install packages that don't install properly with pip 'sudo apt install pkg-config libcairo2-dev ffmpeg libsm6 libxext6 python3-pyqt6 pyqt6-dev-tools`
+
+### Configure environment using Pip
+Install dependencies using `python3 -m pip install -r requirements.txt`.
+
+## Docker
+There is a docker image that can be built from the root `Continuous-Peak-Fit` directory using `docker build -t <name>:<tag> . -f docker/dockerfile`. You can then run the container using `docker run -it <name>:<tag> sh`.
+
+
 ## Usage
 
 Continuous-Peak-Fit can be run in a number of ways but requires an inputs file containing information about where your
 data files are stored as well as information of the number of peak and appropriate ranges for the fit. Example data and
 inputs file are available in the Example1-Fe directory from the git repository.
+
 
 If using a pip install an example inputs file can be generated using the 'CPF_generate_inputs' executable or from within
 python using

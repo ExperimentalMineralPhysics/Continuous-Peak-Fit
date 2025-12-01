@@ -248,7 +248,6 @@ def WriteOutput(
             for y in range(len(settings_class.fit_orders[x]["peak"])):
                 # FIXME: use this line below as a shortening for all the x and y pointers
                 settings_class.set_subpattern(i, x)
-
                 if "hkl" in settings_class.fit_orders[x]["peak"][y]:
                     hkl = str(settings_class.fit_orders[x]["peak"][y]["hkl"])
 

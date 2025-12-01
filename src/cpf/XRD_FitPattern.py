@@ -815,6 +815,7 @@ def execute(
 
             if "previous_fit" in locals() and mode == "fit":
                 params = previous_fit[i]
+                params.pop("correlation_coeffs", None)
             else:
                 params = None
 

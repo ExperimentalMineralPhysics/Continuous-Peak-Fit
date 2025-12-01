@@ -9,7 +9,7 @@ import re
 
 from cpf.output_formatters.jcpds import jcpds
 from cpf.IO_functions import peak_hkl
-from cpf.output_formatters.crystallographic_operations import indicies4to3
+from cpf.output_formatters.crystallographic_operations import plane_indices_4_to_3
 from cpf.IO_functions import replace_null_terms
 from cpf.IO_functions import make_outfile_name
 
@@ -535,7 +535,7 @@ def fourier_to_unitcellvolume(
             hkl = peak_hkl(flat_coef[i], j, string=False)[0]
             if len(hkl) == 4:
                 # convert to 3 value Miller indicies
-                hkl = indicies4to3(hkl)
+                hkl = plane_indices_4_to_3(hkl)
             jcpds_obj.add_reflection(h=hkl[0], k=hkl[1], l=hkl[2],
                              dobs = flat_coef[i]["peak"][j]["cryst_prop"]["dp"],
                              dobs_err = flat_coef[i]["peak"][j]["cryst_prop"]["dp_err"],

@@ -66,7 +66,7 @@ output_methods_modules = register_default_formats()
 
 
 def initiate(
-    settings: [str | Path | dict | Settings()],
+    settings: Optional[str | Path | dict | Settings()] = None,
     inputs=None,
     out_type=None,
     report: Literal[
@@ -135,6 +135,7 @@ def initiate(
     settings_class = get_settings(settings, **kwargs)
     
     return settings_class
+
 
 
 def view(
@@ -917,7 +918,6 @@ def execute(
                 # if debug:
                 plt.show()
                 plt.close()
-
 
             elif mode == "view":
                 fig = plt.figure()

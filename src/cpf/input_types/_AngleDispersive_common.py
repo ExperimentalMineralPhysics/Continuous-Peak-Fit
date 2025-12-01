@@ -10,6 +10,7 @@ from copy import deepcopy
 from skimage.util import shape
 
 from cpf.util.logging import get_logger
+from skimage.transform import rescale, resize, downscale_local_mean
 
 logger = get_logger("cpf.input_types._AngelDispersive_common")
 
@@ -79,7 +80,6 @@ class _AngleDispersive_common:
         if self.conversion_constant is False:
             # if the conversion is False then no conversion is needed
             dspc_out = tth_in
-
         else:
             # assume diffraction and convert.
             # wavelength = self.calibration.wavelength * 1e10
@@ -466,7 +466,6 @@ class _AngleDispersive_common:
                     #     ax1.set_ylabel("after")
 
             return ma.MaskedArray(data_out, mask=mask)
-        
         
         if reduce_by is False or (reduce_by is None and self.reduce_by is None):
             # reduce_by = False is used by fill_data to make sure this function is passed

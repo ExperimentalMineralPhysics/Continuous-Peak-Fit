@@ -569,7 +569,6 @@ class ESRFlvpDetector:
                 else:
                     pass
             # positions = np.deg2rad(positions)
-            
         return files_list, positions
 
     def get_detector(
@@ -918,6 +917,7 @@ class ESRFlvpDetector:
             # if np.max(angles) - np.min(angles) >= 45:
             #     self.azm_blocks = 45
 
+
     def _det_check():
         
         
@@ -999,8 +999,7 @@ class ESRFlvpDetector:
 
         # get ordered list of images
         frames, detectorangles = self._get_sorted_files(diff_file, reduce_by=self.reduce_by, debug=debug)
-        # print(frames)
-        # stop
+
         detectorangles = np.deg2rad(detectorangles)
         self.detector_check(calibration_data=diff_file, detectorangles=detectorangles)
         
@@ -1078,7 +1077,6 @@ class ESRFlvpDetector:
         #force self.azm back to be within azm_start -- azm_end
         self.azm[self.azm < self.azm_start] = self.azm[self.azm < self.azm_start] + 360
         self.azm[self.azm >= self.azm_end]  = self.azm[self.azm >= self.azm_end] - 360
-        
         
         logger.debug(" ".join(map(str, ["Detector is: %s" % self.detector])))
         if logger.is_below_level(level="DEBUG"):

@@ -221,6 +221,7 @@ class Settings:
         delattr(new, 'data_class')
         return new
 
+
     def _validation_copy(self):
         """
         Return a dictionary of the class without:
@@ -310,7 +311,6 @@ class Settings:
                         if isinstance(value, dict):
                             value = RecursiveObject(value)
                         setattr(self, key, value)
-
             self.settings_from_input = settings#RecursiveObject(dictionary = settings)
             
             
@@ -350,6 +350,7 @@ class Settings:
         set the values in the settings class back to those in the settings file.
         """
         self.populate()
+
 
     def fill_settings(self, validate = True):
         """
@@ -489,7 +490,6 @@ class Settings:
                     err_str = "The data class has no value for '_default_h5_iterate'. Need to define 'h5_iterate' in settings."  
                     logger.warning(err_str)
                     raise ValueError(err_str)
-
             (
                 self.datafile_list,
                 self.datafile_number,
@@ -670,7 +670,6 @@ class Settings:
         self,
         directory: Path,
         make_dir: bool = False,
-        
     ):
         """
         Check if a directory exists. Make it if make_dir==True or issue an error.
@@ -1630,6 +1629,7 @@ def detector_factory(settings_class: Settings):
         return detector_class(settings_class=settings_class)
     else:
         raise ValueError(f"Unrecognized calibration type, {settings_class.calibration_type}")
+
 
 def is_settings(settings):
     """

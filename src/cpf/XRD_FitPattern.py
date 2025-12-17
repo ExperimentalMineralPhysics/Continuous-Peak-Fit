@@ -499,7 +499,8 @@ def order_search(
 
     # search over the first file only
     settings_class.set_data_files(keep=0)
-
+    settings_class.fit_propagate = False
+    
     # loop over the peaks in turn unless forced
     if subpattern =="force all":
         subpattern = ["all"]

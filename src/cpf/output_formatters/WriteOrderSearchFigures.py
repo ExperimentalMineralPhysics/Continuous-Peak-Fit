@@ -125,7 +125,7 @@ def WriteOutput(
         fig, ax = plt.subplots(int(np.ceil(len(param_plot))/cols), cols, sharex=True, figsize=[8*fig_scale,6*fig_scale])
         ax = ax.flat
         title_str = ("Order Search - " + 
-            peak_string(settings_class.subfit_orders) +
+            peak_string(settings_class.subfit_orders, peak=i) +
             " - " + df["search_over"][0]
         )
         fig.suptitle(title_str)
@@ -148,7 +148,7 @@ def WriteOutput(
                 else:
                     ax[h].plot(df_tmp.loc[df_tmp['search_peak'] == k]['search_value'], df_tmp.loc[df_tmp['search_peak'] ==k][param_plot[h]], '.-', label=searches[j])
         
-            ax[h].set_xlabel(df["search_over"][0])
+            ax[h].set_xlabel(f"{df['search_over'][0]} order")
             ax[h].xaxis.set_major_locator(MaxNLocator(integer=True))
             ax[h].set_ylabel(param_plot[h])
             # ax[h].set_title(peaks[i])
@@ -159,11 +159,15 @@ def WriteOutput(
         # data_fit_tmp = data_fit[position]
         # if "note" in data_fit_tmp:
         #     data_fit_tmp.pop("note")
+        lbl = settings_class.file_label
+        if lbl[-3:] == "all":
+            lbl = lbl[:-3]+str(i)
+        lbl = peak_string(settings_class.subfit_orders, peak=i, fname=True) + "__" + lbl
         out_file = make_outfile_name(
             settings_class.subfit_filename,
             directory=settings_class.output_directory,
             # orders = data_fit_tmp,
-            additional_text=settings_class.file_label,
+            additional_text=lbl,
             extension='.png',
             peak=peaks[i],
             overwrite=True,

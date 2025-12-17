@@ -59,7 +59,7 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
         coeff_type = sf.get_params_type(settings_as_class.subfit_orders, comp, peak=j)
 
         # for guesses make sure there are not too many coefficients.
-        n_coeff = sf.get_number_coeff(settings_as_class.subfit_orders, comp)
+        n_coeff = sf.get_number_coeff(settings_as_class.subfit_orders, comp, peak=j)
 
         if n_coeff > len(t_th_guess[:, 0]):
             o = int(np.floor(len(t_th_guess[:, 0]) / 2 - 1))

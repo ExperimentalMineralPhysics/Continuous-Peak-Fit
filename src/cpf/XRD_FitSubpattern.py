@@ -713,18 +713,7 @@ def fit_sub_pattern(
 
                 if np.max(ave_intensity) <= min_peak_intensity:
                     # then there is no determinable peak in the data
-                    logger.moreinfo(
-                        " ".join(
-                            map(
-                                str,
-                                [
-                                    (
-                                        "Not sufficient intensity in the chunked peaks to proceed with fitting."
-                                    )
-                                ],
-                            )
-                        )
-                    )
+                    logger.moreinfo("Not sufficient intensity in the chunked peaks to proceed with fitting.")
                     # set step to -101 so that it is still negative at the end
                     step.append(-101)  # get to the end and void the fit
                     fout = master_params

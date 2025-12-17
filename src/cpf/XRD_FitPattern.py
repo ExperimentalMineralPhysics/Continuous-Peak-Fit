@@ -713,7 +713,7 @@ def execute(
     # Process the diffraction patterns
     # for j in range(settings_class.image_number):
     progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
-    for j in progress.iter_bar(iteration=range(settings_class.image_number)):
+    for j in progress.iter_bar(image=range(settings_class.image_number)):
         logger.info(f"Processing {title_file_names(image_name=settings_class.image_list[j])}")
 
         # Get diffraction pattern to process.

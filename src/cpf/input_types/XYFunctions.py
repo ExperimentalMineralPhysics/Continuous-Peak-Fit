@@ -67,6 +67,7 @@ from PIL import Image
 import cpf.h5_functions as h5_functions
 from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
+from cpf.input_types._metadata_common import _metadata_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.util.logging import get_logger
@@ -156,6 +157,9 @@ class XYDetector:
         self.azm_blocks = 100
             
         self.reduce_by = None
+
+        self._default_metadata = {"time_label": "FILE_CREATION", # file creation time.
+                                  'exposure_label': None}
         
         self.calibration = None
         self.conversion_constant = None
@@ -495,6 +499,12 @@ class XYDetector:
 
         if settings.reduce_by is not None:
             self.reduce_by = settings.reduce_by
+        
+        if "metadata" in settings.__dict__:
+            self.metadata_labels = settings.metadata
+        else:
+            
+            self.metadata_labels = self._default_metadata
             
         if self.detector == None:
             self.get_detector(settings=settings)
@@ -535,7 +545,40 @@ class XYDetector:
         self.DispersionUnits = self.detector.calibration["x_unit"]
         self.Azimuthlabel = self.detector.calibration["y_label"]
         self.AzimuthUnits = self.detector.calibration["y_unit"]
+     
+
+    def get_metadata_dictionary(self, image_name):
+        """
+        Gets all metadata as dictionary from image file.
         
+        For XY functions this is a fabio.open(file).header dictionary 
+        
+        Parameters
+        ----------
+        image_name : Path, string
+            file path for the image to be opened.
+
+        Returns
+        -------
+        metadata_dictionary
+            dictionary of image metadata. 
+        """
+        # Defined as function to allow get_metadata to call universal image method
+        if isinstance(image_name, list):
+            # then it is a h5 type file
+            raise ValueError("This is the wrong method to get h5 type meta data.")
+        elif (
+            os.path.splitext(image_name)[1] == ".txt"
+            or os.path.splitext(image_name)[1] == ".csv"
+        ):
+            # no idea what non-image meta data will look like so pass.
+            metadata_dictionary = {}
+        else:
+            metadata_dictionary = Image.open(image_name).tag_v2.names()
+               
+        return metadata_dictionary
+
+
     @staticmethod
     def detector_check(calibration_data, settings=None):
         """
@@ -607,6 +650,7 @@ class XYDetector:
     GetDataType = _AngleDispersive_common.GetDataType
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     _reduce_array = _AngleDispersive_common._reduce_array
+    get_metadata = _metadata_common.get_metadata
     """
     FIXME: add more flxibility to conversion    
     XYFunctions does not have to be X-ray diffraction but it could be. To pass a

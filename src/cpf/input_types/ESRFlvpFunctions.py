@@ -9,6 +9,7 @@ import glob
 import json
 import sys
 import os
+import re
 from copy import copy, deepcopy
 from importlib.metadata import version
 
@@ -31,6 +32,7 @@ from pyFAI.detectors._common import Detector
 from pyFAI.goniometer import MultiGeometry
 
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
+from cpf.input_types._metadata_common import _metadata_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.util.logging import get_logger
@@ -230,26 +232,6 @@ class ESRFlvpDetector:
         self.AzimuthUnits = r"$^\circ$"
         self.Observationslabel = r"Intensity"
         self.ObservationsUnits = r"counts"
-
-        # self.h5_data    = '/*.1/measurement/p900kw/'
-        # self.h5_azimuths = '/*.1/measurement/azim/'
-        # #define h5 keys from a base so that when change base the others follow. 
-        # self._h5_data_base = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
-        #                    {"do":"combine", 
-        #          "from": 0, 
-        #          "to": -1, 
-        #          "step": 1, 
-        #          "using":"position",
-        #          "label": [""],
-        #          # "pos": '/*.1/measurement/azim/',
-        #          "dim": 0}]
-        # self.h5_data_iterate = self._h5_data_base
-        # self.h5_data_iterate[1]["do"] = "iterate"
-        # self.h5_data_return = self._h5_data_base
-        # self.h5_data_return[1]["do"] = "combine"
-        # self.h5_azimuths_return = self._h5_data_base
-        # self.h5_azimuths_return[1]["do"] = "combine"
-        
         
         self._default_h5_datakey  = '/*.1/measurement/p900kw/'
         self._default_h5_azimuths = '/*.1/measurement/azim/'
@@ -262,42 +244,21 @@ class ESRFlvpDetector:
                  "label": ['/*.1/measurement/azim/'],
                  # "pos": '/*.1/measurement/azim/',
                  "dim": 0}]
-        # self._h5_iterations = 
-        
-        # self.h5_data_iterate = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
-        #                    {"do":"iterate", 
-        #          "from": 0, 
-        #          "to": -1, 
-        #          "step": 1, 
-        #          "using":"position",
-        #          "label": ["pos"],
-        #          "dim": 0}]
-        # self.h5_data_return = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
-        #                    {"do":"return", 
-        #          "from": 0, 
-        #          "to": -1, 
-        #          "step": 1, 
-        #          "using":"position",
-        #          "label": ["pos"],
-        #          "dim": 0}]
-        # self.h5_azimuths = '/*.1/measurement/azim/'
-        # self.h5_azimuths_return = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
-        #                    {"do":"return", 
-        #          "from": 0, 
-        #          "to": -1, 
-        #          "step": 1, 
-        #          "using":"position",
-        #          "label": ["pos"],
-        #          "dim": 0}]
         
         self.mask_default = {"threshold": [1, np.inf]}
-                
                 
         self.azm_blocks = 2
         # default blocks are 2 degrees incase using only a single detector position
         # if the detector is being spun then the blocks are changed to a larger value.
 
         self.reduce_by = None
+        
+        self._default_h5_metadata  = {"time_label": '/*.1/measurement/epoch_trig/', # time stamps in ESRF edf file.
+                                      "exposure_label": '/*.1/measurement/timer_period/', # exposure times
+                                      }        
+        self._default_edf_metadata = {"time_label": "time_of_day", # time stamps in ESRF edf file.
+                                      "exposure_label": "acq_expo_time", # exposure times
+                                      }
 
         self.calibration = None
         self.conversion_constant = None
@@ -986,6 +947,15 @@ class ESRFlvpDetector:
             # self.h5_data_iterate[1]["step"] = self.reduce_by
             # self.h5_data_return[1]["step"] = self.reduce_by
 
+        if "metadata" in settings.__dict__:
+            self.metadata_labels = settings.metadata
+        elif (isinstance(diff_file, list) or 
+              os.path.splitext(os.path.basename(diff_file))[1] == ".h5"):
+            self.metadata_labels = self._default_h5_metadata
+        else:
+            self.metadata_labels = self._default_edf_metadata
+            
+
         if self.detector == None:
             # if reduce_by or self.reduce_by then a reduced list of image files is returned
             self.get_detector(settings=settings)
@@ -1129,7 +1099,6 @@ class ESRFlvpDetector:
         self.tth_start = np.min(self.tth.flatten())
         self.tth_end = np.max(self.tth.flatten())
         
-        
 
     def get_requirements(self, parameter_settings=None):
         """
@@ -1263,6 +1232,7 @@ class ESRFlvpDetector:
     GetDataType = _AngleDispersive_common.GetDataType
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     _reduce_array = _AngleDispersive_common._reduce_array
+    get_metadata = _metadata_common.get_metadata
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask

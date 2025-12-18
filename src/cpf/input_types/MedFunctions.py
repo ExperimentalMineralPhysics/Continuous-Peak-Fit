@@ -15,8 +15,9 @@ import numpy.ma as ma
 import pandas as pd
 from matplotlib import cm, colors, gridspec
 
-from cpf.input_types import Med, med_detectors
+from cpf.input_types import Med, Mca, med_detectors
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
+from cpf.input_types._metadata_common import _metadata_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.util.logging import get_logger
@@ -71,12 +72,16 @@ class MedDetector:
         self.Observationslabel = r"Intensity"
         self.ObservationsUnits = r"counts"
 
+        
         # separate detectors around the ring so not continuous
         self.continuous_azm = False
 
         self.azm_blocks = 45
 
         self.reduce_by = None
+
+        self._default_metadata = {"time_label": "mean_start_time", # file creation time.
+                                  'exposure_label': 'mean_live_time'}
         
         self.calibration = None
         self.conversion_constant = None
@@ -462,6 +467,11 @@ class MedDetector:
 
         if settings.reduce_by is not None:
             self.reduce_by = settings.reduce_by
+                    
+        if "metadata" in settings.__dict__:
+            self.metadata_labels = settings.metadata
+        else:
+            self.metadata_labels = self._default_metadata
             
         if self.detector == None:
             self.get_detector(settings=settings)
@@ -508,6 +518,43 @@ class MedDetector:
         self.azm_end = (
             np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
         )
+
+
+    def get_metadata_dictionary(self, image_name):
+        """
+        Gets all metadata as dictionary from image file.
+        
+        For MeDFunctions this is a dirctionary of the 'n_detectors', 'enviroment' 
+        and 'elapsed' parts of Mca.read_ascii_file() structure.
+        
+        Parameters
+        ----------
+        image_name : Path, string
+            file path for the image to be opened.
+
+        Returns
+        -------
+        metadata_dictionary
+            dictionary of image metadata. 
+        """
+        # Defined as function to allow get_metadata to call universal image method
+        im_and_md = Mca.read_ascii_file(image_name)
+        
+        metadata_dictionary = {}
+        metadata_dictionary['n_detectors'] = im_and_md['n_detectors']
+        for entries in im_and_md["environment"]:
+            metadata_dictionary[entries.name] = entries.value
+        for l in list(im_and_md['elapsed'][0].__dict__):
+            for det in im_and_md['elapsed']:
+                metadata_dictionary[l] = metadata_dictionary.get(l, []) + [getattr(det, l)]
+            # collapse all the lists to an average.
+            if len(np.unique(metadata_dictionary[l])) == 1:
+                metadata_dictionary["mean_"+l] = metadata_dictionary[l][0]
+            else:
+                metadata_dictionary["mean_"+l] = np.nanmean(metadata_dictionary[l])
+               
+        return metadata_dictionary
+
 
     @staticmethod
     def detector_check(image_name, settings=None):
@@ -1112,6 +1159,7 @@ class MedDetector:
     GetDataType = _AngleDispersive_common.GetDataType
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     _reduce_array = _AngleDispersive_common._reduce_array
+    get_metadata = _metadata_common.get_metadata
     plot_integrated = _Plot_AngleDispersive.plot_integrated
 
     # add masking functions to detetor class.

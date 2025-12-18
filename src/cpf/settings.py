@@ -549,12 +549,13 @@ class Settings:
         if "Output_type" in list(self.settings_from_input):
             self.set_output_types(out_type_list=self.settings_from_input["Output_type"])
 
+        # load the data class.
+        self.data_class = detector_factory(settings_class=self)
+        
         if validate == True:
             self.validate_settings_file()
             # FIXME: it needs to fail if everything is not present as needed and report what is missing
 
-        # load the data class.
-        self.data_class = detector_factory(settings_class=self)
 
     def validate_settings_file(self):
         """

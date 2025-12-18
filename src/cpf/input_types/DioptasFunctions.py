@@ -6,6 +6,8 @@ __all__ = ["DioptasDetector"]
 import sys
 from copy import copy, deepcopy
 from importlib.metadata import version
+import os
+import re
 
 import fabio
 import matplotlib.pyplot as plt
@@ -24,6 +26,7 @@ from pyFAI.io import ponifile
 import cpf.h5_functions as h5_functions
 from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
+from cpf.input_types._metadata_common import _metadata_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.util.logging import get_logger
@@ -74,6 +77,9 @@ class DioptasDetector:
         self.azm_blocks = 45
 
         self.reduce_by = None
+
+        self._default_metadata = {"time_label": "FILE_CREATION", # file creation time.
+                                  'exposure_label': None}
         
         self.calibration = None
         self.conversion_constant = None
@@ -234,11 +240,11 @@ class DioptasDetector:
                 if config["max_shape"] == None:
                     # open the file to get the shape of the data.
                     if diffraction_data is not None:
-                        im_all = fabio.open(diffraction_data)
+                        im_all = self.get_image_and_metadata(diffraction_data)
                     elif settings.calibration_data is not None:
-                        im_all = fabio.open(settings.calibration_data)
+                        im_all = self.get_image_and_metadata(settings.calibration_data)
                     elif settings.image_list[0] != None:
-                        im_all = fabio.open(settings.image_list[0])
+                        im_all = self.get_image_and_metadata(settings.image_list[0])
                     if im_all:
                         config["max_shape"] = im_all.shape
 
@@ -304,7 +310,7 @@ class DioptasDetector:
         #     im = np.array(im_all["/entry1/instrument/detector/data"])
         else:
             try:
-                im_all = fabio.open(image_name)
+                im_all = self.get_image_and_metadata(image_name)
                 logger.moreinfo(" ".join(map(str, [
                     f"This file contains {im_all.nframes} frame(s) with a combined shape of {im_all.shape}"
                 ])))
@@ -383,6 +389,7 @@ class DioptasDetector:
         #     self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
         #     return ma.array(im, mask=mask)
 
+
     def fill_data(
         self, diff_file=None, settings=None, mask=None, make_zyx=False, debug=False
     ):
@@ -438,6 +445,11 @@ class DioptasDetector:
         if settings.reduce_by is not None:
             self.reduce_by = settings.reduce_by
             
+        if "metadata" in settings.__dict__:
+            self.metadata_labels = settings.metadata
+        else:
+            self.metadata_labels = self._default_metadata
+                
         if self.detector == None:
             self.get_detector(settings=settings)
 
@@ -490,6 +502,27 @@ class DioptasDetector:
         self.tth_start = np.min(self.tth.flatten())
         self.tth_end = np.max(self.tth.flatten())
 
+
+    def get_metadata_dictionary(self, image_name):
+        """
+        Gets all metadata as dictionary from image file.
+        
+        For Dioptas functions this is a fabio.open(file).header dictionary 
+        
+        Parameters
+        ----------
+        image_name : Path, string
+            file path for the image to be opened.
+
+        Returns
+        -------
+        metadata_dictionary
+            dictionary of image metadata. 
+        """
+        # Defined as function to allow get_metadata to call universal image method
+        return fabio.open(image_name).header
+
+
     @staticmethod
     def detector_check(calibration_data, settings=None):
         """
@@ -504,7 +537,7 @@ class DioptasDetector:
             detector = pyFAI.detector_factory(settings.calibration_detector)
         else:
             # if settings is None or detector == 'unknown' or detector == 'other' or detector == 'blank':
-            im_all = fabio.open(calibration_data)
+            im_all = self.get_image_and_metadata(calibration_data)
             # sz = calibration_data.Calib_pixels  # Pixel_size
             sz = calibration_data.calibration_pixel_size  # Pixel_size
             if sz > 1:
@@ -605,6 +638,7 @@ class DioptasDetector:
     GetDataType = _AngleDispersive_common.GetDataType
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     _reduce_array = _AngleDispersive_common._reduce_array
+    get_metadata = _metadata_common.get_metadata
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask

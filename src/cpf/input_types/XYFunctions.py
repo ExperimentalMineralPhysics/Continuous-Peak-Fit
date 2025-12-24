@@ -52,6 +52,7 @@ import os
 import pickle
 import re
 import sys
+from pathlib import Path
 from copy import copy, deepcopy
 
 import fabio
@@ -158,7 +159,7 @@ class XYDetector:
             
         self.reduce_by = None
 
-        self._default_metadata = {"time_label": "FILE_CREATION", # file creation time.
+        self._default_metadata_labels = {"time_label": "FILE_CREATION", # file creation time.
                                   'exposure_label': None}
         
         self.calibration = None
@@ -429,6 +430,10 @@ class XYDetector:
         im = filters.gaussian(im, sigma)
         """
 
+        #add metadata to instance.
+        #done here so only need to open file once.
+        self._set_metadata(image_name, settings=settings)
+        
         # apply mask to the intensity array
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im)
@@ -499,11 +504,10 @@ class XYDetector:
         if settings.reduce_by is not None:
             self.reduce_by = settings.reduce_by
         
-        if "metadata" in settings.__dict__:
-            self.metadata_labels = settings.metadata
+        if settings.metadata_labels is not None:
+            self.metadata_labels = settings.metadata_labels
         else:
-            
-            self.metadata_labels = self._default_metadata
+            self.metadata_labels = self._default_metadata_labels
             
         if self.detector == None:
             self.get_detector(settings=settings)
@@ -546,16 +550,26 @@ class XYDetector:
         self.AzimuthUnits = self.detector.calibration["y_unit"]
      
 
-    def get_metadata_dictionary(self, image_name):
+    def _set_metadata(self, image_obj, settings=None):
         """
         Gets all metadata as dictionary from image file.
         
-        For XY functions this is a fabio.open(file).header dictionary 
+        If the cpf settings class is provided and has the method 'metadata_read'
+        then this method is used to override the internal default methods and is 
+        used to create 'metadata_dictionary' which is parsed.
+        In this case the settings class attribute 'metadata_labels' is still needed 
+        to get required parts of the metadata. 
+
+        For XY functions the default is a PIL.Image.open(image_obj).tag_v2.names() dictionary 
         
         Parameters
         ----------
-        image_name : Path, string
+        image_obj : Path, string
             file path for the image to be opened.
+        settings : cpf settings class, optional
+            If the settings class has method 'metadata_read' this overrides the 
+            internal methods and is used to get the metadata. 
+            The default is None.
 
         Returns
         -------
@@ -563,20 +577,24 @@ class XYDetector:
             dictionary of image metadata. 
         """
         # Defined as function to allow get_metadata to call universal image method
-        if isinstance(image_name, list):
+        if settings and "metadata_read_func" in settings.__dict__:
+            metadata_dictionary = settings.metadata_read_func(settings, image_obj=image_obj)
+        elif isinstance(image_obj, list):
             # then it is a h5 type file
-            raise ValueError("This is the wrong method to get h5 type meta data.")
-        elif (
-            os.path.splitext(image_name)[1] == ".txt"
-            or os.path.splitext(image_name)[1] == ".csv"
-        ):
-            # no idea what non-image meta data will look like so pass.
-            metadata_dictionary = {}
+            raise ValueError("This is the wrong method to get h5 type metadata.")
         else:
-            metadata_dictionary = Image.open(image_name).tag_v2.names()
-               
-        return metadata_dictionary
-
+            try:
+                #try using PIL but who knows.
+                metadata_dictionary = Image.open(image_obj).tag_v2.names()
+            except:
+                # no idea what non-image metadata will look like so pass.
+                metadata_dictionary = {}
+        # add the file creation and modifications time
+        if isinstance(image_obj, str) or isinstance(image_obj, Path):
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
+        else:
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj.filename)
+        self.metadata = metadata_dictionary
 
     @staticmethod
     def detector_check(calibration_data, settings=None):
@@ -650,6 +668,7 @@ class XYDetector:
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     _reduce_array = _AngleDispersive_common._reduce_array
     get_metadata = _metadata_common.get_metadata
+    _get_file_created_modified = _metadata_common._get_file_created_modified
     """
     FIXME: add more flxibility to conversion    
     XYFunctions does not have to be X-ray diffraction but it could be. To pass a

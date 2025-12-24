@@ -154,6 +154,9 @@ class Settings:
         self.fit_track: bool = False
         self.fit_propagate: bool = True
 
+        self.metadata_read = None
+        self.metadata_labels = None
+
         self.cascade_bin_type: Optional[int] = (
             0  # set default type - number data per bin
         )
@@ -459,7 +462,6 @@ class Settings:
         if (len(self.datafile_list) == 1 
                 and (self.datafile_list[0].suffix == ".h5" 
                 or self.datafile_list[0].suffix == ".nxs")):
-            
             #both "h5_datakey" and "h5_iterate" are required for the h5 file reading to work
             if "h5_datakey" not in list(self.settings_from_input):
                 
@@ -470,11 +472,12 @@ class Settings:
                 
                 if "_default_h5_datakey" in dir(temp_data_class):
                     self.settings_from_input["h5_datakey"] = temp_data_class._default_h5_datakey
-                    self.h5_datakey = temp_data_class._default_h5_datakey
                 else:
                     err_str = "The data class has no value for '_default_h5_datakey'. Need to define 'h5_datakey' in settings." 
                     logger.warning(err_str)
                     raise ValueError(err_str)
+            self.h5_datakey = self.settings_from_input["h5_datakey"]
+                
             if "h5_iterate" not in list(self.settings_from_input):
                 
                 # need to load a data class so we know what the h5 defaults are
@@ -484,11 +487,11 @@ class Settings:
                 
                 if "_default_h5_iterate" in dir(temp_data_class):
                     self.settings_from_input["h5_iterate"] = temp_data_class._default_h5_iterate
-                    self.h5_iterate = temp_data_class._default_h5_iterate
                 else:
                     err_str = "The data class has no value for '_default_h5_iterate'. Need to define 'h5_iterate' in settings."  
                     logger.warning(err_str)
                     raise ValueError(err_str)
+            self.h5_iterate = self.settings_from_input["h5_iterate"]
 
             (
                 self.datafile_list,
@@ -536,6 +539,13 @@ class Settings:
             self.fit_min_data_intensity = self.settings_from_input["fit_min_data_intensity"]
         if "fit_min_peak_intensity" in list(self.settings_from_input):
             self.fit_min_peak_intensity = self.settings_from_input["fit_min_peak_intensity"]
+
+        if "metadata_read_func" in list(self.settings_from_input):
+            self.metadata_read_func = self.settings_from_input["metadata_read_func"]
+        if "metadata" in list(self.settings_from_input):
+            self.metadata = self.settings_from_input["metadata"]
+        if "metadata_labels" in list(self.settings_from_input):
+            self.metadata_labels = self.settings_from_input["metadata_labels"]
 
         if "AziDataPerBin" in list(self.settings_from_input):
             self.fit_per_bin = self.settings_from_input["AziDataPerBin"]

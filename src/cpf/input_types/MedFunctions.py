@@ -7,6 +7,7 @@ __all__ = ["MedDetector"]
 import os
 import re
 import sys
+from pathlib import Path
 from copy import copy, deepcopy
 
 import matplotlib.pyplot as plt
@@ -80,7 +81,7 @@ class MedDetector:
 
         self.reduce_by = None
 
-        self._default_metadata = {"time_label": "mean_start_time", # file creation time.
+        self._default_metadata_labels = {"time_label": "mean_start_time", # file creation time.
                                   'exposure_label': 'mean_live_time'}
         
         self.calibration = None
@@ -400,6 +401,10 @@ class MedDetector:
             else:
                 pass
 
+        #add metadata to instance.
+        #done here for consistency with other data types.
+        self._set_metadata(self.detector, settings=settings)
+        
         # apply mask to the intensity array
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im_all)
@@ -468,10 +473,10 @@ class MedDetector:
         if settings.reduce_by is not None:
             self.reduce_by = settings.reduce_by
                     
-        if "metadata" in settings.__dict__:
-            self.metadata_labels = settings.metadata
+        if settings.metadata_labels is not None:
+            self.metadata_labels = settings.metadata_labels
         else:
-            self.metadata_labels = self._default_metadata
+            self.metadata_labels = self._default_metadata_labels
             
         if self.detector == None:
             self.get_detector(settings=settings)
@@ -520,17 +525,26 @@ class MedDetector:
         )
 
 
-    def get_metadata_dictionary(self, image_name):
+    def _set_metadata(self, image_obj, settings=None):
         """
         Gets all metadata as dictionary from image file.
         
-        For MeDFunctions this is a dirctionary of the 'n_detectors', 'enviroment' 
-        and 'elapsed' parts of Mca.read_ascii_file() structure.
+        If the cpf settings class is provided and has the method 'metadata_read'
+        then this method is used to override the internal default methods and is 
+        used to create 'metadata_dictionary' which is parsed.
+        In this case the settings class attribute 'metadata_labels' is still needed 
+        to get required parts of the metadata. 
+
+        For MED functions the default is a fabio.open(file).header dictionary 
         
         Parameters
         ----------
-        image_name : Path, string
-            file path for the image to be opened.
+        image_obj : opened Med file object
+            opened Med object. (in MedFunctions is same as self.detector )
+        settings : cpf settings class, optional
+            If the settings class has method 'metadata_read' this overrides the 
+            internal methods and is used to get the metadata. 
+            The default is None.
 
         Returns
         -------
@@ -538,23 +552,29 @@ class MedDetector:
             dictionary of image metadata. 
         """
         # Defined as function to allow get_metadata to call universal image method
-        im_and_md = Mca.read_ascii_file(image_name)
+        if settings and "metadata_read" in settings:
+            metadata_dictionary = settings.metadata_read(image_obj)
+        else:
+            im_and_md = Mca.read_ascii_file(image_obj.get_name())
+            metadata_dictionary = {}
+            metadata_dictionary['n_detectors'] = im_and_md['n_detectors']
+            for entries in im_and_md["environment"]:
+                metadata_dictionary[entries.name] = entries.value
+            for l in list(im_and_md['elapsed'][0].__dict__):
+                for det in im_and_md['elapsed']:
+                    metadata_dictionary[l] = metadata_dictionary.get(l, []) + [getattr(det, l)]
+                # collapse all the lists to an average.
+                if len(np.unique(metadata_dictionary[l])) == 1:
+                    metadata_dictionary["mean_"+l] = metadata_dictionary[l][0]
+                else:
+                    metadata_dictionary["mean_"+l] = np.nanmean(metadata_dictionary[l])           
+        # add the file creation and modifications time
+        if isinstance(image_obj, str) or isinstance(image_obj, Path):
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
+        else:
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj.get_name())
+        self.metadata = metadata_dictionary
         
-        metadata_dictionary = {}
-        metadata_dictionary['n_detectors'] = im_and_md['n_detectors']
-        for entries in im_and_md["environment"]:
-            metadata_dictionary[entries.name] = entries.value
-        for l in list(im_and_md['elapsed'][0].__dict__):
-            for det in im_and_md['elapsed']:
-                metadata_dictionary[l] = metadata_dictionary.get(l, []) + [getattr(det, l)]
-            # collapse all the lists to an average.
-            if len(np.unique(metadata_dictionary[l])) == 1:
-                metadata_dictionary["mean_"+l] = metadata_dictionary[l][0]
-            else:
-                metadata_dictionary["mean_"+l] = np.nanmean(metadata_dictionary[l])
-               
-        return metadata_dictionary
-
 
     @staticmethod
     def detector_check(image_name, settings=None):
@@ -1160,6 +1180,7 @@ class MedDetector:
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     _reduce_array = _AngleDispersive_common._reduce_array
     get_metadata = _metadata_common.get_metadata
+    _get_file_created_modified = _metadata_common._get_file_created_modified
     plot_integrated = _Plot_AngleDispersive.plot_integrated
 
     # add masking functions to detetor class.

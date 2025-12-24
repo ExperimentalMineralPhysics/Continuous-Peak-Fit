@@ -159,7 +159,7 @@ class _metadata_common:
                     metadata_key = re.sub('[*]', iteration.groups()[0], j)
                     
                 #get last index in key as the dictionarry entry label
-                ky = metadata_key                             
+                ky = metadata_key.split("/")[-1]
                 metadata_out[ky] = h5_functions.get_images([imagename[0], metadata_key, imagename[2], '0'])
                 try:
                     metadata_out[ky] = h5_functions.get_images([imagename[0], metadata_key, imagename[2], '0'])

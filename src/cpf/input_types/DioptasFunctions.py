@@ -258,6 +258,7 @@ class DioptasDetector:
                     elif settings.calibration_data is not None:
                         im_all = fabio.open(settings.calibration_data)
                     elif settings.image_list[0] != None:
+                        im_all = fabio.open(settings.image_list[0])
                     if im_all:
                         config["max_shape"] = im_all.shape
 
@@ -301,7 +302,7 @@ class DioptasDetector:
         # FIX ME: nxs files need to be checked. But they should be read like h5 files.
 
         # check inputs
-        if image_name == None and settings.subpattern == None:
+        if image_name == None and settings.subfit_filename == None:
             raise ValueError("Settings are given but no subpattern is set.")
 
         if self.detector == None:
@@ -555,7 +556,12 @@ class DioptasDetector:
             dictionary of image metadata. 
         """
         # Defined as function to allow get_metadata to call universal image method
-        if settings and "metadata_read_func" in settings.__dict__:
+        if not image_obj and not settings:
+            # then nothing is provided
+            # expected behaviour in some circumstances.
+            self.metadata = None
+            return
+        elif settings and "metadata_read_func" in settings.__dict__:
             metadata_dictionary = settings.metadata_read_func(settings, image_obj=image_obj)
             metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
         elif (not image_obj and settings) or cpf.settings.is_settings(image_obj):
@@ -572,7 +578,10 @@ class DioptasDetector:
             # keys which could be read as metadata. 
             
             metadata_dictionary = {}
-            metadata_dictionary["image"] = settings.subfit_filename
+            if settings.subfit_filename is not None:
+                metadata_dictionary["image"] = settings.subfit_filename
+            else:
+                metadata_dictionary["image"] = settings.image_list[0][0]
             metadata_dictionary["note"] = "It is not reasonable to load all hdf5 keys into a dictionary as metadata. Instead carry file name and use keys"
             metadata_dictionary["h5_datakey"] = settings.h5_datakey
             metadata_dictionary = self._get_file_created_modified(metadata_dictionary, metadata_dictionary["image"][0])

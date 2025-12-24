@@ -447,6 +447,7 @@ class _Plot_AngleDispersive:
         colourmap="jet",
         limits=[0, 99.9],
         location="default",
+        cbar_axes = None,
         debug=False,
     ):
         """
@@ -512,17 +513,28 @@ class _Plot_AngleDispersive:
             def f(data, n):
                 return data
 
-        IMax = np.nanpercentile(plot_i.compressed(), limits[1])
-        IMin = np.nanpercentile(plot_i.compressed(), limits[0])
-
-        if limits[0] > 0 and limits[1] < 100:
-            cb_extend = "both"
-        elif limits[1] < 100:
-            cb_extend = "max"
-        elif limits[0] > 0:
-            cb_extend = "min"
-        else:
+        if isinstance(limits, dict):
+            IMax = limits["max"]
+            IMin = limits["min"]
             cb_extend = "neither"
+        else:
+            if limits[1] == 100:
+                IMax = np.max(plot_i)
+            else:
+                IMax = np.nanpercentile(plot_i.compressed(), limits[1])
+            if limits[0] == 0:
+                IMin = np.min(plot_i)
+            else:
+                IMin = np.nanpercentile(plot_i.compressed(), limits[0])
+
+            if IMin > 0 and IMax < 100:
+                cb_extend = "both"
+            elif IMax < 100:
+                cb_extend = "max"
+            elif IMin > 0:
+                cb_extend = "min"
+            else:
+                cb_extend = "neither"
 
         im_num = 0
         the_plot = axis_plot.imshow(
@@ -541,13 +553,21 @@ class _Plot_AngleDispersive:
                 location = "right"
                 fraction = 0.15
 
-        cb = fig_plot.colorbar(
-            mappable=the_plot,
-            ax=axis_plot,
-            extend=cb_extend,
-            fraction=fraction,
-            location=location,
-        )
+        if cbar_axes is not False:
+            if cbar_axes is None:
+                cbar_axes = axis_plot
+            try:
+                shrink = 0.9 / len(cbar_axes)
+            except:
+                shrink = 0.5
+            cb = fig_plot.colorbar(
+                mappable=the_plot,
+                ax=axis_plot,
+                extend=cb_extend,
+                fraction=fraction,
+                location=location,
+                shrink=shrink,
+            )
 
         if np.ndim(plot_i) > 2 and plot_i.shape[0] > 1:
             # adjust the main plot to make room for the sliders

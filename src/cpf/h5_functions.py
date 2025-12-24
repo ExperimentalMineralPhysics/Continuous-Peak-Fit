@@ -1266,10 +1266,10 @@ def get_images(
             "settings file or class is present."
         )
     
-    if image_num == None:
-        image_num = list(range(len(image_list[2])))
-    elif isinstance(image_num, int):
-        image_num = [image_num]
+    # if image_num == None:
+    #     image_num = list(range(len(image_list[2])))
+    # elif isinstance(image_num, int):
+    #     image_num = [image_num]
     # image_num could also be a list -- in which case leave it alone.
 
     # # get image
@@ -1294,7 +1294,10 @@ def get_images(
     datafile = h5py.File(image_list[0], "r")
     datakey = image_list[1]
     data_position_in_key = image_list[2]
-    data = np.array(datafile[datakey][data_position_in_key])
+    if datafile[datakey].size == 1: 
+        data = np.array(datafile[datakey][()])
+    else:
+        data = np.array(datafile[datakey][data_position_in_key])
 
     # if len(image_num) == 1:
     #     data = data_tmp

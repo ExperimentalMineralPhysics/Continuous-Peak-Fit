@@ -8,6 +8,7 @@ from copy import copy, deepcopy
 from importlib.metadata import version
 import os
 import re
+from pathlib import Path
 
 import fabio
 import matplotlib.pyplot as plt
@@ -24,6 +25,7 @@ else:
 from pyFAI.io import ponifile
 
 import cpf.h5_functions as h5_functions
+import cpf # need to import whole package to avoind trying to import part of incompletely iniated method (cpf.settings.issettings for _get_metadata)
 from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
 from cpf.input_types._metadata_common import _metadata_common
@@ -78,8 +80,20 @@ class DioptasDetector:
 
         self.reduce_by = None
 
-        self._default_metadata = {"time_label": "FILE_CREATION", # file creation time.
+        self.metadata = None
+        self._default_metadata_labels = {"time_label": "FILE_CREATION", # file creation time.
                                   'exposure_label': None}
+        
+        self._default_h5_datakey = '/*.1/measurement/p3/'
+        self._default_h5_iterate = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
+                           {"do":"combine", 
+                 "from": 0, 
+                 "to": -1, 
+                 "step": 1, 
+                 "using":"position",
+                 "label": ['pos'],
+                 # "pos": '/*.1/measurement/azim/',
+                 "dim": 0}]
         
         self.calibration = None
         self.conversion_constant = None
@@ -240,11 +254,10 @@ class DioptasDetector:
                 if config["max_shape"] == None:
                     # open the file to get the shape of the data.
                     if diffraction_data is not None:
-                        im_all = self.get_image_and_metadata(diffraction_data)
+                        im_all = fabio.open(diffraction_data)
                     elif settings.calibration_data is not None:
-                        im_all = self.get_image_and_metadata(settings.calibration_data)
+                        im_all = fabio.open(settings.calibration_data)
                     elif settings.image_list[0] != None:
-                        im_all = self.get_image_and_metadata(settings.image_list[0])
                     if im_all:
                         config["max_shape"] = im_all.shape
 
@@ -302,6 +315,10 @@ class DioptasDetector:
         if isinstance(image_name, list):
             # then it is a h5 type file
             im = h5_functions.get_images(image_name)
+            
+            #add metadata to instance.
+            #done here so only need to open file once.
+            self._set_metadata(None, settings=settings)
 
         # elif file_extension == ".nxs":
         #     im_all = h5py.File(image_name, "r")
@@ -310,7 +327,7 @@ class DioptasDetector:
         #     im = np.array(im_all["/entry1/instrument/detector/data"])
         else:
             try:
-                im_all = self.get_image_and_metadata(image_name)
+                im_all = fabio.open(image_name)
                 logger.moreinfo(" ".join(map(str, [
                     f"This file contains {im_all.nframes} frame(s) with a combined shape of {im_all.shape}"
                 ])))
@@ -336,6 +353,11 @@ class DioptasDetector:
                     ]
                 )
                 raise ValueError(err_str)
+                
+            #add metadata to instance.
+            #done here so only need to open file once.
+            self._set_metadata(im_all, settings=settings)
+        
         # Convert the input data from integer to float because the lmfit model values
         # inherits integer properties from the data.
         #
@@ -367,11 +389,14 @@ class DioptasDetector:
         if logger.is_below_level(level="DEBUG"):
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
-            ax.imshow(im)
+            asdf = ax.imshow(np.log10(im+1E4))
+            # print(np.log10(im))
             plt.title(IO_functions.title_file_names(image_name=image_name))
+            plt.colorbar(asdf)
             plt.show()
             plt.close()
 
+        
         # apply mask to the intensity array
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im)
@@ -445,17 +470,17 @@ class DioptasDetector:
         if settings.reduce_by is not None:
             self.reduce_by = settings.reduce_by
             
-        if "metadata" in settings.__dict__:
-            self.metadata_labels = settings.metadata
+        if settings.metadata_labels is not None:
+            self.metadata_labels = settings.metadata_labels
         else:
-            self.metadata_labels = self._default_metadata
+            self.metadata_labels = self._default_metadata_labels
                 
         if self.detector == None:
             self.get_detector(settings=settings)
 
         # get the intensities (without mask) and without reduction.
         # No reduction because if reduced then the calibration is nonsence.
-        self.intensity = self.import_image(diff_file, reduce_by=False)
+        self.intensity = self.import_image(diff_file, settings=settings, reduce_by=False)
         
         # FIXME: (June 2024) because of how self.detector is instanciated the
         # shape might not be correct (or recognised). Hence the check here and
@@ -503,16 +528,26 @@ class DioptasDetector:
         self.tth_end = np.max(self.tth.flatten())
 
 
-    def get_metadata_dictionary(self, image_name):
+    def _set_metadata(self, image_obj, settings=None):
         """
         Gets all metadata as dictionary from image file.
         
-        For Dioptas functions this is a fabio.open(file).header dictionary 
+        If the cpf settings class is provided and has the method 'metadata_read'
+        then this method is used to override the internal default methods and is 
+        used to create 'metadata_dictionary' which is parsed.
+        In this case the settings class attribute 'metadata_labels' is still needed 
+        to get required parts of the metadata. 
+
+        For Dioptas functions the default is a fabio.open(file).header dictionary 
         
         Parameters
         ----------
-        image_name : Path, string
-            file path for the image to be opened.
+        image_obj : fabio object
+            image object to be parsed.
+        settings : cpf settings class, optional
+            If the settings class has method 'metadata_read' this overrides the 
+            internal methods and is used to get the metadata. 
+            The default is None.
 
         Returns
         -------
@@ -520,8 +555,37 @@ class DioptasDetector:
             dictionary of image metadata. 
         """
         # Defined as function to allow get_metadata to call universal image method
-        return fabio.open(image_name).header
-
+        if settings and "metadata_read_func" in settings.__dict__:
+            metadata_dictionary = settings.metadata_read_func(settings, image_obj=image_obj)
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
+        elif (not image_obj and settings) or cpf.settings.is_settings(image_obj):
+             # when calling hdf5 file there is no image_obj to send (= None) and settings is
+             # provided instead. 
+             # 
+             # (any(False if x is None else "*" in x for x in self.metadata_labels.values()) or 
+             #  any(False if x is None else "/" in x for x in self.metadata_labels.values()) or 
+             #  (settings and any("*" in x for x in settings.metadata)) or 
+             #  (settings and any("/" in x for x in settings.metadata))
+             #  ):
+            # here we set pointers to the things needed when the metadata is read.
+            # assuming that it is not wise (or possible) to list all the possible hdf5
+            # keys which could be read as metadata. 
+            
+            metadata_dictionary = {}
+            metadata_dictionary["image"] = settings.subfit_filename
+            metadata_dictionary["note"] = "It is not reasonable to load all hdf5 keys into a dictionary as metadata. Instead carry file name and use keys"
+            metadata_dictionary["h5_datakey"] = settings.h5_datakey
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, metadata_dictionary["image"][0])
+            
+        else:
+            if isinstance(image_obj, str) or isinstance(image_obj, Path):
+                metadata_dictionary = fabio.open(image_obj).header
+                metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
+            else:
+                metadata_dictionary = image_obj.header
+                metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj.filename)
+        self.metadata = metadata_dictionary
+    
 
     @staticmethod
     def detector_check(calibration_data, settings=None):
@@ -537,7 +601,7 @@ class DioptasDetector:
             detector = pyFAI.detector_factory(settings.calibration_detector)
         else:
             # if settings is None or detector == 'unknown' or detector == 'other' or detector == 'blank':
-            im_all = self.get_image_and_metadata(calibration_data)
+            im_all = fabio.open(calibration_data)
             # sz = calibration_data.Calib_pixels  # Pixel_size
             sz = calibration_data.calibration_pixel_size  # Pixel_size
             if sz > 1:
@@ -592,20 +656,7 @@ class DioptasDetector:
                 if par in required_list:
                     logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    logger.info(
-                        " ".join(
-                            map(
-                                str,
-                                [
-                                    (
-                                        "The settings file requires a parameter called  '",
-                                        par,
-                                        "'",
-                                    )
-                                ],
-                            )
-                        )
-                    )
+                    logger.info(f"The settings file requires a parameter called '{par}'")
                     all_present = 0
             if all_present == 0:
                 sys.exit(
@@ -639,6 +690,8 @@ class DioptasDetector:
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     _reduce_array = _AngleDispersive_common._reduce_array
     get_metadata = _metadata_common.get_metadata
+    _get_file_created_modified = _metadata_common._get_file_created_modified
+
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask

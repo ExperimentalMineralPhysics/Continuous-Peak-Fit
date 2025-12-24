@@ -6,9 +6,11 @@ import os
 import re
 import numpy as np
 import fabio
+from pathlib import Path
 from datetime import datetime
 from dateutil.parser import parse
 
+# from cpf.settings import is_settings
 from cpf import h5_functions
 from cpf.util.logging import get_logger
 
@@ -23,7 +25,7 @@ class _metadata_common:
     These are imported into the detector functions as methods.
     """
     
-    def get_metadata(self, image_name=None, settings=None, metadata_values="default"):
+    def get_metadata(self, metadata_values="default", report=None):
         """
         Gets metadata from the diffraction patterns. 
         The default is to get the timestamps of the images but other data 
@@ -43,9 +45,12 @@ class _metadata_common:
     
         Parameters
         ----------
-        image_name : string, list, optional
+        image : open image file, optional
             Name of the image set to import. Either this or settings are required.
             The default is None.
+            image_name : string, list, optional
+                Name of the image set to import. Either this or settings are required.
+                The default is None.
         settings : settings class, optional
             cpf settings class. Either this or image_name are required.
             The default is None.
@@ -59,44 +64,31 @@ class _metadata_common:
             dictionary of the metadata.
     
         """
+        """
+        The meta data is expected to be in the form of a dictionary -- or something that reads to a dictionary.
         
-        # check inputs
-        if image_name == None and settings.subfit_filename == None:
-            raise ValueError("Settings are given but no subpattern is set.")
-        if image_name == None:
-            # use preset file.
-            image_name = settings.subfit_filename
-            
+        
+        """
+        
+        no_exposure_message = None#"no exposure"
+        
         if isinstance(metadata_values, str):
             metadata_values = [metadata_values]
         
         # options for times
-        time_opts = ["time_mid" ,"time_start" ,"time_end"]
+        time_opts = ["time_mid" ,"time_start" ,"time_end", "time_exposure"]
         
         # make output dictionary
-        metadata = {}
-        #set default metadata 
+        metadata_out = {}
+        #set metadata to return 
+        if metadata_values == ['all'] or metadata_values == 'all':
+            metadata_values = list(self.metadata)
+            metadata_values += time_opts
         if "default" in metadata_values:
             metadata_values += time_opts
             metadata_values.remove('default')
-    
-        # get metadata from images
-        if (isinstance(image_name, list) or 
-            os.path.splitext(os.path.basename(image_name))[1] == ".h5"
-            ):
-            # then it is a *.h5 file containing data from a the spin of the detector.
-            time_location = self.metadata_labels.get('time_label')
-            exposure_location = self.metadata_labels.get('exposure_label')
-        else: 
-            # image(s) are separate tiff, edf, etc. images
-            time_location = self.metadata_labels.get('time_label')
-            exposure_location = self.metadata_labels.get('exposure_label')
-            
-            #get list of images (incase there is more than 1)   
-            if "*" in image_name:
-                imgs_, _ = self._get_sorted_files(image_name, reduce_by=self.reduce_by)
-            else:
-                imgs_ = [image_name]
+        time_location = self.metadata_labels.get('time_label', self._default_metadata_labels['time_label'])
+        exposure_location = self.metadata_labels.get('exposure_label', self._default_metadata_labels['exposure_label'])
         
         #parse metadata_values list 
         discard = []
@@ -118,121 +110,167 @@ class _metadata_common:
             metadata_values = [time_location]
         else:
             replaced = None
-            
         
         # get metadata from images
         # look for os level properties first FILE_CREATION and FILE_MODIFIED 
         if "FILE_CREATION" in metadata_values:
             # get file creation time from OS    
-            metadata["FILE_CREATION"] = []
-            for k,i in enumerate(imgs_):
-                metadata["FILE_CREATION"].append(os.path.getctime(image_name))
+            # metadata["FILE_CREATION"] = []
+            # for k,i in enumerate(imgs_):
+            #     metadata["FILE_CREATION"].append(os.path.getctime(image_name))
+            metadata_out["FILE_CREATION"] = self.metadata["FILE_CREATION"]
         if "FILE_MODIFIED" in metadata_values:
             # get file modificaction time from OS   
-            metadata["FILE_MODIFIED"] = []
-            for k,i in enumerate(imgs_):
-                metadata["FILE_MODIFIED"].append(os.path.getmtime(image_name))
+            # metadata["FILE_MODIFIED"] = []
+            # for k,i in enumerate(imgs_):
+            #     metadata["FILE_MODIFIED"].append(os.path.getmtime(image_name))
+            metadata_out["FILE_MODIFIED"] = self.metadata["FILE_CREATION"]
         #get information from inside datafiles
-        if (isinstance(image_name, list) or
-            os.path.splitext(os.path.basename(image_name))[1] == ".h5"):
-            # list with h5 image names and keys 
-            # or single h5 file.
+        if any("*" in x for x in metadata_values) or any("/" in x for x in metadata_values):
+            # only hdf5 files should have a "*" as wildcard in the keys.
+            # to be sure also check for '/' as a key seperator. 
+                        
+            #needs --> to be in self.metadata
+            # image_name (in the list form) --> get from settings. 
+            # self.h5_datakey --> to be used to get wildcard values for metadata keys
+            # metadata_values
             
-            if not isinstance(image_name, list):
+            #get imagename from the meta data
+            imagename = self.metadata['image']           
+            if not isinstance(imagename, list):
                 # single file.
-                image_name = [image_name, self.h5_datakey, [0], '0']
-            
-                err_str = "Metadata extraction not set for single h5 file."
-                raise ValueError(err_str)
+                # imagename = [imagename, self.h5_datakey, [0], '0']
+                imagename = [imagename, self.metadata['image'][1], [0], '0']
+
+            # get iteration number from h5_datakey and imagename
+            # reverse replacement of the wildcard
+            regexp_alphanum = '([-+]?[0-9a-zA-Z-+_]*[.][0-9a-zA-Z-+_]+|[-+]?[0-9a-zA-Z-+_]+)'
+            # search_term = re.sub('[*]', regexp_alphanum, self.h5_datakey)
+            search_term = re.sub('[*]', regexp_alphanum, self.metadata['h5_datakey'])
+            iteration = re.search(search_term, imagename[1])
             
             # check metadata requirements exist 
             # add entries to output dictionary
             for j in metadata_values:
-                
-                regexp_alphanum = '([-+]?[0-9a-zA-Z-+_]*[.][0-9a-zA-Z-+_]+|[-+]?[0-9a-zA-Z-+_]+)'
-                # get iteration number from h5_datakey and image name
-                search_term = re.sub('[*]', regexp_alphanum, self.h5_datakey)
-                iteration = re.search(search_term, image_name[1])
-                
                 if len(iteration.groups()) > 1:
                     err_str = f"There is more than 1 wildcard in the h5 key {self.h5_datakey}. This is not implemented here."
                     raise NotImplementedError(err_str)
                 else:
                     metadata_key = re.sub('[*]', iteration.groups()[0], j)
-                
+                    
                 #get last index in key as the dictionarry entry label
-                ky = j                             
+                ky = metadata_key                             
+                metadata_out[ky] = h5_functions.get_images([imagename[0], metadata_key, imagename[2], '0'])
                 try:
-                    metadata[ky] = h5_functions.get_images([image_name[0], metadata_key, image_name[2], '0'])
+                    metadata_out[ky] = h5_functions.get_images([imagename[0], metadata_key, imagename[2], '0'])
                 except:                    
-                    err_str = f"Metadata type {j} not recognised. Permitted values for this dataset are: any valid h5 key"
+                    err_str = f"Metadata type {metadata_key} not recognised. Permitted values for this dataset are: any valid h5 key"
                     raise ValueError(err_str)
                     
         else: # image(s) are separate tiff, edf, etc. images
             # check metadata requirements exist and add entries to output dictionary
-            im_md = self.get_metadata_dictionary(imgs_[0])
-            headers = list(self.get_metadata_dictionary(imgs_[0]))
+            headers = list(self.metadata)
             for j in metadata_values:
                 if j in ["FILE_CREATION", "FILE_MODIFIED"]:
                     pass
                 elif j in headers:
-                    metadata[j] = []
+                    # metadata_out[j] = []
+                    try:
+                        metadata_out[j] = float(self.metadata[j])
+                    except:
+                        metadata_out[j] = self.metadata[j]
                 else:
                     err_str = f"Metadata type '{j}' not recognised. Permitted values for this dataset are: {headers}."
                     raise ValueError(err_str)
             
-            # metadate values from images. 
-            for k,i in enumerate(imgs_):
-                im_md = self.get_metadata_dictionary(i)
-                for j in metadata_values:
-                    if j in ["FILE_CREATION", "FILE_MODIFIED"]:
-                        pass
-                    else:
-                        try:
-                            metadata[j].append(float(im_md[j]))
-                        except:
-                            metadata[j].append(im_md[j])
-
         if replaced != None:
             if "time" in replaced:
                 if exposure_location is not None:
-                    metadata["time"] = time_combine(metadata[time_location], metadata[exposure_location], second_time_scale=1/2)
+                    metadata_out["time"] = time_combine(metadata_out[time_location], metadata_out[exposure_location], second_time_scale=1/2)
                 else: 
-                    metadata["time"] = "no exposure"
+                    metadata_out["time"] = no_exposure_message
             if "time_mid" in replaced:
                 if exposure_location is not None:
-                    metadata["time_mid"] = time_combine(metadata[time_location], metadata[exposure_location], second_time_scale=1/2)
+                    metadata_out["time_mid"] = time_combine(metadata_out[time_location], metadata_out[exposure_location], second_time_scale=1/2)
                 else: 
-                    metadata["time"] = "no exposure"
+                    metadata_out["time_mid"] = no_exposure_message
             if "time_start" in replaced:
-                metadata["time_start"] = metadata[time_location][0]
+                metadata_out["time_start"] = time_combine(metadata_out[time_location])
+                    # metadata_out["time_start"] = time_combine(self.metadata[time_location])
             if "time_end" in replaced:
                 if exposure_location is not None:
-                    metadata["time_end"] = time_combine(metadata[time_location][-1], metadata[exposure_location][-1], second_time_scale=1)
+                    if isinstance(metadata_out[time_location], list):
+                        last = metadata_out[time_location][-1]
+                        last_exp = metadata_out[exposure_location][-1]
+                    else:
+                        last = metadata_out[time_location]
+                        last_exp = metadata_out[exposure_location]
+                    metadata_out["time_end"] = time_combine(last, last_exp, second_time_scale=1)
                 else: 
-                    metadata["time"] = "no exposure"
+                    metadata_out["time_end"] = no_exposure_message
+            if "time_exposure" in replaced:
+                metadata_out["time_exposure"] = metadata_out.get(exposure_location, no_exposure_message)
+                # if exposure_location is not None:
+                #     metadata_out["time_exposure"] = self.metadata[exposure_location]
+                # else: 
+                #     metadata_out["time_exposure"] = no_exposure_message
             for k in discard:
-                metadata.pop(k, None)
-    
+                metadata_out.pop(k, None)
+            
         # collapse everything else down.
-        for i in list(metadata):
-            if isinstance(metadata[i], list) and len(metadata[i]) > 1:
+        for i in list(metadata_out):
+            if isinstance(metadata_out[i], list) and len(metadata_out[i]) > 1:
                 try:
-                    metadata[i] = np.nanmean(metadata[i])
+                    metadata_out[i] = np.nanmean(metadata_out[i])
                 except:
-                    metadata[i] = metadata[i][np.int_(len(metadata[i])/2)] 
-            elif isinstance(metadata[i], list) and len(metadata[i]) == 1:
-                metadata[i] = metadata[i][0]
-            elif isinstance(metadata[i], np.ndarray) and metadata[i].size > 1:
-                metadata[i] = np.nanmean(metadata[i])
+                    metadata_out[i] = metadata_out[i][np.int_(len(metadata_out[i])/2)] 
+            elif isinstance(metadata_out[i], list) and len(metadata_out[i]) == 1:
+                metadata_out[i] = metadata_out[i][0]
+            elif isinstance(metadata_out[i], np.ndarray) and metadata_out[i].size > 1:
+                metadata_out[i] = np.nanmean(metadata_out[i])
             else:
                 pass                    
     
-        return metadata
+        return metadata_out
 
 
+    def _get_file_created_modified(self, medtadata_dict, image):
+        """
+        Adds file creation and modification times to the metadata dictionary.
 
-def time_combine(first_time, second_time, second_time_scale=None):
+        Parameters
+        ----------
+        medtadata_dict : dict
+            dictionary of matadata.
+        image : Pth, str
+            location of the image.
+
+        Returns
+        -------
+        medtadata_dict : dict
+            dictionary of matadata.
+
+        """
+        # append times to dictionary incase of multiple files. 
+        if "FILE_CREATION" not in medtadata_dict:
+            medtadata_dict["FILE_CREATION"] = os.path.getctime(image)
+        else:
+            if not isinstance(medtadata_dict["FILE_CREATION"], list):
+                medtadata_dict["FILE_CREATION"] = [medtadata_dict["FILE_CREATION"]]
+            medtadata_dict["FILE_CREATION"].append(os.path.getmtime(image))
+
+        if "FILE_MODIFIED" not in medtadata_dict:
+            medtadata_dict["FILE_MODIFIED"] = os.path.getmtime(image)
+        else:
+            if not isinstance(medtadata_dict["FILE_MODIFIED"], list):
+                medtadata_dict["FILE_MODIFIED"] = [medtadata_dict["FILE_MODIFIED"]]
+            medtadata_dict["FILE_MODIFIED"].append(os.path.getmtime(image))
+        
+        return medtadata_dict
+        
+        
+
+def time_combine(first_time, second_time=0, second_time_scale=1):
     """
     Combine two times and return in the same format (string or time) as first_time
 
@@ -257,19 +295,25 @@ def time_combine(first_time, second_time, second_time_scale=None):
     if isinstance(first_time, list):
         as_str = True
         for i in range(len(first_time)):
-            first_time[i] = parse(first_time[i]).timestamp()
+            if isinstance(first_time[i], str):
+                first_time[i] = parse(first_time[i]).timestamp()
+    elif isinstance(first_time, str):
+        as_str = True
+        first_time = parse(first_time).timestamp()
     first_time = np.nanmean(first_time)
     if isinstance(second_time, list):
         for i in range(len(second_time)):
             if isinstance(second_time[i], str):
                 second_time[i] = parse(second_time[i]).timestamp()
+    elif isinstance(second_time, str):
+        as_str = True
+        second_time = parse(second_time).timestamp()
     second_time = np.nanmean(second_time)
         
-    if second_time_scale is not None:
-        out_time = first_time + second_time * second_time_scale
+    out_time = first_time + second_time * second_time_scale
         
     if as_str:
-        out_time = f"{datetime.fromtimestamp(out_time):' %Y-%d-%b %H:%M:%S.%f'}"
+        out_time = f"{datetime.fromtimestamp(out_time):%Y-%d-%b %H:%M:%S.%f}"
         
     return out_time
     

@@ -846,8 +846,9 @@ def execute(
                     tth_range = previous_fit[i]["range"][0]
                     mid = []
                     for k in range(len(params["peak"])):
-                        mid.append(get_series_mean(params['peak'][k], "d-space"))
-                        
+                        mid.append(params["peak"][k]["d-space"][0])
+                        # FIXME: replace with caluculation of mean d-spacing.
+
                     cent = new_data.conversion(np.mean(mid), reverse=True)
                     move_by = cent - np.mean(tth_range)
                     # move_by = move_by[0]  # this is needed to turn move_by from array to float
@@ -1013,18 +1014,16 @@ def execute(
                         min_peak_intensity=settings_class.fit_min_peak_intensity,
                         fit_method=fit_method,
                     )
-                    fitted_param.append(tmp)
-                    # fitted_param.append(tmp[0])
-                    # lmfit_models.append(tmp[1])
+                    fitted_param.append(tmp[0])
+                    lmfit_models.append(tmp[1])
 
         # write output files
         if mode == "fit" or mode == "search":
             if parallel is True:
                 tmp = pool.map(parallel_processing, parallel_pile)
                 for i in range(len(settings_class.fit_orders)):
-                    fitted_param.append(tmp[i])
-                    # fitted_param.append(tmp[i][0])
-                    # lmfit_models.append(tmp[i][1])
+                    fitted_param.append(tmp[i][0])
+                    lmfit_models.append(tmp[i][1])
 
             # store the fit parameters' information as a JSON file.
             if mode == "search":

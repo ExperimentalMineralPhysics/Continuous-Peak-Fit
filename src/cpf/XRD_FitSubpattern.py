@@ -1082,7 +1082,8 @@ def fit_sub_pattern(
             # else:
             #     logger.info(" ".join(map(str, [("File does not exist!")])))
 
-    return [new_params, fout]
+    # return [new_params, fout]
+    return new_params
 
 
 def plot_FitAndModel(

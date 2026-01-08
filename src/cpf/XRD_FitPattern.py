@@ -626,6 +626,7 @@ def execute(
     iterations: int = 1,
     # track: bool = False,  #moved this option to settings file
     parallel: bool = True,
+    resume: bool = False,
     mode: str = "fit",
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
@@ -718,6 +719,27 @@ def execute(
 
         # Get diffraction pattern to process.
         new_data.import_image(settings_class.image_list[j], debug=debug)
+
+        # get json file name for outputs.
+        if mode == "search":
+            additional_text = settings_class.file_label
+        else:
+            additional_text = None
+        settings_class.set_subpattern(j, 0)
+        filename = make_outfile_name(
+            settings_class.subfit_filename,
+            directory=settings_class.output_directory,
+            additional_text=additional_text,
+            extension=".json",
+            overwrite=True,
+        )
+        
+        # if the output file already exists and resume is true then skip
+        # this iteration        
+        if resume == True and Path(filename).is_file():
+            logger.info(f"  {title_file_names(image_name=settings_class.image_list[j])} has already been processed -- skipping")
+            continue
+        # else do the process.
 
         if settings_class.datafile_preprocess is not None:
             # needed because image preprocessing adds to the mask and is different for each image.

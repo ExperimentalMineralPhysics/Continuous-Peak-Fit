@@ -742,11 +742,18 @@ def execute(
             continue
         # else do the process.
 
-        if settings_class.datafile_preprocess is not None:
+        if ((isinstance(settings_class.datafile_preprocess, dict) ) or #settings_class.datafile_preprocess is not None or 
+            (isinstance(settings_class.calibration_mask, dict) and "threshold" in settings_class.calibration_mask)
+            ):
             # needed because image preprocessing adds to the mask and is different for each image.
             new_data.mask_restore()
-            if "cosmics" in settings_class.datafile_preprocess:
+            if (isinstance(settings_class.datafile_preprocess, dict) and "cosmics" in settings_class.datafile_preprocess):
                 new_data = cosmicsimage_preprocess(new_data, settings_class)
+            if (isinstance(settings_class.calibration_mask, dict) and "threshold" in settings_class.calibration_mask):
+                # set intenstiy threshold for each frame. 
+                # only applies to threshold because all other mask functions are static
+                # (cannot change between frames)
+                new_data.set_mask(intensity_bounds = settings_class.calibration_mask["threshold"])
         else:
             # nothing is done here.
             pass

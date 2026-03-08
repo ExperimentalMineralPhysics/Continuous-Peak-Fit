@@ -25,7 +25,7 @@ __all__ = [
 
 import sys
 import warnings
-
+from copy import deepcopy
 import numpy as np
 from lmfit import Model, Parameters
 
@@ -415,7 +415,7 @@ def initiate_all_params_for_fit(
             param_str,
             comp,
             coeff_type=coeff_type,
-            num_coeff=n_coeff,
+            num_coeff=deepcopy(n_coeff),
             value=vals,
             trig_orders=peak_orders["background"][k],
             limits=limits,
@@ -478,9 +478,9 @@ def initiate_all_params_for_fit(
                 param_str,
                 comp,
                 coeff_type=coeff_type,
-                num_coeff=n_coeff,
+                num_coeff=deepcopy(n_coeff),
                 trig_orders=peak_orders["peak"][j][comp_names[cp]],
-                limits=lims[comp_names[cp]],
+                limits=deepcopy(lims[comp_names[cp]]),
                 value=vals,
                 types=types,
             )
@@ -519,7 +519,7 @@ def initiate_params(
     :param ind_vars: array-based independent variable to be added to parameters to use in expr
     :return:
     """
-    if limits:
+    if limits is not None:
         new_min = np.min(limits)
         new_max = np.max(limits)
         if np.isclose(new_min, new_max, rtol=1e-05, atol=1e-08):
@@ -606,8 +606,8 @@ def initiate_params(
             inp_param.add(
                 param_str + "_" + comp + str(t),
                 v,
-                max=new_max,
-                min=new_min,
+                max=float(new_max),
+                min=float(new_min),
                 expr=expr,
                 vary=vary,
             )
@@ -615,8 +615,8 @@ def initiate_params(
             inp_param.add(
                 param_str + "_" + comp + str(t),
                 v,
-                max=half_range,
-                min=-half_range,
+                max=float(half_range),
+                min=float(-half_range),
                 expr=expr,
                 vary=vary,
             )

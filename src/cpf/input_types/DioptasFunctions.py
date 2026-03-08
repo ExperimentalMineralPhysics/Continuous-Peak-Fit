@@ -105,15 +105,15 @@ class DioptasDetector:
             if self.calibration:
                 self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True, as_masked=True):
         """
         Makes an independent copy of a DioptasDetector Instance.
 
         range_bounds and azi_bounds restrict the extent of the data if needed.
         The range resturictions should be applied upon copying (if required) for memory efficieny.
-        Laternatively run:
+        Alternatively run:
         data_class.duplicate()
-        date_calss.set_limit2(range_bounds=[...], azi_bounds=[...])
+        date_calss.set_limits(range_bounds=[...], azi_bounds=[...])
 
         Parameters
         ----------
@@ -121,6 +121,10 @@ class DioptasDetector:
             Limits for the two theta range. The default is [-np.inf, np.inf].
         azi_bounds : dict or array, optional
             Limits for the azimuth range. The default is [-np.inf, np.inf].
+        with_detector : bool, optional
+            Include detector and calibrations in returned class or not. The default is True.
+        as_masked : bool, optional
+            Return arrays as numpy masked arrays or numpy arrays. The default is False.
 
         Returns
         -------
@@ -128,7 +132,10 @@ class DioptasDetector:
             Copy of DioptasDetector with independedent data values
 
         """
-
+        #FIXME: should merge the data reduction funtions here with set_limits. or call set_limits.
+        #FIXME: should be able to copy the class and reduce data at the same time. rather than copying and then reducing
+        # this is not memory efficient. 
+        
         if with_detector:
             new = copy(self)
         else:
@@ -138,32 +145,46 @@ class DioptasDetector:
             new.detector = None
             new.calibration = None
 
-        local_mask = np.where(
-            (self.tth >= range_bounds[0])
-            & (self.tth <= range_bounds[1])
-            & (self.azm >= azi_bounds[0])
-            & (self.azm <= azi_bounds[1])
-        )
-
-        new.intensity = deepcopy(self.intensity[local_mask])
-        new.tth = deepcopy(self.tth[local_mask])
-        new.azm = deepcopy(self.azm[local_mask])
-        if "dspace" in dir(self):
-            new.dspace = deepcopy(self.dspace[local_mask])
-
-        # set nee range.
+        # set new range.
         new.tth_start = range_bounds[0]
         new.tth_end = range_bounds[1]
-
-        if "x" in dir(self):
+        
+        # restrict the data. 
+        local_mask = np.where(
+            (new.tth >= new.tth_start)
+            & (new.tth <= new.tth_end)
+            & (new.azm >= azi_bounds[0])
+            & (new.azm <= azi_bounds[1])
+        )
+        new.intensity = new.intensity[local_mask]
+        new.tth = new.tth[local_mask]
+        new.azm = new.azm[local_mask]
+        if "dspace" in dir(self):
+            new.dspace = new.dspace[local_mask]
+       
+        if "x" in dir(new):
             if self.x is not None:
-                new.x = deepcopy(self.x[local_mask])
-        if "y" in dir(self):
+                new.x = new.x[local_mask]
+        if "y" in dir(new):
             if self.y is not None:
-                new.y = deepcopy(self.y[local_mask])
-        if "z" in dir(self):
+                new.y = new.y[local_mask]
+        if "z" in dir(new):
             if self.z is not None:
-                new.z = deepcopy(self.z[local_mask])
+                new.z = new.z[local_mask]
+
+        if as_masked == False and ma.isMaskedArray(new.intensity):
+            # return flat arrays.
+            new.intensity = new.intensity.compressed()
+            new.tth = new.tth.compressed()
+            new.azm = new.azm.compressed()
+            if "dspace" in dir(new):
+                new.dspace = new.dspace.compressed()
+            if "x" in dir(new) and new.x is not None:
+                new.x = new.x.compressed()
+            if "y" in dir(new) and new.y is not None:
+                new.y = new.y.compressed()
+            if "z" in dir(new) and new.z is not None:
+                new.z = new.z.compressed()
 
         return new
 
@@ -514,6 +535,10 @@ class DioptasDetector:
             self.intensity = self._reduce_array(self.intensity)
             self.tth = self._reduce_array(self.tth)
             self.azm = self._reduce_array(self.azm, polar=True)
+            
+            if "original_mask" in dir(self):
+                self.original_mask= self._reduce_array(self.original_mask)
+                
             if make_zyx:
                 self.z = self._reduce_array(self.z)
                 self.y = self._reduce_array(self.y)
@@ -563,7 +588,7 @@ class DioptasDetector:
             return
         elif settings and "metadata_read_func" in settings.__dict__:
             metadata_dictionary = settings.metadata_read_func(settings, image_obj=image_obj)
-            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj.filename)
         elif (not image_obj and settings) or cpf.settings.is_settings(image_obj):
              # when calling hdf5 file there is no image_obj to send (= None) and settings is
              # provided instead. 

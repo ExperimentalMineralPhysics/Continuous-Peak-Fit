@@ -94,7 +94,7 @@ class MedDetector:
             if self.calibration:
                 self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True, as_masked=True):
         """
         Makes an independent copy of a MedDetector Instance.
 
@@ -127,6 +127,11 @@ class MedDetector:
             new.detector = None
             new.calibration = None
 
+        # set tth range.
+        new.tth_start = range_bounds[0]
+        new.tth_end = range_bounds[1]
+        
+        # restrict the data. 
         local_mask = np.where(
             (self.tth >= range_bounds[0])
             & (self.tth <= range_bounds[1])
@@ -138,15 +143,12 @@ class MedDetector:
         new.tth = deepcopy(self.tth[local_mask])
         new.azm = deepcopy(self.azm[local_mask])
 
-        # set nee range.
-        new.tth_start = range_bounds[0]
-        new.tth_end = range_bounds[1]
 
         new.intensity = new.intensity[new.intensity.mask == False]
         new.tth = new.tth[new.tth.mask == False]
         new.azm = new.azm[new.azm.mask == False]
 
-        if "dspace" in dir(new):
+        if "dspace" in dir(self):
             if self.dspace is not None:
                 new.dspace = deepcopy(self.dspace[local_mask])
                 new.dspace = new.dspace[new.dspace.mask == False]
@@ -163,6 +165,20 @@ class MedDetector:
             if self.z is not None:
                 new.z = deepcopy(self.z.squeeze()[local_mask])
                 new.z = new.z[new.z.mask == False]
+                
+        # if as_masked == False and ma.isMaskedArray(new.intensity):
+        #     # return flat arrays.
+        #     new.intensity = new.intensity.compressed()
+        #     new.tth = new.tth.compressed()
+        #     new.azm = new.azm.compressed()
+        #     if "dspace" in dir(new):
+        #         new.dspace = new.dspace.compressed()
+        #     if "x" in dir(new) and new.x is not None:
+        #         new.x = new.x.compressed()
+        #     if "y" in dir(new) and new.y is not None:
+        #         new.y = new.y.compressed()
+        #     if "z" in dir(new) and new.z is not None:
+        #         new.z = new.z.compressed()
 
         return new
 
@@ -503,6 +519,9 @@ class MedDetector:
             self.tth = self._reduce_array(self.tth, keep_FirstDim=True)
             self.azm = self._reduce_array(self.azm, keep_FirstDim=True)
             #self.azm does not need polar=True because keep_FirstDim=True
+            
+            if "original_mask" in dir(self):
+                self.original_mask= self._reduce_array(self.original_mask, keep_FirstDim=True)
 
         self.azm_start = (
             np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
@@ -786,15 +805,18 @@ class MedDetector:
         :param **kwargs: - to ensure compatibility
         :return:
         """
+        gap=5
         bin_mean_azi = np.unique(self.azm.data)
+        bin_bounds = []
         chunks = []
         # azichunks = []
         temp_azimuth = self.azm.flatten()
         for i in range(len(bin_mean_azi)):
             azi_chunk = np.where((temp_azimuth == bin_mean_azi[i]))
+            bin_bounds.append([bin_mean_azi[i]-gap, bin_mean_azi[i]+gap])
             chunks.append(azi_chunk)
 
-        return chunks, bin_mean_azi
+        return chunks, bin_bounds, bin_mean_azi
 
     def test_azims(self, steps=None):
         """
@@ -1083,7 +1105,7 @@ class MedDetector:
             plot_x0 = []
             plot_c0 = []
             for i in range(len(np.unique(self.azm))):
-                if ma.MaskedArray.all(plot_x[self.azm == np.unique(self.azm)[i]]):
+                if any(plot_x[self.azm == np.unique(self.azm)[i]]):
                     plot_x0.append(
                         [
                             plot_x[self.azm == np.unique(self.azm)[i]][0],

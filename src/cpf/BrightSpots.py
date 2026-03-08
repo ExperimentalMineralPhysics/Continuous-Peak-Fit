@@ -48,23 +48,23 @@ logger = get_logger("cpf.BrightSpots")
 
 
 
-def SpotProcess(sub_data, settings_for_fit):
+def SpotProcess(sub_data, settings_for_fit, as_masked=None):
     imax = np.inf
     imin = -np.inf
     if "imax" in settings_for_fit.subfit_orders:
         if isinstance(settings_for_fit.subfit_orders["imax"], str):
-            imax = np.percentile(
-                sub_data.intensity.compressed(),
+            imax = np.nanpercentile(
+                np.ma.filled(sub_data.intensity, np.nan),
                 float(settings_for_fit.subfit_orders["imax"].strip("%")),
             )
         elif isinstance(settings_for_fit.subfit_orders["imax"], dict):
             if (
-                np.max(sub_data.intensity.compressed())
+                np.nanmax(np.ma.filled(sub_data.intensity, np.nan),)
                 > settings_for_fit.subfit_orders["imax"]["abovebelow"]
             ):
                 if isinstance(settings_for_fit.subfit_orders["imax"]["limit"], str):
-                    imax = np.percentile(
-                        sub_data.intensity.compressed(),
+                    imax = np.nanpercentile(
+                        np.ma.filled(sub_data.intensity, np.nan),
                         float(
                             settings_for_fit.subfit_orders["imax"]["limit"].strip("%")
                         ),
@@ -76,18 +76,18 @@ def SpotProcess(sub_data, settings_for_fit):
 
     if "imin" in settings_for_fit.subfit_orders:
         if isinstance(settings_for_fit.subfit_orders["imin"], str):
-            imin = np.percentile(
-                sub_data.intensity.compressed(),
+            imin = np.nanpercentile(
+                np.ma.filled(sub_data.intensity, np.nan),
                 float(settings_for_fit.subfit_orders["imin"].strip("%")),
             )
         elif isinstance(settings_for_fit.subfit_orders["imin"], dict):
             if (
-                np.max(sub_data.intensity.compressed())
+                np.nanmax(np.ma.filled(sub_data.intensity, np.nan),)
                 > settings_for_fit.subfit_orders["imin"]["abovebelow"]
             ):
                 if isinstance(settings_for_fit.subfit_orders["imin"]["limit"], str):
-                    imax = np.percentile(
-                        sub_data.intensity.compressed(),
+                    imax = np.nanpercentile(
+                        np.ma.filled(sub_data.intensity, np.nan),
                         float(
                             settings_for_fit.subfit_orders["imin"]["limit"].strip("%")
                         ),
@@ -98,5 +98,5 @@ def SpotProcess(sub_data, settings_for_fit):
             imin = settings_for_fit.subfit_orders["imin"]
 
 
-    sub_data.set_mask(intensity_bounds=[imin, imax])  # (i_min=imin, i_max=imax)
+    sub_data.set_mask(intensity_bounds=[imin, imax], as_masked=as_masked)  # (i_min=imin, i_max=imax)
     return sub_data

@@ -176,7 +176,7 @@ class XYDetector:
             if self.calibration:
                 self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True, as_masked=False):
         """
         Makes an independent copy of a XYDetector Instance.
 
@@ -240,6 +240,20 @@ class XYDetector:
         if "z" in dir(self):
             if self.z is not None:
                 new.z = deepcopy(self.z[local_mask])
+
+        if as_masked == False and ma.isMaskedArray(new.intensity):
+            # return flat arrays.
+            new.intensity = new.intensity.compressed()
+            new.tth = new.tth.compressed()
+            new.azm = new.azm.compressed()
+            if "dspace" in dir(new):
+                new.dspace = new.dspace.compressed()
+            if "x" in dir(new) and new.x is not None:
+                new.x = new.x.compressed()
+            if "y" in dir(new) and new.y is not None:
+                new.y = new.y.compressed()
+            if "z" in dir(new) and new.z is not None:
+                new.z = new.z.compressed()
 
         return new
 
@@ -525,6 +539,10 @@ class XYDetector:
         if self.reduce_by is not None:
             self.intensity = self._reduce_array(self.intensity)
             self.tth = self._reduce_array(self.tth)
+            
+            if "original_mask" in dir(self):
+                self.original_mask= self._reduce_array(self.original_mask)
+            
             if (re.findall("azimuth", self.calibration["y_label"].lower())
                 or 
                 re.findall("theta", self.calibration["x_label"].lower())

@@ -581,7 +581,7 @@ def fit_sub_pattern(
                             settings_as_class.subfit_orders,
                             master_params,
                             start_end=[data_as_class.azm_start, data_as_class.azm_end],
-                            fit_method=None,
+                            fit_method=fit_method,
                             weights=None,
                             max_n_fev=default_max_f_eval,
                         )
@@ -659,7 +659,7 @@ def fit_sub_pattern(
                                         data_as_class.azm_start,
                                         data_as_class.azm_end,
                                     ],
-                                    fit_method=None,
+                                    fit_method=fit_method,
                                     weights=None,
                                     max_n_fev=refine_max_f_eval,
                                 )
@@ -786,7 +786,7 @@ def fit_sub_pattern(
                 settings_as_class.subfit_orders,
                 master_params,
                 start_end=[data_as_class.azm_start, data_as_class.azm_end],
-                fit_method=None,
+                fit_method=fit_method,
                 weights=None,
                 max_n_fev=max_n_f_eval,
             )

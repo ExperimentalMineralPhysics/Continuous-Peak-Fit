@@ -716,11 +716,11 @@ class _Plot_AngleDispersive:
             if limits[1] == 100:
                 IMax = np.max(plot_i)
             else:
-                IMax = np.nanpercentile(plot_i.compressed(), limits[1])
+                IMax = np.nanpercentile(ma.array(plot_i).compressed(), limits[1])
             if limits[0] == 0:
                 IMin = np.min(plot_i)
             else:
-                IMin = np.nanpercentile(plot_i.compressed(), limits[0])
+                IMin = np.nanpercentile(ma.array(plot_i).compressed(), limits[0])
             if limits[0] > 0 and limits[1] < 100:
                 cb_extend = "both"
             elif limits[1] < 100:

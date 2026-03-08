@@ -272,7 +272,7 @@ class ESRFlvpDetector:
             if self.calibration:
                 self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True, as_masked=None):
         """
         Makes an independent copy of a ESRFlvpDetector Instance.
 
@@ -311,24 +311,24 @@ class ESRFlvpDetector:
             new.Observationslabel = self.Observationslabel
             new.ObservationsUnits = self.ObservationsUnits
             new.azm_blocks = self.azm_blocks
-            
+
+        # set new range.
+        new.tth_start = range_bounds[0]
+        new.tth_end = range_bounds[1]
+
+        # restrict the data. 
         local_mask = np.where(
             (self.tth >= range_bounds[0])
             & (self.tth <= range_bounds[1])
             & (self.azm >= azi_bounds[0])
             & (self.azm <= azi_bounds[1])
         )
-
         new.intensity = deepcopy(self.intensity[local_mask])
         new.tth = deepcopy(self.tth[local_mask])
         new.azm = deepcopy(self.azm[local_mask])
         if "dspace" in dir(self):
             if self.dspace is not None:
                 new.dspace = deepcopy(self.dspace[local_mask])
-
-        # set new range.
-        new.tth_start = range_bounds[0]
-        new.tth_end = range_bounds[1]
 
         if "x" in dir(self):
             if self.x is not None:
@@ -340,6 +340,20 @@ class ESRFlvpDetector:
             if self.z is not None:
                 new.z = deepcopy(self.z[local_mask])
 
+        if as_masked == False and ma.isMaskedArray(new.intensity):
+            # return flat arrays.
+            new.intensity = new.intensity.compressed()
+            new.tth = new.tth.compressed()
+            new.azm = new.azm.compressed()
+            if "dspace" in dir(new):
+                new.dspace = new.dspace.compressed()
+            if "x" in dir(new) and new.x is not None:
+                new.x = new.x.compressed()
+            if "y" in dir(new) and new.y is not None:
+                new.y = new.y.compressed()
+            if "z" in dir(new) and new.z is not None:
+                new.z = new.z.compressed()
+                
         return new
 
     def get_calibration(self, file_name=None, settings=None, debug=False):

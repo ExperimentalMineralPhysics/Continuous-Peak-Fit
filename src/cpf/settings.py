@@ -221,7 +221,9 @@ class Settings:
         
         """
         new = self.duplicate()
+        # remove data_class to allow parallel processing
         delattr(new, 'data_class')
+        delattr(new, '_unmodified_self')
         return new
 
     def _validation_copy(self):

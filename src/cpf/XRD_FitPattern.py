@@ -29,6 +29,7 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
+from cpf.series_functions import get_series_mean
 from cpf.settings import Settings, is_settings, get_settings
 from cpf.util.logging import get_logger, set_global_log_level
 from cpf.XRD_FitSubpattern import fit_sub_pattern
@@ -674,6 +675,14 @@ def execute(
         overwrite=True,
     )
 
+    as_masked = kwargs.pop('as_masked', False)
+    if (mode == "set-range" or mode == "view"):
+        as_masked = True
+    else:
+        as_masked = as_masked
+        if as_masked == True:
+            logger.warning("'as_masked'==True changes the fit for some masked datasts. I dont know why. Check fits with and without this setting")
+        
     if settings_class.calibration_data:
         data_to_fill = Path(settings_class.calibration_data).resolve()
     else:
@@ -745,13 +754,12 @@ def execute(
             (isinstance(settings_class.calibration_mask, dict) and "threshold" in settings_class.calibration_mask)
             ):
             # needed because image preprocessing adds to the mask and is different for each image.
+            # set intenstiy threshold and/or cosmics for each frame. 
+            # only applies these because all other mask functions are static.
             new_data.mask_restore()
             if (isinstance(settings_class.datafile_preprocess, dict) and "cosmics" in settings_class.datafile_preprocess):
                 new_data = cosmicsimage_preprocess(new_data, settings_class)
             if (isinstance(settings_class.calibration_mask, dict) and "threshold" in settings_class.calibration_mask):
-                # set intenstiy threshold for each frame. 
-                # only applies to threshold because all other mask functions are static
-                # (cannot change between frames)
                 new_data.set_mask(intensity_bounds = settings_class.calibration_mask["threshold"])
         else:
             # nothing is done here.
@@ -875,8 +883,7 @@ def execute(
                     tth_range = previous_fit[i]["range"][0]
                     mid = []
                     for k in range(len(params["peak"])):
-                        mid.append(params["peak"][k]["d-space"][0])
-                        # FIXME: replace with caluculation of mean d-spacing.
+                        mid.append(get_series_mean(params['peak'][k], "d-space"))
 
                     cent = new_data.conversion(np.mean(mid), reverse=True)
                     move_by = cent - np.mean(tth_range)
@@ -918,7 +925,7 @@ def execute(
                     # re-get settings for current subpattern
                     settings_class.set_subpattern(j, i)
 
-            sub_data = new_data.duplicate_without_detector(range_bounds=tth_range)
+            sub_data = new_data.duplicate_without_detector(range_bounds=tth_range, as_masked=as_masked)
             # sub_data.set_limits(range_bounds=tth_range)
 
             # Mask the subpattern by intensity if called for
@@ -926,7 +933,7 @@ def execute(
                 "imax" in settings_class.subfit_orders
                 or "imin" in settings_class.subfit_orders
             ):
-                sub_data = SpotProcess(sub_data, settings_class)
+                sub_data = SpotProcess(sub_data, settings_class, as_masked=as_masked)
 
             if mode == "set-range":
                 fig_1 = plt.figure()
@@ -1033,7 +1040,7 @@ def execute(
                 else:  # non-parallel version
                     tmp = fit_sub_pattern(
                         sub_data,
-                        settings_class,  # added
+                        settings_class.duplicate_without_dataclass(),  # added
                         params,
                         save_fit=save_figs,
                         debug=debug,

@@ -761,6 +761,9 @@ def execute(
             if (isinstance(settings_class.datafile_preprocess, dict) and "cosmics" in settings_class.datafile_preprocess):
                 new_data = cosmicsimage_preprocess(new_data, settings_class)
             if (isinstance(settings_class.calibration_mask, dict) and "threshold" in settings_class.calibration_mask):
+                # set intenstiy threshold for each frame. 
+                # only applies to threshold because all other mask functions are static
+                # (cannot change between frames)
                 new_data.set_mask(intensity_bounds = settings_class.calibration_mask["threshold"])
         else:
             # nothing is done here.

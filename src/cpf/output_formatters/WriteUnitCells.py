@@ -169,7 +169,7 @@ def WriteOutput(
         if len(hkls) >= 1:
             for i in list(hkls):
                 f.write("# Peaks used in volume calculations: \n")
-                f.write(f"#    {i.replace('hkls','').replace('hkl', '').strip()} : ")
+                f.write(f"#    {i.replace('hkls','').replace('hkl','').strip()} : ")
                 for j in hkls[i]:
                     f.write(f"({j}) ")
                 f.write("\n# \n")

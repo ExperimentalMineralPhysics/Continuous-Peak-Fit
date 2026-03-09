@@ -979,6 +979,33 @@ def fit_sub_pattern(
                 }
             }
         )
+        new_params.update({'data_ranges':{
+                'data':{
+                    "max": np.max(data_as_class.intensity),
+                    "min": np.min(data_as_class.intensity),
+                    "pt1percentile": np.nanpercentile(data_as_class.intensity, 0.1, method='closest_observation'),
+                    "1percentile": np.nanpercentile(data_as_class.intensity, 1, method='closest_observation'),
+                    "99percentile": np.nanpercentile(data_as_class.intensity, 99, method='closest_observation'),
+                    "99pt9percentile": np.nanpercentile(data_as_class.intensity, 99.9, method='closest_observation'),
+                },
+                'model':{
+                    "max": np.max(fout.best_fit),
+                    "min": np.min(fout.best_fit),
+                    "pt1percentile": np.nanpercentile(fout.best_fit, 0.1, method='closest_observation'),
+                    "1percentile": np.nanpercentile(fout.best_fit, 1, method='closest_observation'),
+                    "99percentile": np.nanpercentile(fout.best_fit, 99, method='closest_observation'),
+                    "99pt9percentile": np.nanpercentile(fout.best_fit, 99.9, method='closest_observation'),
+                },
+                'residuals':{
+                    "max": np.max(data_as_class.intensity - fout.best_fit),
+                    "min": np.min(data_as_class.intensity - fout.best_fit),
+                    "pt1percentile": np.nanpercentile(data_as_class.intensity - fout.best_fit, 0.1, method='closest_observation'),
+                    "1percentile": np.nanpercentile(data_as_class.intensity - fout.best_fit, 1, method='closest_observation'),
+                    "99percentile": np.nanpercentile(data_as_class.intensity - fout.best_fit, 99, method='closest_observation'),
+                    "99pt9percentile": np.nanpercentile(data_as_class.intensity - fout.best_fit, 99.9, method='closest_observation'),
+                }
+                }
+            })
     else:
         fit_stats = {
             "time-elapsed": t_elapsed,
@@ -1006,6 +1033,34 @@ def fit_sub_pattern(
         )
         new_params.update({"ModelProperties": {"max": np.nan, "min": np.nan}})
         new_params.update({"ResidualProperties": {"max": np.nan, "min": np.nan}})
+        new_params.update({'data_ranges':{
+                'data':{
+                    "max": np.max(data_as_class.intensity),
+                    "min": np.min(data_as_class.intensity),
+                    "pt1percentile": np.nanpercentile(data_as_class.intensity, 0.1),
+                    "1percentile": np.nanpercentile(data_as_class.intensity, 1),
+                    "99percentile": np.nanpercentile(data_as_class.intensity, 99),
+                    "99pt9percentile": np.nanpercentile(data_as_class.intensity, 99.9),
+                },
+                'model':{
+                    "max": np.nan,
+                    "min": np.nan,
+                    "pt1percentile": np.nan,
+                    "1percentile": np.nan,
+                    "99percentile": np.nan,
+                    "99pt9percentile": np.nan,
+                },
+                'residuals':{
+                    "max": np.nan,
+                    "min": np.nan,
+                    "pt1percentile": np.nan,
+                    "1percentile": np.nan,
+                    "99percentile": np.nan,
+                    "99pt9percentile": np.nan,
+                }
+                }
+            })
+
 
     new_params.update({"FitProperties": fit_stats})
 

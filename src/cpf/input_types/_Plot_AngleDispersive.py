@@ -367,6 +367,8 @@ class _Plot_AngleDispersive:
         # plot residuals
         if "rmin" in limits:
             limits_resid = {"min": limits["rmin"], "max": limits["rmax"]}
+            if "cb_extend" in limits:
+                limits_resid["cb_extend"] = limits["cb_extend"]
         else:
             limits_resid = [0, 100]
         fig_plot = self.plot_calibrated(
@@ -516,7 +518,10 @@ class _Plot_AngleDispersive:
         if isinstance(limits, dict):
             IMax = limits["max"]
             IMin = limits["min"]
-            cb_extend = "neither"
+            if "cb_extend" in limits:
+                cb_extend = limits["cb_extend"]
+            else:
+                cb_extend = "neither"
         else:
             if limits[1] == 100:
                 IMax = np.max(plot_i)
@@ -711,7 +716,21 @@ class _Plot_AngleDispersive:
         elif isinstance(limits, dict):
             IMax = limits["max"]
             IMin = limits["min"]
-            cb_extend = "neither"
+            if "cb_extend" in limits:
+                cb_extend = limits["cb_extend"]
+            else:
+                cb_extend = "neither"
+                
+            if isinstance(IMax, str) and isinstance(IMin, str):
+                IMax = limits["max"]
+                IMin = limits["min"]
+                cb_extend = "both"
+            elif isinstance(IMin, str):
+                cb_extend = "max"
+            elif isinstance(IMax, str):
+                cb_extend = "min"
+            
+            
         else:
             if limits[1] == 100:
                 IMax = np.max(plot_i)

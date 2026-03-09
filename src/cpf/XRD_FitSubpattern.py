@@ -1150,7 +1150,7 @@ def plot_FitAndModel(
     figure=None,
     debug=False,
     orientation="vertical",
-    plot_type="scatter",
+    plot_type="default",
     plot_ColourRange=None,
 ):
     """

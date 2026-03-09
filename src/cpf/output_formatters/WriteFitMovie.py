@@ -239,6 +239,7 @@ def WriteOutput(settings, debug=False, **kwargs):
                 # param_lmfit=None,
                 params_dict=data_fit,
                 figure=fig,
+                # plot_type = "surface",
                 plot_ColourRange={
                     "max": Imax[z],
                     "min": Imin[z],

@@ -69,6 +69,67 @@ class _Plot_AngleDispersive:
 
         return disp_ticks
 
+
+    def what_plot_type(self, plot_type=None):
+        """
+        Determines from the data which is the best sort of plot for the data. 
+        
+        The types and determining factors are:
+        
+        - surface : when < 2e4 observations
+            Trianglular filling of the plot area. VERY slow for large data sets. 
+            Only called if there are less than 10000 data points.
+            
+        - scatter
+            sctter plot of the data
+        
+        - rastered : when > 1e6 observations. 
+            Makes rastered image of the data points. Plots points within picels rather than 
+            each point as a scatter. 
+            
+            
+        If plot_type is set then it is sanity checked and a warning raised if 
+        it is not sensible, but it is allowed to proceed. 
+
+        Parameters
+        ----------
+        plot_type : str, bool, optional
+            type of plot expected to be used. The default is None.
+
+        Returns
+        -------
+        plot_type : str
+            Best type of plot for the current data set.
+        """
+        recognised_plots = ["surface",
+             "surf",
+             "scatter",
+             "raster",
+             "rast",
+             True,
+             False]
+        
+        surf_threshold = 2e4
+        raster_threshold = 1e6
+        
+        if plot_type not in recognised_plots: 
+            # then set it
+            if ma.MaskedArray(self.intensity).compressed().size < surf_threshold:
+                plot_type = "surface"
+            elif ma.MaskedArray(self.intensity).compressed() > raster_threshold:
+                plot_type = "rastered"
+            else:
+                plot_type = "scatter"
+
+        if plot_type not in ["rast", "rastered"] and ma.MaskedArray(self.intensity).compressed() > raster_threshold:
+            logger.moreinfo(" Have patience. The plot(s) will appear but it can take its time to render.")
+        if plot_type not in ["surf", "surface"] and ma.MaskedArray(self.intensity).compressed() > surf_threshold:
+            logger.moreinfo(" Have patience. The plot(s) will appear but it can take its time to render.")
+
+        logger.effusive("plot_type", plot_type)
+        return plot_type        
+        
+
     def plot_integrated(self, fig_plot=None, axis_plot=None, show=None):
         """
         Makes a plot of the integrated data.
@@ -221,7 +282,7 @@ class _Plot_AngleDispersive:
         fig_plot=None,
         model=None,
         fit_centroid=None,
-        plot_type="surface",
+        plot_type="default",
         orientation="horizontal",
         plot_ColourRange=None,
     ):
@@ -232,6 +293,8 @@ class _Plot_AngleDispersive:
         :return:
         """
 
+        #check plot type
+        plot_type = self.what_plot_type()
         # match max and min of colour scales
         if plot_ColourRange:
             if not isinstance(plot_ColourRange, dict):
@@ -322,7 +385,7 @@ class _Plot_AngleDispersive:
             limits=limits,
             colourmap="magma_r",
             # location=location,
-            rastered=plot_type,
+            plot_type=plot_type,
             orientation=orientation,
             # cbar_axes=False
         )
@@ -342,7 +405,7 @@ class _Plot_AngleDispersive:
             limits=limits,
             colourmap="magma_r",
             # location=location,
-            rastered=plot_type,
+            plot_type=plot_type,
             orientation=orientation,
             # cbar_axes=[ax[0],ax[1]]
         )
@@ -379,7 +442,7 @@ class _Plot_AngleDispersive:
             limits=limits_resid,
             colourmap="residuals-blanaced",
             # location=location,
-            rastered=plot_type,
+            plot_type=plot_type,
             orientation=orientation,
         )
         if fit_centroid is not None:
@@ -447,7 +510,7 @@ class _Plot_AngleDispersive:
         axis_plot=None,
         show="intensity",
         colourmap="jet",
-        limits=[0, 99.9],
+        limits=[0.01, 99.9],
         location="default",
         cbar_axes = None,
         debug=False,
@@ -614,7 +677,7 @@ class _Plot_AngleDispersive:
         limits=[1, 99.9],
         y_lims=None,
         colourmap="jet",
-        rastered=False,
+        plot_type=False,
         point_scale=2,
         resample_shape=None,
         location=None,
@@ -643,22 +706,14 @@ class _Plot_AngleDispersive:
             # axis exists but figure not refrenced.
             pass
 
-        if (
-            rastered == False and self.intensity.size > 1e6
-        ):  # 100000000000:# 1000000: # was 50000 until fixed max/min functions
-            logger.moreinfo(
-                " ".join(
-                    map(
-                        str,
-                        [
-                            (
-                                " Have patience. The plot(s) will appear but it can take its time to render."
-                            )
-                        ],
-                    )
-                )
-            )
-            rastered = True
+        plot_type = self.what_plot_type(plot_type = plot_type)
+        # if self.intensity.size > 1e5:
+        #     rastered = True
+        # elif (
+        #     rastered == False and self.intensity.size > 1e6
+        # ):  # 100000000000:# 1000000: # was 50000 until fixed max/min functions
+        #     logger.moreinfo(" Have patience. The plot(s) will appear but it can take its time to render.")
+        #     rastered = True
 
         if x_axis == "azimuth":
             plot_x = self.azm
@@ -675,6 +730,13 @@ class _Plot_AngleDispersive:
             plot_i = self.azm
             label_y = f"{self.Observationslabel} ({self.ObservationsUnits})"
             y_ticks = False
+            plot_type = False
+            # sort the data in reverse order of azimuth
+            o = plot_i.argsort()[::-1]
+            plot_i = plot_i[o]
+            plot_y = plot_y[o]
+            plot_x = plot_x[o]
+            
         else:  # if y_axis is "default" or "azimuth"
             plot_y = self.azm
             plot_i = self.intensity
@@ -794,7 +856,7 @@ class _Plot_AngleDispersive:
         else:
             location = "bottom"
 
-        if rastered == False or rastered == "scatter":
+        if plot_type == False or plot_type == "scatter":
             the_plot = axis_plot.scatter(
                 plot_x,
                 plot_y,
@@ -804,9 +866,8 @@ class _Plot_AngleDispersive:
                 cmap=colourmap,
                 vmin=IMin,
                 vmax=IMax,
-                # rasterized=rastered,
             )
-        elif rastered == "surf" or rastered == "surface":
+        elif plot_type == "surf" or plot_type == "surface":
             the_plot = surface_plot(
                 plot_i,
                 plot_x,
@@ -816,10 +877,9 @@ class _Plot_AngleDispersive:
                 vmin=IMin,
                 vmax=IMax,
                 colourmap=colourmap,
-                pixels_per_bin=point_scale,
-                resample_shape=resample_shape,
+                triangle_cutoff = 0.99
             )
-        else:
+        elif plot_type == True or plot_type == "rastered" or plot_type == "rast":
             the_plot = raster_plot(
                 plot_i,
                 plot_x,
@@ -832,6 +892,8 @@ class _Plot_AngleDispersive:
                 pixels_per_bin=point_scale,
                 resample_shape=resample_shape,
             )
+        else:
+            raise ValueError(f"The plot type '{plot_type}' is not recognised.")
 
         axis_plot.set_xlabel(label_x)
         axis_plot.set_ylabel(label_y)
@@ -905,7 +967,6 @@ def residuals_colour_scheme(maximum_value, minimum_value, **kwargs):
 
 
 def raster_plot(
-    # self,
     data_plot,
     x_plot,
     y_plot,
@@ -945,8 +1006,6 @@ def raster_plot(
         Colourmap for the plot. The default is "jet".
     pixels_per_bin : float, optional
         Scaler for the number of bins in the histogram  . The default is 3.
-     : TYPE
-        DESCRIPTION.
 
     Returns
     -------
@@ -1006,7 +1065,6 @@ def raster_plot(
 
 
 def surface_plot(
-    # self,
     data_plot,
     x_plot,
     y_plot,
@@ -1016,7 +1074,7 @@ def surface_plot(
     vmin=0,
     vmax=np.inf,
     colourmap="jet",
-    pixels_per_bin=3,
+    triangle_cutoff = 0.99
 ):
     """
     Plots the data on an irregular tripcolor gird.
@@ -1039,10 +1097,8 @@ def surface_plot(
         minimum of the plotted colour scale. The default is np.inf, in effect the maximum value in data_plot
     colourmap : string, optional
         Colourmap for the plot. The default is "jet".
-    pixels_per_bin : float, optional
-        Scaler for the number of bins in the histogram  . The default is 3.
-     : TYPE
-        DESCRIPTION.
+    triangle_cutoff : float, optional
+        Perceltile threshold for filtering the triangles. The default is 0.99
 
     Returns
     -------
@@ -1055,18 +1111,20 @@ def surface_plot(
     # FIXME: i might be better to make the triangles from the x,y, points rather than the tth+azm.
     # when made like this the plots spread the intensity in a broadway. -- the scatter plot looks better.
 
-    triang.set_mask(tri.TriAnalyzer(triang).get_flat_tri_mask())
-    mask = np.zeros(len(triang.triangles))
-    for i in range(len(corners)):
-        if any(x_plot.flatten()[corners[i, :]].mask == True):
-            mask[i] = True
-    mask = np.array(mask, dtype="bool")
-    triang.set_mask((triang.mask == True) | (mask == True))
+    if ma.isMaskedArray(x_plot):   
+        triang.set_mask(tri.TriAnalyzer(triang).get_flat_tri_mask())
+        mask = np.zeros(len(triang.triangles))
+        for i in range(len(corners)):
+            if any(x_plot.flatten()[corners[i, :]].mask == True):
+                mask[i] = True
+        mask = np.array(mask, dtype="bool")
+        triang.set_mask((triang.mask == True) | (mask == True))
 
-    if 0:
+    if triangle_cutoff != 1:
         areas = []
         x_range = []
         y_range = []
+        rad = []
         import proglog
 
         progress_bar = proglog.default_bar_logger(
@@ -1076,35 +1134,52 @@ def surface_plot(
         def PolyArea(x, y):
             return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
-        # for f in range(settings_class.image_number):
-        for i in progress_bar.iter_bar(iteration=range(len(corners))):
-            if triang.mask[i] == True:
-                pass
-            else:
-                areas.append(
-                    PolyArea(x_plot.flatten()[corners][i], y_plot.flatten()[corners][i])
-                )
-                x_range.append(
-                    x_plot.flatten()[triang.triangles][i].max()
-                    - x_plot.flatten()[triang.triangles][i].min()
-                )
-                y_range.append(
-                    y_plot.flatten()[triang.triangles][i].max()
-                    - y_plot.flatten()[triang.triangles][i].min()
-                )
-
-        fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
-
-        # We can set the number of bins with the *bins* keyword argument.
-        axs[0].hist(areas, bins=50)  # int(len(areas)/40))
-        axs[1].hist(x_range, bins=50)  # int(len(areas)/40))
-        axs[2].hist(y_range, bins=50)  # int(len(areas)/40))
-
-        # FIXME: I should filter the triangles on their area or their shape.
-        # mean_area = np.mean(areas)
+        # calculate size of triangles and discard ones taht are too large. 
+        for i in range(len(corners)):
+            areas.append(
+                PolyArea(x_plot.flatten()[corners][i], y_plot.flatten()[corners][i])
+            )
+            x_range.append(
+                x_plot.flatten()[triang.triangles][i].max()
+                - x_plot.flatten()[triang.triangles][i].min()
+            )
+            y_range.append(
+                y_plot.flatten()[triang.triangles][i].max()
+                - y_plot.flatten()[triang.triangles][i].min()
+            )
+            
+        # Mask off unwanted triangles.
+        xtri = x_plot.flatten()[corners] - np.roll(x_plot.flatten()[corners], 1, axis=1)
+        ytri = y_plot.flatten()[corners] - np.roll(y_plot.flatten()[corners], 1, axis=1)
+        rad = np.max(np.sqrt(xtri**2 + ytri**2), axis=1)
+            
+        if 0:
+            fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
+            # We can set the number of bins with the *bins* keyword argument.
+            axs[0].hist(np.log10(areas), bins=int(len(areas)/100))
+            axs[1].hist(np.log10(x_range), bins= int(len(areas)/100))
+            axs[2].hist(np.log10(y_range), bins= int(len(areas)/100))
+            plt.show()
+            
+        cutoff_area = np.nanpercentile(areas, triangle_cutoff)
+        cutoff_x = np.nanpercentile(x_range, triangle_cutoff)
+        cutoff_y = np.nanpercentile(y_range, triangle_cutoff)
+        cutoff_rad = np.nanpercentile(rad, triangle_cutoff)
+        
+        keep = []
+        for i in progress_bar.iter_bar(FilterTriangles=range(len(corners))):
+            if not all([areas[i] > cutoff_area,
+                x_range[i] > cutoff_x, 
+                y_range[i] > cutoff_y,
+                rad[i] > cutoff_rad
+                ]):
+                keep.append(i)
+        triang.triangles = triang.triangles[keep]
+        corners = corners[keep]
 
     pl = axis_plot.tripcolor(
-        triang, data_plot.flatten(), cmap=colourmap, vmin=vmin, vmax=vmax
+        triang, data_plot.flatten(), cmap=colourmap, vmin=vmin, vmax=vmax,
+        shading='gouraud'
     )
 
     return pl

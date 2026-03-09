@@ -287,9 +287,12 @@ def fourier_to_crystallographic(
 
     # if SampleDeformation=="extension":
     #     scale *= -1
-
-    out_Q = out_dd / out_d0 / scale
-    out_Qerr = out_dderr / scale
+    if out_d0 != 0:
+        out_Q = out_dd / out_d0 / scale
+        out_Qerr = out_dderr / scale
+    else:
+        out_Q = np.nan
+        out_Qerr = np.nan
 
     # reoridentate extensions back to the right way.
     if SampleDeformation == "extension":

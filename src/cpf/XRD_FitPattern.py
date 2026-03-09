@@ -29,6 +29,7 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
+from cpf.series_functions import get_series_mean
 from cpf.settings import Settings, is_settings, get_settings
 from cpf.util.logging import get_logger, set_global_log_level
 from cpf.XRD_FitSubpattern import fit_sub_pattern
@@ -500,7 +501,8 @@ def order_search(
 
     # search over the first file only
     settings_class.set_data_files(keep=0)
-
+    settings_class.fit_propagate = False
+    
     # loop over the peaks in turn unless forced
     if subpattern =="force all":
         subpattern = ["all"]
@@ -626,6 +628,7 @@ def execute(
     iterations: int = 1,
     # track: bool = False,  #moved this option to settings file
     parallel: bool = True,
+    resume: bool = False,
     mode: str = "fit",
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
@@ -673,6 +676,14 @@ def execute(
         overwrite=True,
     )
 
+    as_masked = kwargs.pop('as_masked', False)
+    if (mode == "set-range" or mode == "view"):
+        as_masked = True
+    else:
+        as_masked = as_masked
+        if as_masked == True:
+            logger.warning("'as_masked'==True changes the fit for some masked datasts. I dont know why. Check fits with and without this setting")
+        
     if settings_class.calibration_data:
         data_to_fill = Path(settings_class.calibration_data).resolve()
     else:
@@ -713,17 +724,44 @@ def execute(
     # Process the diffraction patterns
     # for j in range(settings_class.image_number):
     progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
-    for j in progress.iter_bar(iteration=range(settings_class.image_number)):
+    for j in progress.iter_bar(image=range(settings_class.image_number)):
         logger.info(f"Processing {title_file_names(image_name=settings_class.image_list[j])}")
 
         # Get diffraction pattern to process.
         new_data.import_image(settings_class.image_list[j], debug=debug)
 
-        if settings_class.datafile_preprocess is not None:
+        # get json file name for outputs.
+        if mode == "search":
+            additional_text = settings_class.file_label
+        else:
+            additional_text = None
+        settings_class.set_subpattern(j, 0)
+        filename = make_outfile_name(
+            settings_class.subfit_filename,
+            directory=settings_class.output_directory,
+            additional_text=additional_text,
+            extension=".json",
+            overwrite=True,
+        )
+        
+        # if the output file already exists and resume is true then skip
+        # this iteration        
+        if resume == True and Path(filename).is_file():
+            logger.info(f"  {title_file_names(image_name=settings_class.image_list[j])} has already been processed -- skipping")
+            continue
+        # else do the process.
+
+        if ((isinstance(settings_class.datafile_preprocess, dict) ) or #settings_class.datafile_preprocess is not None or 
+            (isinstance(settings_class.calibration_mask, dict) and "threshold" in settings_class.calibration_mask)
+            ):
             # needed because image preprocessing adds to the mask and is different for each image.
+            # set intenstiy threshold and/or cosmics for each frame. 
+            # only applies these because all other mask functions are static.
             new_data.mask_restore()
-            if "cosmics" in settings_class.datafile_preprocess:
+            if (isinstance(settings_class.datafile_preprocess, dict) and "cosmics" in settings_class.datafile_preprocess):
                 new_data = cosmicsimage_preprocess(new_data, settings_class)
+            if (isinstance(settings_class.calibration_mask, dict) and "threshold" in settings_class.calibration_mask):
+                new_data.set_mask(intensity_bounds = settings_class.calibration_mask["threshold"])
         else:
             # nothing is done here.
             pass
@@ -846,8 +884,7 @@ def execute(
                     tth_range = previous_fit[i]["range"][0]
                     mid = []
                     for k in range(len(params["peak"])):
-                        mid.append(params["peak"][k]["d-space"][0])
-                        # FIXME: replace with caluculation of mean d-spacing.
+                        mid.append(get_series_mean(params['peak'][k], "d-space"))
 
                     cent = new_data.conversion(np.mean(mid), reverse=True)
                     move_by = cent - np.mean(tth_range)
@@ -889,7 +926,7 @@ def execute(
                     # re-get settings for current subpattern
                     settings_class.set_subpattern(j, i)
 
-            sub_data = new_data.duplicate_without_detector(range_bounds=tth_range)
+            sub_data = new_data.duplicate_without_detector(range_bounds=tth_range, as_masked=as_masked)
             # sub_data.set_limits(range_bounds=tth_range)
 
             # Mask the subpattern by intensity if called for
@@ -897,7 +934,7 @@ def execute(
                 "imax" in settings_class.subfit_orders
                 or "imin" in settings_class.subfit_orders
             ):
-                sub_data = SpotProcess(sub_data, settings_class)
+                sub_data = SpotProcess(sub_data, settings_class, as_masked=as_masked)
 
             if mode == "set-range":
                 fig_1 = plt.figure()
@@ -1003,7 +1040,7 @@ def execute(
                 else:  # non-parallel version
                     tmp = fit_sub_pattern(
                         sub_data,
-                        settings_class,  # added
+                        settings_class.duplicate_without_dataclass(),  # added
                         params,
                         save_fit=save_figs,
                         debug=debug,
@@ -1013,16 +1050,18 @@ def execute(
                         min_peak_intensity=settings_class.fit_min_peak_intensity,
                         fit_method=fit_method,
                     )
-                    fitted_param.append(tmp[0])
-                    lmfit_models.append(tmp[1])
+                    fitted_param.append(tmp)
+                    # fitted_param.append(tmp[0])
+                    # lmfit_models.append(tmp[1])
 
         # write output files
         if mode == "fit" or mode == "search":
             if parallel is True:
                 tmp = pool.map(parallel_processing, parallel_pile)
                 for i in range(len(settings_class.fit_orders)):
-                    fitted_param.append(tmp[i][0])
-                    lmfit_models.append(tmp[i][1])
+                    fitted_param.append(tmp[i])
+                    # fitted_param.append(tmp[i][0])
+                    # lmfit_models.append(tmp[i][1])
 
             # store the fit parameters' information as a JSON file.
             if mode == "search":

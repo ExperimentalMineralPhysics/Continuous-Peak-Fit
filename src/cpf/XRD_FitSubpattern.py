@@ -581,7 +581,7 @@ def fit_sub_pattern(
                             settings_as_class.subfit_orders,
                             master_params,
                             start_end=[data_as_class.azm_start, data_as_class.azm_end],
-                            fit_method=None,
+                            fit_method=fit_method,
                             weights=None,
                             max_n_fev=default_max_f_eval,
                         )
@@ -659,7 +659,7 @@ def fit_sub_pattern(
                                         data_as_class.azm_start,
                                         data_as_class.azm_end,
                                     ],
-                                    fit_method=None,
+                                    fit_method=fit_method,
                                     weights=None,
                                     max_n_fev=refine_max_f_eval,
                                 )
@@ -713,18 +713,7 @@ def fit_sub_pattern(
 
                 if np.max(ave_intensity) <= min_peak_intensity:
                     # then there is no determinable peak in the data
-                    logger.moreinfo(
-                        " ".join(
-                            map(
-                                str,
-                                [
-                                    (
-                                        "Not sufficient intensity in the chunked peaks to proceed with fitting."
-                                    )
-                                ],
-                            )
-                        )
-                    )
+                    logger.moreinfo("Not sufficient intensity in the chunked peaks to proceed with fitting.")
                     # set step to -101 so that it is still negative at the end
                     step.append(-101)  # get to the end and void the fit
                     fout = master_params
@@ -797,7 +786,7 @@ def fit_sub_pattern(
                 settings_as_class.subfit_orders,
                 master_params,
                 start_end=[data_as_class.azm_start, data_as_class.azm_end],
-                fit_method=None,
+                fit_method=fit_method,
                 weights=None,
                 max_n_fev=max_n_f_eval,
             )
@@ -990,6 +979,33 @@ def fit_sub_pattern(
                 }
             }
         )
+        new_params.update({'data_ranges':{
+                'data':{
+                    "max": np.max(data_as_class.intensity),
+                    "min": np.min(data_as_class.intensity),
+                    "pt1percentile": np.nanpercentile(data_as_class.intensity, 0.1, method='closest_observation'),
+                    "1percentile": np.nanpercentile(data_as_class.intensity, 1, method='closest_observation'),
+                    "99percentile": np.nanpercentile(data_as_class.intensity, 99, method='closest_observation'),
+                    "99pt9percentile": np.nanpercentile(data_as_class.intensity, 99.9, method='closest_observation'),
+                },
+                'model':{
+                    "max": np.max(fout.best_fit),
+                    "min": np.min(fout.best_fit),
+                    "pt1percentile": np.nanpercentile(fout.best_fit, 0.1, method='closest_observation'),
+                    "1percentile": np.nanpercentile(fout.best_fit, 1, method='closest_observation'),
+                    "99percentile": np.nanpercentile(fout.best_fit, 99, method='closest_observation'),
+                    "99pt9percentile": np.nanpercentile(fout.best_fit, 99.9, method='closest_observation'),
+                },
+                'residuals':{
+                    "max": np.max(data_as_class.intensity - fout.best_fit),
+                    "min": np.min(data_as_class.intensity - fout.best_fit),
+                    "pt1percentile": np.nanpercentile(data_as_class.intensity - fout.best_fit, 0.1, method='closest_observation'),
+                    "1percentile": np.nanpercentile(data_as_class.intensity - fout.best_fit, 1, method='closest_observation'),
+                    "99percentile": np.nanpercentile(data_as_class.intensity - fout.best_fit, 99, method='closest_observation'),
+                    "99pt9percentile": np.nanpercentile(data_as_class.intensity - fout.best_fit, 99.9, method='closest_observation'),
+                }
+                }
+            })
     else:
         fit_stats = {
             "time-elapsed": t_elapsed,
@@ -1017,6 +1033,34 @@ def fit_sub_pattern(
         )
         new_params.update({"ModelProperties": {"max": np.nan, "min": np.nan}})
         new_params.update({"ResidualProperties": {"max": np.nan, "min": np.nan}})
+        new_params.update({'data_ranges':{
+                'data':{
+                    "max": np.max(data_as_class.intensity),
+                    "min": np.min(data_as_class.intensity),
+                    "pt1percentile": np.nanpercentile(data_as_class.intensity, 0.1),
+                    "1percentile": np.nanpercentile(data_as_class.intensity, 1),
+                    "99percentile": np.nanpercentile(data_as_class.intensity, 99),
+                    "99pt9percentile": np.nanpercentile(data_as_class.intensity, 99.9),
+                },
+                'model':{
+                    "max": np.nan,
+                    "min": np.nan,
+                    "pt1percentile": np.nan,
+                    "1percentile": np.nan,
+                    "99percentile": np.nan,
+                    "99pt9percentile": np.nan,
+                },
+                'residuals':{
+                    "max": np.nan,
+                    "min": np.nan,
+                    "pt1percentile": np.nan,
+                    "1percentile": np.nan,
+                    "99percentile": np.nan,
+                    "99pt9percentile": np.nan,
+                }
+                }
+            })
+
 
     new_params.update({"FitProperties": fit_stats})
 
@@ -1092,8 +1136,9 @@ def fit_sub_pattern(
             #     save_modelresult(out, filename)
             # else:
             #     logger.info(" ".join(map(str, [("File does not exist!")])))
-
-    return [new_params, fout]
+    
+    # return [new_params, fout]
+    return new_params
 
 
 def plot_FitAndModel(
@@ -1105,7 +1150,7 @@ def plot_FitAndModel(
     figure=None,
     debug=False,
     orientation="vertical",
-    plot_type="scatter",
+    plot_type="default",
     plot_ColourRange=None,
 ):
     """

@@ -23,46 +23,75 @@ logger = get_logger("cpf.fitsubpattern_chunks")
 
 
 
-def get_manual_guesses(settings_as_class, data_as_class, debug=False):
+def get_manual_guesses(settings_as_class, data_as_class, return_converted=False, debug=False):
     """
-    :param data_as_class:
-    :param settings_as_class:
-    :param debug:
-    :return dfour:
+    Calculate series for set of 'manual guesses' i.e. pre-defined peak centers.
+
+    Parameters
+    ----------
+    settings_as_class : cpf settings class
+        DESCRIPTION.
+    data_as_class : cpf data class
+        DESCRIPTION.
+    return_converted : bool
+        Return series in d-spacing [if = True] or 
+        collection dimension (e.g. two theta, energy) [if = False]
+        The default is False
+    debug : TYPE, optional
+        DESCRIPTION. The default is False.
+
+    Returns
+    -------
+    dfour : list
+        List of series coefficients for each peak.
     """
-
-    peeks = len(settings_as_class.subfit_orders["peak"])
-    t_th_guesses = np.array(settings_as_class.subfit_orders["PeakPositionSelection"])
-
+    
+    # get guesses and limits in the correct parameter 
+    peak_pos_guesses = np.array(settings_as_class.subfit_orders["PeakPositionSelection"])
+    lims = lmm.parse_bounds(
+        settings_as_class.fit_bounds, data_as_class, 0, 0, param=["d-space"]
+    ) #limits alwasys in converted unit.
+    limits_range = lims['d-space']
+    if return_converted == True:
+        #limits alwasys in converted unit no need to chamge.
+        if (np.max(peak_pos_guesses[:, 2]) > np.max(limits_range) or
+            np.min(peak_pos_guesses[:, 2]) < np.min(limits_range)):
+            # then the peak_pos_guesses are not in d-spacing
+            # therefore change
+            peak_pos_guesses[:, 2] = data_as_class.conversion(
+                peak_pos_guesses[:, 2], azm=None, reverse=False)
+            
+    else: # return_converted == False:
+        # limits neeed to be converted
+        limits_range = data_as_class.conversion(
+            limits_range, azm=None, reverse=True)
+        # then check guesses
+        if (np.max(peak_pos_guesses[:, 2]) > np.max(limits_range) or
+            np.min(peak_pos_guesses[:, 2]) < np.min(limits_range)):
+            # then the peak_pos_guesses are not in collected units
+            # therefore change
+            peak_pos_guesses[:, 2] = data_as_class.conversion(
+                peak_pos_guesses[:, 2], azm=None, reverse=True)
+     
     settings_as_class.validate_position_selection(
         peak_set=settings_as_class.subfit_order_position, report=False
     )
 
-    # for future use in setting limits
-    dist = np.max(t_th_guesses[:, 2]) - np.min(t_th_guesses[:, 2])
-    width_change = dist / (2**peeks)
-    peak_vals = np.unique(t_th_guesses[:, 2])
-
     # Fit Fourier series to two-theta/d-spacing for each peak
-    # FIX ME: this fitting should be done to the d-spacing not the tth/energy. Probably need to import
-    # the detector functions to make this happen.
     dfour = []
-    for j in range(peeks):
+    for j in range(len(settings_as_class.subfit_orders["peak"])):
         peek = j + 1
-        t_th_guess = t_th_guesses[t_th_guesses[:, 0] == peek, 1:]
+        peak_pos_guess = peak_pos_guesses[peak_pos_guesses[:, 0] == peek, 1:]
         param_str = "peak_" + str(j)
         comp = "d"
-        lims = lmm.parse_bounds(
-            settings_as_class.fit_bounds, data_as_class, 0, 0, param=["d-space"]
-        )
         # get coefficient type
         coeff_type = sf.get_params_type(settings_as_class.subfit_orders, comp, peak=j)
 
         # for guesses make sure there are not too many coefficients.
-        n_coeff = sf.get_number_coeff(settings_as_class.subfit_orders, comp)
+        n_coeff = sf.get_number_coeff(settings_as_class.subfit_orders, comp, peak=j)
 
-        if n_coeff > len(t_th_guess[:, 0]):
-            o = int(np.floor(len(t_th_guess[:, 0]) / 2 - 1))
+        if n_coeff > len(peak_pos_guess[:, 0]):
+            o = int(np.floor(len(peak_pos_guess[:, 0]) / 2 - 1))
             # FIX ME: this should be a function!! and should check the series type.
         else:
             o = settings_as_class.subfit_orders["peak"][j]["d-space"]
@@ -74,12 +103,12 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
             coeff_type=coeff_type,
             comp=comp,
             trig_orders=sc.SeriesValues(o),
-            limits=lims["d-space"],
-            value=data_as_class.conversion(t_th_guess[0, 1], azm=t_th_guess[0, 1]),
+            limits=limits_range,
+            value=peak_pos_guess[0, 1],
         )
         fout = lmm.coefficient_fit(
-            azimuth=t_th_guess[:, 0],
-            ydata=data_as_class.conversion(t_th_guess[:, 1], azm=t_th_guess[:, 0]),
+            azimuth=peak_pos_guess[:, 0],
+            ydata=peak_pos_guess[:, 1],
             inp_param=temp_param,
             param_str=param_str + "_" + comp,
             fit_method="leastsq",
@@ -87,14 +116,11 @@ def get_manual_guesses(settings_as_class, data_as_class, debug=False):
         temp_param = fout.params
 
         logger.log_lmfit_obj(temp_param, level="DEBUG", space=True)
-
-        # if debug:
-        # temp_param.pretty_print()
         dfour.append(lmm.gather_param_errs_to_list(temp_param, param_str, comp))
     return dfour
 
 
-def get_chunk_background_guess(settings_as_class, data_chunk_class, n, debug=False):
+def get_chunk_background_guess(settings_as_class, data_chunk, n=1, debug=False):
     """
     :param data_chunk_class:
     :param settings_as_class:
@@ -106,9 +132,13 @@ def get_chunk_background_guess(settings_as_class, data_chunk_class, n, debug=Fal
 
     FIXME: background_type has been removed/depreciated. It is no longer needed. It should be replaced by background_fixed
     """
+    
+    cnk_i = data_chunk[0]
+    cnk_tth = data_chunk[1]
+    
     # Get indices of sorted two theta values excluding the masked values
     # tth_ord = ma.argsort(data_chunk_class.tth.compressed())
-    tth_ord = np.argsort(data_chunk_class.tth)
+    tth_ord = np.argsort(cnk_tth)
 
     background_guess = [
         [0.0] for i in range(len(settings_as_class.subfit_orders["background"]))
@@ -124,26 +154,25 @@ def get_chunk_background_guess(settings_as_class, data_chunk_class, n, debug=Fal
             # FIXME: this assumes a positive peak. It may not work for absorption peaks. Not tested though.
             background_guess[0][0] = np.min(
                 [
-                    np.mean(data_chunk_class.intensity[tth_ord[:n]]),
-                    np.mean(data_chunk_class.intensity[tth_ord[-n:]]),
+                    np.mean(cnk_i[tth_ord[:n]]),
+                    np.mean(cnk_i[tth_ord[-n:]]),
                     # np.mean(data_chunk_class.intensity.compressed()[tth_ord[:n]]),
                     # np.mean(data_chunk_class.intensity.compressed()[tth_ord[-n:]]),
                 ]
             )
         else:  # len(orders['background']) > 1:
             # first value (offset) is mean of left-hand values
-            background_guess[0][0] = np.mean(
-                data_chunk_class.intensity[tth_ord[:n]]
+            background_guess[0][0] = np.mean(cnk_i[tth_ord[:n]])
                 # data_chunk_class.intensity.compressed()[tth_ord[:n]]
-            )
+            # )
             # if there are more, then calculate a gradient guess.
             background_guess[1][0] = (
-                np.mean(data_chunk_class.intensity[tth_ord[-n:]])
-                - np.mean(data_chunk_class.intensity[tth_ord[:n]])
+                np.mean(cnk_i[tth_ord[-n:]])
+                - np.mean(cnk_i[tth_ord[:n]])
                 # np.mean(data_chunk_class.intensity.compressed()[tth_ord[-n:]])
                 # - np.mean(data_chunk_class.intensity.compressed()[tth_ord[:n]])
             ) / (
-                data_chunk_class.tth[tth_ord[-1]] - data_chunk_class.tth[tth_ord[0]]
+                cnk_tth[tth_ord[-1]] - cnk_tth[tth_ord[0]]
                 # data_chunk_class.tth.compressed()[tth_ord[-1]]
                 # - data_chunk_class.tth.compressed()[tth_ord[0]]
             )
@@ -151,16 +180,47 @@ def get_chunk_background_guess(settings_as_class, data_chunk_class, n, debug=Fal
 
     return background_guess
 
-
-def get_chunk_peak_guesses(
+def get_chunk_peak_guesses_new(
     settings_as_class,
-    data_chunk_class,
+    data_chunk,
     background_guess,
     n,
     w_guess_fraction,
     dfour,
     debug=False,
 ):
+    """
+    
+
+    Parameters
+    ----------
+    settings_as_class : TYPE
+        DESCRIPTION.
+    data_chunk : TYPE
+        DESCRIPTION.
+    background_guess : TYPE
+        DESCRIPTION.
+    n : TYPE
+        DESCRIPTION.
+    w_guess_fraction : TYPE
+        DESCRIPTION.
+    dfour : TYPE
+        DESCRIPTION.
+    debug : TYPE, optional
+        DESCRIPTION. The default is False.
+
+    Returns
+    -------
+    c_guess : TYPE
+        DESCRIPTION.
+    h_guess : TYPE
+        DESCRIPTION.
+    w_guess : TYPE
+        DESCRIPTION.
+    p_guess : TYPE
+        DESCRIPTION.
+
+    """
     """
 
 
@@ -175,13 +235,15 @@ def get_chunk_peak_guesses(
     :param debug:
     :return peaks, limits, p_fixed:
     """
-    d_guess = []
-    h_guess = []
-    w_guess = []
-    p_guess = []
-    p_fixed = 0
-    peaks = []
-    lims = []
+    
+    cnk_i = data_chunk[0]
+    cnk_tth = data_chunk[1]
+    cnk_azm = data_chunk[2]
+    
+    guess_cent = []
+    guess_h = []
+    guess_w = []
+    guess_p = []
 
     for k in range(len(settings_as_class.subfit_orders["peak"])):
         # FIX ME: altered from locals call as now passed as None - check!
@@ -193,25 +255,25 @@ def get_chunk_peak_guesses(
             coeff_type = sf.get_params_type(
                 settings_as_class.subfit_orders, "d", peak=k
             )
-            d_guess = sf.coefficient_expand(
-                np.mean(data_chunk_class.azm),
+            pos_guess = sf.coefficient_expand(
+                np.mean(cnk_azm),
                 dfour[k][0],
                 coeff_type=coeff_type,
             )
-            t_th_guess = data_chunk_class.conversion(
-                d_guess, azm=np.mean(data_chunk_class.azm), reverse=True
-            )
+            # t_th_guess = data_chunk_class.conversion(
+            #     d_guess, azm=np.mean(cnk_azm), reverse=True
+            # )
             # Finds the index of the closest two-theta to the d-spacing input
-            idx = (np.abs(data_chunk_class.tth - t_th_guess)).argmin()
+            idx = (np.abs(cnk_tth - pos_guess)).argmin()
             # FIX ME: The mean of a number of the smallest values would be more stable.
 
             # Height is intensity of the closest pixel in d-spacing - background at that position
-            h_guess = data_chunk_class.intensity[idx]
+            h_guess = cnk_i[idx]
             if len(background_guess) > 1:
                 h_guess = h_guess - (
                     background_guess[0][0]
                     + background_guess[1][0]
-                    * (data_chunk_class.tth[idx] - data_chunk_class.tth.min())
+                    * (cnk_tth[idx] - cnk_tth.min())
                 )
             elif len(background_guess) == 1:
                 h_guess = h_guess - background_guess[0][0]
@@ -220,19 +282,19 @@ def get_chunk_peak_guesses(
             # find the brightest pixels
             # get index of nth brightest pixel.
             # idx = np.argsort(data_chunk_class.intensity.compressed())[-n:][0]
-            idx = np.argsort(data_chunk_class.intensity)[-n:][0]
+            idx = np.argsort(cnk_i)[-n:][0]
 
             # height guess is nth highest intensity - background guess at this position
             # h_guess = (data_chunk_class.intensity.compressed())[idx]
-            h_guess = (data_chunk_class.intensity)[idx]
+            h_guess = cnk_i[idx]
             if len(background_guess) > 1:
                 h_guess = h_guess - (
                     background_guess[0][0]
                     + background_guess[1][0]
                     * (
-                        data_chunk_class.tth[idx]
+                        cnk_tth[idx]
                         # data_chunk_class.tth.compressed()[idx]
-                        - data_chunk_class.tth.min()
+                        - cnk_tth.min()
                     )
                 )
             elif len(background_guess) == 1:
@@ -240,25 +302,18 @@ def get_chunk_peak_guesses(
 
             # d-spacing of the highest nth intensity pixel
             # d_guess = data_chunk_class.dspace.compressed()[idx]
-            d_guess = data_chunk_class.conversion(data_chunk_class.tth[idx])
+            pos_guess = cnk_tth[idx]
 
         # w_guess is fractional width of the data range
         w_guess = (
-            (np.max(data_chunk_class.tth) - np.min(data_chunk_class.tth))
+            (np.max(cnk_tth) - np.min(cnk_tth))
             / w_guess_fraction
             / len(settings_as_class.subfit_orders["peak"])
         )
         # FIX ME: This is a bit crude. Is there a better way to do it?
 
-        # If profile_fixed exists then set p_guess to profile_fixed values and set p_fixed to 1
-        p_guess = np.mean(settings_as_class.fit_bounds["profile"])
-        # FIXME: this should be read (via settings?) from the defaults and limits method of the peak shape function
-        p_fixed = 0  # Set to 0 so solving unless profile_fixed exists.
         if "profile_fixed" in settings_as_class.subfit_orders["peak"][k]:
-            # Profile fixed is the list of coefficients if the profile is fixed.
-            # FIXME: profile fixed must have the same number of coefficients as required by
-            # profile.
-
+            # calculate profile at this orientation
             coeff_type = sf.get_params_type(
                 settings_as_class.subfit_orders, "p", peak=k
             )
@@ -267,39 +322,19 @@ def get_chunk_peak_guesses(
             else:
                 symm = 1
             p_guess = sf.coefficient_expand(
-                np.mean(data_chunk_class.azm) * symm,
+                np.mean(cnk_azm) * symm,
                 param=settings_as_class.subfit_orders["peak"][k]["profile_fixed"],
                 coeff_type=coeff_type,
             )
-            p_fixed = 1
+        else:
+            p_guess = np.mean(settings_as_class.fit_bounds["profile"])
+        
+        guess_cent.append(pos_guess)
+        guess_h.append(h_guess)
+        guess_w.append(w_guess)
+        guess_p.append(p_guess)
 
-        peaks.append(
-            {
-                "height": [h_guess],
-                "d-space": [d_guess],
-                "width": [w_guess],
-                "profile": [p_guess],
-            }
-        )
-
-        # DMF added needs checking - required to drive fit and avoid failures
-        lims.append(
-            lmm.parse_bounds(
-                settings_as_class.fit_bounds,
-                data_chunk_class,
-                param=["height", "d-space", "width", "profile"],
-            )
-        )
-
-    limits = {
-        "background": lmm.parse_bounds(
-            settings_as_class.fit_bounds,
-            data_chunk_class,
-            param=["background"],
-        )["background"],
-        "peak": lims,
-    }
-    return peaks, limits, p_fixed
+    return guess_cent, guess_h, guess_w, guess_p
 
 
 def fit_chunks(
@@ -354,13 +389,13 @@ def fit_chunks(
         # FIXME: Need to check that the num. of peaks for which we have parameters is the same as the
         # number of peaks guessed at.
         # dfour = get_manual_guesses(peeks, orders, bounds, twotheta, debug=None)
-        dfour = get_manual_guesses(settings_as_class, data_as_class, debug=debug)
+        dfour = get_manual_guesses(settings_as_class, data_as_class, return_converted=False, debug=debug)
 
     # Get chunks according to detector type.
     if mode != "fit":  # cascade
-        chunks, azichunks = data_as_class.bins(settings_as_class, cascade=True)
+        chunks, chunk_bounds, azichunks = data_as_class.bins(settings_as_class, cascade=True)
     else:
-        chunks, azichunks = data_as_class.bins(settings_as_class)
+        chunks, chunk_bounds, azichunks = data_as_class.bins(settings_as_class)
     # Final output list of azimuths with corresponding twotheta_0,h,w
 
     # setup arrays
@@ -395,44 +430,26 @@ def fit_chunks(
 
     for j in range(len(chunks)):
         # logger.info(" ".join(map(str, [('\nFitting to data chunk ' + str(j + 1) + ' of ' + str(len(chunks)) + '\n')])))
-        logger.debug(
-            " ".join(
-                map(
-                    str,
-                    [
-                        (
-                            "Fitting to data chunk %s of %s"
-                            % (str(j + 1), str(len(chunks)))
-                        )
-                    ],
-                )
-            )
-        )
-
+        logger.debug(f"Fitting to data chunk {j + 1} of {len(chunks)}")
+        
         # make data class for chunks.
-        chunk_data = data_as_class.duplicate()
-        # reduce data to a subset
-        # FIXME: this is crude but I am not convinced that it needs to be contained within the data class.
-        # FEXME: maybe I need to reconstruct the data class so that dat_class.tth is a function that applies a mask when called. but this will be slower.
-        chunk_data.intensity = chunk_data.intensity.flatten()[chunks[j]].compressed()
-        # logger.info(" ".join(map(str, [(type(chunk_data.intensity))])))
-        # logger.info(" ".join(map(str, [(chunk_data.intensity.dtype)])))
-        # stop
-        chunk_data.tth = chunk_data.tth.flatten()[chunks[j]].compressed()
-        chunk_data.azm = chunk_data.azm.flatten()[chunks[j]].compressed()
-        # chunk_data.dspace = chunk_data.dspace.flatten()[chunks[j]].compressed()
+        # reduce data to a subset using azi_bounds
+        chunk_data = data_as_class.duplicate(azi_bounds=chunk_bounds[j], as_masked=False)
+        chunk_intensity = chunk_data.intensity
+        chunk_tth = chunk_data.tth
+        chunk_azm = chunk_data.azm
 
         # find other output from intensities
         if mode == "maxima":
             # get maximum from each chunk
-            out_vals["h"][0].append(np.max(chunk_data.intensity))
+            out_vals["h"][0].append(np.max(chunk_intensity))
             out_vals["chunks"].append(azichunks[j])
             new_azi_chunks.append(azichunks[j])
 
         elif mode == "range":
             # get maximum from each chunk
             out_vals["h"][0].append(
-                np.max(chunk_data.intensity) - np.min(chunk_data.intensity)
+                np.max(chunk_intensity) - np.min(chunk_intensity)
             )
             out_vals["chunks"].append(azichunks[j])
             new_azi_chunks.append(azichunks[j])
@@ -447,14 +464,14 @@ def fit_chunks(
             params = Parameters()
 
             # if ma.MaskedArray.count(chunk_data.intensity) >= min_dat:
-            if len(chunk_data.intensity) >= min_dat:
+            if len(chunk_intensity) >= min_dat:
                 # integrate (smooth) the chunks
                 if histogram_type != None:
-                    chunk_data.tth, chunk_data.intensity, chunk_data.azm = (
+                    chunk_tth, chunk_intensity, chunk_azm = (
                         hist.histogram1d(
-                            chunk_data.tth,
-                            chunk_data.intensity,
-                            azi=chunk_data.azm,
+                            chunk_tth,
+                            chunk_intensity,
+                            azi=chunk_azm,
                             histogram_type=histogram_type,
                             bin_n=histogram_bins,
                             debug=debug,
@@ -466,19 +483,41 @@ def fit_chunks(
 
                 # Background estimates
                 background_guess = get_chunk_background_guess(
-                    settings_as_class, chunk_data, n, debug=debug
+                    settings_as_class, (chunk_intensity, chunk_tth), n, debug=debug
                 )
 
-                # # Organise guesses to be refined.
-                peaks, limits, p_fixed = get_chunk_peak_guesses(
+                cent_guess, h_guess, w_guess, p_guess = get_chunk_peak_guesses_new(
                     settings_as_class,
-                    chunk_data,
+                    (chunk_intensity, chunk_tth, chunk_azm),
                     background_guess,
                     n,
                     w_guess_fraction,
                     dfour,
                     debug,
                 )
+                # cent_guess is in collected units. needs converting.
+                lims = lmm.parse_bounds(
+                    settings_as_class.fit_bounds, data_as_class, 0, len(cent_guess), param=["d-space"]
+                ) #limits alwasys in converted unit.
+                limits_range = lims['d-space']
+                
+                if (np.max(cent_guess) > np.max(limits_range) or
+                    np.min(cent_guess) < np.min(limits_range)):
+                    # then the peak_pos_guesses are not in d-spacing
+                    # therefore change
+                    cent_guess = list(np.atleast_1d(data_as_class.conversion(
+                        cent_guess, azm=None, reverse=True)))
+                # convert to dictionary
+                peaks = []
+                for a,b,c,d in zip(cent_guess, h_guess, w_guess, p_guess):
+                    peaks.append(
+                                {
+                                    "d-space": [a],
+                                    "height": [b],
+                                    "width": [c],
+                                    "profile": [d],
+                                }
+                            )
 
                 comp_list = ["h", "d", "w", "p"]
                 comp_names = ["height", "d-space", "width", "profile"]

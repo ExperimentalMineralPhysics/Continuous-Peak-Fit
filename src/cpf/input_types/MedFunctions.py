@@ -7,6 +7,7 @@ __all__ = ["MedDetector"]
 import os
 import re
 import sys
+from pathlib import Path
 from copy import copy, deepcopy
 
 import matplotlib.pyplot as plt
@@ -15,8 +16,9 @@ import numpy.ma as ma
 import pandas as pd
 from matplotlib import cm, colors, gridspec
 
-from cpf.input_types import Med, med_detectors
+from cpf.input_types import Med, Mca, med_detectors
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
+from cpf.input_types._metadata_common import _metadata_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.util.logging import get_logger
@@ -71,12 +73,16 @@ class MedDetector:
         self.Observationslabel = r"Intensity"
         self.ObservationsUnits = r"counts"
 
+        
         # separate detectors around the ring so not continuous
         self.continuous_azm = False
 
         self.azm_blocks = 45
 
         self.reduce_by = None
+
+        self._default_metadata_labels = {"time_label": "mean_start_time", # file creation time.
+                                  'exposure_label': 'mean_live_time'}
         
         self.calibration = None
         self.conversion_constant = None
@@ -88,7 +94,7 @@ class MedDetector:
             if self.calibration:
                 self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True, as_masked=True):
         """
         Makes an independent copy of a MedDetector Instance.
 
@@ -121,6 +127,11 @@ class MedDetector:
             new.detector = None
             new.calibration = None
 
+        # set tth range.
+        new.tth_start = range_bounds[0]
+        new.tth_end = range_bounds[1]
+        
+        # restrict the data. 
         local_mask = np.where(
             (self.tth >= range_bounds[0])
             & (self.tth <= range_bounds[1])
@@ -132,15 +143,12 @@ class MedDetector:
         new.tth = deepcopy(self.tth[local_mask])
         new.azm = deepcopy(self.azm[local_mask])
 
-        # set nee range.
-        new.tth_start = range_bounds[0]
-        new.tth_end = range_bounds[1]
 
         new.intensity = new.intensity[new.intensity.mask == False]
         new.tth = new.tth[new.tth.mask == False]
         new.azm = new.azm[new.azm.mask == False]
 
-        if "dspace" in dir(new):
+        if "dspace" in dir(self):
             if self.dspace is not None:
                 new.dspace = deepcopy(self.dspace[local_mask])
                 new.dspace = new.dspace[new.dspace.mask == False]
@@ -157,6 +165,20 @@ class MedDetector:
             if self.z is not None:
                 new.z = deepcopy(self.z.squeeze()[local_mask])
                 new.z = new.z[new.z.mask == False]
+                
+        # if as_masked == False and ma.isMaskedArray(new.intensity):
+        #     # return flat arrays.
+        #     new.intensity = new.intensity.compressed()
+        #     new.tth = new.tth.compressed()
+        #     new.azm = new.azm.compressed()
+        #     if "dspace" in dir(new):
+        #         new.dspace = new.dspace.compressed()
+        #     if "x" in dir(new) and new.x is not None:
+        #         new.x = new.x.compressed()
+        #     if "y" in dir(new) and new.y is not None:
+        #         new.y = new.y.compressed()
+        #     if "z" in dir(new) and new.z is not None:
+        #         new.z = new.z.compressed()
 
         return new
 
@@ -395,6 +417,10 @@ class MedDetector:
             else:
                 pass
 
+        #add metadata to instance.
+        #done here for consistency with other data types.
+        self._set_metadata(self.detector, settings=settings)
+        
         # apply mask to the intensity array
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im_all)
@@ -462,6 +488,11 @@ class MedDetector:
 
         if settings.reduce_by is not None:
             self.reduce_by = settings.reduce_by
+                    
+        if settings.metadata_labels is not None:
+            self.metadata_labels = settings.metadata_labels
+        else:
+            self.metadata_labels = self._default_metadata_labels
             
         if self.detector == None:
             self.get_detector(settings=settings)
@@ -488,6 +519,9 @@ class MedDetector:
             self.tth = self._reduce_array(self.tth, keep_FirstDim=True)
             self.azm = self._reduce_array(self.azm, keep_FirstDim=True)
             #self.azm does not need polar=True because keep_FirstDim=True
+            
+            if "original_mask" in dir(self):
+                self.original_mask= self._reduce_array(self.original_mask, keep_FirstDim=True)
 
         self.azm_start = (
             np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
@@ -508,6 +542,58 @@ class MedDetector:
         self.azm_end = (
             np.around(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
         )
+
+
+    def _set_metadata(self, image_obj, settings=None):
+        """
+        Gets all metadata as dictionary from image file.
+        
+        If the cpf settings class is provided and has the method 'metadata_read'
+        then this method is used to override the internal default methods and is 
+        used to create 'metadata_dictionary' which is parsed.
+        In this case the settings class attribute 'metadata_labels' is still needed 
+        to get required parts of the metadata. 
+
+        For MED functions the default is a fabio.open(file).header dictionary 
+        
+        Parameters
+        ----------
+        image_obj : opened Med file object
+            opened Med object. (in MedFunctions is same as self.detector )
+        settings : cpf settings class, optional
+            If the settings class has method 'metadata_read' this overrides the 
+            internal methods and is used to get the metadata. 
+            The default is None.
+
+        Returns
+        -------
+        metadata_dictionary
+            dictionary of image metadata. 
+        """
+        # Defined as function to allow get_metadata to call universal image method
+        if settings and "metadata_read" in settings:
+            metadata_dictionary = settings.metadata_read(image_obj)
+        else:
+            im_and_md = Mca.read_ascii_file(image_obj.get_name())
+            metadata_dictionary = {}
+            metadata_dictionary['n_detectors'] = im_and_md['n_detectors']
+            for entries in im_and_md["environment"]:
+                metadata_dictionary[entries.name] = entries.value
+            for l in list(im_and_md['elapsed'][0].__dict__):
+                for det in im_and_md['elapsed']:
+                    metadata_dictionary[l] = metadata_dictionary.get(l, []) + [getattr(det, l)]
+                # collapse all the lists to an average.
+                if len(np.unique(metadata_dictionary[l])) == 1:
+                    metadata_dictionary["mean_"+l] = metadata_dictionary[l][0]
+                else:
+                    metadata_dictionary["mean_"+l] = np.nanmean(metadata_dictionary[l])           
+        # add the file creation and modifications time
+        if isinstance(image_obj, str) or isinstance(image_obj, Path):
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
+        else:
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj.get_name())
+        self.metadata = metadata_dictionary
+        
 
     @staticmethod
     def detector_check(image_name, settings=None):
@@ -719,15 +805,18 @@ class MedDetector:
         :param **kwargs: - to ensure compatibility
         :return:
         """
+        gap=5
         bin_mean_azi = np.unique(self.azm.data)
+        bin_bounds = []
         chunks = []
         # azichunks = []
         temp_azimuth = self.azm.flatten()
         for i in range(len(bin_mean_azi)):
             azi_chunk = np.where((temp_azimuth == bin_mean_azi[i]))
+            bin_bounds.append([bin_mean_azi[i]-gap, bin_mean_azi[i]+gap])
             chunks.append(azi_chunk)
 
-        return chunks, bin_mean_azi
+        return chunks, bin_bounds, bin_mean_azi
 
     def test_azims(self, steps=None):
         """
@@ -1016,7 +1105,7 @@ class MedDetector:
             plot_x0 = []
             plot_c0 = []
             for i in range(len(np.unique(self.azm))):
-                if ma.MaskedArray.all(plot_x[self.azm == np.unique(self.azm)[i]]):
+                if any(plot_x[self.azm == np.unique(self.azm)[i]]):
                     plot_x0.append(
                         [
                             plot_x[self.azm == np.unique(self.azm)[i]][0],
@@ -1112,6 +1201,8 @@ class MedDetector:
     GetDataType = _AngleDispersive_common.GetDataType
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     _reduce_array = _AngleDispersive_common._reduce_array
+    get_metadata = _metadata_common.get_metadata
+    _get_file_created_modified = _metadata_common._get_file_created_modified
     plot_integrated = _Plot_AngleDispersive.plot_integrated
 
     # add masking functions to detetor class.

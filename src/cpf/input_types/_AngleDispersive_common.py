@@ -149,11 +149,11 @@ class _AngleDispersive_common:
             # uses b_num to determine bin size
             lims = np.array(
                 [
-                    np.min(self.azm[self.azm.mask == False]),
-                    np.max(self.azm[self.azm.mask == False] + 0.01),
+                    ma.min(self.azm),
+                    ma.max(self.azm + 0.01),
                 ]
             )
-            lims = np.around(lims / 45) * 45
+            lims = np.around(lims / self.azm_blocks) * self.azm_blocks
             bin_boundaries = np.linspace(lims[0], lims[1], num=b_num + 1)
 
         else:
@@ -192,6 +192,7 @@ class _AngleDispersive_common:
 
         # fit the data to the bins
         chunks = []
+        bin_bounds = []
         bin_mean_azi = []
         temp_azimuth = self.azm.flatten()
         for i in range(len(bin_boundaries) - 1):
@@ -199,9 +200,10 @@ class _AngleDispersive_common:
             end = bin_boundaries[i + 1]
             azi_chunk = np.where((temp_azimuth > start) & (temp_azimuth <= end))
             chunks.append(azi_chunk)
+            bin_bounds.append([start, end])
             bin_mean_azi.append(np.mean(temp_azimuth[azi_chunk]))
 
-        return chunks, bin_mean_azi
+        return chunks, bin_bounds, bin_mean_azi
 
     def set_limits(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
         """
@@ -307,7 +309,7 @@ class _AngleDispersive_common:
         return DataType
     
     
-    def duplicate_without_detector(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
+    def duplicate_without_detector(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], as_masked=True):
         """
         Makes an independent copy of a Intensity, two theta and azimuth data. 
         If present the d-spacing and detector x,y,z are included as well 
@@ -327,6 +329,8 @@ class _AngleDispersive_common:
             Limits for the two theta range. The default is [-np.inf, np.inf].
         azi_bounds : dict or array, optional
             Limits for the azimuth range. The default is [-np.inf, np.inf].
+        as_masked : bool, optional
+            Return arrays as numpy masked arrays or numpy arrays. The default is False.
         reduction : int, optional
             A fraction by which to reduce the data. The reduction for a Dioptas 
             detector instance in by binning the data. 
@@ -337,7 +341,7 @@ class _AngleDispersive_common:
             Detector with only image related arrays.
 
         """  
-        return self.duplicate(range_bounds=range_bounds, azi_bounds=azi_bounds, with_detector=False)
+        return self.duplicate(range_bounds=range_bounds, azi_bounds=azi_bounds, with_detector=False, as_masked=as_masked)
 
     
     def _reduce_array(self, data, reduce_by=None, keep_FirstDim=False, polar=False):

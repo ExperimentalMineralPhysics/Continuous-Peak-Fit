@@ -424,7 +424,8 @@ def get_order_from_params(params, comp=None, peak=0):
 
 def get_series_mean(param, param_str, comp=None):
     """
-    Calcualte the mean of the parameter series from parameter dictionary.
+    Calcualte the mean of the parameter series from lmfit parameter dictionary or 
+    settings coefficient dictionary.
 
     Parameters
     ----------
@@ -443,22 +444,35 @@ def get_series_mean(param, param_str, comp=None):
     """
     # FIX ME: here we need to be able to discard the outliers.
     # We should use the medaian and the mean deviation from the median...
-    if get_series_type(param, param_str, comp=comp) == coefficient_types()["fourier"]:
-        # if it is a Fourier series just get the first value.
-        mean = param[param_str + "_" + comp + "0"].value
+    if param_str in param:
+        # then this is not a lmfit parameter dictionary but a coefficient dictionary.
+        if param_str+"_type" in param:# 
+            series_type = param[param_str+"_type"]
+        else:
+            series_type = 'fourier'
+        if series_type == 'fourier':
+            mean = param[param_str][0]
+        else:
+            # get a mean of all the coefficients
+            mean = np.nanmean(param[param_str])
+    
     else:
-        # get a mean of all the coefficients
-        mean_tmp = []
-        done = 0
-        n = 0
-        while done == 0:
-            try:
-                mean_tmp.append(param[param_str + "_" + comp + str(n)].value)
-                n = n + 1
-            except:
-                # now we have run out of coefficients. So get the mean and then leave the loop.
-                mean = np.mean(mean_tmp)
-                done = 1
+        if get_series_type(param, param_str, comp=comp) == coefficient_types()["fourier"]:
+            # if it is a Fourier series just get the first value.
+            mean = param[param_str + "_" + comp + "0"].value
+        else:
+            # get a mean of all the coefficients
+            mean_tmp = []
+            done = 0
+            n = 0
+            while done == 0:
+                try:
+                    mean_tmp.append(param[param_str + "_" + comp + str(n)].value)
+                    n = n + 1
+                except:
+                    done = 1
+            # now we have run out of coefficients. So get the mean and then leave the loop.
+            mean = np.mean(mean_tmp)
 
     return mean
 

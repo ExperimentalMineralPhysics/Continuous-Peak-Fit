@@ -9,6 +9,8 @@ import glob
 import json
 import sys
 import os
+import re
+from pathlib import Path
 from copy import copy, deepcopy
 from importlib.metadata import version
 
@@ -30,7 +32,9 @@ else:
 from pyFAI.detectors._common import Detector
 from pyFAI.goniometer import MultiGeometry
 
+import cpf # need to import whole package to avoind trying to import part of incompletely iniated method (cpf.settings.issettings for _get_metadata)
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
+from cpf.input_types._metadata_common import _metadata_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.util.logging import get_logger
@@ -230,26 +234,6 @@ class ESRFlvpDetector:
         self.AzimuthUnits = r"$^\circ$"
         self.Observationslabel = r"Intensity"
         self.ObservationsUnits = r"counts"
-
-        # self.h5_data    = '/*.1/measurement/p900kw/'
-        # self.h5_azimuths = '/*.1/measurement/azim/'
-        # #define h5 keys from a base so that when change base the others follow. 
-        # self._h5_data_base = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
-        #                    {"do":"combine", 
-        #          "from": 0, 
-        #          "to": -1, 
-        #          "step": 1, 
-        #          "using":"position",
-        #          "label": [""],
-        #          # "pos": '/*.1/measurement/azim/',
-        #          "dim": 0}]
-        # self.h5_data_iterate = self._h5_data_base
-        # self.h5_data_iterate[1]["do"] = "iterate"
-        # self.h5_data_return = self._h5_data_base
-        # self.h5_data_return[1]["do"] = "combine"
-        # self.h5_azimuths_return = self._h5_data_base
-        # self.h5_azimuths_return[1]["do"] = "combine"
-        
         
         self._default_h5_datakey  = '/*.1/measurement/p900kw/'
         self._default_h5_azimuths = '/*.1/measurement/azim/'
@@ -262,42 +246,21 @@ class ESRFlvpDetector:
                  "label": ['/*.1/measurement/azim/'],
                  # "pos": '/*.1/measurement/azim/',
                  "dim": 0}]
-        # self._h5_iterations = 
-        
-        # self.h5_data_iterate = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
-        #                    {"do":"iterate", 
-        #          "from": 0, 
-        #          "to": -1, 
-        #          "step": 1, 
-        #          "using":"position",
-        #          "label": ["pos"],
-        #          "dim": 0}]
-        # self.h5_data_return = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
-        #                    {"do":"return", 
-        #          "from": 0, 
-        #          "to": -1, 
-        #          "step": 1, 
-        #          "using":"position",
-        #          "label": ["pos"],
-        #          "dim": 0}]
-        # self.h5_azimuths = '/*.1/measurement/azim/'
-        # self.h5_azimuths_return = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
-        #                    {"do":"return", 
-        #          "from": 0, 
-        #          "to": -1, 
-        #          "step": 1, 
-        #          "using":"position",
-        #          "label": ["pos"],
-        #          "dim": 0}]
         
         self.mask_default = {"threshold": [1, np.inf]}
-                
                 
         self.azm_blocks = 2
         # default blocks are 2 degrees incase using only a single detector position
         # if the detector is being spun then the blocks are changed to a larger value.
 
         self.reduce_by = None
+        
+        self._default_metadata_labels_hdf5  = {"time_label": '/*.1/measurement/epoch_trig/', # time stamps in ESRF edf file.
+                                      "exposure_label": '/*.1/measurement/timer_period/', # exposure times
+                                      }        
+        self._default_metadata_labels_edf = {"time_label": "time_of_day", # time stamps in ESRF edf file.
+                                      "exposure_label": "acq_expo_time", # exposure times
+                                      }
 
         self.calibration = None
         self.conversion_constant = None
@@ -309,7 +272,7 @@ class ESRFlvpDetector:
             if self.calibration:
                 self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True, as_masked=None):
         """
         Makes an independent copy of a ESRFlvpDetector Instance.
 
@@ -348,24 +311,24 @@ class ESRFlvpDetector:
             new.Observationslabel = self.Observationslabel
             new.ObservationsUnits = self.ObservationsUnits
             new.azm_blocks = self.azm_blocks
-            
+
+        # set new range.
+        new.tth_start = range_bounds[0]
+        new.tth_end = range_bounds[1]
+
+        # restrict the data. 
         local_mask = np.where(
             (self.tth >= range_bounds[0])
             & (self.tth <= range_bounds[1])
             & (self.azm >= azi_bounds[0])
             & (self.azm <= azi_bounds[1])
         )
-
         new.intensity = deepcopy(self.intensity[local_mask])
         new.tth = deepcopy(self.tth[local_mask])
         new.azm = deepcopy(self.azm[local_mask])
         if "dspace" in dir(self):
             if self.dspace is not None:
                 new.dspace = deepcopy(self.dspace[local_mask])
-
-        # set new range.
-        new.tth_start = range_bounds[0]
-        new.tth_end = range_bounds[1]
 
         if "x" in dir(self):
             if self.x is not None:
@@ -377,6 +340,20 @@ class ESRFlvpDetector:
             if self.z is not None:
                 new.z = deepcopy(self.z[local_mask])
 
+        if as_masked == False and ma.isMaskedArray(new.intensity):
+            # return flat arrays.
+            new.intensity = new.intensity.compressed()
+            new.tth = new.tth.compressed()
+            new.azm = new.azm.compressed()
+            if "dspace" in dir(new):
+                new.dspace = new.dspace.compressed()
+            if "x" in dir(new) and new.x is not None:
+                new.x = new.x.compressed()
+            if "y" in dir(new) and new.y is not None:
+                new.y = new.y.compressed()
+            if "z" in dir(new) and new.z is not None:
+                new.z = new.z.compressed()
+                
         return new
 
     def get_calibration(self, file_name=None, settings=None, debug=False):
@@ -750,12 +727,44 @@ class ESRFlvpDetector:
 
 
 
-    def _read_frames(self, frames, dtype, reduce_by=None):
-        return ma.array(
-            [np.flipud(
-                self._reduce_array(np.array(fabio.open(f).data, dtype=dtype), reduce_by=reduce_by)
-                ) for f in frames]
-        )
+    def _read_frames(self, frames, dtype, reduce_by=None, return_metadata=False):
+        """
+        Reads iamge frames and their metadata from edf images.
+
+        Parameters
+        ----------
+        frames : TYPE
+            DESCRIPTION.
+        dtype : TYPE
+            DESCRIPTION.
+        reduce_by : TYPE, optional
+            DESCRIPTION. The default is None.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
+        
+        imagedata = []
+        md_tmp = []
+        for frame in frames:
+            with fabio.open(frame) as f:
+                imagedata.append(self._reduce_array(np.array(f.data, dtype=dtype), reduce_by=reduce_by))
+                f_without_data = f
+                f_without_data.data = None
+                md_tmp.append(f_without_data)
+        imagedata = np.flipud(imagedata)
+        if return_metadata:
+            return imagedata, md_tmp
+        else:
+            return imagedata
+        # return ma.array(
+        #     [np.flipud(
+        #         self._reduce_array(np.array(fabio.open(f).data, dtype=dtype), reduce_by=reduce_by)
+        #         ) for f in frames]
+        # )
 
 
     # @staticmethod
@@ -832,7 +841,7 @@ class ESRFlvpDetector:
             for i in range(self.intensity.shape[0]):
                 self.intensity.data[i,:,:] = np.flipud(self.intensity.data[i,:,:])
             
-            
+            self._set_metadata(None, settings=settings)
             
         elif os.path.splitext(os.path.basename(image_name))[1] == ".h5":
             # then it is a h5 file containing data from a the spin of the detector.
@@ -859,6 +868,8 @@ class ESRFlvpDetector:
             for i in range(self.intensity.shape[0]):
                 self.intensity.data[i,:,:] = np.flipud(self.intensity.data[i,:,:])
                 
+            self._set_metadata(None, settings=settings)
+            
         else:
             # get ordered list of separate tiff, edf, etc. images
             # reduce the size of the data while listing (if called for)
@@ -882,7 +893,7 @@ class ESRFlvpDetector:
                         tmp_image = ma.array(fabio.open(frames[0]).data)
                         dtype = self.GetDataType(tmp_image[0], minimumPrecision=False)
     
-                self.intensity = self._read_frames(frames, dtype, reduce_by)
+                self.intensity, metadata_tmp = self._read_frames(frames, dtype, reduce_by, return_metadata=True)
                 
                 #make a full size mask and then reduce it if necessary. 
                 frame_mask = self._reduce_array(
@@ -899,7 +910,9 @@ class ESRFlvpDetector:
                 
                 # does not need keep_FirstDim=True because iterating over the frame list which 
                 # is already reduced
-                self.intensity.data[:] = self._read_frames(frames, dtype_tmp, reduce_by)
+                self.intensity.data[:], metadata_tmp = self._read_frames(frames, dtype_tmp, reduce_by, return_metadata=True)
+            
+            self._set_metadata(metadata_tmp, settings=settings)
                 
             # 13th June 2024 - Note on flipud: the flipud command is included to invert the short axis of the detector intensity.
             # If I flip the data then the 'spots' in the reconstructed data are spot like, rather than incoherent
@@ -986,6 +999,17 @@ class ESRFlvpDetector:
             # self.h5_data_iterate[1]["step"] = self.reduce_by
             # self.h5_data_return[1]["step"] = self.reduce_by
 
+        if settings.metadata_labels is not None:
+            self.metadata_labels = settings.metadata_labels
+        elif (isinstance(diff_file, list) or 
+              os.path.splitext(os.path.basename(diff_file))[1] == ".h5"):
+            self._default_metadata_labels = self._default_metadata_labels_hdf5
+            self.metadata_labels = self._default_metadata_labels_hdf5
+        else:
+            self._default_metadata_labels = self._default_metadata_labels_edf
+            self.metadata_labels = self._default_metadata_labels_edf
+        # need both metadata_labels and _default_metadata_labels for _get_metadata to work.
+            
         if self.detector == None:
             # if reduce_by or self.reduce_by then a reduced list of image files is returned
             self.get_detector(settings=settings)
@@ -1012,7 +1036,7 @@ class ESRFlvpDetector:
         if np.size(self.intensity) <= 1:
             if diff_file != None and os.path.splitext(os.path.basename(str(df)))[1] != ".h5":
                 # sets self.intensity
-                self.import_image(diff_file, mask=mask, dtype=array_dtype, reduce_by=self.reduce_by)
+                self.import_image(diff_file, settings=settings, mask=mask, dtype=array_dtype, reduce_by=self.reduce_by)
                 
             else:
                 # empty array
@@ -1025,7 +1049,7 @@ class ESRFlvpDetector:
                     dtype=array_dtype,
                 ), keep_FirstDim=True)
 
-                self.import_image(diff_file, mask=mask, dtype=array_dtype, reduce_by=self.reduce_by)
+                self.import_image(diff_file, settings=settings, mask=mask, dtype=array_dtype, reduce_by=self.reduce_by)
                 
                 
         # create emmpty arrays
@@ -1129,7 +1153,66 @@ class ESRFlvpDetector:
         self.tth_start = np.min(self.tth.flatten())
         self.tth_end = np.max(self.tth.flatten())
         
+
+    def _set_metadata(self, image_obj, settings=None):
+        """
+        Gets all metadata as dictionary from image file.
         
+        If the cpf settings class is provided and has the method 'metadata_read'
+        then this method is used to override the internal default methods and is 
+        used to create 'metadata_dictionary' which is parsed.
+        In this case the settings class attribute 'metadata_labels' is still needed 
+        to get required parts of the metadata. 
+
+        For ESRFlvp detectors the default metadata_dictionary is either a 
+        a fabio.open(file).header dictionary or (for hdf5 files) a dictionary containing 
+        the file name to be read using the hdf5 metadata keys
+        
+        Parameters
+        ----------
+        image_obj : fabio object
+            image object to be parsed.
+        settings : cpf settings class, optional
+            If the settings class has method 'metadata_read' this overrides the 
+            internal methods and is used to get the metadata. 
+            The default is None.
+
+        Returns
+        -------
+        metadata_dictionary
+            dictionary of image metadata. 
+        """
+        # Defined as function to allow get_metadata to call universal image method
+        if settings and "metadata_read_func" in settings.__dict__:
+            metadata_dictionary = settings.metadata_read_func(settings, image_obj=image_obj)
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
+        elif (not image_obj and settings) or cpf.settings.is_settings(image_obj):
+            # when calling hdf5 file there is no image_obj to send (= None) and settings is
+            # provided instead. 
+            
+            # here we set pointers to the things needed when the metadata is read.
+            # assuming that it is not wise (or possible) to list all the possible hdf5
+            # keys which could be read as metadata. 
+            metadata_dictionary = {}
+            metadata_dictionary["image"] = settings.subfit_filename
+            metadata_dictionary["note"] = "It is not reasonable to load all hdf5 keys into a dictionary as metadata. Instead carry file name and use keys"
+            metadata_dictionary["h5_datakey"] = settings.h5_datakey
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, metadata_dictionary["image"][0])
+        else:
+            metadata_dictionary = {}
+            for obj in image_obj:
+                # obj is a fabio image instance with the data removed. 
+                for j in obj.header:
+                    if j not in metadata_dictionary:
+                        metadata_dictionary[j] = []
+                    try:
+                        metadata_dictionary[j].append(float(obj.header.get(j, None)))
+                    except:
+                        metadata_dictionary[j].append(obj.header.get(j, None))
+                # add the file creation and modifications time
+                metadata_dictionary = self._get_file_created_modified(metadata_dictionary, obj.filename)
+        self.metadata = metadata_dictionary
+
 
     def get_requirements(self, parameter_settings=None):
         """
@@ -1263,6 +1346,8 @@ class ESRFlvpDetector:
     GetDataType = _AngleDispersive_common.GetDataType
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     _reduce_array = _AngleDispersive_common._reduce_array
+    get_metadata = _metadata_common.get_metadata
+    _get_file_created_modified = _metadata_common._get_file_created_modified
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask
@@ -1279,6 +1364,7 @@ class ESRFlvpDetector:
     plot_collected = _Plot_AngleDispersive.plot_collected
     plot_calibrated = _Plot_AngleDispersive.plot_calibrated
     plot_integrated = _Plot_AngleDispersive.plot_integrated
+    what_plot_type = _Plot_AngleDispersive.what_plot_type
 
     # this function is added because it requires access to self:
     dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks

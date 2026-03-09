@@ -6,6 +6,9 @@ __all__ = ["DioptasDetector"]
 import sys
 from copy import copy, deepcopy
 from importlib.metadata import version
+import os
+import re
+from pathlib import Path
 
 import fabio
 import matplotlib.pyplot as plt
@@ -22,8 +25,10 @@ else:
 from pyFAI.io import ponifile
 
 import cpf.h5_functions as h5_functions
+import cpf # need to import whole package to avoind trying to import part of incompletely iniated method (cpf.settings.issettings for _get_metadata)
 from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
+from cpf.input_types._metadata_common import _metadata_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.util.logging import get_logger
@@ -74,6 +79,21 @@ class DioptasDetector:
         self.azm_blocks = 45
 
         self.reduce_by = None
+
+        self.metadata = None
+        self._default_metadata_labels = {"time_label": "FILE_CREATION", # file creation time.
+                                  'exposure_label': None}
+        
+        self._default_h5_datakey = '/*.1/measurement/p3/'
+        self._default_h5_iterate = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
+                           {"do":"combine", 
+                 "from": 0, 
+                 "to": -1, 
+                 "step": 1, 
+                 "using":"position",
+                 "label": ['pos'],
+                 # "pos": '/*.1/measurement/azim/',
+                 "dim": 0}]
         
         self.calibration = None
         self.conversion_constant = None
@@ -85,15 +105,15 @@ class DioptasDetector:
             if self.calibration:
                 self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True, as_masked=True):
         """
         Makes an independent copy of a DioptasDetector Instance.
 
         range_bounds and azi_bounds restrict the extent of the data if needed.
         The range resturictions should be applied upon copying (if required) for memory efficieny.
-        Laternatively run:
+        Alternatively run:
         data_class.duplicate()
-        date_calss.set_limit2(range_bounds=[...], azi_bounds=[...])
+        date_calss.set_limits(range_bounds=[...], azi_bounds=[...])
 
         Parameters
         ----------
@@ -101,6 +121,10 @@ class DioptasDetector:
             Limits for the two theta range. The default is [-np.inf, np.inf].
         azi_bounds : dict or array, optional
             Limits for the azimuth range. The default is [-np.inf, np.inf].
+        with_detector : bool, optional
+            Include detector and calibrations in returned class or not. The default is True.
+        as_masked : bool, optional
+            Return arrays as numpy masked arrays or numpy arrays. The default is False.
 
         Returns
         -------
@@ -108,7 +132,10 @@ class DioptasDetector:
             Copy of DioptasDetector with independedent data values
 
         """
-
+        #FIXME: should merge the data reduction funtions here with set_limits. or call set_limits.
+        #FIXME: should be able to copy the class and reduce data at the same time. rather than copying and then reducing
+        # this is not memory efficient. 
+        
         if with_detector:
             new = copy(self)
         else:
@@ -118,32 +145,46 @@ class DioptasDetector:
             new.detector = None
             new.calibration = None
 
-        local_mask = np.where(
-            (self.tth >= range_bounds[0])
-            & (self.tth <= range_bounds[1])
-            & (self.azm >= azi_bounds[0])
-            & (self.azm <= azi_bounds[1])
-        )
-
-        new.intensity = deepcopy(self.intensity[local_mask])
-        new.tth = deepcopy(self.tth[local_mask])
-        new.azm = deepcopy(self.azm[local_mask])
-        if "dspace" in dir(self):
-            new.dspace = deepcopy(self.dspace[local_mask])
-
-        # set nee range.
+        # set new range.
         new.tth_start = range_bounds[0]
         new.tth_end = range_bounds[1]
-
-        if "x" in dir(self):
+        
+        # restrict the data. 
+        local_mask = np.where(
+            (new.tth >= new.tth_start)
+            & (new.tth <= new.tth_end)
+            & (new.azm >= azi_bounds[0])
+            & (new.azm <= azi_bounds[1])
+        )
+        new.intensity = new.intensity[local_mask]
+        new.tth = new.tth[local_mask]
+        new.azm = new.azm[local_mask]
+        if "dspace" in dir(self):
+            new.dspace = new.dspace[local_mask]
+       
+        if "x" in dir(new):
             if self.x is not None:
-                new.x = deepcopy(self.x[local_mask])
-        if "y" in dir(self):
+                new.x = new.x[local_mask]
+        if "y" in dir(new):
             if self.y is not None:
-                new.y = deepcopy(self.y[local_mask])
-        if "z" in dir(self):
+                new.y = new.y[local_mask]
+        if "z" in dir(new):
             if self.z is not None:
-                new.z = deepcopy(self.z[local_mask])
+                new.z = new.z[local_mask]
+
+        if as_masked == False and ma.isMaskedArray(new.intensity):
+            # return flat arrays.
+            new.intensity = new.intensity.compressed()
+            new.tth = new.tth.compressed()
+            new.azm = new.azm.compressed()
+            if "dspace" in dir(new):
+                new.dspace = new.dspace.compressed()
+            if "x" in dir(new) and new.x is not None:
+                new.x = new.x.compressed()
+            if "y" in dir(new) and new.y is not None:
+                new.y = new.y.compressed()
+            if "z" in dir(new) and new.z is not None:
+                new.z = new.z.compressed()
 
         return new
 
@@ -282,7 +323,7 @@ class DioptasDetector:
         # FIX ME: nxs files need to be checked. But they should be read like h5 files.
 
         # check inputs
-        if image_name == None and settings.subpattern == None:
+        if image_name == None and settings.subfit_filename == None:
             raise ValueError("Settings are given but no subpattern is set.")
 
         if self.detector == None:
@@ -296,6 +337,10 @@ class DioptasDetector:
         if isinstance(image_name, list):
             # then it is a h5 type file
             im = h5_functions.get_images(image_name)
+            
+            #add metadata to instance.
+            #done here so only need to open file once.
+            self._set_metadata(None, settings=settings)
 
         # elif file_extension == ".nxs":
         #     im_all = h5py.File(image_name, "r")
@@ -330,6 +375,11 @@ class DioptasDetector:
                     ]
                 )
                 raise ValueError(err_str)
+                
+            #add metadata to instance.
+            #done here so only need to open file once.
+            self._set_metadata(im_all, settings=settings)
+        
         # Convert the input data from integer to float because the lmfit model values
         # inherits integer properties from the data.
         #
@@ -361,11 +411,14 @@ class DioptasDetector:
         if logger.is_below_level(level="DEBUG"):
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
-            ax.imshow(im)
+            asdf = ax.imshow(np.log10(im+1E4))
+            # print(np.log10(im))
             plt.title(IO_functions.title_file_names(image_name=image_name))
+            plt.colorbar(asdf)
             plt.show()
             plt.close()
 
+        
         # apply mask to the intensity array
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im)
@@ -382,6 +435,7 @@ class DioptasDetector:
         #     # apply new mask
         #     self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
         #     return ma.array(im, mask=mask)
+
 
     def fill_data(
         self, diff_file=None, settings=None, mask=None, make_zyx=False, debug=False
@@ -438,12 +492,17 @@ class DioptasDetector:
         if settings.reduce_by is not None:
             self.reduce_by = settings.reduce_by
             
+        if settings.metadata_labels is not None:
+            self.metadata_labels = settings.metadata_labels
+        else:
+            self.metadata_labels = self._default_metadata_labels
+                
         if self.detector == None:
             self.get_detector(settings=settings)
 
         # get the intensities (without mask) and without reduction.
         # No reduction because if reduced then the calibration is nonsence.
-        self.intensity = self.import_image(diff_file, reduce_by=False)
+        self.intensity = self.import_image(diff_file, settings=settings, reduce_by=False)
         
         # FIXME: (June 2024) because of how self.detector is instanciated the
         # shape might not be correct (or recognised). Hence the check here and
@@ -476,6 +535,10 @@ class DioptasDetector:
             self.intensity = self._reduce_array(self.intensity)
             self.tth = self._reduce_array(self.tth)
             self.azm = self._reduce_array(self.azm, polar=True)
+            
+            if "original_mask" in dir(self):
+                self.original_mask= self._reduce_array(self.original_mask)
+                
             if make_zyx:
                 self.z = self._reduce_array(self.z)
                 self.y = self._reduce_array(self.y)
@@ -489,6 +552,74 @@ class DioptasDetector:
         )
         self.tth_start = np.min(self.tth.flatten())
         self.tth_end = np.max(self.tth.flatten())
+
+
+    def _set_metadata(self, image_obj, settings=None):
+        """
+        Gets all metadata as dictionary from image file.
+        
+        If the cpf settings class is provided and has the method 'metadata_read'
+        then this method is used to override the internal default methods and is 
+        used to create 'metadata_dictionary' which is parsed.
+        In this case the settings class attribute 'metadata_labels' is still needed 
+        to get required parts of the metadata. 
+
+        For Dioptas functions the default is a fabio.open(file).header dictionary 
+        
+        Parameters
+        ----------
+        image_obj : fabio object
+            image object to be parsed.
+        settings : cpf settings class, optional
+            If the settings class has method 'metadata_read' this overrides the 
+            internal methods and is used to get the metadata. 
+            The default is None.
+
+        Returns
+        -------
+        metadata_dictionary
+            dictionary of image metadata. 
+        """
+        # Defined as function to allow get_metadata to call universal image method
+        if not image_obj and not settings:
+            # then nothing is provided
+            # expected behaviour in some circumstances.
+            self.metadata = None
+            return
+        elif settings and "metadata_read_func" in settings.__dict__:
+            metadata_dictionary = settings.metadata_read_func(settings, image_obj=image_obj)
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj.filename)
+        elif (not image_obj and settings) or cpf.settings.is_settings(image_obj):
+             # when calling hdf5 file there is no image_obj to send (= None) and settings is
+             # provided instead. 
+             # 
+             # (any(False if x is None else "*" in x for x in self.metadata_labels.values()) or 
+             #  any(False if x is None else "/" in x for x in self.metadata_labels.values()) or 
+             #  (settings and any("*" in x for x in settings.metadata)) or 
+             #  (settings and any("/" in x for x in settings.metadata))
+             #  ):
+            # here we set pointers to the things needed when the metadata is read.
+            # assuming that it is not wise (or possible) to list all the possible hdf5
+            # keys which could be read as metadata. 
+            
+            metadata_dictionary = {}
+            if settings.subfit_filename is not None:
+                metadata_dictionary["image"] = settings.subfit_filename
+            else:
+                metadata_dictionary["image"] = settings.image_list[0][0]
+            metadata_dictionary["note"] = "It is not reasonable to load all hdf5 keys into a dictionary as metadata. Instead carry file name and use keys"
+            metadata_dictionary["h5_datakey"] = settings.h5_datakey
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, metadata_dictionary["image"][0])
+            
+        else:
+            if isinstance(image_obj, str) or isinstance(image_obj, Path):
+                metadata_dictionary = fabio.open(image_obj).header
+                metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
+            else:
+                metadata_dictionary = image_obj.header
+                metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj.filename)
+        self.metadata = metadata_dictionary
+    
 
     @staticmethod
     def detector_check(calibration_data, settings=None):
@@ -559,20 +690,7 @@ class DioptasDetector:
                 if par in required_list:
                     logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    logger.info(
-                        " ".join(
-                            map(
-                                str,
-                                [
-                                    (
-                                        "The settings file requires a parameter called  '",
-                                        par,
-                                        "'",
-                                    )
-                                ],
-                            )
-                        )
-                    )
+                    logger.info(f"The settings file requires a parameter called '{par}'")
                     all_present = 0
             if all_present == 0:
                 sys.exit(
@@ -605,6 +723,9 @@ class DioptasDetector:
     GetDataType = _AngleDispersive_common.GetDataType
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     _reduce_array = _AngleDispersive_common._reduce_array
+    get_metadata = _metadata_common.get_metadata
+    _get_file_created_modified = _metadata_common._get_file_created_modified
+
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask
@@ -620,6 +741,7 @@ class DioptasDetector:
     plot_collected = _Plot_AngleDispersive.plot_collected
     plot_calibrated = _Plot_AngleDispersive.plot_calibrated
     plot_integrated = _Plot_AngleDispersive.plot_integrated
+    what_plot_type = _Plot_AngleDispersive.what_plot_type
 
     # this function is added because it requires access to self:
     dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks

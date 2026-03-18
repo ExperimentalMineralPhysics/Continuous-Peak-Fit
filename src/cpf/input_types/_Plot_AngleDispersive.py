@@ -105,25 +105,23 @@ class _Plot_AngleDispersive:
              "surf",
              "scatter",
              "raster",
-             "rast",
-             True,
-             False]
+             "rast"]
         
-        surf_threshold = 2e4
-        raster_threshold = 1e6
+        surf_threshold = 5e3
+        raster_threshold = 5e5
         
         if plot_type not in recognised_plots: 
             # then set it
             if ma.MaskedArray(self.intensity).compressed().size < surf_threshold:
                 plot_type = "surface"
-            elif ma.MaskedArray(self.intensity).compressed() > raster_threshold:
+            elif ma.MaskedArray(self.intensity).compressed().size > raster_threshold:
                 plot_type = "rastered"
             else:
                 plot_type = "scatter"
 
-        if plot_type not in ["rast", "rastered"] and ma.MaskedArray(self.intensity).compressed() > raster_threshold:
+        if plot_type not in ["rast", "rastered"] and any(ma.MaskedArray(self.intensity).compressed() > raster_threshold):
             logger.moreinfo(" Have patience. The plot(s) will appear but it can take its time to render.")
-        if plot_type not in ["surf", "surface"] and ma.MaskedArray(self.intensity).compressed() > surf_threshold:
+        if plot_type not in ["surf", "surface"] and any(ma.MaskedArray(self.intensity).compressed() > surf_threshold):
             logger.moreinfo(" Have patience. The plot(s) will appear but it can take its time to render.")
 
         logger.effusive("plot_type", plot_type)

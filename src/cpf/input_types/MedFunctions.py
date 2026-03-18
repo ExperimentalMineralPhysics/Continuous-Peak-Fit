@@ -1050,6 +1050,7 @@ class MedDetector:
         colourbar=True,
         debug=False,
         rastered={},
+        cbar_axes=None
     ):
         """
         add data to axes in form collected in.
@@ -1179,13 +1180,25 @@ class MedDetector:
             # label colour bar with unique azimuths if there are less than 10
             # set colour bar labels with unique azimuths (if there are less than 'unique' azimuths - see function for value of unique).
             ticks = self._dispersion_ticks()
+
+        # fix colour bar. 
+        # cbar_axes = False --> dont have colour bar
+        # cbar_axes = None --> cbar for these axes (default)
+        # cbar_axes = Axis --> make cbar for this/these axes. Used to make 
+        # single colour bar for data and model in self.plot_fitted.
+        if cbar_axes is not False:
+            if cbar_axes is None:
+                cbar_axes = axis_plot
+            try:
+                shrink = 0.6 / len(cbar_axes)
+            except:
+                shrink = 0.6
             if colourbar is True:
                 cbar = plt.colorbar(
-                    s_map, ticks=ticks, orientation=orientation, ax=axis_plot
+                    s_map, ticks=ticks, orientation=orientation, ax=axis_plot,
+                    shrink=shrink,
                 )
                 cbar.set_label(f"{self.Azimuthlabel} ({self.AzimuthUnits})")
-            else:
-                cbar = []
 
         axis_plot.set_xlabel(label_x)
         axis_plot.set_ylabel(label_y)
@@ -1194,7 +1207,7 @@ class MedDetector:
         elif isinstance(limits, dict):
             axis_plot.set_ylim([limits["min"], limits["max"]])
 
-        return the_plot, cbar
+        return the_plot
 
     # add common functions.
     set_limits = _AngleDispersive_common.set_limits

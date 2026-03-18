@@ -18,6 +18,7 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
+from cpf.output_formatters.ReadFits import ReadFits_to_list
 from cpf.util.logging import get_logger
 from cpf.util.output_formatters import mplfig_to_npimage
 from cpf.XRD_FitSubpattern import plot_FitAndModel
@@ -92,6 +93,10 @@ def WriteOutput(settings, debug=False, **kwargs):
         )
         base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
 
+
+    # get the fits
+    all_fits, _ = ReadFits_to_list(settings=settings_class)
+
     # make the data class.
     data_to_fill = settings_class.image_list[0]
     data_class = settings_class.data_class
@@ -108,17 +113,9 @@ def WriteOutput(settings, debug=False, **kwargs):
     dispersion_range = [[] for i in range(len(settings_class.fit_orders))]
     for z in range(settings_class.image_number):
         settings_class.set_subpattern(z, 0)
-
-        # read fit file
-        json_file = make_outfile_name(
-            settings_class.subfit_filename,  # diff_files[z],
-            directory=settings_class.output_directory,
-            additional_text=settings_class.file_label,
-            extension=".json",
-            overwrite=True,
-        )
-        with open(json_file) as json_data:
-            data_fit = json.load(json_data)
+        # get fits 
+        data_fit = all_fits[z]
+        
         for y in range(len(data_fit)):
             dispersion_range[y].append(data_fit[y]["range"][0])
             if "data_ranges" in data_fit[y]:
@@ -220,16 +217,7 @@ def WriteOutput(settings, debug=False, **kwargs):
             ):
                 sub_data = SpotProcess(sub_data, settings_class)
 
-            # read fit file
-            json_file = make_outfile_name(
-                settings_class.subfit_filename,  # diff_files[z],
-                directory=settings_class.output_directory,
-                additional_text=settings_class.file_label,
-                extension=".json",
-                overwrite=True,
-            )
-            with open(json_file) as json_data:
-                data_fit = json.load(json_data)[z]
+            data_fit = all_fits[y[int(t * fps)]][z]
 
             # make the plot of the fits.
             fig = plt.figure(1)

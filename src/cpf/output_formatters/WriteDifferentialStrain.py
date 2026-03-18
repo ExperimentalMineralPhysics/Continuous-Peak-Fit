@@ -10,6 +10,7 @@ from lmfit.model import load_modelresult
 
 import cpf.lmfit_model as lmm
 import cpf.output_formatters.convert_fit_to_crystallographic as cfc
+from cpf.output_formatters.ReadFits import ReadFits_to_list
 from  cpf.settings import get_settings
 from cpf.IO_functions import (
     lmfit_fix_int_data_type,
@@ -75,6 +76,9 @@ def WriteOutput(settings, debug=True, **kwargs):
         SampleDeformation = settings_class.output_settings["SampleDeformation"].lower()
 
     base = settings_class.datafile_basename
+
+    # get the fits
+    all_fits, _ = ReadFits_to_list(settings=settings_class)
 
     # if not base:
     if base is None or len(base) == 0:
@@ -157,7 +161,6 @@ def WriteOutput(settings, debug=True, **kwargs):
         )
     text_file.write("\n")
 
-    all_fits = []
     for z in range(settings_class.image_number):
         settings_class.set_subpattern(z, 0)
 
@@ -169,13 +172,8 @@ def WriteOutput(settings, debug=True, **kwargs):
         )
 
         if os.path.isfile(filename):
-            # Read JSON data from file
-            with open(filename) as json_data:
-                fit = json.load(json_data)
-
-            fit = replace_null_terms(fit)
-
-            all_fits.append(fit)
+            
+            fit = all_fits[z]
 
             # calculate the required parameters.
             num_subpatterns = len(fit)

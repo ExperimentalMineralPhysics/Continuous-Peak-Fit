@@ -10,7 +10,7 @@ from moviepy import ImageClip
 # from moviepy import concatenate
 from moviepy import VideoFileClip, concatenate_videoclips
 
-from cpf.output_formatters.ReadFits import ReadFits
+from cpf.output_formatters.ReadFits import ReadFits_to_dataframe
 from cpf.IO_functions import make_outfile_name
 from cpf.util.logging import get_logger
 from cpf.XRD_FitSubpattern import plot_FitAndModel
@@ -131,7 +131,7 @@ def WriteOutput(
             settings_class.file_label = os.path.splitext(os.path.basename(fls[latest]))[0].split("__")[1]
     
     # read the data.
-    df = ReadFits(settings=settings_class, includeStats=True, includeSeriesValues=True, includeIntensityRanges=True, includePosition=True)
+    df = ReadFits_to_dataframe(settings=settings_class, includeStats=True, includeSeriesValues=True, includeIntensityRanges=True, includePosition=True)
     headers = list(df.columns.values)
     # split the notes column into columns and calculate some new values
     f = lambda x: x.split("|")[0].split("=")[1]

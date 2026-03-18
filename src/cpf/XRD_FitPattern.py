@@ -813,19 +813,7 @@ def execute(
             and j != 0  # not the first data in series.
         ):
             # Read JSON data from file
-            logger.moreinfo(  # type: ignore
-                " ".join(
-                    map(
-                        str,
-                        [
-                            (
-                                "Loading previous fit results from %s"
-                                % temporary_data_file
-                            )
-                        ],
-                    )
-                )
-            )
+            logger.moreinfo(f"Loading previous fit results from {temporary_data_file}.")
             with open(temporary_data_file) as json_data:
                 previous_fit = json.load(json_data)
 
@@ -1051,8 +1039,6 @@ def execute(
                         fit_method=fit_method,
                     )
                     fitted_param.append(tmp)
-                    # fitted_param.append(tmp[0])
-                    # lmfit_models.append(tmp[1])
 
         # write output files
         if mode == "fit" or mode == "search":
@@ -1060,43 +1046,14 @@ def execute(
                 tmp = pool.map(parallel_processing, parallel_pile)
                 for i in range(len(settings_class.fit_orders)):
                     fitted_param.append(tmp[i])
-                    # fitted_param.append(tmp[i][0])
-                    # lmfit_models.append(tmp[i][1])
-
+            
             # store the fit parameters' information as a JSON file.
-            if mode == "search":
-                additional_text = settings_class.file_label
-            else:
-                additional_text = None
-
-            filename = make_outfile_name(
-                settings_class.subfit_filename,
-                directory=settings_class.output_directory,
-                additional_text=additional_text,
-                extension=".json",
-                overwrite=True,
-            )
-            with open(filename, "w") as TempFile:
-                # Write a JSON string into the file.
-                json.dump(
-                    fitted_param,
-                    TempFile,
-                    sort_keys=True,
-                    indent=2,
-                    default=json_numpy_serializer,
-                )
+            from cpf.output_formatters.ReadFits import WriteFits
+            WriteFits(settings_class, fitted_param, data_class=new_data, mode=mode)
 
             # if propagating the fits write them to a temporary file
             if settings_class.fit_propagate:
-                with open(temporary_data_file, "w") as TempFile:
-                    # Write a JSON string into the file.
-                    json.dump(
-                        fitted_param,
-                        TempFile,
-                        sort_keys=True,
-                        indent=2,
-                        default=json_numpy_serializer,
-                    )
+                WriteFits(settings_class, fitted_param, filename_to_write=temporary_data_file)
 
     if mode == "fit":
         # Write the output files.

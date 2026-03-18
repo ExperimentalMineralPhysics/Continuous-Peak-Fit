@@ -9,6 +9,7 @@ import numpy as np
 import cpf.series_functions as sf
 from  cpf.settings import get_settings
 from cpf.IO_functions import make_outfile_name, replace_null_terms
+from cpf.output_formatters.ReadFits import ReadFits_to_list
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WriteMultiFit")
@@ -16,13 +17,13 @@ logger = get_logger("cpf.output_formatters.WriteMultiFit")
 
 
 def Requirements():
-    # List non-universally required parameters for writing this output type.
+    """ List non-universally required parameters for writing this output type. """
 
     RequiredParams = [
         #'apparently none!
     ]
     OptionalParams = [
-        # "Output_ElasticProperties",  # FIX ME: this needs to be included -- not needed or multifit. only for WritePolyDefix
+        # "Output_ElasticProperties",  # FIXME: this needs to be included -- not needed or multifit. only for WritePolyDefix
         # "Output_directory",  # if no direcrtory is specified write to current directory. -- not wrapped in the settings class and set by default
         "Output_NumAziWrite",  # now set by default here therefore optional
     ]
@@ -30,103 +31,68 @@ def Requirements():
     return RequiredParams, OptionalParams
 
 
-# def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
 def WriteOutput(
     settings,
     differential_only=False,
     debug=True,
     **kwargs,
 ):
-    # writes output from multifit in the form of *.fit files required for polydefix.
-    # writes a separate file for each diffraction pattern.
-    # uses the parameters in the json files to do so.
+    """
+    Writes output files in style of multifit *.fit files required for polydefix
+    program of Merkel and Hilairet (2015) http://dx.doi.org/10.1107/S1600576715010390.
+        
+    A separate file is written for each diffraction pattern.
+    
 
+    Parameters
+    ----------
+    settings_class : cpf settings class
+        Settings class used for fitting the data.
+    differential_only : bool, optional
+        Only include the differential part of the strain (cos^2 and sin^2 parts of the Fourier series). 
+        Ignore the offset (cos and sin parts of the Fourier series).
+        The default is False.
+        
+    Returns
+    -------
+    None.
 
+    """
     # make sure settings is a class
     settings_class = get_settings(settings)
 
-    # FitParameters = dir(FitSettings)
-
-    # Parse the required inputs.
-    # base_file_name = FitSettings.datafile_Basename
-
-    # diffraction patterns
-    # diff_files, n_diff_files = IO.file_list(FitParameters, FitSettings)
-    # if "Output_directory" in FitParameters:
-    #     out_dir = FitSettings.Output_directory
-    # else:
-    #     out_dir = "./"
-
-    # def WriteOutput(base_file_name, data_to_write, Num_Azi, wavelength):
-    ## writes *.fit files required by polydefix.
-
-    # force Num_Azi to be a float
-    # Num_Azi = float(Num_Azi)
-    # Num_Azi = FitSettings.Output_NumAziWrite
-    Num_Azi = 90
+    # force all the kwargs that might be needed
     if "Output_NumAziWrite" in settings_class.output_settings:
         Num_Azi = settings_class.output_settings["Output_NumAziWrite"]
+    else:
+        Num_Azi = 90
+    Num_Azi = kwargs.get("Num_Azi", Num_Azi)
 
-    # wavelength = parms_dict["conversion_constant"]
-    # wavelength = settings_class.data_class.calibration["conversion_constant"]
     wavelength = settings_class.data_class.conversion_constant
 
+    # get the fits
+    fits, _ = ReadFits_to_list(settings=settings_class)
+    
     for z in range(settings_class.image_number):
-        # read file to write output for
-        # filename = os.path.splitext(os.path.basename(diff_files[z]))[0]
-        # filename = filename+'.json'
         settings_class.set_subpattern(z, 0)
 
-        filename = make_outfile_name(
-            # diff_files[z],
-            # directory=FitSettings.Output_directory,
-            settings_class.subfit_filename,  # diff_files[z],
-            directory=settings_class.output_directory,  # directory=FitSettings.Output_directory,
-            extension=".json",
-            overwrite=True,
-        )  # overwrite =false to get the file name without incrlemeting it.
-
-        # Read JSON data from file
-        with open(filename) as json_data:
-            data_to_write = json.load(json_data)
-            data_to_write = replace_null_terms(
-                data_to_write, val_to_find=None, replace_with=0
-            )
-
+        # get correct bit of data
+        data_to_write = fits[z]
+        
         # create output file name from passed name
         base = settings_class.subfit_filename
         if base is None:
-            logger.info(
-                " ".join(
-                    map(str, [("No base filename, using input filename instead.")])
-                )
-            )
+            logger.info("No base filename, using input filename instead.")
             base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
-        # if not base:
-        #     logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
-        #     base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
         if differential_only is not False:
             base = base + "_DiffOnly"
 
         out_file = make_outfile_name(
-            # diff_files[z],
-            # directory=FitSettings.Output_directory,
-            base,  # diff_files[z],
-            directory=settings_class.output_directory,  # directory=FitSettings.Output_directory,
+            base,
+            directory=settings_class.output_directory,
             extension=".fit",
             overwrite=True,
         )
-        # path, filename = os.path.split(diff_files[z])
-        # base, ext = os.path.splitext(filename)
-        # if differential_only is not False:
-        #     base = base+'_DiffOnly'
-        # out_file = out_dir + base + '.fit'
-
-        # base, ext = os.path.splitext(os.path.split(diff_files[z])[1])
-        # if not base:
-        #     logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
-        #     base =  os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
-
         logger.info(" ".join(map(str, [("Writing: %s" % out_file)])))
 
         text_file = open(out_file, "w")
@@ -148,16 +114,9 @@ def WriteOutput(
         # FIX ME: this is currently fixed. It should be read from the input constraints.
 
         # number of subpatterns
-        # FIX ME: I dont know how the data will be input here.
-        # num_subpatterns = 2
-
         num_subpatterns = len(data_to_write)
-
         text_file.write("# Number of sub-patterns\n")
         text_file.write("%8i\n" % num_subpatterns)
-
-        # print type(num_subpatterns)
-        # print num_subpatterns
 
         for j in range(num_subpatterns):
             text_file.write("# Sub-patterns        %i\n" % j)

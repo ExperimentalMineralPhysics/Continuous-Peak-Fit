@@ -9,6 +9,7 @@ import re
 import numpy as np
 
 import cpf.series_functions as sf
+from cpf.output_formatters.ReadFits import ReadFits_to_list
 from cpf.IO_functions import make_outfile_name, replace_null_terms
 from  cpf.settings import get_settings
 from cpf.util.logging import get_logger
@@ -48,7 +49,6 @@ def WriteOutput(
 
     # make sure settings is a class
     settings_class = get_settings(settings)
-
     # fill calibration into settings class if it is not here.
     if not settings_class.data_class.calibration:
         if settings_class.calibration_data:
@@ -62,24 +62,16 @@ def WriteOutput(
             debug=debug,
         )
 
-    # FitParameters = dir(FitSettings)
+    # get the fits
+    all_fits, metadata = ReadFits_to_list(settings=settings_class)
+    
+    # force the metadata and Requirements
+    
 
-    # Parse the required inputs.
-    # base_file_name = FitSettings.datafile_Basename
-
-    # get diffration file names and number.
-    # diff_files, n_diff_files = IO.file_list(FitParameters, FitSettings)
-
-    # base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
-    # if not base:
-    #     logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
-    #     base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
-
+    
     base = settings_class.datafile_basename
     if base is None:
-        logger.info(
-            " ".join(map(str, [("No base filename, using input filename instead.")]))
-        )
+        logger.info("No base filename, using input filename instead.")
         base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
     if differential_only is not False:
         base = base + "_DiffOnly"
@@ -169,20 +161,9 @@ def WriteOutput(
             if "hkl" in settings_class.fit_orders[x]["peak"][y]:
                 hkl = str(settings_class.fit_orders[x]["peak"][y]["hkl"])
 
-                # check if the d-spacing fits are NaN or not. if NaN switch off (0) otherwise use (1).
-                # Got first file name
-                # filename = os.path.splitext(os.path.basename(diff_files[0]))[0]
-                # filename = filename+'.json'
-
-                filename = make_outfile_name(
-                    settings_class.datafile_list[0],
-                    directory=settings_class.output_directory,
-                    extension=".json",
-                    overwrite=True,
-                )
-                # Read JSON data from file
-                with open(filename) as json_data:
-                    fit = json.load(json_data)
+                # get fits for here
+                fit = all_fits[0]
+                    
                 # check if the d-spacing fits are NaN or not. if NaN switch off.
                 if np.all(fit[x]["peak"][y]["d-space"]) == None or np.isnan(
                     fit[x]["peak"][y]["d-space"][0]
@@ -398,16 +379,8 @@ def WriteOutput(
     for z in range(settings_class.datafile_number):
         settings_class.set_subpattern(z, 0)
 
-        filename = make_outfile_name(
-            settings_class.subfit_filename,
-            directory=settings_class.output_directory,
-            extension=".json",
-            overwrite=True,  # overwrite = True to get the file name without incrlemeting it.
-        )
-
-        # Read JSON data from file
-        with open(filename) as json_data:
-            fit = json.load(json_data)
+        # get fit for here
+        fit = all_fits[z]
 
         peak = 1
         for x in range(num_subpatterns):

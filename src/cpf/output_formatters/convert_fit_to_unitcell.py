@@ -10,7 +10,7 @@ import re
 from cpf.output_formatters.jcpds import jcpds
 from cpf.settings import get_settings
 from cpf.IO_functions import peak_hkl
-from cpf.output_formatters.ReadFits import ReadFits
+from cpf.output_formatters.ReadFits import ReadFits_to_dataframe
 from cpf.IO_functions import replace_null_terms
 from cpf.IO_functions import make_outfile_name
 from cpf.output_formatters.convert_fit_to_crystallographic import fourier_to_crystallographic, fourier_to_unitcellvolume
@@ -31,10 +31,8 @@ def fits_to_unitcell(
 
     Parameters
     ----------
-    settings_class : cpf.Settings.settings() Class, optional
-        Class containing all the fitting parameters. The default is None.
-    settings_file : *.py file, optional
-        text file containing all the fitting parameters. The default is None.    
+    settings : cpf.Settings.settings() Class, str (filename), Path
+        Class containing all the fitting parameters.
     *args
     
     **kwargs
@@ -66,10 +64,8 @@ def fits_to_unitcell(
     kwargs["includeSeriesValues"] = kwargs.get("includeSeriesValues", True)
     kwargs["includePosition"] = kwargs.get("includePosition", True)
     
-    df = ReadFits(
-            settings_class,
-            *args,
-            **kwargs)
+    # get the fits
+    all_fits, _ = ReadFits_to_list(settings=settings_class)
     
     # read all the data.
     all_cells = []

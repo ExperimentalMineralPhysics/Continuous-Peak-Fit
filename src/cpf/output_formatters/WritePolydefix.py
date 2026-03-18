@@ -10,6 +10,7 @@ import cpf.output_formatters.WriteMultiFit as WriteMultiFit
 from cpf.output_formatters.crystallographic_operations import indicies4to3
 from  cpf.settings import get_settings
 from cpf.IO_functions import make_outfile_name
+from cpf.output_formatters.ReadFits import ReadFits_to_list
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WritePolydefix")
@@ -49,60 +50,47 @@ def WriteOutput(
     debug=False,
     **kwargs,
 ):
-    # writes *.fit files produced by multifit (as input for polydefix)
-    # writes *.exp files required by polydefix.
-    # N.B. this is a different file than that required by polydefix for energy dispersive diffraction.
+    """
+    Writes *.exp files required by polydefix. 
+    Calls WriteMltiFit to create *.fit files needed by polydefix
+    
+    Polydefix: Merkel and Hilairet (2015) http://dx.doi.org/10.1107/S1600576715010390.
+    
+    N.B. this is a different file than that required by polydefix for energy dispersive diffraction.
+    
+    Parameters
+    ----------
+    settings_class : cpf settings class
+        Settings class used for fitting the data.
+    differential_only : bool, optional
+        Only include the differential part of the strain (cos^2 and sin^2 parts of the Fourier series). 
+        Ignore the offset (cos and sin parts of the Fourier series).
+        The default is False.
+        
+    Returns
+    -------
+    None.
 
+    """
     # make sure settings is a class
     settings_class = get_settings(settings)
 
-    # Write fit files
-    # WriteMultiFit.WriteOutput(
-    #     FitSettings, parms_dict, differential_only=differential_only
-    # )
+    # write *.fit files
     WriteMultiFit.WriteOutput(
-        settings_class, differential_only=False, debug=debug
+        settings_class, differential_only=differential_only, debug=debug
     )
 
-    # FitParameters = dir(FitSettings)
-
-    # Parse the required inputs.
-    # base_file_name = FitSettings.datafile_Basename
-
-    # diffraction patterns
-    # diff_files, n_diff_files = IO.file_list(FitParameters, FitSettings)
-
-    # base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
+    # get the fits
+    fits, _ = ReadFits_to_list(settings=settings_class)
+    
     base = settings_class.datafile_basename
     if base is None:
         logger.info(
             " ".join(map(str, [("No base filename, using input filename instead.")]))
         )
         base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
-    # if not base:
-    #     logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
-    #     base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
     if differential_only is not False:
         base = base + "_DiffOnly"
-    # out_file = IO.make_outfile_name(base, directory=FitSettings.Output_directory, extension='.exp', overwrite=True)
-
-    # #Parse the required inputs.
-    # base_file_name = FitSettings.datafile_Basename
-    # diff_files, n_diff_files = FileList(FitParameters, FitSettings)
-    # if 'Output_directory' in FitParameters:
-    #     out_dir = FitSettings.Output_directory
-    # else:
-    #     out_dir = './'
-
-    # # create output file name from passed name
-    # path, filename = os.path.split(base_file_name)
-    # base, ext = os.path.splitext(filename)
-    # if base[-1:] == '_': #if the base file name ends in an '_' remove it.
-    #     base = base[0:-1]
-
-    # if differential_only is not False:
-    #     base = base+'_DiffOnly'
-    # out_file = out_dir + base + '.exp'
 
     # get how many files to write -- one for each phase or set of elastic properties
     if "Output_ElasticProperties" in settings_class.output_settings:
@@ -126,23 +114,7 @@ def WriteOutput(
     else:
         Files = 1
 
-    # if "Output_ElasticProperties" in FitParameters:
-    #     if isinstance(FitSettings.Output_ElasticProperties, list):
-    #         Files = len(FitSettings.Output_ElasticProperties)
-    #     else:
-    #         Files = 1
-    #         FitSettings.Output_ElasticProperties = [
-    #             FitSettings.Output_ElasticProperties
-    #         ]
-    # elif "phase" in FitParameters:
-    #     if isinstance(FitSettings.phase, list):
-    #         Files = len(FitSettings.phase)
-    #     else:
-    #         Files = 1
-    #         FitSettings.phase = [FitSettings.phase]
-    # else:
-    #     Files = 1
-
+    # write all the files
     for i in range(Files):
         fnam = base
         if Files > 1:
@@ -182,7 +154,7 @@ def WriteOutput(
         text_file.write("# Experiment analysis file. to be used with Polydefix\n")
         text_file.write("# For more information: http://merkel.zoneo.net/Polydefix/\n")
         text_file.write(
-            "# File Created by WritePolydefixED function in ContinuousPeakFit\n"
+            "# File Created by WritePolydefix function in ContinuousPeakFit\n"
         )
         text_file.write("# For more information: http://www.github.com/me/something\n")
 
@@ -269,12 +241,9 @@ def WriteOutput(
                         overwrite=True,
                     )  # overwrite =false to get the file name without incrlemeting it.
 
-                    # Read JSON data from file
-                    with open(filename) as json_data:
-                        fit = json.load(json_data)
                     # check if the d-spacing fits are NaN or not. if NaN switch off.
-                    if type(fit[x]["peak"][y]["d-space"][0]) == type(None) or np.isnan(
-                        fit[x]["peak"][y]["d-space"][0]
+                    if type(fits[i][x]["peak"][y]["d-space"][0]) == type(None) or np.isnan(
+                        fits[i][x]["peak"][y]["d-space"][0]
                     ):
                         use = 0
                     else:

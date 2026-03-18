@@ -11,7 +11,7 @@ import pandas as pd
 
 import cpf.peak_functions as pf
 from  cpf.settings import get_settings
-from cpf.output_formatters.ReadFits import ReadFits
+from cpf.output_formatters.ReadFits import ReadFits_to_dataframe
 from cpf.IO_functions import make_outfile_name
 from cpf.util.logging import get_logger
 
@@ -76,7 +76,7 @@ def WriteOutput(
     ordering_of_output = "peak"
 
     # read the data.
-    df = ReadFits(settings=settings_class, fitStats=fitStats)
+    df = ReadFits_to_dataframe(settings=settings_class, fitStats=fitStats)
     headers = list(df.columns.values)
 
     # make filename for output
@@ -98,16 +98,16 @@ def WriteOutput(
 
     ## format dateframe for writing to file neatly.
     # make strings in DateFile and Peak columns all the same length
-    len_datafile = np.max(df["DataFile"].str.len())
-    len_peaks = np.max(df["Peak"].str.len())
-    df_tmp = df["DataFile"].str.pad(
+    len_datafile = np.max(df["datafile"].str.len())
+    len_peaks = np.max(df["peak"].str.len())
+    df_tmp = df["datafile"].str.pad(
         np.max([len_datafile, col_width]), side="left", fillchar=" "
     )
-    df["DataFile"] = df_tmp
-    df_tmp = df["Peak"].str.pad(
+    df["datafile"] = df_tmp
+    df_tmp = df["peak"].str.pad(
         np.max([len_peaks, col_width]), side="left", fillchar=" "
     )
-    df["Peak"] = df_tmp
+    df["peak"] = df_tmp
 
     # rename the columns so that the headers are the same width as the columns
     class NewClass(object):
@@ -115,13 +115,13 @@ def WriteOutput(
 
     columns = NewClass()
     for i in range(len(headers)):
-        if headers[i] == "DataFile":
+        if headers[i] == "datafile":
             setattr(
                 columns,
                 headers[i],
                 headers[i].rjust(np.max([len_datafile, col_width])),
             )
-        elif headers[i] == "Peak":
+        elif headers[i] == "peak":
             setattr(
                 columns,
                 headers[i],

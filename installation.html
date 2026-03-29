@@ -87,6 +87,41 @@ Note that many of these packages are interdependent so not all of them will have
 </div></blockquote>
 <p>For the import to complete, additional packages are needed are (see above). The import will fail if all the packages are not present and it will tell you which ones are missing.</p>
 </section>
+<section id="installation-with-virtualenv">
+<h2>Installation with virtualenv<a class="headerlink" href="#installation-with-virtualenv" title="Link to this heading">¶</a></h2>
+<p>In your current environment run <code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">virtualenv</span></code>.</p>
+<p>Pick/create a directory in which you will store your new Python environment. I’d typically recommend something memorable and simply like <code class="code docutils literal notranslate"><span class="pre">~/envs</span></code>.</p>
+<p>Run <code class="code docutils literal notranslate"><span class="pre">virtualenv</span> <span class="pre">~/envs/cpf</span></code> (or whatever folder name you want your new Python environment to be known by). If <code class="code docutils literal notranslate"><span class="pre">virtualenv</span></code> by itself fails, you might need to run <code class="code docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">virtualenv</span> <span class="pre">~/envs/cpf</span></code> instead.</p>
+<p>Activate it by running <code class="code docutils literal notranslate"><span class="pre">source</span> <span class="pre">~/envs/cpf/bin/activate</span></code></p>
+<p>Now change dir to where your CPF package is saved (cd /path/to/cpf/repo)</p>
+<p>Install an editable version of the environment using <code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.</span></code>. This will ensure the imports in your package are properly mapped internally, and that any edits to the repo get reflected when you run the environment.</p>
+</section>
+<section id="installation-with-conda">
+<h2>Installation with conda<a class="headerlink" href="#installation-with-conda" title="Link to this heading">¶</a></h2>
+<p>[This assumes that there is a python envoriment installed on the machine. If there is not then …]</p>
+<p>Step 1: Make a new python enviroment:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">--</span><span class="n">name</span> <span class="o">*</span><span class="n">cpf</span><span class="o">*</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>where <em>cpf</em> is the name of the new enviroment.</p>
+<p>Step 2: Activate the enviroment</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">activate</span> <span class="o">*</span><span class="n">cpf</span><span class="o">*</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>Step 3: Install cpf.</p>
+<p>Either in a local directory:</p>
+<p>source
+or install in enviroment’s default location:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">install</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
 </section>
 
 
@@ -106,6 +141,8 @@ Note that many of these packages are interdependent so not all of them will have
 <li class="toctree-l2"><a class="reference internal" href="#prerequisits">Prerequisits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#download">Download</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-with-virtualenv">Installation with virtualenv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-with-conda">Installation with conda</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="running%20cpf.html"><em>Continuous peak fit</em>, via the command line</a></li>

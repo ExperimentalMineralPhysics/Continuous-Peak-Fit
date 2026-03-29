@@ -1,0 +1,175 @@
+__all__ = ["fits_to_unitcells"]
+
+import json
+import pandas as pd
+import numpy as np
+import glob
+import re
+# from uncertainties import ufloat
+
+from cpf.output_formatters.jcpds import jcpds
+from cpf.settings import get_settings
+from cpf.IO_functions import peak_hkl
+from cpf.output_formatters.ReadFits import ReadFits
+from cpf.IO_functions import replace_null_terms
+from cpf.IO_functions import make_outfile_name
+from cpf.output_formatters.convert_fit_to_crystallographic import fourier_to_crystallographic, fourier_to_unitcellvolume
+from cpf.util.logging import get_logger
+
+
+
+
+def fits_to_unitcell(
+        settings,
+        *args,
+        **kwargs
+        ):
+    
+    """
+    Processes all fits and returns dataframe of unit parameters calculated from 
+    values in fit (json) files. 
+
+    Parameters
+    ----------
+    settings_class : cpf.Settings.settings() Class, optional
+        Class containing all the fitting parameters. The default is None.
+    settings_file : *.py file, optional
+        text file containing all the fitting parameters. The default is None.    
+    *args
+    
+    **kwargs
+    
+    Raises
+    ------
+    ValueError
+        Raised if nether settings_class or settings_file is present.
+
+    Returns
+    -------
+    df : Panda data frame
+        Data frame contiaing all the fits made when calling the settings_class/file.
+
+    """
+    
+    # make sure settings is a class
+    settings_class = get_settings(settings)
+        
+    # force all the kwargs that might be needed
+    kwargs.pop("SampleGeometry", "3d")
+    kwargs.pop("SampleDeformation", "compression")   
+    
+    SampleGeometry = kwargs.get("SampleGeometry", "3d")
+    SampleDeformation = kwargs.get("SampleDeformation", "compression")
+    
+    
+    # set the kwargs as needed.
+    kwargs["includeSeriesValues"] = kwargs.get("includeSeriesValues", True)
+    kwargs["includePosition"] = kwargs.get("includePosition", True)
+    
+    df = ReadFits(
+            settings_class,
+            *args,
+            **kwargs)
+    
+    # read all the data.
+    all_cells = []
+    
+    for z in range(settings_class.image_number):
+        settings_class.set_subpattern(z, 0)
+    
+        if settings_class.file_label:
+            additional_text = settings_class.file_label
+        else:
+            additional_text = None
+    
+        filename = make_outfile_name(
+            settings_class.subfit_filename,  # diff_files[z],
+            directory=settings_class.output_directory,  # directory=FitSettings.Output_directory,
+            extension=".json",
+            additional_text=additional_text,
+            overwrite=True,
+        )  # overwrite =false to get the file name without incrlemeting it.
+    
+        # Read JSON data from file
+        with open(filename) as json_data:
+            fits = json.load(json_data)
+            
+            # get converted values.
+            for i in range(len(fits)):
+                for j in range(len(fits[i]["peak"])):
+                    crystallographic_values = fourier_to_crystallographic(
+                        fits,
+                        SampleGeometry=SampleGeometry,
+                        SampleDeformation=SampleDeformation,
+                        subpattern=i,
+                        peak=j,
+                    )
+                    fits[i]["peak"][j]["crystallographic_values"] = crystallographic_values
+                    
+            # stash names for output
+            cells_tmp = {}
+            cells_tmp["num"] = z
+            cells_tmp["DataFile"] = make_outfile_name(
+                settings_class.subfit_filename,
+                directory="",
+                extension="",
+                overwrite=True,
+            )
+                        
+            # get or guess phase
+            if "phase" in settings_class.output_settings:
+                phase = settings_class.output_settings["phase"]
+            else:
+                #list all phases in fits
+                phases = []
+                for i in range(len(fits)):
+                    for j in range(len(fits[i]["peak"])):
+                        if "phase" in fits[i]["peak"][j]:
+                            phases.append(fits[i]["peak"][j]["phase"])
+                phase = np.unique(phases)
+                
+            # get or guess jcpds file
+            if "jcpds" in settings_class.output_settings:
+                jcpds = settings_class.output_settings["jcpds"]
+            else:
+                jcpds = []
+                for i in range(len(phase)):
+                    if glob.glob(f"*{phase[i]}*.jcpds"):
+                        if len(glob.glob(f"*{phase[i]}*.jcpds")) != 1:
+                            raise ValueError("There is more than 1 jcpds file")
+                        jcpds.append(glob.glob(f"*{phase[i]}*.jcpds")[0])
+                    elif glob.glob(f"*{phase[i]}*.cif"):
+                        if len(glob.glob(f"*{phase[i]}*.cif")) != 1:
+                            raise ValueError("There is more than 1 cif file")
+                        jcpds.append(glob.glob(f"*{phase[i]}*.cif")[0])
+                if len(jcpds) == 0:
+                    raise ValueError("There is no jcpds or cif file recognised")
+                elif len(phase) != len(jcpds):
+                    raise ValueError("The phase and jcpds files do not match")
+                    
+            # calculate unit cell properties and return them
+            for i in range (len(phase)):
+                unitcells = fourier_to_unitcellvolume(
+                    fits,
+                    # SampleGeometry=SampleGeometry,
+                    # SampleDeformation=SampleDeformation,
+                    phase = phase[i],
+                    jcpds_file = jcpds[i],
+                    Pressure=False,
+                    **kwargs
+                )
+                
+                # label return with phase name and add to fits                    
+                entries = list(unitcells)
+                for j in range(len(unitcells)):
+                    unitcells[re.sub(entries[j], phase[i]+" "+entries[j], entries[j])] = unitcells.pop(entries[j])
+                    
+                cells_tmp.update(unitcells)
+                    
+            all_cells.append(cells_tmp)
+            
+    # make data frame using headers - so columns are in sensible order.
+    df = pd.DataFrame(all_cells)
+    
+    return df
+              

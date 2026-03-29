@@ -52,6 +52,7 @@ import os
 import pickle
 import re
 import sys
+from pathlib import Path
 from copy import copy, deepcopy
 
 import fabio
@@ -67,6 +68,7 @@ from PIL import Image
 import cpf.h5_functions as h5_functions
 from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
+from cpf.input_types._metadata_common import _metadata_common
 from cpf.input_types._Masks import _masks
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
 from cpf.util.logging import get_logger
@@ -136,8 +138,8 @@ class XYDetector:
         # self.dspace = None
         self.x = None
         self.y = None
-        self.azm_start = None
-        self.azm_end = None
+        self.azm_start = np.inf
+        self.azm_end = -np.inf
         self.tth_start = None
         self.tth_end = None
         
@@ -156,6 +158,9 @@ class XYDetector:
         self.azm_blocks = 100
             
         self.reduce_by = None
+
+        self._default_metadata_labels = {"time_label": "FILE_CREATION", # file creation time.
+                                  'exposure_label': None}
         
         self.calibration = None
         self.conversion_constant = None
@@ -166,11 +171,12 @@ class XYDetector:
         # self.end   = np.inf
 
         if settings_class:
-            self.get_calibration(settings=settings_class)
-        if self.calibration:
-            self.detector = self.get_detector(settings=settings_class)
+            if settings_class.calibration_parameters != None:
+                self.get_calibration(settings=settings_class)
+            if self.calibration:
+                self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True):
+    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True, as_masked=False):
         """
         Makes an independent copy of a XYDetector Instance.
 
@@ -235,6 +241,20 @@ class XYDetector:
             if self.z is not None:
                 new.z = deepcopy(self.z[local_mask])
 
+        if as_masked == False and ma.isMaskedArray(new.intensity):
+            # return flat arrays.
+            new.intensity = new.intensity.compressed()
+            new.tth = new.tth.compressed()
+            new.azm = new.azm.compressed()
+            if "dspace" in dir(new):
+                new.dspace = new.dspace.compressed()
+            if "x" in dir(new) and new.x is not None:
+                new.x = new.x.compressed()
+            if "y" in dir(new) and new.y is not None:
+                new.y = new.y.compressed()
+            if "z" in dir(new) and new.z is not None:
+                new.z = new.z.compressed()
+
         return new
 
     def get_calibration(self, file_name=None, settings=None):
@@ -287,7 +307,8 @@ class XYDetector:
         if "conversion_constant" in self.calibration:
             self.conversion_constant = self.calibration["conversion_constant"]
         else:
-            self.conversion_constant = 1
+            self.conversion_constant = False
+
         # self.azm_start = self.calibration["y_start"]
         # self.azm_end = self.calibration["y_end"]
 
@@ -301,7 +322,7 @@ class XYDetector:
 
         if self.calibration == None:
             self.get_calibration(
-                settings=settings, file_name=calibration_file, debug=debug
+                settings=settings, file_name=calibration_file, #, debug=debug
             )
 
         if diffraction_data is None and settings is not None:
@@ -424,6 +445,10 @@ class XYDetector:
         im = filters.gaussian(im, sigma)
         """
 
+        #add metadata to instance.
+        #done here so only need to open file once.
+        self._set_metadata(image_name, settings=settings)
+        
         # apply mask to the intensity array
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im)
@@ -493,6 +518,11 @@ class XYDetector:
 
         if settings.reduce_by is not None:
             self.reduce_by = settings.reduce_by
+        
+        if settings.metadata_labels is not None:
+            self.metadata_labels = settings.metadata_labels
+        else:
+            self.metadata_labels = self._default_metadata_labels
             
         if self.detector == None:
             self.get_detector(settings=settings)
@@ -510,7 +540,20 @@ class XYDetector:
         if self.reduce_by is not None:
             self.intensity = self._reduce_array(self.intensity)
             self.tth = self._reduce_array(self.tth)
-            self.azm = self._reduce_array(self.azm)
+            
+            if "original_mask" in dir(self):
+                self.original_mask= self._reduce_array(self.original_mask)
+            
+            if (re.findall("azimuth", self.calibration["y_label"].lower())
+                or 
+                re.findall("theta", self.calibration["x_label"].lower())
+                or
+                self.azm_end == self.azm_start + 360):
+                # the data would appear to be diffraction data. 
+                self.azm = self._reduce_array(self.azm, polar=True)
+            else:
+                # data is some other sort of data.
+                self.azm = self._reduce_array(self.azm, polar=False)
 
         # get new azm_blocks from detector.
         self.azm_blocks = self.detector.azm_blocks
@@ -524,7 +567,54 @@ class XYDetector:
         self.DispersionUnits = self.detector.calibration["x_unit"]
         self.Azimuthlabel = self.detector.calibration["y_label"]
         self.AzimuthUnits = self.detector.calibration["y_unit"]
+     
+
+    def _set_metadata(self, image_obj, settings=None):
+        """
+        Gets all metadata as dictionary from image file.
         
+        If the cpf settings class is provided and has the method 'metadata_read'
+        then this method is used to override the internal default methods and is 
+        used to create 'metadata_dictionary' which is parsed.
+        In this case the settings class attribute 'metadata_labels' is still needed 
+        to get required parts of the metadata. 
+
+        For XY functions the default is a PIL.Image.open(image_obj).tag_v2.names() dictionary 
+        
+        Parameters
+        ----------
+        image_obj : Path, string
+            file path for the image to be opened.
+        settings : cpf settings class, optional
+            If the settings class has method 'metadata_read' this overrides the 
+            internal methods and is used to get the metadata. 
+            The default is None.
+
+        Returns
+        -------
+        metadata_dictionary
+            dictionary of image metadata. 
+        """
+        # Defined as function to allow get_metadata to call universal image method
+        if settings and "metadata_read_func" in settings.__dict__:
+            metadata_dictionary = settings.metadata_read_func(settings, image_obj=image_obj)
+        elif isinstance(image_obj, list):
+            # then it is a h5 type file
+            raise ValueError("This is the wrong method to get h5 type metadata.")
+        else:
+            try:
+                #try using PIL but who knows.
+                metadata_dictionary = Image.open(image_obj).tag_v2.names()
+            except:
+                # no idea what non-image metadata will look like so pass.
+                metadata_dictionary = {}
+        # add the file creation and modifications time
+        if isinstance(image_obj, str) or isinstance(image_obj, Path):
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
+        else:
+            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj.filename)
+        self.metadata = metadata_dictionary
+
     @staticmethod
     def detector_check(calibration_data, settings=None):
         """
@@ -596,7 +686,15 @@ class XYDetector:
     GetDataType = _AngleDispersive_common.GetDataType
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     _reduce_array = _AngleDispersive_common._reduce_array
-
+    get_metadata = _metadata_common.get_metadata
+    _get_file_created_modified = _metadata_common._get_file_created_modified
+    """
+    FIXME: add more flxibility to conversion    
+    XYFunctions does not have to be X-ray diffraction but it could be. To pass a
+    empty conversion throgh the function set DataClass.conversion_factor=False.
+    But other conversions might be necessary in fiture and so the function may 
+    need further generalisationby by accepting a lambda function. 
+    """
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask
@@ -612,6 +710,8 @@ class XYDetector:
     plot_collected = _Plot_AngleDispersive.plot_collected
     plot_calibrated = _Plot_AngleDispersive.plot_calibrated
     plot_integrated = _Plot_AngleDispersive.plot_integrated
+    what_plot_type = _Plot_AngleDispersive.what_plot_type
+    
     # this function is added because it requires access to self:
     dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks
 

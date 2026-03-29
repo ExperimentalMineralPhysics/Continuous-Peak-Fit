@@ -52,7 +52,7 @@ def order_set_peaks(orders, peeks, bg_order):
         # FIX ME: should this generate an error?
         if "profile_fixed" in orders["peak"][y]:
             if (
-                not sf.fourier_order(orders["peak"][y]["profile_fixed"])
+                not sf.get_order_from_params(orders["peak"][y]["profile_fixed"])
                 == orders["peak"][y]["profile"]
             ):
                 logger.warning(
@@ -68,7 +68,7 @@ def order_set_peaks(orders, peeks, bg_order):
                         )
                     )
                 )
-                orders["peak"][y]["profile"] = sf.fourier_order(
+                orders["peak"][y]["profile"] = sf.get_order_from_params(
                     orders["peak"][y]["profile_fixed"]
                 )
             # make sure the fixed profile is a list
@@ -93,9 +93,10 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
     for y in range(peeks):
         # loop over parameters
         for param in choice_list:
-            coeff_type = sf.params_get_type(previous_params, param, peak=y)
-            if coeff_type != 5:  # if parameters are not independent
-                if sc.BiggestValue(orders["peak"][y][param]) > sf.fourier_order(
+            coeff_type = sf.get_params_type(previous_params, param, peak=y)
+            coeff_type = sf.coefficient_type_as_number(coeff_type)
+            if coeff_type != sf.coefficient_types()["independent"]:  # if parameters are not independent
+                if sc.BiggestValue(orders["peak"][y][param]) > sf.get_order_from_params(
                     previous_params["peak"][y][param]
                 ):
                     change_by = (
@@ -106,7 +107,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                     previous_params["peak"][y][param] = (
                         previous_params["background"][y] + [0] * change_by
                     )
-                elif sc.BiggestValue(orders["peak"][y][param]) < sf.fourier_order(
+                elif sc.BiggestValue(orders["peak"][y][param]) < sf.get_order_from_params(
                     previous_params["peak"][y][param]
                 ):
                     change_by = (
@@ -124,7 +125,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
 
     # loop for background orders/size
     if (
-        sf.params_get_type(previous_params, "background") != 5
+        sf.get_params_type(previous_params, "background") != sf.coefficient_types()["independent"]
     ):  # if parameters are not independent
         for y in range(
             np.max([len(orders["background"]), len(previous_params["background"])])
@@ -135,7 +136,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                 and len(orders["background"]) - 1 >= y
             ):
                 # if present in both arrays make sure it is the right size.
-                if np.max(orders["background"][y]) > sf.fourier_order(
+                if np.max(orders["background"][y]) > sf.get_order_from_params(
                     previous_params["background"][y]
                 ):
                     change_by = (
@@ -146,7 +147,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                     previous_params["background"][y] = (
                         previous_params["background"][y] + [0] * change_by
                     )
-                elif np.max(orders["background"][y]) < sf.fourier_order(
+                elif np.max(orders["background"][y]) < sf.get_order_from_params(
                     previous_params["background"][y]
                 ):
                     change_by = np.size(previous_params["background"][y]) - (
@@ -194,18 +195,20 @@ def check_num_azimuths(peeks, azimu, orders):
         # loop over parameters
         for param in choice_list:
             coeff_type = sf.coefficient_type_as_number(
-                sf.params_get_type(orders, param, peak=y)
+                sf.get_params_type(orders, param, peak=y)
             )
-            if coeff_type != 5:  # if parameters are not independent
+            if coeff_type != sf.coefficient_types(full=True)["independent"]["num"]:  
+                # if parameters are not independent
                 max_coeff = np.max(
                     [max_coeff, sf.get_number_coeff(orders, param, peak=y)]
                 )
     param = "background"
     for y in range(np.max([len(orders["background"])])):
         coeff_type = sf.coefficient_type_as_number(
-            sf.params_get_type(orders, param, peak=y)
+            sf.get_params_type(orders, param, peak=y)
         )
-        if coeff_type != 5:  # if parameters are not independent
+        if coeff_type != sf.coefficient_types(full=True)["independent"]["num"]:
+            # if parameters are not independent
             max_coeff = np.max([max_coeff, sf.get_number_coeff(orders, "background")])
     if max_coeff > len(np.unique(azimu)):
         err_str = (
@@ -290,9 +293,9 @@ def fit_sub_pattern(
     if previous_params:
         # check if the previous fit was 'good' i.e. constrains no 'null' values.
         # N.B. null values in json file are read in as None
-        clean = any_terms_null(previous_params, val_to_find=None)
-        clean = any_errors_huge(previous_params, large_errors=large_errors, clean=clean)
-        if clean == 0:
+        any_bad_vals = any_terms_null(previous_params, val_to_find=None)
+        any_bad_vals = any_errors_huge(previous_params, large_errors=large_errors, any_huge=any_bad_vals)
+        if any_bad_vals == True:
             # the previous fit has problems so discard it
             logger.moreinfo(
                 " ".join(
@@ -341,11 +344,12 @@ def fit_sub_pattern(
             )
             previous_params = None
 
-    if previous_params:
-        # initiate values for while loop.
-        step = [5]
-    else:
+    # initiate counter for while loop.
+    if previous_params is None or previous_params == [] or previous_params is False:
+        previous_params = None # make sure expected value for later
         step = [0]
+    else:
+        step = [5]
 
     if previous_params and settings_as_class.subfit_orders:
         # If we have both, order takes precedence so update previous_params to match
@@ -577,7 +581,7 @@ def fit_sub_pattern(
                             settings_as_class.subfit_orders,
                             master_params,
                             start_end=[data_as_class.azm_start, data_as_class.azm_end],
-                            fit_method=None,
+                            fit_method=fit_method,
                             weights=None,
                             max_n_fev=default_max_f_eval,
                         )
@@ -655,7 +659,7 @@ def fit_sub_pattern(
                                         data_as_class.azm_start,
                                         data_as_class.azm_end,
                                     ],
-                                    fit_method=None,
+                                    fit_method=fit_method,
                                     weights=None,
                                     max_n_fev=refine_max_f_eval,
                                 )
@@ -709,18 +713,7 @@ def fit_sub_pattern(
 
                 if np.max(ave_intensity) <= min_peak_intensity:
                     # then there is no determinable peak in the data
-                    logger.moreinfo(
-                        " ".join(
-                            map(
-                                str,
-                                [
-                                    (
-                                        "Not sufficient intensity in the chunked peaks to proceed with fitting."
-                                    )
-                                ],
-                            )
-                        )
-                    )
+                    logger.moreinfo("Not sufficient intensity in the chunked peaks to proceed with fitting.")
                     # set step to -101 so that it is still negative at the end
                     step.append(-101)  # get to the end and void the fit
                     fout = master_params
@@ -793,7 +786,7 @@ def fit_sub_pattern(
                 settings_as_class.subfit_orders,
                 master_params,
                 start_end=[data_as_class.azm_start, data_as_class.azm_end],
-                fit_method=None,
+                fit_method=fit_method,
                 weights=None,
                 max_n_fev=max_n_f_eval,
             )
@@ -828,7 +821,7 @@ def fit_sub_pattern(
             elif (
                 fout.success == 1
                 and previous_params != None
-                and any_terms_null(master_params, val_to_find=None) == 0
+                and any_terms_null(master_params, val_to_find=None) == True
             ):
                 logger.moreinfo(
                     " ".join(
@@ -872,7 +865,11 @@ def fit_sub_pattern(
                 err_str = "The value of step here should not be achievable. Oops. \n The data is not fitting. Discard."
                 logger.critical(" ".join(map(str, [(err_str)])))
                 step.append(step[-1] - 200)
-
+        
+        if 0: #report_status:
+            print(f"    status: step = {step}")  
+            print(f"        time elaspsed = {time.time() - t_start}")
+        
         if step[-1] < 0:
             # the fit is void and we need to exit.
             # make sure all the height values are nan so that we dont propagate rubbish
@@ -982,6 +979,33 @@ def fit_sub_pattern(
                 }
             }
         )
+        new_params.update({'data_ranges':{
+                'data':{
+                    "max": np.max(data_as_class.intensity),
+                    "min": np.min(data_as_class.intensity),
+                    "pt1percentile": np.nanpercentile(data_as_class.intensity, 0.1, method='closest_observation'),
+                    "1percentile": np.nanpercentile(data_as_class.intensity, 1, method='closest_observation'),
+                    "99percentile": np.nanpercentile(data_as_class.intensity, 99, method='closest_observation'),
+                    "99pt9percentile": np.nanpercentile(data_as_class.intensity, 99.9, method='closest_observation'),
+                },
+                'model':{
+                    "max": np.max(fout.best_fit),
+                    "min": np.min(fout.best_fit),
+                    "pt1percentile": np.nanpercentile(fout.best_fit, 0.1, method='closest_observation'),
+                    "1percentile": np.nanpercentile(fout.best_fit, 1, method='closest_observation'),
+                    "99percentile": np.nanpercentile(fout.best_fit, 99, method='closest_observation'),
+                    "99pt9percentile": np.nanpercentile(fout.best_fit, 99.9, method='closest_observation'),
+                },
+                'residuals':{
+                    "max": np.max(data_as_class.intensity - fout.best_fit),
+                    "min": np.min(data_as_class.intensity - fout.best_fit),
+                    "pt1percentile": np.nanpercentile(data_as_class.intensity - fout.best_fit, 0.1, method='closest_observation'),
+                    "1percentile": np.nanpercentile(data_as_class.intensity - fout.best_fit, 1, method='closest_observation'),
+                    "99percentile": np.nanpercentile(data_as_class.intensity - fout.best_fit, 99, method='closest_observation'),
+                    "99pt9percentile": np.nanpercentile(data_as_class.intensity - fout.best_fit, 99.9, method='closest_observation'),
+                }
+                }
+            })
     else:
         fit_stats = {
             "time-elapsed": t_elapsed,
@@ -1009,12 +1033,43 @@ def fit_sub_pattern(
         )
         new_params.update({"ModelProperties": {"max": np.nan, "min": np.nan}})
         new_params.update({"ResidualProperties": {"max": np.nan, "min": np.nan}})
+        new_params.update({'data_ranges':{
+                'data':{
+                    "max": np.max(data_as_class.intensity),
+                    "min": np.min(data_as_class.intensity),
+                    "pt1percentile": np.nanpercentile(data_as_class.intensity, 0.1),
+                    "1percentile": np.nanpercentile(data_as_class.intensity, 1),
+                    "99percentile": np.nanpercentile(data_as_class.intensity, 99),
+                    "99pt9percentile": np.nanpercentile(data_as_class.intensity, 99.9),
+                },
+                'model':{
+                    "max": np.nan,
+                    "min": np.nan,
+                    "pt1percentile": np.nan,
+                    "1percentile": np.nan,
+                    "99percentile": np.nan,
+                    "99pt9percentile": np.nan,
+                },
+                'residuals':{
+                    "max": np.nan,
+                    "min": np.nan,
+                    "pt1percentile": np.nan,
+                    "1percentile": np.nan,
+                    "99percentile": np.nan,
+                    "99pt9percentile": np.nan,
+                }
+                }
+            })
+
 
     new_params.update({"FitProperties": fit_stats})
 
     # add peak names to new_params
     new_params.update({"PeakLabel": peak_string(settings_as_class.subfit_orders)})
-
+    #add notes if they are present.
+    if "note" in settings_as_class.subfit_orders:
+            new_params.update({"note": settings_as_class.subfit_orders["note"]})
+            
     # Plot results to check
     view = 0
     if (save_fit == 1 or view == 1 or logger.is_below_level("EFFUSIVE")) and step[
@@ -1081,8 +1136,9 @@ def fit_sub_pattern(
             #     save_modelresult(out, filename)
             # else:
             #     logger.info(" ".join(map(str, [("File does not exist!")])))
-
-    return [new_params, fout]
+    
+    # return [new_params, fout]
+    return new_params
 
 
 def plot_FitAndModel(
@@ -1094,7 +1150,7 @@ def plot_FitAndModel(
     figure=None,
     debug=False,
     orientation="vertical",
-    plot_type="scatter",
+    plot_type="default",
     plot_ColourRange=None,
 ):
     """
@@ -1202,7 +1258,7 @@ def plot_FitAndModel(
             )  # np.zeros(azi_plot.shape))
 
     # plot the data and the fit
-    data_as_class.plot_fitted(
+    figure = data_as_class.plot_fitted(
         fig_plot=figure,
         model=full_fit_intens,
         fit_centroid=[azi_plot, fit_centroid],

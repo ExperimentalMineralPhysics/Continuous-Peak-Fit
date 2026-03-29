@@ -3,12 +3,18 @@ __all__ = ["Requirements", "WriteOutput"]
 
 import os
 from copy import deepcopy
-
+import proglog
 import matplotlib.pyplot as plt
 import numpy as np
 from moviepy.video.VideoClip import VideoClip
+# from typing import Literal, Optional
+from moviepy import ImageClip
+# from moviepy import concatenate
+from moviepy import VideoFileClip, concatenate_videoclips
+from textwrap import wrap
 
 # import cpf.IO_functions as IO
+from  cpf.settings import get_settings
 from cpf.IO_functions import make_outfile_name, title_file_names
 from cpf.util.logging import get_logger
 from cpf.util.output_formatters import mplfig_to_npimage
@@ -22,12 +28,12 @@ def Requirements():
     RequiredParams = [
         #'apparently none!
     ]
-    OptionalParams = ["fps", "file_types"]
+    OptionalParams = ["fps", "file_types", "plot_style"]
 
     return RequiredParams, OptionalParams
 
 
-def WriteOutput(settings_class=None, setting_file=None, debug=False, **kwargs):
+def WriteOutput(settings, debug=False, **kwargs):
     """
     Writes a *.mov file of raw data.
 
@@ -35,8 +41,10 @@ def WriteOutput(settings_class=None, setting_file=None, debug=False, **kwargs):
 
     Parameters
     ----------
-    FitSettings : TYPE
-        DESCRIPTION.
+    settings : [str | Path | dict | Settings()]
+        Class containing all variables and options needed for the fitting, or 
+        dictionary of all the settings or 
+        string or path to a file with the settings in.
     parms_dict : TYPE
         DESCRIPTION.
     debug : TYPE, optional
@@ -52,39 +60,37 @@ def WriteOutput(settings_class=None, setting_file=None, debug=False, **kwargs):
 
     # FIXME: make so that it can iterate over each range and make a movie of each selected range.
 
-    if not "file_types" in kwargs:
-        file_types = ".mp4"
+    # make sure settings is a class
+    settings_class = get_settings(settings)
+
+    file_types = kwargs.pop("file_types", ".mp4")
+    fps = kwargs.pop("fps", 10.)
+    plot_type = kwargs.pop("plot_type", "calibrated")
     # make sure file_types is a list.
     if isinstance(file_types, str):
         file_types = [file_types]
-    if not "fps" in kwargs:
-        fps = 10
-    elif not isinstance(fps, float):
+    if not isinstance(fps, float) and not isinstance(fps, int):
         raise ValueError("The frames per second needs to be a number.")
-
-    if settings_class is None and setting_file is None:
-        raise ValueError(
-            "Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
-
-        settings_class = initiate(setting_file)
+    if plot_type != "collected" and plot_type != "calibrated":
+        raise ValueError("plot_type must be 'collected' or 'calibrated'.")
+        
+    # if not "file_types" in kwargs:
+    #     file_types = ".mp4"
+    # # make sure file_types is a list.
+    # if isinstance(file_types, str):
+    #     file_types = [file_types]
+    # if not "fps" in kwargs:
+    #     fps = 10
+    # elif not isinstance(fps, float):
+    #     raise ValueError("The frames per second needs to be a number.")
 
     # make the base file name
-    if setting_file:
-        base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
-    else:
+    if settings_class:
         base = settings_class.datafile_basename
+    else:
+        base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
     if base is None or len(base) == 0:
-        logger.info(
-            " ".join(
-                map(
-                    str,
-                    [("No base filename, trying ending without extension instead.")],
-                )
-            )
-        )
+        logger.info("No base filename, trying ending without extension instead.")
         base = settings_class.datafile_ending
     if base is None:
         logger.info(
@@ -108,7 +114,10 @@ def WriteOutput(settings_class=None, setting_file=None, debug=False, **kwargs):
     # to plot maximum inentsity set prctl=100
     prctl = 99.9
 
-    for z in range(settings_class.image_number):
+    progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
+    print("Reading images to get intensity range")
+    for z in progress.iter_bar(image=range(settings_class.image_number)):
+    # for z in range(settings_class.image_number):
         # read data file
         data_class.import_image(settings_class.image_list[z])
         Ipctl.append(
@@ -129,18 +138,8 @@ def WriteOutput(settings_class=None, setting_file=None, debug=False, **kwargs):
 
     y = list(range(settings_class.image_number))
 
-    # settings_class.set_subpattern(0, z)
-
-    # addd = IO.peak_string(settings_class.subfit_orders, fname=True)
-    # if settings_class.file_label != None:
-    #     addd = addd + settings_class.file_label
-    out_file = make_outfile_name(
-        base,
-        directory=settings_class.output_directory,
-        extension=file_types[0],
-        overwrite=True,
-    )
-    logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
+    fig = plt.figure(figsize=(6, 8))
+    ax = fig.add_subplot(1, 1, 1)
 
     # this calls all the iamges and adds them as frames to the video.
     # edited after :https://zulko.github.io/moviepy/getting_started/working_with_matplotlib.html?highlight=matplotlib
@@ -162,18 +161,39 @@ def WriteOutput(settings_class=None, setting_file=None, debug=False, **kwargs):
         else:
             # nothing is done here.
             pass
-
-        fig = plt.figure(figsize=(6, 8))
-        ax = fig.add_subplot(1, 1, 1)
-        data_class.plot_calibrated(
-            fig_plot=fig, axis_plot=ax, show="intensity", limits=deepcopy(lims)
-        )
-        plt.title(title_file_names(settings_for_fit=settings_class, num=int(t * fps)))
+        if t==0 and isinstance(t, int):
+            # the first time the this function is called by VideoClip t is an integer.
+            # everyother time it is a float.
+            # use this to determine whether to make the colour bar or not
+            cbar = None
+        else:
+            cbar = False
+            
+        if plot_type == "calibrated":
+            data_class.plot_calibrated(
+                fig_plot=fig, axis_plot=ax, show="intensity", limits=deepcopy(lims),
+                cbar_axes=cbar
+            )
+        else:
+            data_class.plot_collected(
+                fig_plot=fig, axis_plot=ax, show="intensity", limits=deepcopy(lims),
+                cbar_axes=cbar
+            )
+        ax.set_title("\n".join(wrap(title_file_names(settings_for_fit=settings_class, num=int(t * fps)), 60)))
 
         # return the figure
         return mplfig_to_npimage(fig)
 
     # make the video clip
     animation = VideoClip(make_frame, duration=duration)
-    animation.write_videofile(out_file, fps=fps)
+    for f in range(len(file_types)):
+        out_file = make_outfile_name(
+            base,
+            directory=settings_class.output_directory,
+            extension=file_types[f],
+            overwrite=True,
+        )
+        logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
+        animation.write_videofile(out_file, fps=fps)
     animation.close()
+    

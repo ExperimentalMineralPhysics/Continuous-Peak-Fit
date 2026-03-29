@@ -7,6 +7,8 @@ from pathlib import Path
 import numpy as np
 
 import cpf.output_formatters.WriteMultiFit as WriteMultiFit
+# from cpf.output_formatters.crystallographic_operations import indicies4to3
+from  cpf.settings import get_settings
 from cpf.IO_functions import make_outfile_name
 from cpf.output_formatters.crystallographic_operations import plane_indices_4_to_3
 from cpf.util.logging import get_logger
@@ -42,8 +44,7 @@ def Requirements():
 
 # def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
 def WriteOutput(
-    settings_class=None,
-    settings_file=None,
+    settings,
     differential_only=False,
     debug=False,
     **kwargs,
@@ -52,21 +53,15 @@ def WriteOutput(
     # writes *.exp files required by polydefix.
     # N.B. this is a different file than that required by polydefix for energy dispersive diffraction.
 
-    if settings_class is None and settings_file is None:
-        raise ValueError(
-            "bummer Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
-
-        settings_class = initiate(settings_file)
+    # make sure settings is a class
+    settings_class = get_settings(settings)
 
     # Write fit files
     # WriteMultiFit.WriteOutput(
     #     FitSettings, parms_dict, differential_only=differential_only
     # )
     WriteMultiFit.WriteOutput(
-        settings_class=settings_class, differential_only=False, debug=debug
+        settings_class, differential_only=False, debug=debug
     )
 
     # FitParameters = dir(FitSettings)
@@ -207,26 +202,26 @@ def WriteOutput(
             "     %s\n" % settings_class.datafile_basename.strip("_").strip(".")
         )
         # if "datafile_startnum" in self.settings_from_input:
-        #     self.datafile_startnum  = self.settings_from_input.datafile_StartNum
-        #     self.datafile_endnum    = self.settings_from_input.datafile_EndNum
-        #     self.datafile_numdigits = self.settings_from_input.datafile_NumDigit
+        #     self.datafile_startnum  = self.settings_from_input["datafile_StartNum"]
+        #     self.datafile_endnum    = self.settings_from_input["datafile_EndNum"]
+        #     self.datafile_numdigits = self.settings_from_input[datafile_NumDigit"]
         if (
-            settings_class.settings_from_input.datafile_StartNum
-            > settings_class.settings_from_input.datafile_EndNum
+            settings_class.settings_from_input["datafile_StartNum"]
+            > settings_class.settings_from_input["datafile_EndNum"]
         ):
             logger.info(" ".join(map(str, [("start>end")])))
-            strt = settings_class.settings_from_input.datafile_EndNum
-            eend = settings_class.settings_from_input.datafile_StartNum
+            strt = settings_class.settings_from_input["datafile_EndNum"]
+            eend = settings_class.settings_from_input["datafile_StartNum"]
         else:
-            strt = settings_class.settings_from_input.datafile_StartNum
-            eend = settings_class.settings_from_input.datafile_EndNum
+            strt = settings_class.settings_from_input["datafile_StartNum"]
+            eend = settings_class.settings_from_input["datafile_EndNum"]
         text_file.write("# First index for FIT files\n")
         text_file.write("     %i\n" % strt)
         text_file.write("# Last index for FIT files\n")
         text_file.write("     %i\n" % eend)
         text_file.write("# Number of digits for FIT files\n")
         text_file.write(
-            "     %i\n" % settings_class.settings_from_input.datafile_NumDigit
+            "     %i\n" % settings_class.settings_from_input["datafile_NumDigit"]
         )
         text_file.write("# Wavelength\n")
         # text_file.write("     %8.7g\n" % settings_class.data_class.calibration["conversion_constant"])

@@ -10,6 +10,7 @@ from lmfit.model import load_modelresult
 
 import cpf.lmfit_model as lmm
 import cpf.output_formatters.convert_fit_to_crystallographic as cfc
+from  cpf.settings import get_settings
 from cpf.IO_functions import (
     lmfit_fix_int_data_type,
     make_outfile_name,
@@ -36,16 +37,16 @@ def Requirements():
     return RequiredParams, OptionalParams
 
 
-def WriteOutput(settings_class=None, settings_file=None, debug=True, **kwargs):
+def WriteOutput(settings, debug=True, **kwargs):
     """
 
     writes some of the fitted coeficients to a table. With a focus on the differential strain coefficents
     Parameters
     ----------
-    settings_class : TYPE
-        DESCRIPTION.
-    parms_dict : TYPE
-        DESCRIPTION.
+    settings : [str | Path | dict | Settings()]
+        Class containing all variables and options needed for the fitting, or 
+        dictionary of all the settings or 
+        string or path to a file with the settings in.
     debug : TYPE, optional
         DESCRIPTION. The default is True.
     **kwargs : TYPE
@@ -62,14 +63,8 @@ def WriteOutput(settings_class=None, settings_file=None, debug=True, **kwargs):
     # version 2  accounts for 2d and 3d experimntal gemoetries, compression and extension. The crystallographic values are now calculated in a different file/function.
     f_version = 2
 
-    if settings_class is None and settings_file is None:
-        raise ValueError(
-            "Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
-
-        settings_class = initiate(settings_file)
+    # make sure settings is a class
+    settings_class = get_settings(settings)
 
     # Parse optional parameters
     SampleGeometry = "3D".lower()
@@ -481,11 +476,17 @@ def WriteOutput(settings_class=None, settings_file=None, debug=True, **kwargs):
                                 "{0:" + str(width_col - 1) + "." + str(dp - 1) + "e},"
                             ).format(fit[y]["FitProperties"]["sum-residuals-squared"])
                         )
-                        text_file.write(
-                            ("{0:" + str(width_col - 1) + ".0f},").format(
-                                fit[y]["FitProperties"]["status"]
+                        if isinstance(fit[y]["FitProperties"]["status"], str):
+                            text_file.write(
+                                ("{0:<" + str(width_col-1) + "}").format(fit[y]["FitProperties"]["status"]
+                                )
                             )
-                        )
+                        else:
+                            text_file.write(
+                                ("{0:" + str(width_col - 1) + ".0f},").format(
+                                    fit[y]["FitProperties"]["status"]
+                                )
+                            )
                         text_file.write(
                             ("{0:" + str(width_col - 1) + ".0f},").format(
                                 fit[y]["FitProperties"]["function-evaluations"]

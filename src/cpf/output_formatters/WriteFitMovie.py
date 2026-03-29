@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from moviepy.video.VideoClip import VideoClip
 
+from  cpf.settings import get_settings
 from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
 from cpf.IO_functions import (
@@ -35,7 +36,7 @@ def Requirements():
     return RequiredParams, OptionalParams
 
 
-def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
+def WriteOutput(settings, debug=False, **kwargs):
     """
     Writes a *.?? file of the fits.
 
@@ -43,10 +44,10 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
 
     Parameters
     ----------
-    FitSettings : TYPE
-        DESCRIPTION.
-    parms_dict : TYPE
-        DESCRIPTION.
+    settings : [str | Path | dict | Settings()]
+        Class containing all variables and options needed for the fitting, or 
+        dictionary of all the settings or 
+        string or path to a file with the settings in.
     debug : TYPE, optional
         DESCRIPTION. The default is True.
     **kwargs : TYPE
@@ -58,6 +59,9 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
 
     """
 
+    # make sure settings is a class
+    settings_class = get_settings(settings)
+    
     if not "file_types" in kwargs:
         file_types = ".mp4"
     # make sure file_types is a list.
@@ -67,16 +71,9 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
         fps = 10
     elif not isinstance(fps, float):
         raise ValueError("The frames per second needs to be a number.")
-
-    if settings_class is None and settings_file is None:
-        raise ValueError(
-            "Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
-
-        settings_class = initiate(settings_file)
-
+    if not "Irange" in kwargs:
+        Irange = ["pt1percentile", "99pt9percentile"]
+        
     # make the base file name
     base = settings_class.datafile_basename
     if base is None or len(base) == 0:
@@ -116,6 +113,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
         json_file = make_outfile_name(
             settings_class.subfit_filename,  # diff_files[z],
             directory=settings_class.output_directory,
+            additional_text=settings_class.file_label,
             extension=".json",
             overwrite=True,
         )
@@ -123,19 +121,25 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
             data_fit = json.load(json_data)
         for y in range(len(data_fit)):
             dispersion_range[y].append(data_fit[y]["range"][0])
-            data_range[y].append(data_fit[y]["DataProperties"])
-            try:
-                # try to see if model range is in the json file. If it is not
-                # then just fill with DataProperties.
-                model_range[y].append(data_fit[y]["ModelProperties"])
-            except:
-                model_range[y].append(data_fit[y]["DataProperties"])
-            try:
-                # try to see if model range is in the json file. If it is not
-                # then just fill with DataProperties.
-                resid_range[y].append(data_fit[y]["ResidualProperties"])
-            except:
-                resid_range[y].append({"max": np.nan, "min": np.nan})
+            if "data_ranges" in data_fit[y]:
+                data_range[y].append(data_fit[y]["data_ranges"]["data"])
+                model_range[y].append(data_fit[y]["data_ranges"]["model"])
+                resid_range[y].append(data_fit[y]["data_ranges"]["residuals"])
+            else:
+                data_range[y].append(data_fit[y]["DataProperties"])
+                try:
+                    # try to see if model range is in the json file. If it is not
+                    # then just fill with DataProperties.
+                    model_range[y].append(data_fit[y]["ModelProperties"])
+                except:
+                    model_range[y].append(data_fit[y]["DataProperties"])
+                try:
+                    # try to see if model range is in the json file. If it is not
+                    # then just fill with DataProperties.
+                    resid_range[y].append(data_fit[y]["ResidualProperties"])
+                except:
+                    resid_range[y].append({"max": np.nan, "min": np.nan})
+
     Imax = []
     Imin = []
     Rmax = []
@@ -143,17 +147,25 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
     for y in range(len(data_fit)):
         tmp1 = pd.DataFrame(data_range[y], index=list(range(len(data_range[y]))))
         tmp2 = pd.DataFrame(model_range[y], index=list(range(len(model_range[y]))))
-        Imax.append(np.nanmax([tmp1["max"].max(), tmp2["max"].max()]))
-        Imin.append(np.nanmin([tmp1["min"].min(), tmp2["min"].min()]))
+        Imax.append(np.nanmax([tmp1[Irange[1]].max(), tmp2[Irange[1]].max()]))
+        Imin.append(np.nanmin([tmp1[Irange[0]].min(), tmp2[Irange[0]].min()]))
         tmp3 = pd.DataFrame(resid_range[y], index=list(range(len(resid_range[y]))))
-        if np.isnan(tmp3["max"].max()):
+        if np.isnan(tmp3[Irange[1]].max()):
             Rmax.append(Imax[-1])
         else:
-            Rmax.append(tmp3["max"].max())
-        if np.isnan(tmp3["min"].min()):
+            Rmax.append(tmp3[Irange[1]].max())
+        if np.isnan(tmp3[Irange[0]].min()):
             Rmin.append(Imin[-1])
         else:
-            Rmin.append(tmp3["min"].min())
+            Rmin.append(tmp3[Irange[0]].min())
+        if Irange[0] == "min" and Irange[1] == "max":
+            cb_range = "neither"
+        elif Irange[0] == "min":
+            cb_range = "max"
+        elif Irange[1] == "max":
+            cb_range = "min"
+        else:
+            cb_range = "both"
 
     duration = (settings_class.image_number) / fps
 
@@ -212,6 +224,7 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
             json_file = make_outfile_name(
                 settings_class.subfit_filename,  # diff_files[z],
                 directory=settings_class.output_directory,
+                additional_text=settings_class.file_label,
                 extension=".json",
                 overwrite=True,
             )
@@ -226,11 +239,13 @@ def WriteOutput(settings_class=None, settings_file=None, debug=False, **kwargs):
                 # param_lmfit=None,
                 params_dict=data_fit,
                 figure=fig,
+                # plot_type = "surface",
                 plot_ColourRange={
                     "max": Imax[z],
                     "min": Imin[z],
                     "rmin": Rmin[z],
                     "rmax": Rmax[z],
+                    "cb_extend": cb_range,
                 },
             )
             title_str = (

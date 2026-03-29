@@ -25,7 +25,7 @@ __all__ = [
 
 import sys
 import warnings
-
+from copy import deepcopy
 import numpy as np
 from lmfit import Model, Parameters
 
@@ -394,7 +394,7 @@ def initiate_all_params_for_fit(
 
     # Initiate background parameters
     comps = "bg"
-    coeff_type = sf.params_get_type(peak_orders, comps)
+    coeff_type = sf.get_params_type(peak_orders, comps)
     for k in range(len(peak_orders["background"])):
         param_str = "bg_c" + str(k)
         comp = "f"
@@ -415,7 +415,7 @@ def initiate_all_params_for_fit(
             param_str,
             comp,
             coeff_type=coeff_type,
-            num_coeff=n_coeff,
+            num_coeff=deepcopy(n_coeff),
             value=vals,
             trig_orders=peak_orders["background"][k],
             limits=limits,
@@ -465,7 +465,7 @@ def initiate_all_params_for_fit(
             elif values:
                 vals = values["peak"][j][comp_names[cp]]
 
-            coeff_type = sf.params_get_type(peak_orders, comp, peak=j)
+            coeff_type = sf.get_params_type(peak_orders, comp, peak=j)
             n_coeff = sf.get_number_coeff(
                 peak_orders,
                 comp,
@@ -478,9 +478,9 @@ def initiate_all_params_for_fit(
                 param_str,
                 comp,
                 coeff_type=coeff_type,
-                num_coeff=n_coeff,
+                num_coeff=deepcopy(n_coeff),
                 trig_orders=peak_orders["peak"][j][comp_names[cp]],
-                limits=lims[comp_names[cp]],
+                limits=deepcopy(lims[comp_names[cp]]),
                 value=vals,
                 types=types,
             )
@@ -519,7 +519,7 @@ def initiate_params(
     :param ind_vars: array-based independent variable to be added to parameters to use in expr
     :return:
     """
-    if limits:
+    if limits is not None:
         new_min = np.min(limits)
         new_max = np.max(limits)
         if np.isclose(new_min, new_max, rtol=1e-05, atol=1e-08):
@@ -546,7 +546,7 @@ def initiate_params(
 
     coeff_type = sf.coefficient_type_as_number(coeff_type)
     if (
-        coeff_type == 5
+        coeff_type == sf.coefficient_types()["independent"]
     ):  # if the values at each azimuth are independent we have to have a number of coefficients given.
         if num_coeff is not None:
             num_coeff = num_coeff
@@ -589,7 +589,7 @@ def initiate_params(
     for t in range(num_coeff):
         if value.size == num_coeff and value.size > 1:
             v = value.item(t)
-        elif coeff_type != 0 or t == 0:
+        elif coeff_type != sf.coefficient_types()["fourier"] or t == 0:
             v = value.item(0)
         else:
             v = 0
@@ -602,12 +602,12 @@ def initiate_params(
             expr = None
         if comp != "s":
             vary = po[1]
-        if t == 0 or coeff_type != 0:
+        if t == 0 or coeff_type != sf.coefficient_types()["fourier"]:
             inp_param.add(
                 param_str + "_" + comp + str(t),
                 v,
-                max=new_max,
-                min=new_min,
+                max=float(new_max),
+                min=float(new_min),
                 expr=expr,
                 vary=vary,
             )
@@ -615,8 +615,8 @@ def initiate_params(
             inp_param.add(
                 param_str + "_" + comp + str(t),
                 v,
-                max=half_range,
-                min=-half_range,
+                max=float(half_range),
+                min=float(-half_range),
                 expr=expr,
                 vary=vary,
             )

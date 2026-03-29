@@ -10,6 +10,7 @@ import numpy as np
 
 import cpf.series_functions as sf
 from cpf.IO_functions import make_outfile_name, replace_null_terms
+from  cpf.settings import get_settings
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WritePolydefixED")
@@ -36,8 +37,7 @@ def Requirements():
 
 # def WriteOutput(FitSettings, parms_dict, **kwargs):
 def WriteOutput(
-    settings_class=None,
-    settings_file=None,
+    settings,
     differential_only=False,
     debug=False,
     **kwargs,
@@ -46,14 +46,8 @@ def WriteOutput(
     # N.B. this is a different file than that required by polydefix for monochromatic diffraction.
     # This file contains a list of all the diffraction information. Hence it has to be written after the fitting as a single operation.
 
-    if settings_class is None and settings_file is None:
-        raise ValueError(
-            "bummer Either the settings file or the setting class need to be specified."
-        )
-    elif settings_class is None:
-        from cpf.XRD_FitPattern import initiate
-
-        settings_class = initiate(settings_file)
+    # make sure settings is a class
+    settings_class = get_settings(settings)
 
     # fill calibration into settings class if it is not here.
     if not settings_class.data_class.calibration:
@@ -455,14 +449,14 @@ def WriteOutput(
                     sym = 1
 
                 az = settings_class.data_class.calibration["azimuths"]
-                coef_type = sf.params_get_type(fit[x], "d", peak=y)
+                coef_type = sf.get_params_type(fit[x], "d", peak=y)
                 peak_d = sf.coefficient_expand(
                     np.array(az),
                     replace_null_terms(fit[x]["peak"][y]["d-space"]),
                     coeff_type=coef_type,
                 )
                 # peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))
-                coef_type = sf.params_get_type(fit[x], "h", peak=y)
+                coef_type = sf.get_params_type(fit[x], "h", peak=y)
                 peak_i = sf.coefficient_expand(
                     np.array(az_used) * sym,
                     replace_null_terms(fit[x]["peak"][y]["height"]),

@@ -131,32 +131,38 @@ class _masks:
                 lbl_str = "two theta"
             else:
                 lbl_str = "twotheta"
-            limits = mask[lbl_str]
-            im_mask = (
-                np.asarray(im_mask)
-                | ma.masked_inside(self.tth, limits[0], limits[1]).mask
-            )
+            if len(mask[lbl_str])==2 and not isinstance(mask[lbl_str][0],list) and not isinstance(mask[lbl_str][1],list):
+                #if the masks are not a list of lists then wrap in a list.
+                mask[lbl_str] = [mask[lbl_str]]
+            for lims in mask[lbl_str]:
+                im_mask = (
+                    im_mask
+                    | ma.masked_inside(self.tth, lims[0], lims[1]).mask
+                )
 
         if ("azm" in mask) or ("azimuth" in mask):
             if "azm" in mask:
                 lbl_str = "azm"
             else:
                 lbl_str = "azimuth"
-            limits = mask[lbl_str]
-            im_mask = (
-                np.asarray(im_mask)
-                | ma.masked_inside(self.azm, limits[0], limits[1]).mask
-            )
+            if len(mask[lbl_str])==2 and not isinstance(mask[lbl_str][0],list) and not isinstance(mask[lbl_str][1],list):
+                #if the masks are not a list of lists then wrap in a list.
+                mask[lbl_str] = [mask[lbl_str]]
+            for lims in mask[lbl_str]:
+                im_mask = (
+                    im_mask
+                    | ma.masked_inside(self.tth, lims[0], lims[1]).mask
+                )
 
         # FIX ME: Should also add circles and other polygons as per GSAS-II masks
 
         # mask invalid values
         mask2 = ma.masked_invalid(im_ints).mask
         # mask everything less than 0.
-        mask3 = ma.masked_less(im_ints, 0).mask
+        # mask3 = ma.masked_less(im_ints, 0).mask
 
         # combine masks
-        im_mask = np.asarray(im_mask) | np.asarray(mask2) | np.asarray(mask3)
+        im_mask = np.asarray(im_mask) | np.asarray(mask2) #| np.asarray(mask3)
         # im_ints = ma.array(im_ints, mask=im_mask)
 
         """
@@ -229,6 +235,7 @@ class _masks:
         range_bounds=[-np.inf, np.inf],
         azm_bounds=[-np.inf, np.inf],
         mask=None,
+        as_masked=None
     ):
         """
         Set limits to data
@@ -238,9 +245,18 @@ class _masks:
         :return:
         """
 
-        if mask == None:
+        if as_masked == None:
+            if ma.isMaskedArray(self.intensity):
+                as_masked = True
+            else:
+                as_masked = False
+                
+        if mask == None and ma.isMaskedArray(self.intensity):
             mask = self.intensity.mask
             logger.debug(" ".join(map(str, [("Retreived previous mask")])))
+        else:
+            mask = False
+        
         local_mask = np.where(
             (self.tth >= range_bounds[0])
             & (self.tth <= range_bounds[1])
@@ -263,20 +279,8 @@ class _masks:
                 )
             )
         )
-        logger.debug(
-            " ".join(
-                map(
-                    str,
-                    [
-                        (
-                            "mask.shape, (local_mask.shape)",
-                            mask.shape,
-                            (local_mask.shape),
-                        )
-                    ],
-                )
-            )
-        )
+        logger.debug(f"Mask shapes: {local_mask.shape}")
+        
         combined_mask = np.ma.mask_or(mask, local_mask)
         combined_mask = np.ma.mask_or(combined_mask, local_mask2)
         NoneType = type(None)
@@ -284,9 +288,9 @@ class _masks:
             combined_mask = np.ma.mask_or(combined_mask, mask)
 
         # apply mask to all arrays
-        self.mask_apply(combined_mask)
+        self.mask_apply(combined_mask, as_masked=as_masked)
 
-    def mask_apply(self, mask, debug=False):
+    def mask_apply(self, mask, as_masked=None, debug=False):
         """
         Applies mask to al the data arrays of the detector class
 
@@ -302,24 +306,40 @@ class _masks:
         None.
 
         """
-        self.intensity.mask = mask
-        self.tth.mask = mask
-        self.azm.mask = mask
+        # force masked array if mask is not False
+        if mask is not False:
+            self.intensity = ma.MaskedArray(self.intensity, mask=mask)
+            self.tth = ma.MaskedArray(self.tth, mask=mask)
+            self.azm = ma.MaskedArray(self.azm, mask=mask)
 
         if "dspace" in dir(self):
             if self.dspace is not None:
-                self.dspace.mask = mask
+                self.dspace = ma.MaskedArray(self.dspace, mask=mask)
 
         if "x" in dir(self):
             if self.x is not None:
-                self.x.mask = mask
+                self.x.mask = ma.MaskedArray(self.x, mask=mask)
         if "y" in dir(self):
             if self.y is not None:
-                self.y.mask = mask
+                self.y.mask = ma.MaskedArray(self.y, mask=mask)
         if "z" in dir(self):
             if self.z is not None:
-                self.z.mask = mask
-
+                self.z.mask = ma.MaskedArray(self.z, mask=mask)
+                
+        if as_masked == False and ma.isMaskedArray(self.intensity):
+            # return flat arrays.
+            self.intensity = self.intensity.compressed()
+            self.tth = self.tth.compressed()
+            self.azm = self.azm.compressed()
+            if "dspace" in dir(self):
+                self.dspace = self.dspace.compressed()
+            if "x" in dir(self) and self.x is not None:
+                self.x = self.x.compressed()
+            if "y" in dir(self) and self.y is not None:
+                self.y = self.y.compressed()
+            if "z" in dir(self) and self.z is not None:
+                self.z = self.z.compressed()
+            
     def mask_restore(self):
         """
         Restores the loaded mask.

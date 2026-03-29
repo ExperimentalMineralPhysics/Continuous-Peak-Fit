@@ -1,14 +1,27 @@
 __all__ = ["fourier_to_crystallographic"]
 
+import json
+import pandas as pd
 import numpy as np
+import glob
+import re
+# from uncertainties import ufloat
 
+from cpf.output_formatters.jcpds import jcpds
+from cpf.IO_functions import peak_hkl
+from cpf.output_formatters.crystallographic_operations import plane_indices_4_to_3
 from cpf.IO_functions import replace_null_terms
+from cpf.IO_functions import make_outfile_name
+
+from cpf.util.logging import get_logger
+
 
 
 def fourier_to_crystallographic(
     coefficients,
-    SampleGeometry="3d",
-    SampleDeformation="compression",
+    SampleGeometry: str = "3d",
+    SampleDeformation: str = "compression",
+    # positive_strain: str = "compression",
     correlation_coeffs=None,
     subpattern=0,
     peak=0,
@@ -16,29 +29,50 @@ def fourier_to_crystallographic(
     **kwargs,
 ):
     """
-    Convert fourier coefficients into the centroid and differnetial values expected for crystallogrpahic strains/stresses.
+    Convert fourier coefficients into the centroid and differential values expected for crystallogrpahic strains/stresses.
 
-    Currently this script uses the forst order approximation that d0 = z-th order Foutier coefficient, differential strain is
+    Currently this script uses the first order approximation that d0 = z-th order Foutier coefficient, differential strain is
     the length of the second order coefficients as a vector, and the angle is the arctan of the angle from these two coefficients.
     This is true if the center of the Debye-Scherer ring is at 0,0. If X0 or y0 are not zero a small ststematice error creeps into the
     coefficients. However, accoutning for these higher order terms and converting x0 and y0 into real units is non-trivial.
 
     Parameters
     ----------
-    coefficients : TYPE
-        DESCRIPTION.
-    SampleGeometry : String, optional
-        DESCRIPTION. The default is "3d-compression".
-    correlation_coeffs : TYPE, optional
-        DESCRIPTION. The default is None.
-    debug : TYPE, optional
-        DESCRIPTION. The default is False.
+    coefficients : dict
+        Coeffecient dictionary used in cpf.
+    SampleGeometry : str, optional
+        Geometry of the sample - 2D or 3D stress/stress field. The default is "3d".
+    SampleDeformation : str, optional
+        "compression" or "extension" - type of deformation for the experiment. Determines orientation value.
+        The default is "compression".
+    correlation_coeffs : dict, optional
+        correlation coefficient dictionary as created by lmfit. The default is None.
+    subpattern : list, int, optional
+        Which subpattern in the coefficients to calulcate parameters for. The default is 0.
+    peak : int, optional
+        Which peak in the subpattern to calulcate parameters for. The default is 0.
     **kwargs : TYPE
+        DESCRIPTION.
+
+    Raises
+    ------
+    ValueError
         DESCRIPTION.
 
     Returns
     -------
-    crystallographic_properties.
+    differential_coefficients : dict
+        Dictionary of the calculated properties and their errors. The propertues calculated from the 
+        Fourier d-spacing coefficients are: 
+            "d_mean" -- mean d-spacing of diffraction ring, assuming 2d or 3d 'SampleGeometry'
+            "differential" -- differential 
+            "Q" -- differential strain
+            "orientation" -- orientation of the strain field, under 'SampleDeformation'
+            "d_max" -- maximum d-sapcing of fitted diffraction peak
+            "d_min" -- minimum d-sapcing of fitted diffraction peak
+            "x0" -- cartesian coordinate for centre of diffraction peak
+            "y0" -- cartesian coordinate for centre of diffraction peak
+        
 
     SampleGeometry options:
         - either 2d or 3d
@@ -52,9 +86,7 @@ def fourier_to_crystallographic(
         that the differentail strain is more extensive than the strains in the other two directions.
 
 
-
     """
-
     # FIX ME: strictly speaking all the errors here need to include the covarience matrix.
     # This is calculated and stored but not used here. If the values are small then the errors are about correct.
     # However, if the values are large then the errors are not correct.
@@ -84,10 +116,13 @@ def fourier_to_crystallographic(
         raise ValueError("The coefficients need to be a list of dictionaries.")
 
     # catch 'null' terms in fits
-    coefficients = replace_null_terms(coefficients)
-
+    coefficients = replace_null_terms(coefficients, replace_with = np.nan)
+    
+    # catch d-spacing that is too short for 3D geometry to work.
+    if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3:
+        SampleGeometry == "2d"
+    
     # %% differential coefficients, errors and covarience
-
     # %%% angle
     # a = sin??
     # b = cos??
@@ -95,8 +130,11 @@ def fourier_to_crystallographic(
     # d (atan(c))/dc = 1/(c^2+1). c = b/a. dc = c.((da/a)^2 + (db/b)^2)^(1/2)
     # out_angerr = dc.
     # FIX ME need to check this.
-    if (
-        len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5 
+    if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3:
+        out_ang = 0
+        out_angerr = 0
+    elif (
+        len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 4
         and coefficients[subpattern]["peak"][peak]["d-space"][4] != 0 
         and coefficients[subpattern]["peak"][peak]["d-space"][3] != 0
     ):
@@ -132,8 +170,9 @@ def fourier_to_crystallographic(
                     ** 2
                 )
                 ** (1 / 2)
-            )
-        ) / 2
+            ) 
+        / 2
+        )
     elif (
         len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5 
         and coefficients[subpattern]["peak"][peak]["d-space"][3] != 0
@@ -145,7 +184,7 @@ def fourier_to_crystallographic(
         out_angerr = np.nan
         # FIXME: this is a bodged fix for now. It needs to be calcualted assuming the error is not also zero.
     # correction to make angle correct (otherwise potentially out by pi/2)
-    if len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5 and coefficients[subpattern]["peak"][peak]["d-space"][4] > 0:
+    if len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 4 and coefficients[subpattern]["peak"][peak]["d-space"][4] > 0:
         if coefficients[subpattern]["peak"][peak]["d-space"][3] <= 0:
             out_ang += np.pi / 2
         else:
@@ -153,10 +192,19 @@ def fourier_to_crystallographic(
     # convert into degrees.
     out_ang = np.rad2deg(out_ang)
     out_angerr = np.rad2deg(out_angerr)
+    
+    # deal with sin/cos wrapping
+    if (len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 4 and 
+           coefficients[subpattern]["peak"][peak]["d-space"][3] > 0):
+        out_ang += 180
+    
 
     # %%% differential strain
     # differentail (3d) = (a2^2+b2^2)^(1/2)
-    if len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5:
+    if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3:
+        out_dd = 0
+        out_dderr = 0
+    elif len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5:
         out_dd = np.sqrt(
             coefficients[subpattern]["peak"][peak]["d-space"][3] ** 2
             + coefficients[subpattern]["peak"][peak]["d-space"][4] ** 2
@@ -177,7 +225,7 @@ def fourier_to_crystallographic(
             ** 2
         ) ** (1 / 4)
     else:
-        out_dd = np.nan
+        out_dd = 0
         out_dderr = np.nan
     
     #%%% d_max and d_min.
@@ -203,7 +251,7 @@ def fourier_to_crystallographic(
             pass
         elif SampleDeformation == "extension":
             pass  # out_ang += 90
-
+            
     elif SampleGeometry == "3d" and SampleDeformation == "compression":
         # 1/3 of the way from the middle to the maximum d-spacing (miniminm strain)
         out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] + out_dd / 3
@@ -239,9 +287,12 @@ def fourier_to_crystallographic(
 
     # if SampleDeformation=="extension":
     #     scale *= -1
-
-    out_Q = out_dd / out_d0 / scale
-    out_Qerr = out_dderr / scale
+    if out_d0 != 0:
+        out_Q = out_dd / out_d0 / scale
+        out_Qerr = out_dderr / scale
+    else:
+        out_Q = np.nan
+        out_Qerr = np.nan
 
     # reoridentate extensions back to the right way.
     if SampleDeformation == "extension":
@@ -249,6 +300,42 @@ def fourier_to_crystallographic(
             out_ang -= 90
         else:
             out_ang += 90
+            
+
+    # keep anblies within given range. Prevent wrapping of angles. Change direction of Q and 
+    # differential if the angles are in second half of the range. 
+    if True:
+        ang_range = [45, -135]
+        # if ang_range[0] - ang_range[1] != 180:
+        #     raise ValueError("The acceptable range for 'ang_range' is 180 degrees.")
+        if out_ang > ang_range[0]: 
+            out_ang -= 180
+        elif out_ang <= ang_range[1]:
+            out_ang += 180
+        if out_ang < np.mean(ang_range):
+            out_dd = -out_dd
+            out_Q = -out_Q
+            
+    
+    # keep in constant refernce frame -- i.e. strain relative to vertical not absolute.
+    if False:
+        if out_ang <= -45:
+            # out_ang += 90
+            out_dd = -out_dd
+            out_Q = -out_Q
+   
+        if out_ang >=45:
+            out_ang -= 180
+
+   
+
+    """
+    if positive_strain == "extension" or positive_strain == "wrong":
+        # reverse the strain magnitudes
+        out_dd = -out_dd
+        out_Q = -out_Q
+    # else compression and 'correct'
+    """  
 
     # %%% x0 and y0
     # values is in d-spacing and needs converting to mm via calibration.
@@ -282,8 +369,12 @@ def fourier_to_crystallographic(
 
     differential_coefficients = {}
 
+    # FIX ME: this should be removed but remains becuase some outputs depend on it.
     differential_coefficients["dp"] = out_d0
     differential_coefficients["dp_err"] = out_d0err
+    
+    differential_coefficients["d_mean"] = out_d0
+    differential_coefficients["d_mean_err"] = out_d0err
 
     differential_coefficients["differential"] = out_dd
     differential_coefficients["differential_err"] = out_dderr
@@ -304,3 +395,192 @@ def fourier_to_crystallographic(
     differential_coefficients["y0_err"] = out_y0err
 
     return differential_coefficients
+
+
+
+def fourier_to_unitcellvolume(
+    coefficients,
+    jcpds_file: None,
+    phase: None,
+    SampleGeometry: str = "3d",
+    SampleDeformation: str = "compression",
+    pressure = False,
+    reflections_to_use = "all",
+    correlation_coeffs=None,
+    weighted = True,
+    temperature = np.nan,
+    debug=False,
+    **kwargs,
+):
+    """
+    Convert fitted peak centers into unit cell parameters.
+    
+    The method builds a jcpds object and then fits the unit cell to the given peaks.
+    
+    FIXME: no errors are currently used or returned. 
+    
+    Parameters
+    ----------
+    coefficients : dict
+        Coeffecient dictionary used in cpf.
+    SampleGeometry : str, optional
+        Geometry of the sample - 2D or 3D stress/stress field. The default is "3d".
+    SampleDeformation : str, optional
+        "compression" or "extension" - type of deformation for the experiment. Determines orientation value.
+        The default is "compression".
+    correlation_coeffs : dict, optional
+        correlation coefficient dictionary as created by lmfit. The default is None.
+    subpattern : list, int, optional
+        Which subpattern in the coefficients to calulcate parameters for. The default is 0.
+    peak : int, optional
+        Which peak in the subpattern to calulcate parameters for. The default is 0.
+    **kwargs : TYPE
+        See below.
+
+    :Keyword Arguments:
+        * *reflections_to_use* list  or "all"
+          Which ranges from the list of fitted ranges to use. 
+          FIXME: does not work for multiple peaks in the same region
+
+    Raises
+    ------
+    ValueError
+        DESCRIPTION.
+
+    Returns
+    -------
+    unitcell_volumes : dict
+        Dictionary of the calculated cell parameters and the errors.
+        
+
+    SampleGeometry options:
+        - either 2d or 3d
+    SampleDeformation options:
+        - either 'compresion' or 'extension'.
+
+        'compression' assumes that shortening strains are positive (correctly in my view)
+        and that the differential strain is more compressive strain than in the other two directions.
+
+        'extension' assumes that an extensive strain is positive (well, someone has to) and
+        that the differentail strain is more extensive than the strains in the other two directions.
+
+
+    """
+
+    # %% validate the inputs.
+    SampleGeometry = SampleGeometry.lower()
+    SampleDeformation = SampleDeformation.lower()
+    if not (SampleGeometry == "3d" or SampleGeometry == "2d"):
+        err_str = "SampleGeometry is not recognised. It must be '2d' or '3d'."
+        raise ValueError(err_str)
+    # if SampleDeformation=="extension":
+    #     err_str = "SampleDeformation 'extension' is not implemented."
+    #     raise ValueError(err_str)
+    if not (SampleDeformation == "compression" or SampleDeformation == "extension"):
+        err_str = "SampleDeformation is not recognised. It must be 'compression' or 'extension'."
+        raise ValueError(err_str)
+    # FIX ME: another possitbility exists, where the orientation of the stress/strain is known and
+    # the experiment oscillates between compression and extenion. This should perhaps be added to the
+    # possibilities.
+
+    if isinstance(coefficients, dict):
+        coefficients = [coefficients]
+    if not isinstance(coefficients, list):
+        raise ValueError("The coefficients need to be a list of dictionaries.")        
+
+    # flatten the multipeak parts of the coefficient structure.
+    flat_coef = []
+    for i in coefficients:
+        for j in i["peak"]:
+            flat_coef.append({"peak":[j]})
+
+    if reflections_to_use=="all":
+        reflections_to_use = list(range(len(flat_coef)))
+
+    # catch 'null' terms in fits
+    flat_coef = replace_null_terms(flat_coef, replace_with=np.nan)
+
+    # get or guess phase
+    if phase is None:
+        #list all phases in fits
+        phases = []
+        for i in range(len(flat_coef)):
+            for j in range(len(flat_coef[i]["peak"])):
+                if "phase" in flat_coef[i]["peak"][j]:
+                    phases.append(flat_coef[i]["peak"][j]["phase"])
+        phase = max(set(phases), key=phases.count)  
+    
+    # %% get d0 accounting for difrerential strain and sample geometry
+    for i in reflections_to_use:
+        crystallographic = fourier_to_crystallographic(flat_coef,
+                        SampleGeometry,
+                        SampleDeformation,
+                        correlation_coeffs,
+                        subpattern=i,
+                        peak=0, # in flattened structure always the first peak
+                        debug=debug,
+                        **kwargs)
+        flat_coef[i]["peak"][0]["cryst_prop"] = crystallographic
+
+    # intial guess (a0, b0, c0 etc) for lattice parameters comes from jcpds file
+    # solve for unit cell    
+    jcpds_obj = jcpds()
+    jcpds_obj.load_file(jcpds_file)
+    #clear reflections from jcpds
+    jcpds_obj.remove_reflection("all")
+    
+    # add reflections for unit cell we need to fit.
+    hkls = []
+    for i in reflections_to_use:
+        j = 0 # always the first peak in flattened structure.
+        # for j in range(len(flat_coef[1]["peak"])):
+        if flat_coef[i]["peak"][j]["phase"] == phase:
+            hkl = peak_hkl(flat_coef[i], j, string=False)[0]
+            if len(hkl) == 4:
+                # convert to 3 value Miller indicies
+                hkl = plane_indices_4_to_3(hkl)
+            jcpds_obj.add_reflection(h=hkl[0], k=hkl[1], l=hkl[2],
+                             dobs = flat_coef[i]["peak"][j]["cryst_prop"]["dp"],
+                             dobs_err = flat_coef[i]["peak"][j]["cryst_prop"]["dp_err"],
+                             delta_dobs = flat_coef[i]["peak"][j]["cryst_prop"]["Q"],
+                             delta_dobs_err = flat_coef[i]["peak"][j]["cryst_prop"]["Q_err"],
+                             orientationobs = flat_coef[i]["peak"][j]["cryst_prop"]["orientation"],
+                             orientationobs_err = flat_coef[i]["peak"][j]["cryst_prop"]["orientation_err"],
+                             )
+            hkls.append( peak_hkl(flat_coef[i], j, string=True)[0] )
+                
+    jcpds_obj.compute_d0() # compute lattice parameters for unit cell from jcpds, otherwise initiation not complete. 
+    
+    jcpds_obj.temperature = temperature
+    
+    returned = jcpds_obj.fit_lattice_parameters(weighted=weighted)
+
+    uc_parts = jcpds_obj.get_unique_unitcell_params()
+    uc_parms = {}
+    for ind in range(len(uc_parts)):
+        uc_parms[uc_parts[ind]] = getattr(jcpds_obj, uc_parts[ind]).nominal_value
+        uc_parms[uc_parts[ind]+"_err"] = getattr(jcpds_obj, uc_parts[ind]).std_dev
+    uc_parms["volume"] = jcpds_obj.v.nominal_value
+    uc_parms["volume_err"] = jcpds_obj.v.std_dev
+    
+    if not np.isnan(temperature): 
+        uc_parms["pressure"] = jcpds_obj.pressure.nominal_value
+        uc_parms["pressure_err"] = jcpds_obj.pressure.std_dev
+        for m,n,o in zip(jcpds_obj.get_reflection_stresses(), jcpds_obj.get_reflection_orientations(), jcpds_obj.get_reflection_hkls()):
+            o = f"({o[0]}{o[1]}{o[2]})"
+            uc_parms[o + " stress"] = m.nominal_value
+            uc_parms[o + " stress_err"] = m.std_dev
+            uc_parms[o + " angle"] = n.nominal_value
+            uc_parms[o + " angle_err"] = n.std_dev
+
+    # uc_parms["residuals"] = np.array2string(returned.residual, separator="; ", max_line_width=np.inf)
+    if weighted == True:
+        uc_parms["residuals_weighted"] = returned.residual
+        rsd = []
+        for i in jcpds_obj.reflections:
+            rsd.append(i.dobs.nominal_value - i.d)
+        uc_parms["residuals_unweighted"] = np.array(rsd)
+    else:
+        uc_parms["residuals_unweighted"] = returned.residual
+    uc_parms["hkl"] = hkls
+    return uc_parms

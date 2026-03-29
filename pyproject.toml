@@ -40,7 +40,6 @@ dependencies = [
     "pandas",
     "pathos",
     "pillow",
-    "pycairo",
     "pyfai",
     "pyopencl",        # NOTE: ImageD11 mentions using pyopengl
     "scipy",

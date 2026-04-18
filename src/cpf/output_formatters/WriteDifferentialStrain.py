@@ -154,6 +154,14 @@ def WriteOutput(
                    #     )    
                    ]
         headers_use += extra_headers
+        
+    # check that all wanted values are present
+    missing_headers = list(set(headers_use) - set(list(df)))
+    # if missing headers likely means no differential strains. Add list dataframe as zeros
+    for i in missing_headers:
+        df[i] = 0
+    df = df.loc[:, headers_use] 
+        
     # cut data frame
     df = df[headers_use]
     # rename the columns

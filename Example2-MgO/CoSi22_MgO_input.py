@@ -43,6 +43,11 @@ Calib_data = "COSI_021_0001.med"
 Calib_param = "COSI_021_0001.med"
 Calib_mask = [5, 10]
 
+metadata = ['mean_start_time', 'mean_live_time', '6BMB_LVP:LVP_tc1_calcs.I', '6BMB_LVP:LVP_tc2_calcs.I', 'FILE_CREATION', 'time_start']
+metadata_labels = {#"time": "mean_live_time", # file creation time.
+                          'exposure': 'mean_live_time',
+                          "temperature": "*LVP_tc1_calcs.I"}
+
 # Fitting properties for peaks.
 fit_track = False
 fit_propagate = True
@@ -55,7 +60,7 @@ fit_bounds = {"background": ['0.9*min', 'max'],
 
 #Output settings
 Output_directory   = './results/'
-Output_type        = ["PolydefixED", 'DifferentialStrain', 'FitMovie', 'CoefficientTable', 'CollectionMovie']
+Output_type        = ["PolydefixED", 'DifferentialStrain', 'FitMovie', 'CoefficientTable', 'CollectionMovie', 'UnitCells', 'PressureStresses']
 Output_ElasticProperties = "MgO_elastic_properties.txt"
 
 # define ranges and peaks

@@ -815,7 +815,7 @@ def execute(
             # Read JSON data from file
             logger.moreinfo(f"Loading previous fit results from {temporary_data_file}.")
             with open(temporary_data_file) as json_data:
-                previous_fit = json.load(json_data)
+                previous_fit = json.load(json_data)["fits"]
 
                 # if the previous_fit is not the same size as fit_orders the inout file must have been changed.
                 # so discard the previous fit and start again.

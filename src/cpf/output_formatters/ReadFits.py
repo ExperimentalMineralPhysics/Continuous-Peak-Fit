@@ -157,9 +157,12 @@ def ReadFits_to_list(
         # convert correlation coefficients into panda data frame
         for y in range(len(fits[-1])):
             if "correlation_coeffs" in fits[-1][y]:
-                fits[-1][y]["correlation_coeffs"] = pd.DataFrame.from_dict(
-                                       json.loads(fits[-1][y]["correlation_coeffs"])
-                                       )
+                try:
+                    fits[-1][y]["correlation_coeffs"] = pd.DataFrame.from_dict(
+                                           json.loads(fits[-1][y]["correlation_coeffs"])
+                                           )
+                except:
+                    pass
      
     fits = replace_null_terms(
         fits, val_to_find=None, replace_with=0

@@ -9,7 +9,7 @@ import re
 
 from cpf.output_formatters.jcpds import jcpds
 from cpf.IO_functions import peak_hkl
-from cpf.output_formatters.crystallographic_operations import indicies4to3
+from cpf.output_formatters.crystallographic_operations import plane_indices_4_to_3
 from cpf.IO_functions import replace_null_terms
 from cpf.IO_functions import make_outfile_name
 

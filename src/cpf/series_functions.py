@@ -314,7 +314,7 @@ def get_number_coeff(orders, comp, peak=0, azimuths=None):
                 "Cannot define number of independent values without a number of coefficients."
             )
         else:
-            n_param = len(np.unique(azimuths).compressed())
+            n_param = len(ma.unique(azimuths).compressed())
 
     elif comp == "bg" or comp == "background" or comp == "f":
         n_param = sc.BiggestValue(orders["background"][peak]) * 2 + 1

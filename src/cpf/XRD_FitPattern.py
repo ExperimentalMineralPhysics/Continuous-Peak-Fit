@@ -67,7 +67,6 @@ output_methods_modules = register_default_formats()
 
 
 def initiate(
-    settings: [str | Path | dict | Settings()],
     settings: Optional[str | Path | dict] = None,
     inputs=None,
     out_type=None,

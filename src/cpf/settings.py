@@ -296,7 +296,6 @@ class Settings:
         # Fail gracefully
         if settings is None:
             raise ValueError("The settings needs to be specified: it is either a file string, a file path or a dictionary.")
-
         elif isinstance(settings, type(Settings())):
             logger.info("The settings are already a cpf Settings class instance. No initiation.")
             return
@@ -316,7 +315,6 @@ class Settings:
                         if isinstance(value, dict):
                             value = RecursiveObject(value)
                         setattr(self, key, value)
-
             self.settings_from_input = settings#RecursiveObject(dictionary = settings)
             
             
@@ -356,6 +354,7 @@ class Settings:
         set the values in the settings class back to those in the settings file.
         """
         self.populate()
+
 
     def fill_settings(self, validate = True):
         """
@@ -448,6 +447,7 @@ class Settings:
             self.image_list,
             self.image_number,
         ) = image_list(self.settings_from_input, files_only=True)
+
         # Convert datafile list entries to Path objects, if they exist
         if len(self.datafile_list) > 0:
             try:
@@ -495,7 +495,6 @@ class Settings:
                     logger.warning(err_str)
                     raise ValueError(err_str)
             self.h5_iterate = self.settings_from_input["h5_iterate"]
-
             (
                 self.datafile_list,
                 self.datafile_number,
@@ -678,7 +677,6 @@ class Settings:
         self,
         directory: Path,
         make_dir: bool = False,
-        
     ):
         """
         Check if a directory exists. Make it if make_dir==True or issue an error.

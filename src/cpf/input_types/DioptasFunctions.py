@@ -726,7 +726,6 @@ class DioptasDetector:
     get_metadata = _metadata_common.get_metadata
     _get_file_created_modified = _metadata_common._get_file_created_modified
 
-
     # add masking functions to detetor class.
     get_mask = _masks.get_mask
     set_mask = _masks.set_mask

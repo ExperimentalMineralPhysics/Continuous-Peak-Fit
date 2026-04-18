@@ -96,6 +96,7 @@ class MedDetector:
                 self.detector = self.get_detector(settings=settings_class)
 
     def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True, as_masked=True):
+
         """
         Makes an independent copy of a MedDetector Instance.
 
@@ -494,6 +495,7 @@ class MedDetector:
             self.metadata_labels = settings.metadata_labels
         else:
             self.metadata_labels = self._default_metadata_labels
+
             
         if self.detector == None:
             self.get_detector(settings=settings)
@@ -523,6 +525,7 @@ class MedDetector:
             
             if "original_mask" in dir(self):
                 self.original_mask= self._reduce_array(self.original_mask, keep_FirstDim=True)
+
 
         self.azm_start = (
             np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks

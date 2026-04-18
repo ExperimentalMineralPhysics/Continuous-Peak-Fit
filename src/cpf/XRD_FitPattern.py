@@ -68,6 +68,7 @@ output_methods_modules = register_default_formats()
 
 def initiate(
     settings: [str | Path | dict | Settings()],
+    settings: Optional[str | Path | dict] = None,
     inputs=None,
     out_type=None,
     report: Literal[
@@ -136,6 +137,7 @@ def initiate(
     settings_class = get_settings(settings, **kwargs)
     
     return settings_class
+
 
 
 def view(
@@ -912,7 +914,6 @@ def execute(
 
                     # re-get settings for current subpattern
                     settings_class.set_subpattern(j, i)
-
             sub_data = new_data.duplicate_without_detector(range_bounds=tth_range, as_masked=as_masked)
             # sub_data.set_limits(range_bounds=tth_range)
 
@@ -942,7 +943,6 @@ def execute(
                 # if debug:
                 plt.show()
                 plt.close()
-
 
             elif mode == "view":
                 fig = plt.figure()

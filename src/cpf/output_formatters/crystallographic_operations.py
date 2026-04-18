@@ -2,90 +2,163 @@
 # -*- coding: utf-8 -*-
 
 
-
-__all__ = ["indicies4to3", "indicies3to4"]
+__all__ = ["plane_indices_4_to_3", "vector_indices_3_to_4"]
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 
-
-def indicies4to3(MBindicies: np.typing.ArrayLike) -> np.ndarray:
+def plane_indices_3_to_4(m_indices: ArrayLike) -> np.ndarray:
     """
-    Cnoverts set of Miller-Bravais (hkil) indicies into Miller (hkl) indicies
+    Converts set of Miller plane indices (hkl) into Miller-Bravais indices (hkil).
 
     Parameters
     ----------
-    Mindicies : np.typing.ArrayLike
-        (...,4) array of Miller indicies.
+    m_indices : ArrayLike
+        (...,3) array of Miller indices.
 
     Raises
     ------
     ValueError
-        If there are not 4 indicies.
-        If the sum of the first three indicies is not 0.
+        If there are not 3 indices.
 
     Returns
     -------
-    MBindicies : np.array
-        (...,3) array of Miller-Bravais indicies.
-
-    """
-    """
-    
-    Returns
-    -------
-    None.
+    m_indices : np.array
+        (...,4) array of Miller-Bravais indices.
 
     """
 
-    #check inputs are the right size
-    MBindicies = np.atleast_1d(MBindicies)
-    if MBindicies.shape[-1] != 4:
-        raise ValueError("This function takes 4 value Miller-Bravais indicies as inputs.")
-    if not np.allclose(MBindicies[...,:3].sum(axis=-1), 0.0):
-        raise ValueError('Invalid inputs: the first three values must sum to zero')
+    # check inputs are the right size
+    m_indices = np.atleast_1d(m_indices)
+    if m_indices.shape[-1] != 3:
+        raise ValueError("This function takes 3 value Miller indices as inputs.")
 
-    #do conversion
-    Mindicies = np.zeros(MBindicies.shape[:-1]+ (3,), dtype=int)
-    Mindicies[..., 0] = int(MBindicies[..., 0] - MBindicies[..., 2])
-    Mindicies[..., 1] = int(MBindicies[..., 1] - MBindicies[..., 2])
-    Mindicies[..., 2] = int(MBindicies[..., 3])
-    
-    return Mindicies.squeeze()
+    # do conversion
+    mb_indices = np.zeros(m_indices.shape[:-1] + (4,), dtype=int)
+    mb_indices[..., 0] = m_indices[..., 0]
+    mb_indices[..., 1] = m_indices[..., 1]
+    mb_indices[..., 2] = -(m_indices[..., 0] + m_indices[..., 1])
+    mb_indices[..., 3] = m_indices[..., 2]
 
-    
-    
-def indicies3to4(Mindicies: np.typing.ArrayLike) -> np.ndarray:
+    return mb_indices.squeeze()
+
+
+def plane_indices_4_to_3(mb_indices: ArrayLike) -> np.ndarray:
     """
-    Cnoverts Miller (hkl) indicies into Miller-Bravais (hkil) indicies 
+    Converts set of Miller-Bravais plane indices (hkil) into Miller (hkl) indices
 
     Parameters
     ----------
-    Mindicies : np.typing.ArrayLike
-        (...,3) array of Miller indicies.
+    mb_indices : ArrayLike
+        (...,4) array of Miller-Bravais indices.
 
     Raises
     ------
     ValueError
-        If there are not 4 indicies.
-        If the sum of the first three indicies is not 0.
+        If there are not 4 indices.
+        If the sum of the first three indices is not 0.
 
     Returns
     -------
-    MBindicies : np.array
-        (...,4) array of Miller-Bravais indicies.
+    m_indices : np.array
+        (...,3) array of Miller indices.
 
     """
-    #check inputs are the right size
-    Mindicies = np.atleast_1d(Mindicies)
-    if Mindicies.shape[-1] != 3:
-        raise ValueError("This function takes 3 value Miller indicies as inputs.")
 
-    #do conversion
-    MBindicies = np.zeros(Mindicies.shape[:-1]+ (4,), dtype=int)
-    MBindicies[..., 0] = 1/3 * (2* Mindicies[..., 0] - Mindicies[..., 1])
-    MBindicies[..., 1] = 1/3 * (2* Mindicies[..., 1] - Mindicies[..., 0])
-    MBindicies[..., 2] = - (MBindicies[..., 0] + MBindicies[..., 1])
-    MBindicies[..., 3] = Mindicies[..., 2]
-    
-    return MBindicies.squeeze()
+    # check inputs are the right size
+    mb_indices = np.atleast_1d(mb_indices)
+    if mb_indices.shape[-1] != 4:
+        raise ValueError(
+            "This function takes 4 value Miller-Bravais indices as inputs."
+        )
+    if not np.allclose(mb_indices[..., :3].sum(axis=-1), 0.0):
+        raise ValueError("Invalid inputs: the first three values must sum to zero")
+
+    # do conversion
+    m_indices = np.zeros(mb_indices.shape[:-1] + (3,), dtype=int)
+    m_indices[..., 0] = mb_indices[..., 0]
+    m_indices[..., 1] = mb_indices[..., 1]
+    m_indices[..., 2] = mb_indices[..., 3]
+
+    return m_indices.squeeze()
+
+
+def vector_indices_3_to_4(m_indices: ArrayLike) -> np.ndarray:
+    """
+    Converts Miller vector indices (uvw) into Miller-Bravais indices (UVTW)
+
+    Parameters
+    ----------
+    m_indices : ArrayLike
+        (...,3) array of Miller vector indices.
+
+    Raises
+    ------
+    ValueError
+        If there are not 3 indices.
+
+    Returns
+    -------
+    mb_indices : np.array
+        (...,4) array of Miller-Bravais indices.
+    """
+    # check inputs are the right size
+    m_indices = np.atleast_1d(m_indices)
+    if m_indices.shape[-1] != 3:
+        raise ValueError("This function takes 3 value Miller indices as inputs.")
+
+    # Convert from uvw to UVTW
+    mb_indices = np.zeros(m_indices.shape[:-1] + (4,), dtype=int)
+    mb_indices[..., 0] = 2 * m_indices[..., 0] - m_indices[..., 1]
+    mb_indices[..., 1] = 2 * m_indices[..., 1] - m_indices[..., 0]
+    mb_indices[..., 2] = -(mb_indices[..., 0] + mb_indices[..., 1])
+    mb_indices[..., 3] = m_indices[..., 2] * 3
+
+    # Divide by highest common factor
+    mb_indices = mb_indices / np.gcd.reduce(mb_indices)
+
+    return mb_indices.squeeze()
+
+
+def vector_indices_4_to_3(mb_indices: ArrayLike):
+    """
+    Converts Miller-Bravais vector indices (UVTW) into Miller indices (uvw)
+
+    Parameters
+    ----------
+    mb_indices : ArrayLike
+        (...,4) array of Miller-Bravais indices.
+
+    Raises
+    ------
+    ValueError
+        If there are not 4 indices.
+        If the sum of the first three indices is not 0.
+
+    Returns
+    -------
+    m_indices : np.array
+        (...,3) array of Miller indices.
+    """
+
+    # Check inputs are the right size and are valid Miller-Bravais indices
+    mb_indices = np.atleast_1d(mb_indices)
+    if mb_indices.shape[-1] != 4:
+        raise ValueError(
+            "This function takes 4 value Miller-Bravais indices as inputs."
+        )
+    if not np.allclose(mb_indices[..., :3].sum(axis=-1), 0.0):
+        raise ValueError(
+            "This is not a valid Miller-Bravais index. "
+            "The sum of the first three indices must be equal to 0"
+        )
+
+    # Convert from UVTW to uvw
+    m_indices = np.zeros(mb_indices.shape[:-1] + (3,), dtype=int)
+    m_indices[0] = 2 * mb_indices[..., 0] + mb_indices[..., 1]
+    m_indices[1] = 2 * mb_indices[..., 1] + mb_indices[..., 0]
+    m_indices[2] = mb_indices[..., 3]
+    m_indices = m_indices / np.gcd.reduce(m_indices)
+
+    return m_indices.squeeze()

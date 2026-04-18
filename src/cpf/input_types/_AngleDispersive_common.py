@@ -10,6 +10,7 @@ from copy import deepcopy
 from skimage.util import shape
 
 from cpf.util.logging import get_logger
+from skimage.transform import rescale, resize, downscale_local_mean
 
 logger = get_logger("cpf.input_types._AngelDispersive_common")
 

@@ -1,0 +1,33 @@
+name: Delete preview documentation
+
+on:
+  delete:
+    branches:
+      - "**" # listen for any branch being deleted
+
+jobs:
+  remove-preview:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          persist-credentials: true
+
+      - name: Remove preview for deleted branch
+        run: |
+          BRANCH_NAME="${{ github.event.ref }}"
+          PREVIEW_DIR="preview/${BRANCH_NAME}"
+
+          echo "Deleting preview directory: ${PREVIEW_DIR}"
+          rm -rf "$PREVIEW_DIR"
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add -A
+          git commit -m "Remove preview docs for deleted branch ${{ github.event.ref }}" || echo "Nothing to commit"
+          git push

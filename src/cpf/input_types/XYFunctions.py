@@ -308,6 +308,7 @@ class XYDetector:
             self.conversion_constant = self.calibration["conversion_constant"]
         else:
             self.conversion_constant = False
+
         # self.azm_start = self.calibration["y_start"]
         # self.azm_end = self.calibration["y_end"]
 

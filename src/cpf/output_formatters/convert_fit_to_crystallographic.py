@@ -327,8 +327,6 @@ def fourier_to_crystallographic(
         if out_ang >=45:
             out_ang -= 180
 
-   
-
     """
     if positive_strain == "extension" or positive_strain == "wrong":
         # reverse the strain magnitudes
@@ -557,13 +555,18 @@ def fourier_to_unitcellvolume(
 
     uc_parts = jcpds_obj.get_unique_unitcell_params()
     uc_parms = {}
+    
+    #force observed value first in order
+    if not np.isnan(temperature) and pressure: 
+        uc_parms["temperature"] = jcpds_obj.temperature
+    
     for ind in range(len(uc_parts)):
         uc_parms[uc_parts[ind]] = getattr(jcpds_obj, uc_parts[ind]).nominal_value
         uc_parms[uc_parts[ind]+"_err"] = getattr(jcpds_obj, uc_parts[ind]).std_dev
     uc_parms["volume"] = jcpds_obj.v.nominal_value
     uc_parms["volume_err"] = jcpds_obj.v.std_dev
     
-    if not np.isnan(temperature): 
+    if not np.isnan(temperature) and pressure: 
         uc_parms["pressure"] = jcpds_obj.pressure.nominal_value
         uc_parms["pressure_err"] = jcpds_obj.pressure.std_dev
         for m,n,o in zip(jcpds_obj.get_reflection_stresses(), jcpds_obj.get_reflection_orientations(), jcpds_obj.get_reflection_hkls()):

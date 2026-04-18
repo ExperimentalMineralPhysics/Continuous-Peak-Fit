@@ -28,7 +28,12 @@ def Requirements():
     RequiredParams = [
         #'apparently none!
     ]
-    OptionalParams = ["fps", "file_types", "plot_style"]
+    OptionalParams = {
+        "fps": 10,  # frames per second
+        "file_types": ["mp4"],  # movie file type
+        "Irange": ["pt1percentile", "99pt9percentile"], # range of colour scale
+        "plot_type": "calibrated" 
+    }
 
     return RequiredParams, OptionalParams
 
@@ -63,9 +68,17 @@ def WriteOutput(settings, debug=False, **kwargs):
     # make sure settings is a class
     settings_class = get_settings(settings)
 
-    file_types = kwargs.pop("file_types", ".mp4")
-    fps = kwargs.pop("fps", 10.)
-    plot_type = kwargs.pop("plot_type", "calibrated")
+    # Parse optional parameters
+    fps        = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
+    file_types = settings_class.output_settings.get("file_types", Requirements()[1]["file_types"])
+    Irange     = settings_class.output_settings.get("Irange", Requirements()[1]["Irange"])
+    plot_type  = settings_class.output_settings.get("plot_type", Requirements()[1]["plot_type"])
+    #override with kwargs
+    fps        = kwargs.get("fps", fps)
+    file_types = kwargs.get("file_types", file_types)
+    Irange     = kwargs.get("Irange", Irange)
+    plot_type  = kwargs.get("plot_type", plot_type)
+
     # make sure file_types is a list.
     if isinstance(file_types, str):
         file_types = [file_types]
@@ -73,16 +86,6 @@ def WriteOutput(settings, debug=False, **kwargs):
         raise ValueError("The frames per second needs to be a number.")
     if plot_type != "collected" and plot_type != "calibrated":
         raise ValueError("plot_type must be 'collected' or 'calibrated'.")
-        
-    # if not "file_types" in kwargs:
-    #     file_types = ".mp4"
-    # # make sure file_types is a list.
-    # if isinstance(file_types, str):
-    #     file_types = [file_types]
-    # if not "fps" in kwargs:
-    #     fps = 10
-    # elif not isinstance(fps, float):
-    #     raise ValueError("The frames per second needs to be a number.")
 
     # make the base file name
     if settings_class:

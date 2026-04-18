@@ -25,11 +25,12 @@ logger = get_logger("cpf.output_formatters.ReadFits")
 
 def WriteFits(settings_class, fitted_param, filename_to_write=None, data_class=None, mode=None):
     """
-    Write fits  and many metadata to json files. 
+    Write fits and any metadata to json files. 
 
     Writees the files as:
-    {"metadata": {dict of metadata properties as named in settings class .... },
-     "fits:      [list of fits for each range in settings_class.fit_orders]"}
+    {"fits"":      [list of fits for each range in settings_class.fit_orders],
+     "metadata": {dict of metadata properties as named in settings class .... }
+     }
     
     Parameters
     ----------
@@ -255,9 +256,20 @@ def ReadFits_to_dataframe(
                     )
                     fits[z][i]["peak"][j]["crystallographic_values"] = crystallographic_values
                     
-                    height_properties = series_properties(fits[z], subpattern = i, peak=j, param="height")
-                    width_properties = series_properties(fits[z], subpattern = i, peak=j, param="width")
-                    profile_properties = series_properties(fits[z], subpattern = i, peak=j, param="profile")
+                    # it not continuous_azm then need to know where the detectors are
+                    if settings_class.data_class.continuous_azm == False:
+                        data_class = settings_class.data_class
+                        data_class.fill_data(
+                            settings_class.image_list[0],
+                            settings=settings_class,
+                        )
+                        azms = np.unique(data_class.azm)
+                    else:
+                        azms = 0.01 # default spacing 
+                    
+                    height_properties = series_properties(fits[z], subpattern = i, peak=j, param="height", azm_spacing=azms)
+                    width_properties = series_properties(fits[z], subpattern = i, peak=j, param="width", azm_spacing=azms)
+                    profile_properties = series_properties(fits[z], subpattern = i, peak=j, param="profile", azm_spacing=azms)
                     
                     fits[z][i]["peak"][j]["crystallographic_values"] = fits[z][i]["peak"][j]["crystallographic_values"] | height_properties
                     fits[z][i]["peak"][j]["crystallographic_values"] = fits[z][i]["peak"][j]["crystallographic_values"] | width_properties
@@ -309,7 +321,7 @@ def ReadFits_to_dataframe(
     # make list of headers for panda data frame
     headers = []
     headers.append("num")
-    headers.append("datafile")
+    headers.append("DataFile")
     headers.append("phase")
     headers.append("peak")
     # add metadata to list
@@ -384,13 +396,7 @@ def ReadFits_to_dataframe(
         if len(data_to_write["peak"]) > lists[z, 2]:
             RowLst["num"] = lists[z, 0]
             
-            # RowLst["DataFile"] = make_outfile_name(
-            #     settings_class.subfit_filename,
-            #     directory="",
-            #     extension=".json",
-            #     overwrite=True,
-            # )
-            RowLst["datafile"] = os.path.split(settings_class.subfit_filename)[1]
+            RowLst["DataFile"] = os.path.split(settings_class.subfit_filename)[1]
             
             # RowLst["Peak"] = peak_string(fits[lists[z, 0]][lists[z, 1]], peak=[lists[z, 2]], fname=False)
             RowLst["phase"] = peak_phase(fits[lists[z, 0]][lists[z, 1]], peak=[lists[z, 2]])[0]
@@ -438,7 +444,6 @@ def ReadFits_to_dataframe(
                         pass
                     
                 else:  # background
-                    
                     RowLst[ind+"_type"] =  data_to_write[ind+"_type"]
                     for u in range(len(data_to_write[ind])):
                         for v in range(len(data_to_write[ind][u])):
@@ -519,7 +524,6 @@ def read_metadata(settings_class):
     """
     Reads the metadata for the image specified in settings_class.subfit_filename.
     
-
     Parameters
     ----------
     settings_class : cpf settings class
@@ -529,8 +533,7 @@ def read_metadata(settings_class):
     Returns
     -------
     metadata : dict
-        metadate of the diffraction image
-
+        metadata of the diffraction image
     """
     
     if settings_class.subfit_filename == None:
@@ -549,4 +552,3 @@ def read_metadata(settings_class):
     metadata = new_data.get_metadata()
     
     return metadata
-

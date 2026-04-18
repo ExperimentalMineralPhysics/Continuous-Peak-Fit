@@ -776,7 +776,7 @@ def series_properties(
     subpattern=0,
     peak=0,
     param = "height",
-    precision = 0.01, # 
+    azm_spacing = 0.01, # 
     debug=False,
     **kwargs,
 ):
@@ -795,8 +795,11 @@ def series_properties(
         Which peak in the subpattern to calulcate parameters for. The default is 0.
     param: str, optional
         Peak profile parameter to calculate properties for
-    precision : float, optional
-        Precision to calulate the properties for (if required). 
+    azm_spacing : float or list or np.array, optional
+        either:
+            Precision to calulate the properties for (if required). 
+        or:
+            list of azimuths to calculate the properties at
     **kwargs : TYPE
         DESCRIPTION.
 
@@ -824,7 +827,7 @@ def series_properties(
 
     if not isinstance(coefficients, list):
         raise ValueError("The coefficients need to be a list of dictionaries.")
-
+            
     # catch 'null' terms in fits
     coefficients = replace_null_terms(coefficients, replace_with=np.nan)
 
@@ -849,8 +852,12 @@ def series_properties(
         properties["series mean err"] = np.nan
 
     # calulate maximum and minimum and their positions.
-    n = 360/precision + 1
-    orientations = np.linspace(0, 360, int(n))
+    if len(ma.unique(azm_spacing).compressed()) != 1:
+        # then need to use uniquie azimuths that were fed in
+        orientations = ma.unique(azm_spacing).compressed()
+    else:
+        n = 360/azm_spacing + 1
+        orientations = np.linspace(0, 360, int(n))
 
     vals = coefficient_expand(orientations, 
                               param=coefficients[subpattern]["peak"][peak][param], 

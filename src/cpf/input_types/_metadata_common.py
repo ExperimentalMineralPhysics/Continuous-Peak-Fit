@@ -23,6 +23,27 @@ class _metadata_common:
     Class definiing metadata function(s).
 
     These are imported into the detector functions as methods.
+
+    In the settings class and detector functions (referred to as data_class in the code) the metadata should work as follows:
+
+    settings.metadata_labels:
+        This is a dictionary that associates the metadata types needed by the output files to the metadata names in 
+        settings.metadata.
+        for example 
+        settings.metadata_labels = {"temperature": "tc1"} will use "tc1" from the metadata when temperature is called in the outputs. 
+
+    settings_class.metadata_labels are set during the settings class initiate from:
+        (a) dataclass._default_metadata_labels and overridden by 
+        (b) 'metadata_labels' in the input file
+    The default values set are 'time', temperature' and 'exposure'.
+    
+
+    settings.metadata:
+        is the list of metadata parameters that are to be read from the data files. 
+        The list is composed from (a) the 'metadata' values in the input file and the required values from the 
+
+
+
     """
     
     def get_metadata(self, metadata_values="default", report=None):
@@ -87,8 +108,8 @@ class _metadata_common:
         if "default" in metadata_values:
             metadata_values += time_opts
             metadata_values.remove('default')
-        time_location = self.metadata_labels.get('time_label', self._default_metadata_labels['time_label'])
-        exposure_location = self.metadata_labels.get('exposure_label', self._default_metadata_labels['exposure_label'])
+        time_location = self.metadata_labels.get('time', self._default_metadata_labels.get('time',None))
+        exposure_location = self.metadata_labels.get('exposure', self._default_metadata_labels.get('exposure', None))
         
         #parse metadata_values list 
         discard = []

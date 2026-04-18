@@ -1,6 +1,5 @@
 __all__ = ["Requirements", "WriteOutput"]
 
-# import cpf.PeakFunctions as ff
 import json
 import os
 
@@ -8,12 +7,11 @@ import numpy as np
 
 import cpf.series_functions as sf
 from  cpf.settings import get_settings
-from cpf.IO_functions import make_outfile_name, replace_null_terms
+from cpf.IO_functions import make_outfile_name
 from cpf.output_formatters.ReadFits import ReadFits_to_list
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WriteMultiFit")
-
 
 
 def Requirements():
@@ -22,11 +20,9 @@ def Requirements():
     RequiredParams = [
         #'apparently none!
     ]
-    OptionalParams = [
-        # "Output_ElasticProperties",  # FIXME: this needs to be included -- not needed or multifit. only for WritePolyDefix
-        # "Output_directory",  # if no direcrtory is specified write to current directory. -- not wrapped in the settings class and set by default
-        "Output_NumAziWrite",  # now set by default here therefore optional
-    ]
+    OptionalParams = {
+        "NumAziWrite": 90,  # now set by default here therefore optional}
+    }
 
     return RequiredParams, OptionalParams
 
@@ -46,8 +42,10 @@ def WriteOutput(
 
     Parameters
     ----------
-    settings_class : cpf settings class
-        Settings class used for fitting the data.
+    settings : cpf settings class, str, Path,
+        Settings class used for fitting the data. or 
+        Path to settings_class file or 
+        filename string for settings_class file
     differential_only : bool, optional
         Only include the differential part of the strain (cos^2 and sin^2 parts of the Fourier series). 
         Ignore the offset (cos and sin parts of the Fourier series).
@@ -60,16 +58,13 @@ def WriteOutput(
     """
     # make sure settings is a class
     settings_class = get_settings(settings)
-
-    # force all the kwargs that might be needed
-    if "Output_NumAziWrite" in settings_class.output_settings:
-        Num_Azi = settings_class.output_settings["Output_NumAziWrite"]
-    else:
-        Num_Azi = 90
-    Num_Azi = kwargs.get("Num_Azi", Num_Azi)
-
     wavelength = settings_class.data_class.conversion_constant
 
+    # Parse optional parameters
+    NumAziWrite             = settings_class.output_settings.get("NumAziWrite", Requirements()[1]["NumAziWrite"])
+    #override with kwargs
+    NumAziWrite             = kwargs.get("NumAziWrite", NumAziWrite)
+    
     # get the fits
     fits, _ = ReadFits_to_list(settings=settings_class)
     
@@ -144,12 +139,12 @@ def WriteOutput(
             # Range in azimuth of each window/subpattern. Preceeded by the number of azimuths
             text_file.write("# Range in azimuth: nvalues, and values\n")
             # [number of azimuth slices]
-            text_file.write("%10i\n" % Num_Azi)
+            text_file.write("%10i\n" % NumAziWrite)
             # [azimuth1
             # ...
             # azimuth last]
-            for k in range(int(Num_Azi)):
-                az = k / Num_Azi * 360
+            for k in range(int(NumAziWrite)):
+                az = k / NumAziWrite * 360
                 text_file.write("%10.1f\n" % az)
 
             # Start and end of the back ground in each subpattern
@@ -157,7 +152,7 @@ def WriteOutput(
             # [bg1left      bg1right
             # ... These are the minimum and maximum extent of the background in 2 theta
             # BGlastLeft    BGlastRight]
-            for k in range(int(Num_Azi)):
+            for k in range(int(NumAziWrite)):
                 text_file.write(
                     "%13.4f %13.4f\n"
                     % (data_to_write[j]["range"][0][0], data_to_write[j]["range"][0][1])
@@ -165,8 +160,8 @@ def WriteOutput(
 
             # value of the background intensity and slope (assuming a linear background)
             text_file.write("# background coefficients\n")
-            for k in range(int(Num_Azi)):
-                az = np.array([k / Num_Azi * 360])
+            for k in range(int(NumAziWrite)):
+                az = np.array([k / NumAziWrite * 360])
                 inter = sf.coefficient_expand(
                     az,
                     data_to_write[j]["background"][0],
@@ -203,8 +198,8 @@ def WriteOutput(
                     sym = data_to_write[j]["peak"][k]["symmetry"]
                 else:
                     sym = 1
-                for l in range(int(Num_Azi)):
-                    az = np.array([l / Num_Azi * 360])
+                for l in range(int(NumAziWrite)):
+                    az = np.array([l / NumAziWrite * 360])
                     if (
                         differential_only is False
                         or len(data_to_write[j]["peak"][k]["d-space"]) <= 3

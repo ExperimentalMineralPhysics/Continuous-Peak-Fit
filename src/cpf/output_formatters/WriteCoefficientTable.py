@@ -12,6 +12,7 @@ import pandas as pd
 import cpf.peak_functions as pf
 from  cpf.settings import get_settings
 from cpf.output_formatters.ReadFits import ReadFits_to_dataframe
+from cpf.output_formatters.output_csv import write_csv, make_header
 from cpf.IO_functions import make_outfile_name
 from cpf.util.logging import get_logger
 
@@ -25,10 +26,13 @@ def Requirements():
     RequiredParams = [
         #'apparently none!
     ]
-    OptionalParams = [
+    OptionalParams = {
         ##"Output_directory"  # if no direcrtory is specified write to current directory.
-        "coefs_vals_write"  # -- pick which set of coefficients to write
-    ]
+        "dp": 6,  # how many decimal points to write out
+        "col_width": 15,  # default column width for csv file.
+        "coefs_vals_write": "all",  # -- pick which set of coefficients to write
+        "ordering_of_output": None # Just leave as read -- otherwise list of dataframe headers to order by
+    }
 
     return RequiredParams, OptionalParams
 
@@ -43,41 +47,44 @@ def WriteOutput(
     """
     Write coefficents from fits to table/csv file. 
     
-    
+    Parameters
+    ----------
     settings : [str | Path | dict | Settings()]
         Class containing all variables and options needed for the fitting, or 
         dictionary of all the settings or 
         string or path to a file with the settings in.
-    :param fitStats: DESCRIPTION, defaults to True
-    :type fitStats: TYPE, optional
-    :param *args: DESCRIPTION
-    :type *args: TYPE
-    :param **kwargs: DESCRIPTION
-    :type **kwargs: TYPE
-    :raises ValueError: DESCRIPTION
-    :return: DESCRIPTION
-    :rtype: TYPE
+    fitStats : bool, optional
+        switch to include all the fit stats in the output file. The default is True.
+    *args : TYPE
+        DESCRIPTION.
+    **kwargs : TYPE
+        DESCRIPTION.
 
     """
 
     # make sure settings is a class
     settings_class = get_settings(settings)
 
-    # define defaults
-    dp = 6  # how many decimal points to write out
-    col_width = 15  # default column width for csv file.
-
-    ## output file version
-    # 1: ?
-    # 2: ?
-    # 3: rewritten as panda data frame - to force columns to line up.
-    version = 3
-
-    ordering_of_output = "peak"
+    # Parse optional parameters 
+    dp               = settings_class.output_settings.get("dp", Requirements()[1]["dp"])
+    col_width        = settings_class.output_settings.get("col_width", Requirements()[1]["col_width"])
+    coefs_vals_write = settings_class.output_settings.get("coefs_vals_write", Requirements()[1]["coefs_vals_write"])
+    ordering_of_output = settings_class.output_settings.get("ordering_of_output", Requirements()[1]["ordering_of_output"])
+    #override with kwargs
+    dp               = kwargs.get("dp", dp)
+    col_width        = kwargs.get("col_width", col_width)
+    coefs_vals_write = kwargs.get("coefs_vals_write", coefs_vals_write)
+    ordering_of_output = kwargs.get("ordering_of_output", ordering_of_output)
 
     # read the data.
     df = ReadFits_to_dataframe(settings=settings_class, fitStats=fitStats)
     headers = list(df.columns.values)
+    # cut data frame
+    if coefs_vals_write != "all":
+        df = df[coefs_vals_write]
+    #order the rows
+    if ordering_of_output:
+        df = df.sort_values(by=ordering_of_output) 
 
     # make filename for output
     base = settings_class.datafile_basename
@@ -93,90 +100,12 @@ def WriteOutput(
         overwrite=True,
         additional_text="all_coefficients",
     )
-
-    # write file using panda dataframe    
-
-    ## format dateframe for writing to file neatly.
-    # make strings in DateFile and Peak columns all the same length
-    len_datafile = np.max(df["datafile"].str.len())
-    len_peaks = np.max(df["peak"].str.len())
-    df_tmp = df["datafile"].str.pad(
-        np.max([len_datafile, col_width]), side="left", fillchar=" "
-    )
-    df["datafile"] = df_tmp
-    df_tmp = df["peak"].str.pad(
-        np.max([len_peaks, col_width]), side="left", fillchar=" "
-    )
-    df["peak"] = df_tmp
-
-    # rename the columns so that the headers are the same width as the columns
-    class NewClass(object):
-        pass
-
-    columns = NewClass()
-    for i in range(len(headers)):
-        if headers[i] == "datafile":
-            setattr(
-                columns,
-                headers[i],
-                headers[i].rjust(np.max([len_datafile, col_width])),
-            )
-        elif headers[i] == "peak":
-            setattr(
-                columns,
-                headers[i],
-                headers[i].rjust(np.max([len_peaks, col_width])),
-            )
-        else:
-            setattr(columns, headers[i], headers[i].rjust(col_width))
-    columns = columns.__dict__
-    df.rename(columns=columns, inplace=True)
-
-    # write data frame to csv file
-    with open(out_file, "w") as f:
-        logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
-
-        f.write(
-            "# continuous_peak_fit : Table of all coefficients from fits for input file: %s.\n"
-            % settings_class.settings_file
-        )
-        f.write("# For more information: http://www.github.com/me/something\n")
-        f.write("# File version: %i \n" % version)
-        f.write("# \n")
-
-        df.to_csv(
-            f,
-            index=False,
-            header=True,
-            na_rep="".ljust(col_width),
-            float_format=lambda x: f"{x:{str(col_width)}.{str(dp)}f}"
-                    if np.abs(x) > 0.1
-                    else f"{x:{str(col_width)}.{str(dp)}e}"
-                )
-        
-    # rewrite the file adjusting the column widths to keep the data lined up. 
-    with open(out_file, 'r') as fl: 
-        in_lines = fl.readlines() 
-    with open(out_file, 'w') as f:
-        for line in in_lines:
-            split_line = line.split(",")
-            split_line_out = []
-            running_length = 0
-            expected_length = 0
-            for i in range(len(split_line)):
-                if i==0: # first column. keep narrow
-                    col_here = 3
-                    if "num" in split_line[i]:
-                        split_line_out.append(f"{split_line[i].replace(' ',''):>{col_here}}")
-                    else:
-                        split_line_out.append(f"{split_line[i]:>{col_here}}")
-                elif i==1: # file names
-                    col_here = col_width
-                    split_line_out.append(f" {split_line[i]:>{col_here}}")
-                else: # data values. adjust column width to line everything up.
-                    col_here = np.max([0,col_width - (running_length-expected_length)])
-                    split_line_out.append(f"{split_line[i].replace(' ',''):>{col_here}}")
-                    running_length += len(split_line_out[-1])
-                    expected_length += col_width
-            out_line = ",".join(split_line_out)
-            f.write(out_line)
+    
+    ## outfile header
+    file_header = make_header(settings_class,
+                            fits="Fit coefficients", 
+                            calc_options=None
+                            )
+    
+    # write file using panda dataframe
+    write_csv(out_file, df, headers, file_header, col_width=col_width, dp=dp)

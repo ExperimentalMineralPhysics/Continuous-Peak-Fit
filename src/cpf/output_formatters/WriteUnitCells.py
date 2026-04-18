@@ -1,18 +1,13 @@
 __all__ = ["Requirements", "WriteOutput"]
 
-
-import json
 import os
-from itertools import product
-import re
 
 import numpy as np
-import pandas as pd
 
-import cpf.peak_functions as pf
-from  cpf.settings import get_settings
+from cpf.settings import get_settings
 from cpf.output_formatters.convert_fit_to_unitcell import fits_to_unitcell
 from cpf.IO_functions import make_outfile_name
+from cpf.output_formatters.output_csv import write_csv, make_header
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WriteCoefficientTable")
@@ -25,63 +20,86 @@ def Requirements():
     RequiredParams = [
         #'apparently none!
     ]
-    OptionalParams = [
+    OptionalParams = {
         ##"Output_directory"  # if no direcrtory is specified write to current directory.
-        "reflections_to_use"  # -- pick which set of reflections to use for unit cell volume
-        "phase" # -- pick whick phase to fit unit cell for.
-        "SampleGeometry" # -- geometry of the sample for determining the cnetres from. 2D or 3D.
-        "weighted" # -- weighted fit or not. True/False
-    ]
+        "reflections_to_use": "all",  # -- pick which set of reflections to use for unit cell volume
+        "phase": True, # -- pick whick phase to fit unit cell for.
+        "SampleGeometry": "3d", # -- geometry of the sample for determining the cnetres from. 2D or 3D.
+        "SampleDeformation": "compression",  # changes calculation between 'compression' and 'extension'.
+        "weighted": True, # -- weighted fit or not. True/False
+        "dp": 6,  # how many decimal points to write out
+        "col_width": 15,  # default column width for csv file.
+        "ordering_of_output": None # Just leave as read -- otherwise list of dataframe headers to order by
+    }
+    # OptionalParams = [
+    #     ##"Output_directory"  # if no direcrtory is specified write to current directory.
+    #     "reflections_to_use"  # -- pick which set of reflections to use for unit cell volume
+    #     "phase" # -- pick whick phase to fit unit cell for.
+    #     "SampleGeometry" # -- geometry of the sample for determining the cnetres from. 2D or 3D.
+    #     "weighted" # -- weighted fit or not. True/False
+    # ]
 
     return RequiredParams, OptionalParams
 
 
-# def WriteOutput(FitSettings, parms_dict, **kwargs):
 def WriteOutput(
     settings,
-    fitStats=True,
     *args,
     **kwargs,
 ):
     """
     Write unit-cell volumes derived from fitted peak centroids. Writes the values 
-    to table/csv file. 
-    
-    :param settings: cpf.settings.Settings() class
-    :param fitStats: DESCRIPTION, defaults to True
-    :type fitStats: TYPE, optional
-    :param *args: DESCRIPTION
-    :type *args: TYPE
-    :param **kwargs: DESCRIPTION
-    :type **kwargs: TYPE
-    :raises ValueError: DESCRIPTION
-    :return: DESCRIPTION
-    :rtype: TYPE
+    to table/csv file.     
+
+    Parameters
+    ----------
+    settings : cpf.settings.Settings() class 
+        input file or settings class used to make the fits.
+    *args : TYPE
+        DESCRIPTION.
+    **kwargs : TYPE
+        DESCRIPTION.
 
     """
 
     # make sure settings is a class
     settings_class = get_settings(settings)
 
+    # Parse optional parameters 
+    reflections_to_use = settings_class.output_settings.get("reflections_to_use", Requirements()[1]["reflections_to_use"]) # -- pick which set of reflections to use for unit cell volume
+    phase              = settings_class.output_settings.get("phase", Requirements()[1]["phase"])
+    SampleGeometry     = settings_class.output_settings.get("SampleGeometry", Requirements()[1]["SampleGeometry"])
+    SampleDeformation = settings_class.output_settings.get("SampleDeformation", Requirements()[1]["SampleDeformation"])
+    weighted           = settings_class.output_settings.get("weighted", Requirements()[1]["weighted"])
+    dp                 = settings_class.output_settings.get("dp", Requirements()[1]["dp"])
+    col_width          = settings_class.output_settings.get("col_width", Requirements()[1]["col_width"])
+    ordering_of_output = settings_class.output_settings.get("ordering_of_output", Requirements()[1]["ordering_of_output"])
+    #override with kwargs
+    reflections_to_use = kwargs.get("reflections_to_use", reflections_to_use)
+    phase              = kwargs.get("phase", phase)
+    SampleGeometry     = kwargs.get("SampleGeometry", SampleGeometry)
+    SampleDeformation  = kwargs.get("SampleDeformation", SampleDeformation)
+    weighted           = kwargs.get("weighted", weighted)
+    dp                 = kwargs.get("dp", dp)
+    col_width          = kwargs.get("col_width", col_width)
+    ordering_of_output = kwargs.get("ordering_of_output", ordering_of_output)
+
     # force all the kwargs that might be needed
-    kwargs.pop("temperature", np.nan) # supress calculations of pressure in outputs
-
-    # define defaults
-    dp = 6  # how many decimal points to write out
-    col_width = 15  # default column width for csv file.
-
-    ## output file version
-    # 1: ?
-    # 2: ?
-    # 3: rewritten as panda data frame - to force columns to line up.
-    version = 3
-
-    ordering_of_output = "peak"
-
+    set_params = {#"temperature": np.nan,
+                "reflections_to_use": reflections_to_use,
+                "phase": phase,
+                "SampleGeometry": SampleGeometry,
+                "weighted": weighted,
+                "pressure": False, # to supress pressure, and stresses
+                }
+    kwargs.update(set_params)
+    
     # get the unit cells from settings.
     df = fits_to_unitcell(settings, **kwargs)
-    
     headers = list(df.columns.values)
+    #order the rows
+    if ordering_of_output:
+        df = df.sort_values(by=ordering_of_output) 
 
     # make filename for output
     base = settings_class.datafile_basename
@@ -98,125 +116,23 @@ def WriteOutput(
         additional_text="unit_cells",
     )
 
-    # write file using panda dataframe    
-
-    ## format dateframe for writing to file neatly.
-    # make strings in DateFile and Peak columns all the same length
-    len_datafile = np.max(df["DataFile"].str.len())
-    # len_peaks = np.max(df["Peak"].str.len())
-    df_tmp = df["DataFile"].str.pad(
-        np.max([len_datafile, col_width]), side="left", fillchar=" "
-    )
-    df["DataFile"] = df_tmp
-    # df_tmp = df["Peak"].str.pad(
-    #     np.max([len_peaks, col_width]), side="left", fillchar=" "
-    # )
-    # df["Peak"] = df_tmp
-
-    # rename the columns so that the headers are the same width as the columns
-    class NewClass(object):
-        pass
-
-    columns = NewClass()
-    for i in range(len(headers)):
-        if headers[i] == "DataFile":
-            setattr(
-                columns,
-                headers[i],
-                headers[i].rjust(np.max([len_datafile, col_width])),
-            )
-        else:
-            setattr(columns, headers[i], headers[i].rjust(col_width))
-    columns = columns.__dict__
-    df.rename(columns=columns, inplace=True)
-
-    # make sure residual columns are saved as a single string with no line breaks.
-    colms = [col for col in df.columns if 'residuals' in col]
-    for i in colms:
-        df[i] = df[i].apply(lambda x: np.array2string(x, separator=";", max_line_width=np.inf, formatter={"float_kind": lambda x: float_to_string_formatter(x, dp, 10) }, sign=" "))
-        # df[i] = df[i].apply(lambda x: np.array2string(x, separator=";", max_line_width=np.inf, formatter={"float_kind": lambda x: f"{x:{str(col_width)}.{str(dp)}f}" if np.abs(x) > 0.1 else f"{x:{str(col_width)}.{str(dp)}e}"}))
-       
+    ## outfile header
+    calc_options = {}
+    calc_options["Sample Geometry"] = SampleGeometry
+    calc_options["Sample Deformation"] = SampleDeformation
     #remove hkls from data frame -- write as a header instead
     cols = [col for col in df.columns if 'hkl' in col]
     hkls = {}
     for i in cols:
         hkls[i] = df[i].iloc[0]
         df = df.drop(i, axis=1)
-        
-        # df[i] = df[i].apply(lambda x: np.array2string(x, separator=";", max_line_width=np.inf))
+    if hkls:
+        calc_options["peaks used"] = []
+        calc_options["peaks used"] += [','.join(f"{{{value}}}" for key, value in hkls.items())]
+    file_header = make_header(settings_class,
+                            derived="Unit Cells", 
+                            calc_options=calc_options
+                            )
 
-    # write data frame to csv file
-    with open(out_file, "w") as f:
-        logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
-
-        f.write(
-            "# continuous_peak_fit : Table of unit cells from fits for input file: %s.\n"
-            % settings_class.settings_file
-        )
-        f.write("# For more information: http://www.github.com/me/something\n")
-        f.write("# File version: %i \n" % version)
-        f.write("# \n")
-
-        if len(hkls) >= 1:
-            for i in list(hkls):
-                f.write("# Peaks used in volume calculations: \n")
-                f.write(f"#    {i.replace("hkls","").replace("hkl","").strip()} : ")
-                for j in hkls[i]:
-                    f.write(f"({j}) ")
-                f.write("\n# \n")     
-
-        df.to_csv(
-            f,
-            index=False,
-            header=True,
-            na_rep="".ljust(col_width),
-            float_format=lambda x: f"{x:{str(col_width)}.{str(dp)}f}"
-                    if np.abs(x) > 0.1
-                    else f"{x:{str(col_width)}.{str(dp)}e}"
-                )
-        
-    # rewrite the file adjusting the column widths to keep the data lined up. 
-    with open(out_file, 'r') as fl: 
-        in_lines = fl.readlines() 
-    with open(out_file, 'w') as f:
-        for line in in_lines:
-            split_line = line.split(",")
-            split_line_out = []
-            running_length = 0
-            expected_length = 0
-            for i in range(len(split_line)):
-                if i==0: # first column. keep narrow
-                    col_here = 3
-                    if "num" in split_line[i]:
-                        split_line_out.append(f"{split_line[i].replace(' ',''):>{col_here}}")
-                    else:
-                        split_line_out.append(f"{split_line[i]:>{col_here}}")
-                elif i==1: # file names
-                    col_here = col_width
-                    split_line_out.append(f" {split_line[i]:>{col_here}}")
-                else: # data values. adjust column width to line everything up.
-                    col_here = np.max([0,col_width - (running_length-expected_length)])
-                    split_line_out.append(f"{split_line[i].replace(' ',''):>{col_here}}")
-                    running_length += len(split_line_out[-1])
-                    expected_length += col_width
-
-            out_line = ",".join(split_line_out)
-            f.write(out_line)
-
-
-def float_to_string_formatter(x, dp=5, col_width=10):
-    if np.abs(x) > 0.1 and np.log10(np.abs(x)) < col_width-dp-4:
-        if x > 0:
-            x = f" {x:{str(col_width)}.{str(dp)}f}" 
-        else:
-            x = f"{x:{str(col_width)}.{str(dp)}f}" 
-    # elif np.log10(np.abs(x)) > col_width-dp-1:
-    #     x = f"{x:{str(col_width)}.{str(dp)}e}"
-    else:
-        if x > 0:
-            x = f" {x:{str(col_width)}.{str(dp)}e}"
-        else:
-            x = f"{x:{str(col_width)}.{str(dp)}e}"
-    return x
-    
-    
+    # write file using panda dataframe
+    write_csv(out_file, df, headers, file_header, col_width=col_width, dp=dp)

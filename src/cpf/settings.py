@@ -154,8 +154,9 @@ class Settings:
         self.fit_track: bool = False
         self.fit_propagate: bool = True
 
+        self.metadata = []#None
+        self.metadata_labels = {}#None
         self.metadata_read = None
-        self.metadata_labels = None
 
         self.cascade_bin_type: Optional[int] = (
             0  # set default type - number data per bin
@@ -542,13 +543,6 @@ class Settings:
         if "fit_min_peak_intensity" in list(self.settings_from_input):
             self.fit_min_peak_intensity = self.settings_from_input["fit_min_peak_intensity"]
 
-        if "metadata_read_func" in list(self.settings_from_input):
-            self.metadata_read_func = self.settings_from_input["metadata_read_func"]
-        if "metadata" in list(self.settings_from_input):
-            self.metadata = self.settings_from_input["metadata"]
-        if "metadata_labels" in list(self.settings_from_input):
-            self.metadata_labels = self.settings_from_input["metadata_labels"]
-
         if "AziDataPerBin" in list(self.settings_from_input):
             self.fit_per_bin = self.settings_from_input["AziDataPerBin"]
             self.fit_bin_type = 0
@@ -558,11 +552,12 @@ class Settings:
         if "AziBinType" in list(self.settings_from_input):
             self.fit_bin_type = self.settings_from_input["AziBinType"]
 
-        if "Output_type" in list(self.settings_from_input):
-            self.set_output_types(out_type_list=self.settings_from_input["Output_type"])
-
         # load the data class.
         self.data_class = detector_factory(settings_class=self)
+        
+        #set metadata after data class so can get metadata defaults from it
+        self.set_output_types()
+        self.set_metadata()
         
         if validate == True:
             self.validate_settings_file()
@@ -1229,6 +1224,7 @@ class Settings:
         else:
             logger.info(" ".join(map(str, [("fit_bounds appears to be correct")])))
 
+
     def set_output_types(
         self,
         out_type_list: list[str] = [],
@@ -1241,6 +1237,109 @@ class Settings:
         """
         if out_type_list:
             self.output_types = get_output_options(out_type_list)
+        elif "Output_type" in self.settings_from_input:
+            self.output_types = get_output_options(self.settings_from_input["Output_type"])
+        else:
+            self.output_types = []
+            
+        # get the lists of required an optional values. 
+        # store in the settings. 
+        disagree = []
+        required = []
+        output_settings = {}
+        for i in range(len(self.output_types)):
+            wr = getattr(output_formatters, "Write" + self.output_types[i])
+            r,o = wr.Requirements()
+            # store all the required options to parse next
+            required.extend(r)
+            # filter optional settings in single dictionary.
+            for j in list(o):
+                if j in output_settings and o[j] != output_settings[j]:
+                    # defaults are not in agreement
+                    disagree.append(j)
+                output_settings[j] = o[j]
+        
+        # parse output_* [old format for outputs]
+        for j in output_settings:
+            if "output_"+j in self.settings_from_input:
+                output_settings[j] = self.settings_from_input["output_"+j]
+            elif "Output_"+j in self.settings_from_input:
+                output_settings[j] = self.settings_from_input["Output_"+j]
+            if j in disagree and j in list(self.settings_from_input):
+                disagree.remove(j)
+            if j in required and j in list(self.settings_from_input):
+                required.remove(j)
+        for j in required:
+            if "output_"+j in self.settings_from_input:
+                output_settings[j] = self.settings_from_input["output_"+j]
+            elif "Output_"+j in self.settings_from_input:
+                output_settings[j] = self.settings_from_input["Output_"+j]
+            if j in disagree and j in list(self.settings_from_input):
+                disagree.remove(j)
+            if j in required and j in list(self.settings_from_input):
+                required.remove(j)
+        # parse output_options dictionary [new format for outputs]
+        # new style overrides old style
+        if "output_options" in [item.lower() for item in list(self.settings_from_input)]:
+            for key, value in self.settings_from_input["output_options"].items():
+                output_settings[key] = value
+                if key in disagree and key in list(self.settings_from_input["output_options"]):
+                    disagree.remove(key)
+                if key in required and key in list(self.settings_from_input["output_options"]):
+                    required.remove(key)
+            
+            # for j in len(self.settings_from_input["output_options"]):
+            #     output_settings[j] = self.settings_from_input.output_options[j]
+            #     if j in disagree and j in list(self.settings_from_input.output_options):
+            #         disagree.remove(j)
+            #     if j in required and j in list(self.settings_from_input.output_options):
+            #         required.remove(j)
+                    
+        self.output_settings = output_settings
+        if disagree:
+            logger.warning("There are conflicts between outputs for the following parameters:")
+            for i in range(len(disagree)):
+                logger.warning(f" {disagree[i]},")
+            logger.warning("The convlicting parameters listed above may prevent outputs being written as expected.")
+            logger.warning("These need to be changed.")
+
+            
+    def set_metadata(self,
+            report: Literal[
+                "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+            ] = "INFO",
+    ):
+        """
+        Set metadata required by the outputs.
+        Parses input file and output file requirements to confirm all requirements are present.
+        """
+        # get default labels if they exist.
+        if (self.data_class and 
+            "_default_metadata_labels" in self.data_class.__dict__):
+            self.metadata_labels.update(self.data_class._default_metadata_labels)
+        # use set values - if given 
+        if "metadata_labels" in self.settings_from_input:
+            self.metadata_labels.update(self.settings_from_input["metadata_labels"])
+            
+        # get metadata from inputs
+        if "metadata" in self.settings_from_input:
+            self.metadata = list(set(self.metadata + self.settings_from_input["metadata"]))
+        # make sure values from metadata_labels are in the list
+        self.metadata = list(set(self.metadata + list(self.metadata_labels.values())))
+        
+        # check for wildcards (*) and remove if another metadata corresponds
+        remove = []
+        for i in self.metadata:
+            if "*" in i:
+                regex = re.compile(i.replace("*", ".*"))
+                filtered = [
+                    item for item in self.metadata
+                    if re.match(regex, item) # Checks if each item matches the regex.
+                ]
+                if len(filtered) == 2:
+                    remove.append(i)
+        self.metadata = list(set(self.metadata) - set(remove))
+        
 
     def validate_output_types(self, report=False):
         """
@@ -1260,56 +1359,34 @@ class Settings:
                     "type exists."
                 )
 
-        missing = []
+        # get the lists of required an optional values. 
+        # store in the settings. 
+        required = []
+        optional = []
         for i in range(len(self.output_types)):
             wr = getattr(output_formatters, "Write" + self.output_types[i])
-            required, optional = wr.Requirements()
-            for j in range(len(required)):
-                try:
-                    self.output_settings[required[j]] = getattr(
-                        self.settings_from_input, required[j]
-                    )
-                except:
-                    missing.append(
-                        "The output "
-                        + self.output_types[i]
-                        + " requires the setting "
-                        + required[j]
-                    )
-            for j in range(len(optional)):
-                try:
-                    self.output_settings[optional[j]] = getattr(
-                        self.settings_from_input, optional[j]
-                    )
-                except:
-                    missing.append(
-                        "The output '"
-                        + self.output_types[i]
-                        + "' is missing the optional setting '"
-                        + optional[j]
-                        + "'"
-                    )
+            r,o = wr.Requirements()
+            # store all the required options to parse next
+            required.extend(r)
+            optional.extend(o)
+            
+        # list missing parameters            
+        required = list(set(required) - set(list(self.output_settings)))
+        optional = list(set(optional) - set(list(self.output_settings)))
 
-        if missing:
-            logger.warning(" ".join(map(str, [("Missing output settings:")])))
-            for i in range(len(missing)):
-                logger.warning(" ".join(map(str, [(missing[i])])))
-            logger.warning(
-                " ".join(
-                    map(
-                        str,
-                        [
-                            (
-                                "The issues listed above may prevent outputs being written correctly"
-                            )
-                        ],
-                    )
-                )
-            )
+        if optional:
+            logger.warning("There are optional output parameters not set:")
+            for i in range(len(optional)):
+                logger.warning(f" {optional[i]}")
+        if required:
+            logger.warning("There are required output parameters not set:")
+            for i in range(len(required)):
+                logger.warning(f" {required[i]}")
+        if optional or required:
+            logger.warning("These parameters need to be set in order to proceed")
         else:
-            logger.info(
-                " ".join(map(str, [("The output settings appear to be in order")]))
-            )
+            logger.info("The output settings appear to be in order")
+
 
     def set_data_files(
         self,

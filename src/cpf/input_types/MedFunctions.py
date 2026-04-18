@@ -81,8 +81,9 @@ class MedDetector:
 
         self.reduce_by = None
 
-        self._default_metadata_labels = {"time_label": "mean_start_time", # file creation time.
-                                  'exposure_label': 'mean_live_time'}
+        self._default_metadata_labels = {"time": "mean_start_time", # file creation time.
+                                  'exposure': 'mean_live_time',
+                                  "temperature": "*LVP_tc1_calcs.I"}
         
         self.calibration = None
         self.conversion_constant = None

@@ -32,14 +32,18 @@ def Requirements():
     RequiredParams = [
         #'apparently none!
     ]
-    OptionalParams = ["fps", "file_types"]
+    OptionalParams = {
+        "fps": 10,  # frames per second
+        "file_types": ["mp4"],  # movie file type
+        "Irange": ["pt1percentile", "99pt9percentile"] # range of colour scale
+    }
 
     return RequiredParams, OptionalParams
 
 
 def WriteOutput(settings, debug=False, **kwargs):
     """
-    Writes a *.?? file of the fits.
+    Writes a movie file of the fits.
 
     N.B. this output requires the data files to be present to work.
 
@@ -63,36 +67,29 @@ def WriteOutput(settings, debug=False, **kwargs):
     # make sure settings is a class
     settings_class = get_settings(settings)
     
-    if not "file_types" in kwargs:
-        file_types = ".mp4"
+    # Parse optional parameters
+    fps        = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
+    file_types = settings_class.output_settings.get("file_types", Requirements()[1]["file_types"])
+    Irange     = settings_class.output_settings.get("Irange", Requirements()[1]["Irange"])
+    #override with kwargs
+    fps        = kwargs.get("fps", fps)
+    file_types = kwargs.get("file_types", file_types)
+    Irange     = kwargs.get("Irange", Irange)
+
     # make sure file_types is a list.
     if isinstance(file_types, str):
         file_types = [file_types]
-    if not "fps" in kwargs:
-        fps = 10
-    elif not isinstance(fps, float):
+    if not isinstance(fps, float) and not isinstance(fps, int):
         raise ValueError("The frames per second needs to be a number.")
-    if not "Irange" in kwargs:
-        Irange = ["pt1percentile", "99pt9percentile"]
         
     # make the base file name
     base = settings_class.datafile_basename
     if base is None or len(base) == 0:
-        logger.info(
-            " ".join(
-                map(
-                    str,
-                    [("No base filename, trying ending without extension instead.")],
-                )
-            )
-        )
+        logger.info("No base filename, trying ending without extension instead.")
         base = settings_class.datafile_ending
     if base is None:
-        logger.info(
-            " ".join(map(str, [("No base filename, using input filename instead.")]))
-        )
+        logger.info("No base filename, using input filename instead.")
         base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
-
 
     # get the fits
     all_fits, _ = ReadFits_to_list(settings=settings_class)

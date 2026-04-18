@@ -81,8 +81,8 @@ class DioptasDetector:
         self.reduce_by = None
 
         self.metadata = None
-        self._default_metadata_labels = {"time_label": "FILE_CREATION", # file creation time.
-                                  'exposure_label': None}
+        self._default_metadata_labels = {"time": "FILE_CREATION", # file creation time.
+                                  }
         
         self._default_h5_datakey = '/*.1/measurement/p3/'
         self._default_h5_iterate = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},

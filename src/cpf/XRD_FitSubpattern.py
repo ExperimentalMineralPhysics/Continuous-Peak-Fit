@@ -256,6 +256,7 @@ def fit_sub_pattern(
     # set a limit to the maximum number of function evaluations.
     # make variable in case need more iterations for other data
     default_max_f_eval = 400
+    max_f_eval =  default_max_f_eval
 
     # Measure the elapsed time during fitting.
     # To help decide what is bad fit or if over fitting the data.
@@ -297,18 +298,7 @@ def fit_sub_pattern(
         any_bad_vals = any_errors_huge(previous_params, large_errors=large_errors, any_huge=any_bad_vals)
         if any_bad_vals == True:
             # the previous fit has problems so discard it
-            logger.moreinfo(
-                " ".join(
-                    map(
-                        str,
-                        [
-                            (
-                                "Propagated fit has problems so discarding it and doing fit from scratch"
-                            )
-                        ],
-                    )
-                )
-            )
+            logger.moreinfo("Propagated fit has problems so discarding it and doing fit from scratch")
             previous_params = None
 
     if previous_params:
@@ -330,18 +320,7 @@ def fit_sub_pattern(
             np.min(fit_centroid) < settings_as_class.subfit_orders["range"][0]
             or np.min(fit_centroid) > settings_as_class.subfit_orders["range"][1]
         ):
-            logger.moreinfo(
-                " ".join(
-                    map(
-                        str,
-                        [
-                            (
-                                "Fitted d-spacing limits are out of bounds; discarding the fit and starting again."
-                            )
-                        ],
-                    )
-                )
-            )
+            logger.moreinfo("Fitted d-spacing limits are out of bounds; discarding the fit and starting again.")
             previous_params = None
 
     # initiate counter for while loop.
@@ -349,7 +328,7 @@ def fit_sub_pattern(
         previous_params = None # make sure expected value for later
         step = [0]
     else:
-        step = [5]
+        step = [15]
 
     if previous_params and settings_as_class.subfit_orders:
         # If we have both, order takes precedence so update previous_params to match
@@ -369,39 +348,26 @@ def fit_sub_pattern(
         # for chunks step <= 9 and for refine <= 19
         # we are using increments of 10 so that it is possible to record different states or routes after the final fit.
 
+        # initiate the model parameter set which is needed for all possible outcomes.
+        # if previous_params = None initiates an empty set.
+        master_params = lmm.initiate_all_params_for_fit(
+            settings_as_class,
+            data_as_class,
+            values=previous_params,
+            debug=debug,
+        )
+        
+        # Measure the time taken to do the chunks, the elapsed time during fitting.
+        # To help decide which is the best peak parameters.
+        chunks_start = time.time()
+        
         if step[-1] <= 9:
             # generate chunks and initial fits
             # or parse previous fits into correct data structure
-
-            # Measure the time taken to do the chunks, the elapsed time during fitting.
-            # To help decide which is the best peak parameters.
-            chunks_start = time.time()
-
-            # initiate the model parameter set which is needed for all possible outcomes.
-            # if previous_params = None initiates an empty set.
-            master_params = lmm.initiate_all_params_for_fit(
-                settings_as_class,
-                data_as_class,
-                values=previous_params,
-                debug=debug,
-            )
-
             # check if the data intensity is above threshold.
             if np.max(data_as_class.intensity) <= min_data_intensity:
                 # then there is likely no determinable peak in the data
-                logger.moreinfo(
-                    " ".join(
-                        map(
-                            str,
-                            [
-                                (
-                                    "Not sufficient intensity in the data to proceed with fitting (I_max < %s)."
-                                    % min_data_intensity
-                                )
-                            ],
-                        )
-                    )
-                )
+                logger.moreinfo(f"Not sufficient intensity in the data to proceed with fitting (I_max < {min_data_intensity}).")
                 # set step to -21 so that it is still negative at the end
                 step.append(-21)  # get to the end and void the fit
                 # void so send empty parameter set to out.
@@ -497,19 +463,7 @@ def fit_sub_pattern(
 
                 if np.max(ave_intensity) <= min_peak_intensity:
                     # then there is no determinable peak(s) in the data
-                    logger.moreinfo(
-                        " ".join(
-                            map(
-                                str,
-                                [
-                                    (
-                                        "Not sufficient intensity in the chunked peaks to proceed with fitting (h_max < %s)."
-                                        % min_peak_intensity
-                                    )
-                                ],
-                            )
-                        )
-                    )
+                    logger.moreinfo(f"Not sufficient intensity in the chunked peaks to proceed with fitting (h_max < {min_peak_intensity}).")
                     # set step to -11 so that it is still negative at the end
                     step.append(-11)  # get to the end and void the fit
                     # void so send empty parameter set to out.
@@ -520,18 +474,7 @@ def fit_sub_pattern(
                     )
 
             elif step[-1] >= 0 and previous_params:
-                logger.moreinfo(
-                    " ".join(
-                        map(
-                            str,
-                            [
-                                (
-                                    "Using previously fitted parameters and propagating fit"
-                                )
-                            ],
-                        )
-                    )
-                )
+                logger.moreinfo("Using previously fitted parameters and propagating fit")
                 # FIX ME: This should load the saved lmfit Parameter class object.
                 # Need to initiate usage (save and load).
                 # For now have propagated use of new_params so re-instantiate the master_params object below,
@@ -539,12 +482,12 @@ def fit_sub_pattern(
 
                 # FIX ME: need to confirm the number of parameters matches the orders of the fits.
 
-            chunks_end = time.time()
             step.append(step[-1] + 10)
+        chunks_end = time.time()
 
         if step[-1] >= 10:
             # if refine or step>=10 or not PreviousParams:
-            if refine or step[-1] != 10 or step[-1] != 15 and iterations >= 1:
+            if (refine or step[-1] != 10 or step[-1] != 15) and iterations >= 1:
                 # Iterate over each parameter series in turn.
                 logger.moreinfo(
                     " ".join(
@@ -714,6 +657,8 @@ def fit_sub_pattern(
                 if np.max(ave_intensity) <= min_peak_intensity:
                     # then there is no determinable peak in the data
                     logger.moreinfo("Not sufficient intensity in the chunked peaks to proceed with fitting.")
+                    logger.moreinfo(f"most inense chunk {np.max(ave_intensity)} <= min allowed peak intensity {min_peak_intensity}")
+                    # logger.moreinfo("Not sufficient intensity in the chunked peaks to proceed with fitting.")
                     # set step to -101 so that it is still negative at the end
                     step.append(-101)  # get to the end and void the fit
                     fout = master_params
@@ -727,19 +672,7 @@ def fit_sub_pattern(
             # import/export within lmfit.
 
             # Refit through full equation with all data for d,h,w,bg independently
-            logger.moreinfo(
-                " ".join(map(str, [("Final fit solving for all parms...")]))
-            )
-
-            if any(x == step[-1] for x in [20, 21, 22, 25, 26, 27]):
-                # if we are on the first go round of the fitting.
-                max_n_f_eval = default_max_f_eval
-            elif any(x == step[-1] for x in [23, 28]):
-                max_n_f_eval = 2 * default_max_f_eval
-            elif any(x == step[-1] for x in [24, 29]):
-                max_n_f_eval = np.inf
-            else:
-                raise ValueError("The value of step here is not possible. Oops.")
+            logger.moreinfo("Final fit solving for all parms...")
 
             # set all parameters to vary
             for k in range(len(settings_as_class.subfit_orders["background"])):
@@ -788,80 +721,55 @@ def fit_sub_pattern(
                 start_end=[data_as_class.azm_start, data_as_class.azm_end],
                 fit_method=fit_method,
                 weights=None,
-                max_n_fev=max_n_f_eval,
+                max_n_fev=max_f_eval,
             )
             master_params = fout.params
 
             if (
-                fout.success == 1
+                fout.success is True
                 and previous_params != None
-                and any_errors_huge(
+                and  any_errors_huge(
                     lmm.params_to_new_params(
                         master_params, orders=settings_as_class.subfit_orders
                     ),
                     large_errors=large_errors,
-                )
-                == 0
+                ) == True
             ):
-                logger.moreinfo(
-                    " ".join(
-                        map(
-                            str,
-                            [
-                                (
-                                    "The fitting worked, but propagated params could have lead to rubbish fits (huge errors). Try again."
-                                )
-                            ],
-                        )
-                    )
-                )
+                logger.moreinfo("The fitting worked, but propagated params could have lead to rubbish fits (huge errors). Try again.")
                 step.append(0)
                 # clear previous_params so we can't get back here
                 previous_params = None
             elif (
-                fout.success == 1
+                fout.success is True
                 and previous_params != None
                 and any_terms_null(master_params, val_to_find=None) == True
             ):
-                logger.moreinfo(
-                    " ".join(
-                        map(
-                            str,
-                            [
-                                (
-                                    "The fitting worked, but propagated params could have lead to rubbish fits (null values). Try again."
-                                )
-                            ],
-                        )
-                    )
-                )
+                logger.moreinfo("The fitting worked, but propagated params could have lead to rubbish fits (null values). Try again.")
                 step.append(0)
                 # clear previous_params so we can't get back here
                 previous_params = None
-            elif fout.success == 1:
+            elif fout.success: #True
                 # it worked, errors are not massive, carry on
                 step.append(step[-1] + 100)
                 master_params = fout.params
-            elif step[-1] == 24 and fout.success == 0:
-                err_str = "Oh Dear. It should not be possible to get here. Something has gone very wrong with the fitting."
-                logger.critical(" ".join(map(str, [(err_str)])))
-                # raise ValueError(err_str)
-                step.append(step[-1] - 1000)
-            elif step[-1] == 29 and fout.success == 0:
-                step.append(
-                    0
-                )  # go back to the start, discard PreviousParams and do the chunks for this data set.
             elif any(x == step[-1] for x in [20, 25]) and fout.success == 0:
-                step.append(step[-1] - 7)
-                iterations = np.max((iterations, 3))
-            elif (
-                any(x == step[-1] for x in [21, 22, 23, 26, 27, 28])
-                and fout.success == 0
-            ):
+                # increase iterations and try again
                 step.append(step[-1] - 9)
-                if any(x == step[-1] for x in [23, 28]):
-                    iterations = np.max((iterations, 3))
-            else:  # step is 24
+                iterations = np.max((iterations, 5))
+            elif any(x == step[-1] for x in [21, 26]) and fout.success == 0:
+                # increase function evaluations and try again
+                step.append(step[-1] - 9)
+                max_f_eval = 2 * default_max_f_eval
+            elif any(x == step[-1] for x in [22, 27]) and fout.success == 0:
+                # just go bananas
+                step.append(step[-1] - 9)
+                max_f_eval = np.inf
+            elif step[-1] == 28 and fout.success == 0:
+                # we tried all the way with the previous fits. 
+                # get rid of them and start again
+                step.append(0)
+                previous_params = None
+            else: #23,24,29 and other values >=30
                 err_str = "The value of step here should not be achievable. Oops. \n The data is not fitting. Discard."
                 logger.critical(" ".join(map(str, [(err_str)])))
                 step.append(step[-1] - 200)

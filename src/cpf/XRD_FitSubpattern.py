@@ -1007,6 +1007,11 @@ def fit_sub_pattern(
                 }
             })
     else:
+        # remove background estimates from the defunct model
+        for i in range(len(new_params['background'])):
+            new_params['background'][i] = [None] * len(new_params['background'][i])
+            new_params['background_err'][i] = [None] * len(new_params['background'][i])
+        
         fit_stats = {
             "time-elapsed": t_elapsed,
             "chunks-time": chunks_time,

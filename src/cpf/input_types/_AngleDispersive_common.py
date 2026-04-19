@@ -202,7 +202,10 @@ class _AngleDispersive_common:
             azi_chunk = np.where((temp_azimuth > start) & (temp_azimuth <= end))
             chunks.append(azi_chunk)
             bin_bounds.append([start, end])
-            bin_mean_azi.append(np.mean(temp_azimuth[azi_chunk]))
+            if len(azi_chunk[-1]) != 0:
+                bin_mean_azi.append(np.mean(temp_azimuth[azi_chunk]))
+            else:
+                bin_mean_azi.append(np.nan)
 
         return chunks, bin_bounds, bin_mean_azi
 

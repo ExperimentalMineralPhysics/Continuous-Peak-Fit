@@ -1163,7 +1163,7 @@ class MedDetector:
             c_map = plt.get_cmap(name=colourmap)
             for i in range(len(np.unique(self.azm)) - 1, -1, -1):
                 colour = c_map(
-                    normalize(np.mean(plot_c[self.azm == np.unique(self.azm)[i]]))
+                    normalize(np.mean(ma.filled(plot_c[self.azm == np.unique(self.azm)[i]], np.nan)))
                 )
                 if y_axis == "default":
                     the_plot = axis_plot.plot(

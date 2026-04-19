@@ -124,8 +124,8 @@ def WriteOutput(settings, debug=False, **kwargs):
         # read data file
         data_class.import_image(settings_class.image_list[z])
         Ipctl.append(
-            np.percentile(
-                data_class.intensity[data_class.intensity.mask == False], prctl
+            np.nanpercentile(
+                np.ma.filled(data_class.intensity, np.nan), prctl
             )
         )
         Imin.append(np.min(data_class.intensity))

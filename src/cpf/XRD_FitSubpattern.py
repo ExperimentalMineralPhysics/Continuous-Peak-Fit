@@ -329,7 +329,7 @@ def fit_sub_pattern(
         previous_params = None # make sure expected value for later
         step = [0]
     else:
-        step = [15]
+        step = [5]
 
     if previous_params and settings_as_class.subfit_orders:
         # If we have both, order takes precedence so update previous_params to match
@@ -349,22 +349,14 @@ def fit_sub_pattern(
         # for chunks step <= 9 and for refine <= 19
         # we are using increments of 10 so that it is possible to record different states or routes after the final fit.
 
-        # initiate the model parameter set which is needed for all possible outcomes.
-        # if previous_params = None initiates an empty set.
-        master_params = lmm.initiate_all_params_for_fit(
-            settings_as_class,
-            data_as_class,
-            values=previous_params,
-            debug=debug,
-        )
-        
-        # Measure the time taken to do the chunks, the elapsed time during fitting.
-        # To help decide which is the best peak parameters.
-        chunks_start = time.time()
-        
         if step[-1] <= 9:
             # generate chunks and initial fits
             # or parse previous fits into correct data structure
+                
+            # Measure the time taken to do the chunks, the elapsed time during fitting.
+            # To help decide which is the best peak parameters.
+            chunks_start = time.time()
+            
             # check if the data intensity is above threshold.
             if np.max(data_as_class.intensity) <= min_data_intensity:
                 # then there is likely no determinable peak in the data
@@ -375,6 +367,15 @@ def fit_sub_pattern(
                 fout = lmm.initiate_all_params_for_fit(
                     settings_as_class,
                     data_as_class,
+                    debug=debug,
+                )
+            else:
+                # initiate the model parameter set which is needed for all possible outcomes.
+                # if previous_params = None initiates an empty set.
+                master_params = lmm.initiate_all_params_for_fit(
+                    settings_as_class,
+                    data_as_class,
+                    values=previous_params,
                     debug=debug,
                 )
 

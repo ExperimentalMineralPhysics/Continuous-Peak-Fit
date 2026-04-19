@@ -23,8 +23,9 @@ Calib_mask     = "DiffractionMask_Dioptas.mask"
 Output_directory   = 'results'
 Output_type        = ['Polydefix', 'DifferentialStrain', 'FitMovie', 'CoefficientTable', 'CollectionMovie']
 
-metadata_labels = {"exposure_label": "Exposure_time"}
-metadata = ['exposure']
+metadata_labels = {#"time": "time_start",
+                   "exposure": "Exposure_time"}
+metadata = ['Exposure_time', 'Exposure_period']
 
 
 # define ranges and peaks
@@ -60,7 +61,7 @@ fit_orders = [
             "phase": "Fe-BCC",
             "hkl": 211,
             "d-space": 2,
-            "height": 16,
+            "height": 8,
             "profile": 1,
             "width": 0,
         }],

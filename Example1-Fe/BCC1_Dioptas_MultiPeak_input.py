@@ -4,7 +4,7 @@
 # It also applies the PeakPositionSelection to a range with a single peak.
 
 # properties of the data files.
-datafile_directory = "."
+datafile_directory = "./"
 datafile_Basename  = 'BCC1_2GPa_10s_001_'
 datafile_Ending    = '.tif'
 datafile_StartNum  = 1
@@ -36,6 +36,8 @@ Output_type        = ['Polydefix', 'FitMovie', 'CoefficientTable']
 Output_NumAziWrite = 90 
 phase              = 'Fe-BCC' 
 Output_ElasticProperties = 'Properties_Fe-BCC.txt'
+
+fit_track = True
 
 # define ranges and peaks
 fit_orders = [
@@ -113,7 +115,7 @@ fit_orders = [
             }],
     },
     {
-        "range": [23.1, 23.5],
+        "range": [23.1, 23.3],
         "imax":25,
         "background": [2, 2],
         "peak": [{

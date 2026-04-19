@@ -11,6 +11,7 @@ import time
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.ma as ma
 from lmfit import Model
 from lmfit.model import save_modelresult  # , load_modelresult
 

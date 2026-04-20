@@ -11,7 +11,7 @@ import cpf.output_formatters.WriteMultiFit as WriteMultiFit
 from cpf.output_formatters.crystallographic_operations import plane_indices_4_to_3
 from cpf.settings import get_settings
 from cpf.IO_functions import make_outfile_name, peak_hkl
-from cpf.output_formatters.ReadFits import ReadFits_to_list, ReadFits_to_dataframe
+from cpf.output_formatters.fits_io import ReadFits_to_list, ReadFits_to_dataframe
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WritePolydefix")

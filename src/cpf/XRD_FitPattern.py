@@ -29,7 +29,7 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.output_formatters.ReadFits import WriteFits, ReadFits_to_list
+from cpf.output_formatters.fits_io import WriteFits, ReadFits_to_list
 from cpf.series_functions import get_series_mean
 from cpf.settings import Settings, is_settings, get_settings
 from cpf.util.logging import get_logger, set_global_log_level

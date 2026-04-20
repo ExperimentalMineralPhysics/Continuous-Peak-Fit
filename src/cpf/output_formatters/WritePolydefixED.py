@@ -7,7 +7,7 @@ import glob
 import numpy as np
 
 import cpf.series_functions as sf
-from cpf.output_formatters.ReadFits import ReadFits_to_list
+from cpf.output_formatters.fits_io import ReadFits_to_list
 from cpf.IO_functions import make_outfile_name, replace_null_terms, peak_hkl
 from  cpf.settings import get_settings
 from cpf.util.logging import get_logger

@@ -10,7 +10,7 @@ from moviepy import ImageClip
 # from moviepy import concatenate
 from moviepy import VideoFileClip, concatenate_videoclips
 
-from cpf.output_formatters.ReadFits import ReadFits_to_dataframe
+from cpf.output_formatters.fits_io import ReadFits_to_dataframe
 from cpf.IO_functions import make_outfile_name
 from cpf.util.logging import get_logger
 from cpf.XRD_FitSubpattern import plot_FitAndModel

@@ -20,7 +20,7 @@ from cpf.IO_functions import make_outfile_name, peak_phase, peak_hkl, json_numpy
 from cpf.series_functions import series_properties
 from cpf.util.logging import get_logger
 
-logger = get_logger("cpf.output_formatters.ReadFits")
+logger = get_logger("cpf.output_formatters.fits_io")
 
 
 def WriteFits(settings_class, fitted_param, filename_to_write=None, data_class=None, mode=None):

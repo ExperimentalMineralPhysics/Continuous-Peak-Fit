@@ -8,7 +8,7 @@ import numpy as np
 import cpf.series_functions as sf
 from  cpf.settings import get_settings
 from cpf.IO_functions import make_outfile_name
-from cpf.output_formatters.ReadFits import ReadFits_to_list
+from cpf.output_formatters.fits_io import ReadFits_to_list
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WriteMultiFit")

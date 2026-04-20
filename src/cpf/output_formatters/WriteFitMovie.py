@@ -18,7 +18,7 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
-from cpf.output_formatters.ReadFits import ReadFits_to_list
+from cpf.output_formatters.fits_io import ReadFits_to_list
 from cpf.util.logging import get_logger
 from cpf.util.output_formatters import mplfig_to_npimage
 from cpf.XRD_FitSubpattern import plot_FitAndModel

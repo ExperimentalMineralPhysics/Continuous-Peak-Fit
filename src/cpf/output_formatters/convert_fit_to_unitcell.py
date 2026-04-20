@@ -10,7 +10,7 @@ import re
 from cpf.output_formatters.jcpds import jcpds
 from cpf.settings import get_settings
 from cpf.IO_functions import peak_hkl
-from cpf.output_formatters.ReadFits import ReadFits_to_dataframe, ReadFits_to_list
+from cpf.output_formatters.fits_io import ReadFits_to_dataframe, ReadFits_to_list
 from cpf.IO_functions import replace_null_terms
 from cpf.IO_functions import make_outfile_name
 from cpf.output_formatters.convert_fit_to_crystallographic import fourier_to_crystallographic, fourier_to_unitcellvolume

@@ -11,7 +11,7 @@ import pandas as pd
 
 import cpf.peak_functions as pf
 from cpf.settings import get_settings
-from cpf.output_formatters.ReadFits import ReadFits_to_dataframe
+from cpf.output_formatters.fits_io import ReadFits_to_dataframe
 from cpf.output_formatters.output_csv import write_csv, make_header
 from cpf.IO_functions import make_outfile_name
 from cpf.util.logging import get_logger

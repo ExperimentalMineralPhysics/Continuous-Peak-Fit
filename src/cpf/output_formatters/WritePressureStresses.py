@@ -9,7 +9,7 @@ from itertools import product
 import numpy as np
 import pandas as pd
 
-import cpf.peak_functions as pf
+from cpf.output_formatters.convert_fit_to_unitcell import fits_to_unitcell
 from cpf.IO_functions import make_outfile_name
 from cpf.output_formatters.output_csv import write_csv, make_header
 from cpf.settings import get_settings

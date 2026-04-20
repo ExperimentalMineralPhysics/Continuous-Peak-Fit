@@ -50,13 +50,17 @@ def WriteFits(settings_class, fitted_param, filename_to_write=None, data_class=N
     -------
     None.
     """
-    
     # try and get the meta data
     # prepare output dictionary
-    if filename_to_write == "PreviousFit_JSON.dat":
+    if filename_to_write and "PreviousFit" in filename_to_write:
         # prevent change in behaviour for now
         # FIXME: cleanup in future push
-        out = fitted_param
+        if "fits" in fitted_param:
+            out = fitted_param["fits"]
+        else:
+            out = fitted_param
+        for i in out:
+            i.pop("correlation_coeffs",None)
     elif data_class:
         metadata = data_class.get_metadata(settings_class.metadata)
         out = {"metadata": metadata,
@@ -117,52 +121,64 @@ def ReadFits_to_list(
         List contiaing metadata for each file in settings_class/file.
 
     """
-    # make sure settings is a class
-    settings_class = get_settings(settings)
-        
-    # read all the data.
-    fits = []
-    metadata = []
-    for z in range(settings_class.image_number):
-        settings_class.set_subpattern(z, 0)
-
-        if settings_class.file_label:
-            additional_text = settings_class.file_label
+    
+    if isinstance(settings, str) and "PreviousFit" in settings:
+        #read previous fit
+        with open(settings) as json_data:
+                json_contents = json.load(json_data)
+        if "fits" in json_contents:
+            fits = json_contents["fits"]
         else:
-            additional_text = None
-        filename = make_outfile_name(
-            settings_class.subfit_filename,  
-            directory=settings_class.output_directory,
-            extension=".json",
-            additional_text=additional_text,
-            overwrite=True,
-        )
-
-        # Read JSON data from file
-        with open(filename) as json_data:
-            json_contents = json.load(json_data)
-            if isinstance(json_contents, dict):
-                #new style as dictionary with metadata
-                fits.append(json_contents["fits"])
-                metadata.append(json_contents["metadata"])
-            else:
-                # old stype without metadata
-                fits.append(json_contents)
-                metadata.append([])
-            if (os.path.isfile(settings_class.subfit_filename) and
-                sorted(settings_class.metadata) != sorted(list(metadata[-1]))):
-                    # then we need to read the metadata from the files
-                    metadata[-1] = read_metadata(settings_class)
+            fits = json_contents
+        metadata = None
+    else:
         
-        # convert correlation coefficients into panda data frame
-        for y in range(len(fits[-1])):
-            if "correlation_coeffs" in fits[-1][y]:
-                try:
-                    fits[-1][y]["correlation_coeffs"] = pd.DataFrame.from_dict(
-                                           json.loads(fits[-1][y]["correlation_coeffs"])
-                                           )
-                except:
-                    pass
+        # make sure settings is a class
+        settings_class = get_settings(settings)
+    
+        # read all the data.
+        fits = []
+        metadata = []
+        for z in range(settings_class.image_number):
+            settings_class.set_subpattern(z, 0)
+    
+            if settings_class.file_label:
+                additional_text = settings_class.file_label
+            else:
+                additional_text = None
+            filename = make_outfile_name(
+                settings_class.subfit_filename,  
+                directory=settings_class.output_directory,
+                extension=".json",
+                additional_text=additional_text,
+                overwrite=True,
+            )
+    
+            # Read JSON data from file
+            with open(filename) as json_data:
+                json_contents = json.load(json_data)
+                if isinstance(json_contents, dict):
+                    #new style as dictionary with metadata
+                    fits.append(json_contents["fits"])
+                    metadata.append(json_contents["metadata"])
+                else:
+                    # old stype without metadata
+                    fits.append(json_contents)
+                    metadata.append([])
+                if (os.path.isfile(settings_class.subfit_filename) and
+                    sorted(settings_class.metadata) != sorted(list(metadata[-1]))):
+                        # then we need to read the metadata from the files
+                        metadata[-1] = read_metadata(settings_class)
+            
+            # convert correlation coefficients into panda data frame
+            for y in range(len(fits[-1])):
+                if "correlation_coeffs" in fits[-1][y]:
+                    try:
+                        fits[-1][y]["correlation_coeffs"] = pd.DataFrame.from_dict(
+                                               json.loads(fits[-1][y]["correlation_coeffs"])
+                                               )
+                    except:
+                        pass
      
     fits = replace_null_terms(
         fits, val_to_find=None, replace_with=0

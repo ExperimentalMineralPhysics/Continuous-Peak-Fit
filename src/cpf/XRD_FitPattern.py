@@ -29,6 +29,7 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
+from cpf.output_formatters.ReadFits import WriteFits, ReadFits_to_list
 from cpf.series_functions import get_series_mean
 from cpf.settings import Settings, is_settings, get_settings
 from cpf.util.logging import get_logger, set_global_log_level
@@ -815,13 +816,11 @@ def execute(
         ):
             # Read JSON data from file
             logger.moreinfo(f"Loading previous fit results from {temporary_data_file}.")
-            with open(temporary_data_file) as json_data:
-                previous_fit = json.load(json_data)["fits"]
-
-                # if the previous_fit is not the same size as fit_orders the inout file must have been changed.
-                # so discard the previous fit and start again.
-                if len(previous_fit) != len(settings_class.fit_orders):
-                    del previous_fit
+            previous_fit, _ = ReadFits_to_list(temporary_data_file)
+            # if the previous_fit is not the same size as fit_orders the inout file must have been changed.
+            # so discard the previous fit and start again.
+            if len(previous_fit) != len(settings_class.fit_orders):
+                del previous_fit
 
         # Switch to save the first fit in each sequence.
         save_figs = False#True if (j == 0 or save_all is True) else False
@@ -1047,7 +1046,6 @@ def execute(
                     fitted_param.append(tmp[i])
             
             # store the fit parameters' information as a JSON file.
-            from cpf.output_formatters.ReadFits import WriteFits
             WriteFits(settings_class, fitted_param, data_class=new_data, mode=mode)
 
             # if propagating the fits write them to a temporary file

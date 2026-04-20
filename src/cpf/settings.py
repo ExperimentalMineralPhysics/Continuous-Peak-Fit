@@ -108,11 +108,11 @@ class Settings:
         Optional settings for the outputs are sored in a dictionary.
 
         """
-        
+
         self.settings_file: str = None
-        self.datafile_basename: str = None 
+        self.datafile_basename: str = None
         self.datafile_directory: str = None
-        
+
         self.datafile_list: list[str | Path] = []
         self.datafile_number: int = 0
         self.image_list: list[str | Path] = []
@@ -213,13 +213,13 @@ class Settings:
 
     def duplicate_without_dataclass(self):
         """
-        Makes a copy of an settings instance but without the data class. 
-        
+        Makes a copy of an settings instance but without the data class.
+
         This is for the parallel processing that needs an immutable object to work
         and because some of the detector classes are not parallelisable.
-        
+
         Calls duplicate and then deletes the data_class
-        
+
         """
         new = self.duplicate()
         # remove data_class to allow parallel processing
@@ -227,14 +227,15 @@ class Settings:
         delattr(new, '_unmodified_self')
         return new
 
+
     def _validation_copy(self):
         """
         Return a dictionary of the class without:
         (a) the parts that will prevent parallelisation
-        and 
+        and
         (b) vaiables that can be changed without affecting the validity of the class
-        
-        The list of parts that is removed is: 
+
+        The list of parts that is removed is:
             _unmodified_self
             data_class
             subfit_file_position
@@ -256,13 +257,13 @@ class Settings:
         copy.pop("data_class", None)
         # remove any possible previous unmodified previous variable.
         copy.pop('_unmodified_self', None)
-        # remove following from check becuase these can be changed without invalidating the settings class. 
+        # remove following from check becuase these can be changed without invalidating the settings class.
         copy.pop('subfit_file_position', None)
         copy.pop('subfit_filename', None)
         copy.pop('subfit_order_position', None)
         copy.pop('subfit_orders', None)
         copy.pop('output_types', None)
-        
+
         return copy
 
 
@@ -299,16 +300,16 @@ class Settings:
         elif isinstance(settings, type(Settings())):
             logger.info("The settings are already a cpf Settings class instance. No initiation.")
             return
-        
+
         elif isinstance(settings, dict):
-            if "run_name" in settings:         
+            if "run_name" in settings:
                 # I dont think that an input file name is needed later in the processing.
                 # But incase it is one is forced here.
                 self.settings_file = settings["run_name"]
                 self.run_name = settings["run_name"]
             else:
                 raise ValueError("NEEDS TO BE SPECIFICED ")
-                            
+
             class RecursiveObject:
                 def __init__(self, dictionary):
                     for key, value in dictionary.items():
@@ -316,10 +317,10 @@ class Settings:
                             value = RecursiveObject(value)
                         setattr(self, key, value)
             self.settings_from_input = settings#RecursiveObject(dictionary = settings)
-            
-            
+
+
         else:
-            
+
             # Convert to a Path object
             if isinstance(settings, str):
                 try:
@@ -329,11 +330,11 @@ class Settings:
             self.settings_file = settings
             if not self.settings_file.suffix == ".py":
                 self.settings_file = self.settings_file.with_suffix(".py")
-            
+
             self.run_name = self.settings_file.stem
-    
+
             self.check_files_exist(self.settings_file)
-            
+
             # store all the settings from file in a module class.
             module_name = self.settings_file.stem
             spec = importlib.util.spec_from_file_location(module_name, self.settings_file)
@@ -342,9 +343,9 @@ class Settings:
             #convert to a dictionary
             self.settings_from_input = self.settings_from_input.__dict__
             self.settings_from_input["run_name"] = str(settings)
-          
+
         self.fill_settings(validate=validate)
-            
+
         # override the files output settings.
         if not out_type is None:
             self.set_output_types(out_type_list=out_type)
@@ -372,7 +373,7 @@ class Settings:
         #     self.settings_from_input = importlib.util.module_from_spec(spec)
         #     spec.loader.exec_module(self.settings_from_input)
         # else:
-            
+
         #     class RecursiveObject:
         #         def __init__(self, dictionary):
         #             for key, value in dictionary.items():
@@ -381,7 +382,7 @@ class Settings:
         #                 setattr(self, key, value)
 
         #     self.settings_from_input = RecursiveObject(dictionary = settings_dict)
-        
+
         # then sort them in a useful way...
 
         ##all_settings_from_input = list(self.settings_from_input)#
@@ -456,42 +457,42 @@ class Settings:
                 ]
             except Exception as error:
                 raise error
-        
+
         # h5 or nxs file types
         # --------------------
-        # If the file type is h5/nxs and there is no h5 related settings in the input then read defaults from the detector class. 
-        # These settings are then used by the detector class. 
+        # If the file type is h5/nxs and there is no h5 related settings in the input then read defaults from the detector class.
+        # These settings are then used by the detector class.
         # When the h5 settings are in the settings class we need to re-initiate the image list.
-        if (len(self.datafile_list) == 1 
-                and (self.datafile_list[0].suffix == ".h5" 
+        if (len(self.datafile_list) == 1
+                and (self.datafile_list[0].suffix == ".h5"
                 or self.datafile_list[0].suffix == ".nxs")):
             #both "h5_datakey" and "h5_iterate" are required for the h5 file reading to work
             if "h5_datakey" not in list(self.settings_from_input):
-                
+
                 # need to load a data class so we know what the h5 defaults are
                 temp_settings = Settings()
                 temp_settings.calibration_type = self.settings_from_input["Calib_type"]
                 temp_data_class = detector_factory(settings_class=temp_settings)
-                
+
                 if "_default_h5_datakey" in dir(temp_data_class):
                     self.settings_from_input["h5_datakey"] = temp_data_class._default_h5_datakey
                 else:
-                    err_str = "The data class has no value for '_default_h5_datakey'. Need to define 'h5_datakey' in settings." 
+                    err_str = "The data class has no value for '_default_h5_datakey'. Need to define 'h5_datakey' in settings."
                     logger.warning(err_str)
                     raise ValueError(err_str)
             self.h5_datakey = self.settings_from_input["h5_datakey"]
-                
+
             if "h5_iterate" not in list(self.settings_from_input):
-                
+
                 # need to load a data class so we know what the h5 defaults are
                 temp_settings = Settings()
                 temp_settings.calibration_type = self.settings_from_input["Calib_type"]
                 temp_data_class = detector_factory(settings_class=temp_settings)
-                
+
                 if "_default_h5_iterate" in dir(temp_data_class):
                     self.settings_from_input["h5_iterate"] = temp_data_class._default_h5_iterate
                 else:
-                    err_str = "The data class has no value for '_default_h5_iterate'. Need to define 'h5_iterate' in settings."  
+                    err_str = "The data class has no value for '_default_h5_iterate'. Need to define 'h5_iterate' in settings."
                     logger.warning(err_str)
                     raise ValueError(err_str)
             self.h5_iterate = self.settings_from_input["h5_iterate"]
@@ -571,8 +572,8 @@ class Settings:
 
         # make a header in the log file so that we know where the processing starts
         logger.info("-----------------------------------------------------------------")
-        logger.info(f"Validation of settings for {self.settings_file}")    
-        
+        logger.info(f"Validation of settings for {self.settings_file}")
+
         # check data files and directory
         if self.datafile_basename != None or self.datafile_directory != None:
             self.validate_datafiles()
@@ -603,10 +604,10 @@ class Settings:
         # validate output types
         if self.output_types:
             self.validate_output_types()
-        
+
         #if it gets to here the settings file has passed all the tests.
         self._unmodified_self = self._validation_copy()
-        
+
         logger.info("End of Validation")
         logger.info("-----------------------------------------------------------------")
 
@@ -615,8 +616,8 @@ class Settings:
         """
         Checks if the settings class is the same as SettingsClass._unmodified_self
         ool for if.
-        
-        Can only be true if the settings class has passed validation tests in 
+
+        Can only be true if the settings class has passed validation tests in
         Settings.validate_settings_file
 
         Returns
@@ -625,13 +626,13 @@ class Settings:
             True if unmodified; False if changed.
 
         """
-        # make dictionary to check against. 
+        # make dictionary to check against.
         check = self._validation_copy()
         if check == self._unmodified_self:
             return True
         else:
             return False
-        
+
     def check_files_exist(
         self,
         files_to_check: list[Path] | Path
@@ -659,7 +660,7 @@ class Settings:
                     missing_indicies.append(j)
                 else:
                     logger.moreinfo(" ".join(map(str, [(f"{files_to_check[j]} exists.")])))
-            
+
             if len(missing_files) != 0:
                 if len(missing_files) <= 30:
                     raise ImportError(
@@ -1442,7 +1443,7 @@ class Settings:
         search_series=["fourier", "spline"],
     ):
         """
-        Expands the fit_orders dictionary for searching over peak parameter order space. 
+        Expands the fit_orders dictionary for searching over peak parameter order space.
         Sets self.fit_orders to reflect this.
 
         Parameters
@@ -1476,7 +1477,7 @@ class Settings:
         else:
             search = [int(x) for x in str(search_over)]
 
-        #search series 
+        #search series
         if isinstance(search_series, str):
             search_series = [search_series]
         if search_series[0] == "all":
@@ -1489,16 +1490,16 @@ class Settings:
         for i in range(len(subpatterns)):
             tmp_order = self.fit_orders[subpatterns[i]]
             for j in range(len(search_series)):
-                
+
                 if search_peak=="all":
                     peak_search = list(range(len(tmp_order["peak"])))
                 else:
                     peak_search = [search_peak]
-                
+
                 for l in peak_search:
-                    
+
                     for k in range(len(search)):
-                    
+
                         orders_s = deepcopy(tmp_order)
                         if "background" not in search_parameter:
                             if search_parameter not in peak_components(full=False, include_profile=True)[1]:
@@ -1522,7 +1523,7 @@ class Settings:
                             intro_string = ""
                         orders_s["note"] = (
                             "peak="
-                            + str(l) 
+                            + str(l)
                             + "|"
                             + search_parameter
                             + "="
@@ -1541,7 +1542,7 @@ class Settings:
             self.fit_orders = self.settings_from_input["fit_orders"]
         else:
             raise ValueError("Unable to restore fit_orders")
-            
+
     def set_subpattern(self, file_number, number_subpattern):
         """
         Set the parameters for the subpattern to be fit as immediately accesible.
@@ -1566,8 +1567,8 @@ class Settings:
         Raises
         ------
         ValueError
-            Error if the settings class is empty. 
-            
+            Error if the settings class is empty.
+
         Returns
         -------
         bool
@@ -1606,7 +1607,7 @@ class Settings:
 
         # with open(filename, 'r') as tp_file:
         #      tp_file.write(json.dumps(self.__dict__))
-             
+
         #      # print(values_write)
         # stop
 
@@ -1616,18 +1617,18 @@ class Settings:
         template_file = "Template_for_XRDFitPattern_Inputs.txt"
         template_loc = os.path.join(os.path.dirname(__file__), template_file)
 
-        # get template file. 
+        # get template file.
         with open(template_loc, 'r') as tp_file:
             template = tp_file.read()
             values_write = re.findall(r'(\$\w+)', template)
 
         #loop over the values_write and replace with values
-        # Looping also makes easier to add or remove blocks of the setting file. 
+        # Looping also makes easier to add or remove blocks of the setting file.
         for i in range(len(values_write)):
-            
+
             # get value to write.
             d = {}
-            
+
             if values_write[i][1:] in self.__dict__:
                 d[values_write[i][1:]] = self.__dict__[values_write[i][1:]]
             elif values_write[i][1:] in self.settings_from_input.__dict__:
@@ -1641,7 +1642,7 @@ class Settings:
             #if is not an acceptale type the convert to text.
             if values_write[i][1:] in d:
                 if isinstance(d[values_write[i][1:]], list):
-                    # convert list to json string. 
+                    # convert list to json string.
                     try:
                         output = json.dumps(d[values_write[i][1:]], indent=2)
                         output = re.sub(r'": \[\s+', '": [', output)
@@ -1650,22 +1651,22 @@ class Settings:
                         template = template.replace(values_write[i], output)
                     except:
                         pass
-                
+
                 elif isinstance(d[values_write[i][1:]], dict):
-                    #convert dictionary to formatted string. 
+                    #convert dictionary to formatted string.
                     template = template.replace(values_write[i], json.dumps(d[values_write[i][1:]]))
-                
+
                 elif isinstance(d[values_write[i][1:]], Path):
-                    
+
                     template = template.replace(values_write[i], f"'{str(d[values_write[i][1:]])}'")
-                    
+
                 elif isinstance(d[values_write[i][1:]], str):
                     template = template.replace(values_write[i], f"'{d[values_write[i][1:]]}'")
                 else:
                     template = template.replace(values_write[i], f"{d[values_write[i][1:]]}")
-            
-          
-        #remove lines that still have $ in them. 
+
+
+        #remove lines that still have $ in them.
         template = template.splitlines(True)
         # remove deadlines
         for i in range(len(template)):
@@ -1673,7 +1674,7 @@ class Settings:
                 template[i] = ""
         #recombine
         template = ''.join(template)
-               
+
         #write settings file
         if self.settings_file:
             filename = make_outfile_name(self.settings_file, extension="py", overwrite=False)
@@ -1736,7 +1737,7 @@ def is_settings(settings):
     """
     import cpf
     import cpf.settings as sttng
-    # the different ways of importing settings seems to give differnet answers. 
+    # the different ways of importing settings seems to give differnet answers.
     # therefore have to test all of them.
     if isinstance(settings, type(Settings())) == True:
         return True
@@ -1745,12 +1746,12 @@ def is_settings(settings):
     elif isinstance(settings, type(sttng.Settings())) == True:
         return True
     elif all(map(lambda v: v in dir(settings), dir(Settings()))):
-        # check if all the same methods and variables are present. 
+        # check if all the same methods and variables are present.
         return True
     else:
         return False
     """
-    ## test code   
+    ## test code
     import cpf
     test1 = cpf.settings.Settings()
     from cpf.settings import Settings as Settings1
@@ -1759,7 +1760,7 @@ def is_settings(settings):
     a = cpf.settings.is_settings(test1)
     b = cpf.settings.is_settings(test2)
     c = cpf.settings.is_settings("test2")
-    
+
     ## expected outputs
     if a==True:
         print("pass")
@@ -1774,13 +1775,13 @@ def is_settings(settings):
     else:
         print("fail")
     """
-    
+
 
 def get_settings(
     settings: [str | Path | dict | Settings()],
     **kwargs,):
     """
-    
+
 
     Parameters
     ----------
@@ -1807,21 +1808,21 @@ def get_settings(
         logger.error(err_str)
         raise ValueError(err_str)
     elif is_settings(settings):#isinstance(settings, type(Settings())):
-        # the settings input are already a setttings class. 
+        # the settings input are already a setttings class.
         # validate the class.
         if settings.is_empty():
             err_str = "The settings class is empty; there is nothing to process."
             logger.error(err_str)
             raise ValueError(err_str)
         elif settings.is_valid() == False:
-            # only validate the setttings if changed. 
+            # only validate the setttings if changed.
             settings.validate_settings_file()
             settings_class = settings
         else: #must be populated and valid.
             settings_class = settings
     else:
-        # initiate a settings class. 
-        
+        # initiate a settings class.
+
         # Convert to Path object
         if isinstance(settings, str):
             try:
@@ -1833,8 +1834,8 @@ def get_settings(
         settings_class.populate(settings=settings, **kwargs)
 
     return settings_class
-    
-    
+
+
 
 if __name__ == "__main__":
     Settings

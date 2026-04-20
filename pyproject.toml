@@ -40,7 +40,6 @@ dependencies = [
     "pandas",
     "pathos",
     "pillow",
-    "pycairo",
     "pyfai<=2025.3",   # v2026.n breaks Dioptas functions (and probably ESRF functions)
     "pyopencl",        # NOTE: ImageD11 mentions using pyopengl
     "scipy",

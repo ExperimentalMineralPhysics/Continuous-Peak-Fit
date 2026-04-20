@@ -3,21 +3,19 @@ __all__ = ["Requirements", "WriteOutput"]
 
 import json
 import os
-from itertools import product
 import re
+from itertools import product
 
 import numpy as np
 import pandas as pd
 
 import cpf.peak_functions as pf
-from  cpf.settings import get_settings
-from cpf.output_formatters.convert_fit_to_unitcell import fits_to_unitcell
 from cpf.IO_functions import make_outfile_name
 from cpf.output_formatters.output_csv import write_csv, make_header
+from cpf.settings import get_settings
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WriteCoefficientTable")
-
 
 
 def Requirements():
@@ -38,8 +36,6 @@ def Requirements():
         "col_width": 15,  # default column width for csv file.
         "ordering_of_output": None # Just leave as read -- otherwise list of dataframe headers to order by
     }
-    
-    
     # [
     #     ##"Output_directory"  # if no direcrtory is specified write to current directory.
     #     "reflections_to_use"  # -- pick which set of reflections to use for unit cell volume
@@ -111,6 +107,7 @@ def WriteOutput(
     df = fits_to_unitcell(settings,
                 **kwargs
                 )
+
     headers = list(df.columns.values)
     #order the rows
     if ordering_of_output:

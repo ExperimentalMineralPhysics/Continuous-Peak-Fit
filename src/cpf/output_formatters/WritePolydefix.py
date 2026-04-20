@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 
 import cpf.output_formatters.WriteMultiFit as WriteMultiFit
-from cpf.output_formatters.crystallographic_operations import plane_indices_4_to_3
+# from cpf.output_formatters.crystallographic_operations import plane_indices_4_to_3
 from cpf.settings import get_settings
 from cpf.IO_functions import make_outfile_name, peak_hkl
 from cpf.output_formatters.fits_io import ReadFits_to_list, ReadFits_to_dataframe

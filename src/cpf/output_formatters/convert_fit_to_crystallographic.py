@@ -536,7 +536,7 @@ def fourier_to_unitcellvolume(
             hkl = peak_hkl(flat_coef[i], j, string=False)[0]
             if len(hkl) == 4:
                 # convert to 3 value Miller indicies
-                hkl = indicies4to3(hkl)
+                hkl = plane_indices_4_to_3(hkl)
             jcpds_obj.add_reflection(h=hkl[0], k=hkl[1], l=hkl[2],
                              dobs = flat_coef[i]["peak"][j]["cryst_prop"]["dp"],
                              dobs_err = flat_coef[i]["peak"][j]["cryst_prop"]["dp_err"],

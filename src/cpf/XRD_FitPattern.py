@@ -68,7 +68,7 @@ output_methods_modules = register_default_formats()
 
 
 def initiate(
-    settings: Optional[str | Path | dict] = None,
+    settings: Optional[str | Path | dict | Settings()] = None,
     inputs=None,
     out_type=None,
     report: Literal[
@@ -762,6 +762,9 @@ def execute(
             if (isinstance(settings_class.datafile_preprocess, dict) and "cosmics" in settings_class.datafile_preprocess):
                 new_data = cosmicsimage_preprocess(new_data, settings_class)
             if (isinstance(settings_class.calibration_mask, dict) and "threshold" in settings_class.calibration_mask):
+                # set intenstiy threshold for each frame. 
+                # only applies to threshold because all other mask functions are static
+                # (cannot change between frames)
                 new_data.set_mask(intensity_bounds = settings_class.calibration_mask["threshold"])
         else:
             # nothing is done here.
@@ -912,6 +915,7 @@ def execute(
 
                     # re-get settings for current subpattern
                     settings_class.set_subpattern(j, i)
+
             sub_data = new_data.duplicate_without_detector(range_bounds=tth_range, as_masked=as_masked)
             # sub_data.set_limits(range_bounds=tth_range)
 

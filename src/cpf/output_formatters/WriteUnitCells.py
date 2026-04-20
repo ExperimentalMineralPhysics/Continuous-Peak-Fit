@@ -8,10 +8,10 @@ from cpf.settings import get_settings
 from cpf.output_formatters.convert_fit_to_unitcell import fits_to_unitcell
 from cpf.IO_functions import make_outfile_name
 from cpf.output_formatters.output_csv import write_csv, make_header
+
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WriteCoefficientTable")
-
 
 
 def Requirements():

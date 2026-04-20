@@ -16,32 +16,29 @@ Created on Wed Dec 17 06:39:10 2025
 
 import cpf
 
-settings_class = cpf.XRD_FitPattern.initiate("BCC1_Dioptas_input")
+# settings_class = cpf.XRD_FitPattern.initiate("BCC1_Dioptas_input")
 
 
+# #get data from settings class
+# new_data = settings_class.data_class
 
 
-#get data from settings class
-new_data = settings_class.data_class
+# from pathlib import Path
+# if settings_class.calibration_data:
+#     data_to_fill = Path(settings_class.calibration_data).resolve()
+# else:
+#     data_to_fill = settings_class.image_list[0]
+
+# new_data.fill_data(
+#     data_to_fill,
+#     settings=settings_class,
+# )
+
+# for n, i in enumerate(settings_class.image_list):
 
 
-from pathlib import Path
-if settings_class.calibration_data:
-    data_to_fill = Path(settings_class.calibration_data).resolve()
-else:
-    data_to_fill = settings_class.image_list[0]
+#     settings_class.set_subpattern(n,0)
+#     # meta = new_data.get_metadata(settings=settings_class, metadata_values=['Exposure_time', 'Exposure_period'])
+#     meta = new_data.get_metadata(settings=settings_class, metadata_values=['FILE_CREATION', 'FILE_MODIFIED', 'Exposure_time', 'Exposure_period', 'time_start', 'time_end'])
 
-new_data.fill_data(
-    data_to_fill,
-    settings=settings_class,
-)
-
-for n, i in enumerate(settings_class.image_list):
-    
-
-
-    settings_class.set_subpattern(n,0)
-    # meta = new_data.get_metadata(settings=settings_class, metadata_values=['Exposure_time', 'Exposure_period'])
-    meta = new_data.get_metadata(settings=settings_class, metadata_values=['FILE_CREATION', 'FILE_MODIFIED', 'Exposure_time', 'Exposure_period', 'time_start', 'time_end'])
-
-    print(meta)
+#     print(meta)

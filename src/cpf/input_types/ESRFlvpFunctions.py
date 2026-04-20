@@ -546,7 +546,8 @@ class ESRFlvpDetector:
                 else:
                     pass
             # positions = np.deg2rad(positions)
-            
+
+
         return files_list, positions
 
     def get_detector(
@@ -725,6 +726,7 @@ class ESRFlvpDetector:
 
             ax[-1].set_xlabel("Rot3 (°)")
             plt.tight_layout()
+
 
 
     def _read_frames(self, frames, dtype, reduce_by=None, return_metadata=False):

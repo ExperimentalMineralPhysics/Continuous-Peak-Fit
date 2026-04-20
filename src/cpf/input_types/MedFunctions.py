@@ -81,6 +81,7 @@ class MedDetector:
 
         self.reduce_by = None
 
+
         self._default_metadata_labels = {"time": "mean_start_time", # file creation time.
                                   'exposure': 'mean_live_time',
                                   "temperature": "*LVP_tc1_calcs.I"}
@@ -96,7 +97,6 @@ class MedDetector:
                 self.detector = self.get_detector(settings=settings_class)
 
     def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True, as_masked=True):
-
         """
         Makes an independent copy of a MedDetector Instance.
 
@@ -525,7 +525,6 @@ class MedDetector:
             
             if "original_mask" in dir(self):
                 self.original_mask= self._reduce_array(self.original_mask, keep_FirstDim=True)
-
 
         self.azm_start = (
             np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks

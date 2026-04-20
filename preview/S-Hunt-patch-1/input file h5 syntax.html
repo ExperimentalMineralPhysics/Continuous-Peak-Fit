@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Sytax for iterating over hdf5 files. &#8212; Continuous-Peak-Fit 0.0 alpha documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/agogo.css?v=08520df9" />
+    <script src="_static/documentation_options.js?v=cddd5768"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Subpatterns and peaks" href="subpattern%20structure.html" />
+    <link rel="prev" title="Input file structure (long)" href="input%20file.html" /> 
+  </head><body>
+    <div class="header-wrapper" role="banner">
+      <div class="header">
+        <div class="headertitle"><a
+          href="index.html">Continuous-Peak-Fit 0.0 alpha documentation</a></div>
+        <div class="rel" role="navigation" aria-label="Related">
+          <a href="input%20file.html" title="Input file structure (long)"
+             accesskey="P">previous</a> |
+          <a href="subpattern%20structure.html" title="Subpatterns and peaks"
+             accesskey="N">next</a> |
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="sytax-for-iterating-over-hdf5-files">
+<h1>Sytax for iterating over hdf5 files.<a class="headerlink" href="#sytax-for-iterating-over-hdf5-files" title="Link to this heading">¶</a></h1>
+<p>h5 files contain many images in a structure defined by keys.</p>
+<p>This iteration is designed to be as generic as possible while reflecting the structure the h5 files typical from synchrotron data sets.</p>
+<p>We assume that the data set if organised in keys that increment numberically and that the key directs to an array (of either a single or multiple) diffraction patterns).</p>
+<section id="hdf5-key-syntax">
+<h2>hdf5 key syntax<a class="headerlink" href="#hdf5-key-syntax" title="Link to this heading">¶</a></h2>
+<p>The hdf5 file’s data keys are pointed to via ‘h5_datakey’, which is a string.
+Asterixs in the key allow for iterations over key names, but the key must point to a dataset in the hdf5 file.</p>
+<p>How to iterate over the key names and the dataset are controlled by ‘h5_iterate’.</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">h5_data</span>    <span class="o">=</span> <span class="s1">&#39;/*.1/measurement/p3&#39;</span>
+<span class="n">h5_iterate</span> <span class="o">=</span> <span class="p">[{</span><span class="n">start</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="mi">42</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span><span class="s2">&quot;*&quot;</span><span class="p">}</span>
+                  <span class="p">{</span><span class="s2">&quot;do&quot;</span><span class="p">:</span><span class="s2">&quot;iterate&quot;</span><span class="p">,</span>
+                   <span class="s2">&quot;from&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                   <span class="s2">&quot;to&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                   <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                   <span class="s2">&quot;using&quot;</span><span class="p">:</span><span class="s2">&quot;position&quot;</span><span class="p">,</span>
+                   <span class="s2">&quot;label&quot;</span><span class="p">:[</span><span class="s1">&#39;*&#39;</span><span class="p">,</span><span class="s1">&#39;/*.1/instrument/positioners/dz1&#39;</span><span class="p">,</span> <span class="s1">&#39;/*.1/instrument/positioners/dy&#39;</span><span class="p">]}]</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p><strong>h5_data</strong>: is a string with “*” to denote the position into which number(s) will be inserted to iterate over.</p>
+<p><strong>h5_iterate</strong>: list of dictionaries. The length of the list has to be the same as, or 1 greater than, the number of “*” in ‘h5_data_key’.
+The last entry in the list applies to the data set pointed to by h5_data string.
+Earlier entires in the list apply to the ‘*’ in the h5_data key.
+The maximum length of h5_iterate is therefore 1 greater than the number of “*” in h5_data_key.</p>
+<p>Possible values within each dictionary are:</p>
+<blockquote>
+<div><ul>
+<li><p>“do”: Either “iterate” or “sum”. Process to apply to the data array. If we are summing the data series then the label keys are averaged. This is used for example at Diamond Light Source where multiple exposures make up a single diffraction image. The detault is iterate.</p></li>
+<li><p>“from”: where to start counting from. Does not have to be an integer. default is 0.</p></li>
+<li><p>“to” – where to stop. if set as -1 then goes to the end of the data set.</p></li>
+<li><p>“step” - step in the list</p></li>
+<li><p>NOT IMPLEMENTED: “list” this will allow a list of keys to be iterated over.</p></li>
+<li><p>“dim” – which dimension of the dataset to iterate over.</p></li>
+<li><p>“using” This is a switch that determines if the indicies are either:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>the “position” with in the key list or</p></li>
+<li><p>the numeric “value” of the h5 key to be used.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>“label”: What to add as label for each data frame to give them unique file names.</p></li>
+</ul>
+</div></blockquote>
+<p>Every argment in the dictionary can be optional. In extremis, when all the entries in the h5 key are to be processed, it is licit to have an empty list. This is equivalent to {“from”: 0, “to”: -1, step: 1, process:”iterate”}</p>
+<p>for example to process every other image… step: 2</p>
+<p>If the list is present then the list values are substituted into the key. If start/stop are used then the start^th to stop^th keys are iterated over. with step. if start = 0 then we start from the very begining and if stop = -1 we go to the very end.
+If step is &lt;0 then the processing starts at the end and works backwards.</p>
+<p>For example. see above.</p>
+<p>h5_operation: a string which is either “iterate” or “sum”. This instructs the code either to apply the fitting to each image separately or to sum the images and then apply the process.</p>
+</section>
+<section id="original-way-not-recomended">
+<h2>original way (not recomended).<a class="headerlink" href="#original-way-not-recomended" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">h5_key_list</span>  <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;measurement/p3&#39;</span><span class="p">]</span>
+<span class="n">h5_key_names</span> <span class="o">=</span> <span class="p">[[</span><span class="s2">&quot;/&quot;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s1">&#39;instrument/positioners/dz1&#39;</span><span class="p">,</span><span class="s1">&#39;instrument/positioners/dy&#39;</span><span class="p">]]</span>
+<span class="c1">#h5_key_names = [&quot;&quot;,&quot;&quot;]</span>
+<span class="n">h5_key_start</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+<span class="n">h5_key_end</span>   <span class="o">=</span> <span class="p">[</span><span class="mi">42</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">h5_key_step</span>  <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">h5_data</span>      <span class="o">=</span> <span class="s1">&#39;iterate&#39;</span> <span class="c1"># the other options would be &quot;sum&quot;. &quot;iterate&quot; only applies to the bottom level.</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>but this cannot take lists for nonlineatrly increasing keys.
+Nor can it accept position values for the keys, rather than numerical values for the keys.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          
+          <h3>Table of Contents</h3>
+          <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="x-ray%20diffraction.html">X-ray diffraction fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="algorithm.html">Algorithm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="running%20cpf.html"><em>Continuous peak fit</em>, via the command line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file%20short.html">Input file structure (short)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file.html">Input file structure (long)</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Sytax for iterating over hdf5 files.</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#hdf5-key-syntax">hdf5 key syntax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#original-way-not-recomended">original way (not recomended).</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="subpattern%20structure.html">Subpatterns and peaks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bounds.html">Bounds</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output_file_structure.html">Output files:</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example%20function%20tests.html">XRD_FitPattern’s examples and the features they test.</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whatsnew.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">APIs</a></li>
+</ul>
+
+          <search role="search">
+            <h3 style="margin-top: 1.5em;">Search</h3>
+            <form class="search" action="search.html" method="get">
+                <input type="text" name="q" />
+                <input type="submit" value="Go" />
+            </form>
+          </search>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+          <div role="navigation" aria-label="Related">
+            <a href="input%20file.html" title="Input file structure (long)"
+              >previous</a> |
+            <a href="subpattern%20structure.html" title="Subpatterns and peaks"
+              >next</a> |
+            <a href="py-modindex.html" title="Python Module Index"
+              >modules</a> |
+            <a href="genindex.html" title="General Index"
+              >index</a>
+          </div>
+          <div role="note" aria-label="source link">
+              <br/>
+              <a href="_sources/input file h5 syntax.rst.txt"
+                rel="nofollow">Show Source</a>
+          </div>
+        </div>
+
+        <div class="right">
+          
+    <div class="footer" role="contentinfo">
+    &#169; Copyright Simon Hunt &amp; Danielle Fenech, 2020.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+  </body>
+</html>

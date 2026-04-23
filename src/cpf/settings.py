@@ -682,16 +682,16 @@ class Settings:
         """
         Check if a directory exists. Make it if make_dir==True or issue an error.
         """
-        if directory.exists() is False:
+        if directory.exists() == False:
             if make_dir == False:
                 raise FileNotFoundError(
-                    f"The directory {directory.name!r} is not found but is required."
+                    f"The directory {directory.as_posix()!r} is not found but is required."
                 )
             else:
                 os.makedirs(directory)
-                logger.info(" ".join(map(str, [(f"{directory.name!r} was created.")])))
+                logger.info(" ".join(map(str, [(f"{directory.as_posix()!r} was created.")])))
         else:
-            logger.info(" ".join(map(str, [(f"{directory.name!r} exists.")])))
+            logger.info(" ".join(map(str, [(f"{directory.as_posix()!r} exists.")])))
 
     def validate_datafiles(self):
         """

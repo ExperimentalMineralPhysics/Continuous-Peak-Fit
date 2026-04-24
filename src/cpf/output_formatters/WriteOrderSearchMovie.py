@@ -46,10 +46,16 @@ def Requirements():
     RequiredParams = [
         #'apparently none!
     ]
-    OptionalParams = [ # list of parameters parsed as kwargs. 
-        "file_types"  # -- pick which type of movis to write
-        "fps"         # -- frames per second
-    ]
+    OptionalParams = {
+        "fps": 10,  # frames per second
+        "file_types": ["mp4"],  # movie file type
+        "Irange": ["pt1percentile", "99pt9percentile"], # range of colour scale
+    }
+
+    # OptionalParams = [ # list of parameters parsed as kwargs. 
+    #     "file_types"  # -- pick which type of movis to write
+    #     "fps"         # -- frames per second
+    # ]
     return RequiredParams, OptionalParams
 
 
@@ -96,15 +102,22 @@ def WriteOutput(
     # make sure settings is a class
     settings_class = get_settings(settings)
     
-    if file_label is not None:
-        settings_class.file_label = file_label
+    # Parse optional parameters
+    fps        = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
+    file_types = settings_class.output_settings.get("file_types", Requirements()[1]["file_types"])
+    Irange     = settings_class.output_settings.get("Irange", Requirements()[1]["Irange"])
+    #override with kwargs
+    fps        = kwargs.get("fps", fps)
+    file_types = kwargs.get("file_types", file_types)
+    Irange     = kwargs.get("Irange", Irange)
         
-    fps = kwargs.get("fps", 10.)
-    file_types = kwargs.get("file_types", ".mp4")
     if not isinstance(file_types, list):
         file_types = [file_types]
-    if not isinstance(fps, float):
+    if not (isinstance(fps, float) or isinstance(fps, int)):
         raise ValueError("The frames per second needs to be a number.")
+
+    if file_label is not None:
+        settings_class.file_label = file_label
 
     # make the data class.
     data_to_fill = settings_class.image_list[0]
@@ -143,7 +156,7 @@ def WriteOutput(
     f = lambda x: x.split("|")[2].split("=")[1]
     df["series_type"] = df["note"].apply(f)
     
-    peaks = df["Peak"].unique()
+    peaks = df["peak"].unique()
     searches = df["series_type"].unique()
     search_value = df["search_value"].unique()
     
@@ -170,7 +183,7 @@ def WriteOutput(
         
         # use pos_in_range and _search peak to restrict values to the peak that 
         # is being searched over -- for multiple peaks in range
-        df_peak = df[(df['Peak'] == peaks[i]) & (df['pos_in_range'] == df['search_peak'])]
+        df_peak = df[(df['peak'] == peaks[i]) & (df['pos_in_range'] == df['search_peak'])]
                 
         # make sure that we have only the peak that we are looping over. 
         if len(df_peak['search_peak'].unique()) != 1:
@@ -200,7 +213,7 @@ def WriteOutput(
             
             # print(j, position)
             
-            sub_data = data_class.duplicate_without_detector(range_bounds=[df_peak["Range_start"].iloc[j], df_peak["Range_end"].iloc[j]])
+            sub_data = data_class.duplicate_without_detector(range_bounds=[df_peak["range_start"].iloc[j], df_peak["range_end"].iloc[j]])
             # sub_data = data_class.duplicate()
             # sub_data.set_limits(range_bounds=[df_peak["Range_start"].iloc[j], df_peak["Range_end"].iloc[j]])
             
@@ -229,14 +242,14 @@ def WriteOutput(
                 settings_class,
                 sub_data,
                 # param_lmfit=None,
-                params_dict=data_fit[position],
+                params_dict=data_fit["fits"][position],
                 figure=fig,
-                # plot_ColourRange={
-                #     "max": Intensity_range[0],
-                #     "min": Intensity_range[-1],
-                #     "rmin": Resid_range[0],
-                #     "rmax": Resid_range[-1],
-                # },
+                plot_ColourRange={
+                    "max": Intensity_range[0],
+                    "min": Intensity_range[-1],
+                    "rmin": Resid_range[0],
+                    "rmax": Resid_range[-1],
+                },
             )
             title_str = (
                 peak_string(settings_class.subfit_orders)
@@ -265,7 +278,7 @@ def WriteOutput(
                 + df["search_over"][position]
             )
             # make videofile name
-            data_fit_tmp = data_fit[position]
+            data_fit_tmp = data_fit["fits"][position]
             if "note" in data_fit_tmp:
                 data_fit_tmp.pop("note")
             out_file = make_outfile_name(

@@ -26,10 +26,10 @@ def Requirements():
     RequiredParams = [
         #'apparently none!
     ]
-    OptionalParams = [
+    OptionalParams = {
         ##"Output_directory"  # if no direcrtory is specified write to current directory.
-        "coefs_vals_write"  # -- pick which set of coefficients to write
-    ]
+        #"coefs_vals_write": "given"  # -- pick which set of coefficients to write
+    }
 
     return RequiredParams, OptionalParams
 
@@ -114,7 +114,7 @@ def WriteOutput(
     df["Fit_time_without_chunks"] = df["time-elapsed"]-df["chunks-time"]
     df["RedChiSq_per_s"] = df["RedChiSq"]/df["Fit_time_without_chunks"]
     
-    peaks = df["Peak"].unique()
+    peaks = df["peak"].unique()
     searches = df["series_type"].unique()
     param_plot = ["RedChiSq", "Fit_time_without_chunks", "RedChiSq_per_s", "bic", "aic", "d-space0", "time-elapsed", "chunks-time"]
     
@@ -132,7 +132,7 @@ def WriteOutput(
         for h in range(len(param_plot)):
             for j in range(len(searches)):
                 
-                df_tmp = df[(df['Peak'] == peaks[i]) & (df['series_type'] == searches[j])]
+                df_tmp = df[(df['peak'] == peaks[i]) & (df['series_type'] == searches[j])]
                 # if there is more than 1 peak we need to filter the data to 
                 # just look at the one that has been searched over.
                 if len(df_tmp['search_peak'].unique()) == 1:

@@ -136,6 +136,9 @@ class DioptasDetector:
         #FIXME: should be able to copy the class and reduce data at the same time. rather than copying and then reducing
         # this is not memory efficient. 
         
+        #validate the ranges
+        range_bounds, azi_bounds = self.check_bounds(range_bounds, azi_bounds)
+        
         if with_detector:
             new = copy(self)
         else:
@@ -722,6 +725,7 @@ class DioptasDetector:
     test_azims = _AngleDispersive_common.test_azims
     GetDataType = _AngleDispersive_common.GetDataType
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
+    check_bounds = _AngleDispersive_common.check_bounds
     _reduce_array = _AngleDispersive_common._reduce_array
     get_metadata = _metadata_common.get_metadata
     _get_file_created_modified = _metadata_common._get_file_created_modified

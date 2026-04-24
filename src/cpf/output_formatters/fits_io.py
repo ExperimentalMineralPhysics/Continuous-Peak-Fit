@@ -95,6 +95,7 @@ def WriteFits(settings_class, fitted_param, filename_to_write=None, data_class=N
 
 def ReadFits_to_list(
     settings,
+    replace=True,
     *args,
     **kwargs
 ):
@@ -179,10 +180,13 @@ def ReadFits_to_list(
                                                )
                     except:
                         pass
-     
-    fits = replace_null_terms(
-        fits, val_to_find=None, replace_with=0
-    )
+    
+    if replace: 
+        # keep the null terms if we want/need.
+        # used for keeting errors in the previous fits
+        fits = replace_null_terms(
+            fits, val_to_find=None, replace_with=0
+        )
     return fits, metadata
 
 

@@ -819,7 +819,7 @@ def execute(
         ):
             # Read JSON data from file
             logger.moreinfo(f"Loading previous fit results from {temporary_data_file}.")
-            previous_fit, _ = ReadFits_to_list(temporary_data_file)
+            previous_fit, _ = ReadFits_to_list(temporary_data_file, replace=False)
             # if the previous_fit is not the same size as fit_orders the inout file must have been changed.
             # so discard the previous fit and start again.
             if len(previous_fit) != len(settings_class.fit_orders):
@@ -876,9 +876,12 @@ def execute(
                     for k in range(len(params["peak"])):
                         mid.append(get_series_mean(params['peak'][k], "d-space"))
 
-                    cent = new_data.conversion(np.mean(mid), reverse=True)
-                    move_by = cent - np.mean(tth_range)
-                    # move_by = move_by[0]  # this is needed to turn move_by from array to float
+                    if mid == None or mid == 0:
+                        # the previous fits failed in some way.
+                        move_by = 0
+                    else:
+                        cent = new_data.conversion(np.mean(mid), reverse=True)
+                        move_by = cent - np.mean(tth_range)
 
                     # update tth_range and settings
                     tth_range = tth_range + move_by

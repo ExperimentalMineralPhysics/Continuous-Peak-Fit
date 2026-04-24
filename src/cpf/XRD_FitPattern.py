@@ -728,15 +728,16 @@ def execute(
     for j in progress.iter_bar(image=range(settings_class.image_number)):
         logger.info(f"Processing {title_file_names(image_name=settings_class.image_list[j])}")
 
+        settings_class.set_subpattern(j, 0)
+
         # Get diffraction pattern to process.
-        new_data.import_image(settings_class.image_list[j], debug=debug)
+        new_data.import_image(settings=settings_class, debug=debug)
 
         # get json file name for outputs.
         if mode == "search":
             additional_text = settings_class.file_label
         else:
             additional_text = None
-        settings_class.set_subpattern(j, 0)
         filename = make_outfile_name(
             settings_class.subfit_filename,
             directory=settings_class.output_directory,

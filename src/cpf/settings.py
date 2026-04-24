@@ -1326,6 +1326,10 @@ class Settings:
         # make sure values from metadata_labels are in the list
         self.metadata = list(set(self.metadata + list(self.metadata_labels.values())))
         
+        # get metadata_read_func if it exists
+        if "metadata_read_func" in self.settings_from_input:
+            self.metadata_read_func = self.settings_from_input["metadata_read_func"]
+        
         # check for wildcards (*) and remove if another metadata corresponds
         remove = []
         for i in self.metadata:

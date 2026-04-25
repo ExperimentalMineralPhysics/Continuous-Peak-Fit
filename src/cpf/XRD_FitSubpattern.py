@@ -485,7 +485,7 @@ def fit_sub_pattern(
                 # FIX ME: need to confirm the number of parameters matches the orders of the fits.
 
             step.append(step[-1] + 10)
-        chunks_end = time.time()
+            chunks_end = time.time()
 
         if step[-1] >= 10:
             # if refine or step>=10 or not PreviousParams:

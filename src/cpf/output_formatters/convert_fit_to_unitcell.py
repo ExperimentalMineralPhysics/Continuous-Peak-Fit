@@ -61,7 +61,7 @@ def fits_to_unitcell(
     SampleGeometry    = settings_class.output_settings.get("SampleGeometry", "3d")
     SampleDeformation = settings_class.output_settings.get("SampleDeformation", "compression")
     phase = settings_class.output_settings.get("phase", True)
-    jcpds_file = settings_class.output_settings.get("jcpds", True)
+    jcpds_file = settings_class.output_settings.get("jcpds", None)
     #override with kwargs
     SampleGeometry = kwargs.get("SampleGeometry", SampleGeometry)
     SampleDeformation = kwargs.get("SampleDeformation", SampleDeformation)
@@ -79,7 +79,7 @@ def fits_to_unitcell(
     # kwargs["jcpds"] = jcpds_file
     
     # get the fits
-    all_fits, metadata = ReadFits_to_list(settings=settings_class)
+    all_fits, all_metadata = ReadFits_to_list(settings=settings_class)
     
     # read all the data.
     all_cells = []
@@ -105,6 +105,7 @@ def fits_to_unitcell(
         #     fits = json.load(json_data)
             
         fits = all_fits[z]
+        metadata = all_metadata[z]
             
         # get converted values.
         for i in range(len(fits)):
@@ -127,6 +128,9 @@ def fits_to_unitcell(
             extension="",
             overwrite=True,
         )
+        # add metadata
+        for i in settings_class.metadata:
+            cells_tmp[i] = metadata[i]
                     
         # get or guess phase
         if not isinstance(phase, str):
@@ -137,6 +141,9 @@ def fits_to_unitcell(
                     if "phase" in fits[i]["peak"][j]:
                         phases.append(fits[i]["peak"][j]["phase"])
             phase = np.unique(phases)
+            
+        if isinstance(phase, str):
+            phase = [phase]
                         
             # if "phase" in settings_class.output_settings:
             #     phase = settings_class.output_settings["phase"]
@@ -191,17 +198,22 @@ def fits_to_unitcell(
         # get label for temperature. Should work for wild cards
         if "temperature" in settings_class.metadata_labels:
             templbl_without_wildcards = re.sub(r"\*", ".*", settings_class.metadata_labels["temperature"])
-        else:
+        elif "temperature" in settings_class.data_class._default_metadata_labels:
             templbl_without_wildcards = re.sub(r"\*", ".*", settings_class.data_class._default_metadata_labels["temperature"])
+        else:
+            templbl_without_wildcards = "None"
         r = re.compile(templbl_without_wildcards)
-        templbl = list(filter(r.match, list(metadata[0]))) # Read Note below
+        templbl = list(filter(r.match, list(metadata))) # Read Note below
         if len(templbl) > 1:
             err_str = "More than one temprature has been found. Assuming the first one. "
             logger.error(err_str)
-        templbl = templbl[0]
+            templbl = templbl[0]
+        elif templbl == []:
+            # empty list cause by not finding temperature
+            templbl = ""
         # get temperature
-        if templbl in metadata[z]:
-            temp = metadata[z][templbl]
+        if templbl in metadata:
+            temp = metadata[templbl]
         else:
             temp = 0
 

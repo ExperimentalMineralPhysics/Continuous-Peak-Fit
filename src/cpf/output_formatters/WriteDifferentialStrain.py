@@ -102,10 +102,13 @@ def WriteOutput(
 
     # limit dataframe to what we want to write. 
     # order columns to be correct also
-    headers_use = ["num",
+    headers_use =  ["num",
                    "DataFile",        # text_file.write(("# {0:<" + str(width_fnam - 2) + "}").format("Data File" + ","))
-                   'phase', 'peak',   # text_file.write(("{0:<" + str(width_hkl) + "}").format("Peak" + ","))
-                   "d_mean",          # text_file.write(("{0:>" + str(width_col) + "}").format("d_mean" + ","))
+                   'phase', 
+                   'peak',   # text_file.write(("{0:<" + str(width_hkl) + "}").format("Peak" + ","))
+                   ]
+    headers_use += settings.metadata
+    headers_use += ["d_mean",          # text_file.write(("{0:>" + str(width_col) + "}").format("d_mean" + ","))
                    "d_mean_err",      # text_file.write(("{0:>" + str(width_col) + "}").format("d_mean_err" + ","))
                    'd-space4',# text_file.write(("{0:>" + str(width_col) + "}").format("d2cos" + ","))
                    'd-space4_err',# text_file.write(("{0:>" + str(width_col) + "}").format("d2cos_err" + ","))
@@ -143,15 +146,7 @@ def WriteOutput(
                    'ChiSq',           # text_file.write(("{0:>" + str(width_col) + "}").format("ChiSq" + ","))
                    'RedChiSq',        # text_file.write(("{0:>" + str(width_col) + "}").format("Red. ChiSq" + ","))
                    'aic',
-                   'bic'
-                   #     text_file.write(
-                   #         ("{0:<" + str(width_col) + "}").format("Akaike Information Criterion" + ",")
-                   #     )
-                   #     text_file.write(
-                   #         ("{0:<" + str(width_col) + "}").format(
-                   #             "Bayesian Information Criterion" + ","
-                   #         )
-                   #     )    
+                   'bic'  
                    ]
         headers_use += extra_headers
         

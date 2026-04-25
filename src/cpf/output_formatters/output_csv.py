@@ -137,12 +137,30 @@ def write_csv(out_file, df, column_headers, file_header=None, col_width=15, dp=5
     for col in list(df):
         df[col] = df[col].replace(',',' ', regex=True)
     
-    # make sure residual columns are saved as a single string with no line breaks.
+    # # make sure residual columns are saved as a single string with no line breaks.
+    # colms = [col for col in df.columns if 'residuals' in col]
+    # for i in colms:
+    #     if df[i].dtypes == "O":
+    #         #then object type column and can assume is a list
+    #         df[i] = df[i].apply(lambda x: np.array2string(x, separator=";", max_line_width=np.inf, formatter={"float_kind": lambda x: float_format(x, dp, 10) }, sign=" "))
+    
+    # make sure diferent columns are saved as desired.
     colms = [col for col in df.columns if 'residuals' in col]
-    for i in colms:
-        if df[i].dtypes == "O":
-            #then object type colume and can assume is a list
-            df[i] = df[i].apply(lambda x: np.array2string(x, separator=";", max_line_width=np.inf, formatter={"float_kind": lambda x: float_format(x, dp, 10) }, sign=" "))
+    for i in df.columns:
+        if ("date" in i.lower() or 
+            "time" in i.lower() or 
+            i.lower() == "FILE_CREATION".lower() or 
+            i.lower() == "FILE_MODIFIED".lower() 
+            ):
+            # the a date or time so need to keep all precision.
+            # convert to string so that float_format is passed over.
+            df[i] = df[i].astype(str)
+        elif 'residuals' in i.lower() and df[i].dtypes == "O":
+            # make sure residual columns are saved as a single string with no line breaks.
+            # if df[i].dtypes == "O":
+                #then object type column and can assume is a list
+                df[i] = df[i].apply(lambda x: np.array2string(x, separator=";", max_line_width=np.inf, formatter={"float_kind": lambda x: float_format(x, dp, 10) }, sign=" "))
+        
 
     # rename the columns so that the headers are the same width as the columns
     class NewClass(object):

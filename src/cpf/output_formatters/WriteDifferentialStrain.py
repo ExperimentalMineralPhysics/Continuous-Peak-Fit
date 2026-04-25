@@ -32,7 +32,7 @@ def Requirements():
         "SampleDeformation": "compression",  # changes calculation between 'compression' and 'extension'.
         "dp": 6,  # how many decimal points to write out
         "col_width": 15,  # default column width for csv file.
-        "ordering_of_output": "peak" # Just leave as read -- otherwise list of dataframe headers to order by
+        "ordering_of_output": False # Just leave as read -- otherwise list of dataframe headers to order by
     }
     # OptionalParams = [
     #     "SampleGeometry"  # changes the strain tensor calucaltion from 2d to 3d. This determines how the cetroid and differnetial strain of the dpsaice are extracted from the fourier series.

@@ -32,7 +32,8 @@ def Requirements():
         "fps": 10,  # frames per second
         "file_types": ["mp4"],  # movie file type
         "Irange": ["pt1percentile", "99pt9percentile"], # range of colour scale
-        "plot_type": "calibrated" 
+        "collection_plot": "calibrated", 
+        "plot type": "default", #"surface",
     }
 
     return RequiredParams, OptionalParams
@@ -72,11 +73,13 @@ def WriteOutput(settings, debug=False, **kwargs):
     fps        = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
     file_types = settings_class.output_settings.get("file_types", Requirements()[1]["file_types"])
     Irange     = settings_class.output_settings.get("Irange", Requirements()[1]["Irange"])
-    plot_type  = settings_class.output_settings.get("plot_type", Requirements()[1]["plot_type"])
+    collection_plot  = settings_class.output_settings.get("collection_plot", Requirements()[1]["collection_plot"])
+    plot_type  = settings_class.output_settings.get("plot type", Requirements()[1]["plot type"])
     #override with kwargs
     fps        = kwargs.get("fps", fps)
     file_types = kwargs.get("file_types", file_types)
     Irange     = kwargs.get("Irange", Irange)
+    collection_plot  = kwargs.get("collection_plot", collection_plot)
     plot_type  = kwargs.get("plot_type", plot_type)
 
     # make sure file_types is a list.
@@ -172,9 +175,10 @@ def WriteOutput(settings, debug=False, **kwargs):
         else:
             cbar = False
             
-        if plot_type == "calibrated":
+        if collection_plot == "calibrated":
             data_class.plot_calibrated(
                 fig_plot=fig, axis_plot=ax, show="intensity", limits=deepcopy(lims),
+                plot_type = plot_type,
                 cbar_axes=cbar
             )
         else:

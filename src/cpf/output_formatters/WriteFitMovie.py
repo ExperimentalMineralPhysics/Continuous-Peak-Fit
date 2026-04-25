@@ -35,7 +35,8 @@ def Requirements():
     OptionalParams = {
         "fps": 10,  # frames per second
         "file_types": ["mp4"],  # movie file type
-        "Irange": ["pt1percentile", "99pt9percentile"] # range of colour scale
+        "Irange": ["pt1percentile", "99pt9percentile"], # range of colour scale
+        "plot type": "default", #"surface",
     }
 
     return RequiredParams, OptionalParams
@@ -71,10 +72,12 @@ def WriteOutput(settings, debug=False, **kwargs):
     fps        = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
     file_types = settings_class.output_settings.get("file_types", Requirements()[1]["file_types"])
     Irange     = settings_class.output_settings.get("Irange", Requirements()[1]["Irange"])
+    plot_type  = settings_class.output_settings.get("plot type", Requirements()[1]["plot type"])
     #override with kwargs
     fps        = kwargs.get("fps", fps)
     file_types = kwargs.get("file_types", file_types)
     Irange     = kwargs.get("Irange", Irange)
+    plot_type     = kwargs.get("plot type", plot_type)
 
     # make sure file_types is a list.
     if isinstance(file_types, str):
@@ -224,7 +227,7 @@ def WriteOutput(settings, debug=False, **kwargs):
                 # param_lmfit=None,
                 params_dict=data_fit,
                 figure=fig,
-                # plot_type = "surface",
+                plot_type = plot_type,
                 plot_ColourRange={
                     "max": Imax[z],
                     "min": Imin[z],

@@ -233,10 +233,6 @@ def ReadFits_to_dataframe(
     # make sure settings is a class
     settings_class = get_settings(settings)
 
-    # force all the kwargs that might be needed
-    kwargs.pop("SampleGeometry", "3d")
-    kwargs.pop("SampleDeformation", "compression")
-
     # get what to write
     if includeParameters is False:
         includeParameters = []
@@ -249,8 +245,17 @@ def ReadFits_to_dataframe(
         includeParameters = peak_properties[1]
 
     if includeSeriesValues is not False or includeUnitCells is not False:
-        SampleGeometry = kwargs.get("SampleGeometry", "3d")
-        SampleDeformation = kwargs.get("SampleDeformation", "compression")
+        # Parse needed parameters 
+        SampleGeometry     = settings_class.output_settings.get("SampleGeometry", "3d")
+        SampleDeformation  = settings_class.output_settings.get("SampleDeformation", "compression")
+        #override with kwargs
+        SampleGeometry     = kwargs.get("SampleGeometry", SampleGeometry)
+        SampleDeformation  = kwargs.get("SampleDeformation", SampleDeformation)
+        # force all the kwargs that might be needed
+        set_params = {"SampleGeometry": SampleGeometry,
+                    "SampleDeformation": SampleDeformation,
+                    }
+        kwargs.update(set_params)
     
     if includeIntensityRanges is not False: 
         # get the intensity maximum and minimum of the fit, model and residuals

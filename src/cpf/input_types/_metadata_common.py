@@ -46,7 +46,7 @@ class _metadata_common:
 
     """
     
-    def get_metadata(self, metadata_values="default", report=None):
+    def get_metadata(self, settings_class= None, metadata_values="default", report=None):
         """
         Gets metadata from the diffraction patterns. 
         The default is to get the timestamps of the images but other data 
@@ -72,7 +72,7 @@ class _metadata_common:
             image_name : string, list, optional
                 Name of the image set to import. Either this or settings are required.
                 The default is None.
-        settings : settings class, optional
+        settings_class : settings class, optional
             cpf settings class. Either this or image_name are required.
             The default is None.
         metadata : string, list, optional
@@ -90,12 +90,13 @@ class _metadata_common:
         
         
         """
-        
-        no_exposure_message = None#"no exposure"
-        
+        # parse inputs
+        if settings_class and metadata_values=="default":
+            metadata_values = settings_class.metadata
         if isinstance(metadata_values, str):
             metadata_values = [metadata_values]
         
+        no_exposure_message = None#"no exposure"
         # options for times
         time_opts = ["time_mid" ,"time_start" ,"time_end", "time_exposure"]
         
@@ -192,7 +193,7 @@ class _metadata_common:
             # check metadata requirements exist and add entries to output dictionary
             headers = list(self.metadata)
             for j in metadata_values:
-                if j in ["FILE_CREATION", "FILE_MODIFIED"]:
+                if j in ["FILE_CREATION", "FILE_MODIFIED"] or j==None:
                     pass
                 elif j in headers:
                     # metadata_out[j] = []

@@ -577,6 +577,6 @@ def read_metadata(settings_class):
         settings=settings_class,
     )
     
-    metadata = new_data.get_metadata()
-    
+    new_data.import_image(settings=settings_class)
+    metadata = new_data.get_metadata(metadata_values=settings_class.metadata)
     return metadata

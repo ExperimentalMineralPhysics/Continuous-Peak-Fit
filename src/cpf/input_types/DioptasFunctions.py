@@ -81,7 +81,7 @@ class DioptasDetector:
         self.reduce_by = None
 
         self.metadata = None
-        self._default_metadata_labels = {"time": "FILE_CREATION", # file creation time.
+        self._default_metadata_labels = {"time": "FILE_MODIFIED", # file creation time.
                                   }
         
         self._default_h5_datakey = '/*.1/measurement/p3/'

@@ -30,7 +30,7 @@ def Requirements():
         ##"Output_directory"  # if no direcrtory is specified write to current directory.
         "SampleGeometry": "3d", # -- geometry of the sample for determining the cnetres from. 2D or 3D.
         "SampleDeformation": "compression",  # changes calculation between 'compression' and 'extension'.
-        "dp": 6,  # how many decimal points to write out
+        "dp": 5,  # how many decimal points to write out
         "col_width": 15,  # default column width for csv file.
         "ordering_of_output": False # Just leave as read -- otherwise list of dataframe headers to order by
     }

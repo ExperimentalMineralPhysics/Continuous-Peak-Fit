@@ -28,7 +28,7 @@ def Requirements():
     ]
     OptionalParams = {
         ##"Output_directory"  # if no direcrtory is specified write to current directory.
-        "dp": 6,  # how many decimal points to write out
+        "dp": 5,  # how many decimal points to write out
         "col_width": 15,  # default column width for csv file.
         "coefs_vals_write": "all",  # -- pick which set of coefficients to write
         "ordering_of_output": False # Just leave as read -- otherwise list of dataframe headers to order by

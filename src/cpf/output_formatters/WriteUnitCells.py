@@ -27,7 +27,7 @@ def Requirements():
         "SampleGeometry": "3d", # -- geometry of the sample for determining the cnetres from. 2D or 3D.
         "SampleDeformation": "compression",  # changes calculation between 'compression' and 'extension'.
         "weighted": True, # -- weighted fit or not. True/False
-        "dp": 6,  # how many decimal points to write out
+        "dp": 5,  # how many decimal points to write out
         "col_width": 15,  # default column width for csv file.
         "ordering_of_output": None # Just leave as read -- otherwise list of dataframe headers to order by
     }
@@ -127,8 +127,13 @@ def WriteOutput(
         hkls[i] = df[i].iloc[0]
         df = df.drop(i, axis=1)
     if hkls:
-        calc_options["peaks used"] = []
-        calc_options["peaks used"] += [','.join(f"{{{value}}}" for key, value in hkls.items())]
+        key = list(hkls.keys())
+        if len(key) != 1:
+            # do something with the 'phase' to find the right key
+            key = key[0]
+        else:
+            key = key[0]
+        calc_options["peaks used"] = "{"+"} {".join(v for v in hkls[key])+"}"
     file_header = make_header(settings_class,
                             derived="Unit Cells", 
                             calc_options=calc_options

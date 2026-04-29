@@ -188,7 +188,7 @@ def view(
         # restrict file list to first file
         settings_class.set_data_files(keep=pattern)
 
-    write_output(settings_class, out_type="CollectionMovie")
+    write_output(settings_class, out_type="CollectionMovie", **kwargs)
     
     # write_output(settings_file=settings_file, out_type="RangesMovie")
 

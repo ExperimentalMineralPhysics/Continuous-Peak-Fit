@@ -32,7 +32,7 @@ def Requirements():
         "fps": 10,  # frames per second
         "file_types": ["mp4"],  # movie file type
         "Irange": ["pt1percentile", "99pt9percentile"], # range of colour scale
-        "collection_plot": "calibrated", 
+        "plot data as": "calibrated", 
         "plot type": "default", #"surface",
     }
 
@@ -73,13 +73,13 @@ def WriteOutput(settings, debug=False, **kwargs):
     fps        = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
     file_types = settings_class.output_settings.get("file_types", Requirements()[1]["file_types"])
     Irange     = settings_class.output_settings.get("Irange", Requirements()[1]["Irange"])
-    collection_plot  = settings_class.output_settings.get("collection_plot", Requirements()[1]["collection_plot"])
+    plot_data_as = settings_class.output_settings.get("plot data as", Requirements()[1]["plot data as"])
     plot_type  = settings_class.output_settings.get("plot type", Requirements()[1]["plot type"])
     #override with kwargs
     fps        = kwargs.get("fps", fps)
     file_types = kwargs.get("file_types", file_types)
     Irange     = kwargs.get("Irange", Irange)
-    collection_plot  = kwargs.get("collection_plot", collection_plot)
+    plot_data_as = kwargs.get("plot_data_as", plot_data_as)
     plot_type  = kwargs.get("plot_type", plot_type)
 
     # make sure file_types is a list.
@@ -87,7 +87,7 @@ def WriteOutput(settings, debug=False, **kwargs):
         file_types = [file_types]
     if not isinstance(fps, float) and not isinstance(fps, int):
         raise ValueError("The frames per second needs to be a number.")
-    if plot_type != "collected" and plot_type != "calibrated":
+    if plot_data_as != "collected" and plot_data_as != "calibrated":
         raise ValueError("plot_type must be 'collected' or 'calibrated'.")
 
     # make the base file name
@@ -175,9 +175,12 @@ def WriteOutput(settings, debug=False, **kwargs):
         else:
             cbar = False
             
-        if collection_plot == "calibrated":
+        if plot_data_as == "calibrated":
             data_class.plot_calibrated(
-                fig_plot=fig, axis_plot=ax, show="intensity", limits=deepcopy(lims),
+                fig_plot=fig, 
+                axis_plot=ax, 
+                show="intensity", 
+                limits=deepcopy(lims),
                 plot_type = plot_type,
                 cbar_axes=cbar
             )

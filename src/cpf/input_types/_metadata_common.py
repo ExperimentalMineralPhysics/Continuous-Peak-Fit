@@ -135,18 +135,10 @@ class _metadata_common:
         
         # get metadata from images
         # look for os level properties first FILE_CREATION and FILE_MODIFIED 
-        if "FILE_CREATION" in metadata_values:
-            # get file creation time from OS    
-            # metadata["FILE_CREATION"] = []
-            # for k,i in enumerate(imgs_):
-            #     metadata["FILE_CREATION"].append(os.path.getctime(image_name))
+        if "FILE_CREATION" in metadata_values and "FILE_CREATION" in self.metadata:
             metadata_out["FILE_CREATION"] = self.metadata["FILE_CREATION"]
-        if "FILE_MODIFIED" in metadata_values:
-            # get file modificaction time from OS   
-            # metadata["FILE_MODIFIED"] = []
-            # for k,i in enumerate(imgs_):
-            #     metadata["FILE_MODIFIED"].append(os.path.getmtime(image_name))
-            metadata_out["FILE_MODIFIED"] = self.metadata["FILE_CREATION"]
+        if "FILE_MODIFIED" in metadata_values and "FILE_MODIFIED" in self.metadata:
+            metadata_out["FILE_MODIFIED"] = self.metadata["FILE_MODIFIED"]
         #get information from inside datafiles
         if "h5_datakey" in self.metadata:
             # only hdf5 files should have a "h5_datakey" as wildcard in the keys.
@@ -178,20 +170,24 @@ class _metadata_common:
             # check metadata requirements exist 
             # add entries to output dictionary
             for j in metadata_values:
-                if len(iteration.groups()) > 1:
-                    err_str = f"There is more than 1 wildcard in the h5 key {self.h5_datakey}. This is not implemented here."
-                    raise NotImplementedError(err_str)
-                else:
-                    metadata_key = re.sub('[*]', iteration.groups()[0], j)
-                    
-                #get last index in key as the dictionarry entry label
-                ky = metadata_key.split("/")[-1]
-                metadata_out[ky] = h5_functions.get_images([imagename[0], metadata_key, imagename[2], '0'])
-                try:
+                if "/" in j:
+                    # h5 key must have / in the name. No / neams not h5 key
+                    if len(iteration.groups()) > 1:
+                        err_str = f"There is more than 1 wildcard in the h5 key {self.h5_datakey}. This is not implemented here."
+                        raise NotImplementedError(err_str)
+                    elif "*" in j:
+                        metadata_key = re.sub('[*]', iteration.groups()[0], j)
+                    else:
+                        metadata_key = j
+                        
+                    #get last index in key as the dictionarry entry label
+                    ky = metadata_key.split("/")[-1]
                     metadata_out[ky] = h5_functions.get_images([imagename[0], metadata_key, imagename[2], '0'])
-                except:                    
-                    err_str = f"Metadata type {metadata_key} not recognised. Permitted values for this dataset are: any valid h5 key"
-                    raise ValueError(err_str)
+                    try:
+                        metadata_out[ky] = h5_functions.get_images([imagename[0], metadata_key, imagename[2], '0'])
+                    except:                    
+                        err_str = f"Metadata type {metadata_key} not recognised. Permitted values for this dataset are: any valid h5 key"
+                        raise ValueError(err_str)
                     
         else: # image(s) are separate tiff, edf, etc. images
             # check metadata requirements exist and add entries to output dictionary

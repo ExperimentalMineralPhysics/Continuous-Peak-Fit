@@ -166,7 +166,11 @@ def ReadFits_to_list(
                     # old stype without metadata
                     fits.append(json_contents)
                     metadata.append([])
-                if (os.path.isfile(settings_class.subfit_filename) and
+                if isinstance(settings_class.subfit_filename, list):
+                    fnam = settings_class.subfit_filename[0]
+                else:
+                    fnam = settings_class.subfit_filename
+                if (os.path.isfile(fnam) and
                     sorted(settings_class.metadata) != sorted(list(metadata[-1]))):
                         # then we need to read the metadata from the files
                         metadata[-1] = read_metadata(settings_class)
@@ -423,8 +427,11 @@ def ReadFits_to_dataframe(
         
         if len(data_to_write["peak"]) > lists[z, 2]:
             RowLst["num"] = lists[z, 0]
-            
-            RowLst["DataFile"] = os.path.split(settings_class.subfit_filename)[1]
+            if isinstance(settings_class.subfit_filename, list):
+                # filenames have to be unique but will be a list of h5 type files
+                RowLst["DataFile"] = os.path.split(settings_class.subfit_filename[0])[1]
+            else:
+                RowLst["DataFile"] = os.path.split(settings_class.subfit_filename)[1]
             
             # RowLst["Peak"] = peak_string(fits[lists[z, 0]][lists[z, 1]], peak=[lists[z, 2]], fname=False)
             RowLst["phase"] = peak_phase(fits[lists[z, 0]][lists[z, 1]], peak=[lists[z, 2]])[0]
@@ -433,7 +440,11 @@ def ReadFits_to_dataframe(
             RowLst["range_end"] = data_to_write["range"][0][1]
 
             for w in settings_class.metadata:
-                RowLst[w] = metadata[lists[z,0]][w]
+                if "/" in w:
+                    #cut to last part of h5key
+                    RowLst[w] = metadata[lists[z,0]][w.split("/")[-1]]
+                else:
+                    RowLst[w] = metadata[lists[z,0]][w]
                 
             for w in range(len(includeParameters)):
                 ind = includeParameters[w]
@@ -563,11 +574,15 @@ def read_metadata(settings_class):
     metadata : dict
         metadata of the diffraction image
     """
-    
+    if isinstance(settings_class.subfit_filename, list):
+        fnam = settings_class.subfit_filename[0]
+    else:
+        fnam = settings_class.subfit_filename
+        
     if settings_class.subfit_filename == None:
         raise ValueError("no file is specified")
-    if not os.path.isfile(settings_class.subfit_filename):
-        raise FileExistsError("The file {os.path.split(settings_class.subfit_filename)[1]} does not exist on the path")
+    if not os.path.isfile(fnam):
+        raise FileExistsError("The file {os.path.split(fnam)[1]} does not exist on the path")
     
     #get data from settings class
     new_data = settings_class.data_class

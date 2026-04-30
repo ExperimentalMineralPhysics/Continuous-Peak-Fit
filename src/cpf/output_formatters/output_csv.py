@@ -137,13 +137,11 @@ def write_csv(out_file, df, column_headers, file_header=None, col_width=15, dp=5
     for col in list(df):
         df[col] = df[col].replace(',',' ', regex=True)
     
-    # # make sure residual columns are saved as a single string with no line breaks.
-    # colms = [col for col in df.columns if 'residuals' in col]
-    # for i in colms:
-    #     if df[i].dtypes == "O":
-    #         #then object type column and can assume is a list
-    #         df[i] = df[i].apply(lambda x: np.array2string(x, separator=";", max_line_width=np.inf, formatter={"float_kind": lambda x: float_format(x, dp, 10) }, sign=" "))
-    
+    #shorten hdf5 key names 
+    for col in list(df):
+        if "/" in col:
+            df.rename(columns={col: col.split("/")[-1]})
+
     # make sure diferent columns are saved as desired.
     for i in df.columns:
         if ("date" in i.lower() or 

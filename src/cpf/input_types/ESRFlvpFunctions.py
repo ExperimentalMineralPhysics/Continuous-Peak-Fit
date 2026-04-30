@@ -1006,7 +1006,7 @@ class ESRFlvpDetector:
 
         if settings.metadata_labels is not None:
             self.metadata_labels = settings.metadata_labels
-        elif (isinstance(diff_file, list) or 
+        if (isinstance(diff_file, list) or 
               os.path.splitext(os.path.basename(diff_file))[1] == ".h5"):
             self._default_metadata_labels = self._default_metadata_labels_hdf5
             self.metadata_labels = self._default_metadata_labels_hdf5

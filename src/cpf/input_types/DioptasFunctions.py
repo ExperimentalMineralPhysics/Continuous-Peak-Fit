@@ -81,8 +81,11 @@ class DioptasDetector:
         self.reduce_by = None
 
         self.metadata = None
-        self._default_metadata_labels = {"time": "FILE_MODIFIED", # file creation time.
+        self._default_metadata_labels_tiff  = {"time": "FILE_MODIFIED", # file creation time.
                                   }
+        self._default_metadata_labels_hdf5 = {}
+        # self._default_metadata_labels = {"time": "FILE_MODIFIED", # file creation time.
+        #                           }
         
         self._default_h5_datakey = '/*.1/measurement/p3/'
         self._default_h5_iterate = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
@@ -278,13 +281,12 @@ class DioptasDetector:
                 if config["max_shape"] == None:
                     # open the file to get the shape of the data.
                     if diffraction_data is not None:
-                        im_all = fabio.open(diffraction_data)
+                        im_all = self.import_image(diffraction_data)
                     elif settings.calibration_data is not None:
-                        im_all = fabio.open(settings.calibration_data)
+                        im_all = self.import_image(settings.calibration_data)
                     elif settings.image_list[0] != None:
-                        im_all = fabio.open(settings.image_list[0])
-                    if im_all:
-                        config["max_shape"] = im_all.shape
+                        im_all = self.import_image(settings.image_list[0])
+                    config["max_shape"] = im_all.shape
 
                 # make sure the pixel sizes are correct
                 self.detector.detector.set_config(config)
@@ -338,37 +340,18 @@ class DioptasDetector:
 
         # read image
         if isinstance(image_name, list):
-            # then it is a h5 type file
+            # then it is a h5 type file (including *.nxs)
             im = h5_functions.get_images(image_name)
             
             #add metadata to instance.
             #done here so only need to open file once.
             self._set_metadata(None, settings=settings)
 
-        # elif file_extension == ".nxs":
-        #     im_all = h5py.File(image_name, "r")
-        #     # FIX ME: This assumes that there is only one image in the nxs file.
-        #     # If there are more, then it will only read 1.
-        #     im = np.array(im_all["/entry1/instrument/detector/data"])
         else:
+            # presume it is an image file.
             try:
                 im_all = fabio.open(image_name)
-                logger.moreinfo(" ".join(map(str, [
-                    f"This file contains {im_all.nframes} frame(s) with a combined shape of {im_all.shape}"
-                ])))
-                if im_all.nframes == 1:
-                    im = np.squeeze(
-                        im_all.data
-                    )  # squeeze to make sure 1st dimension is not 1.
-                else:
-                    err_str = "".join(
-                        [
-                            "There is more than 1 image in the file.\n",
-                            "If the image is a 'hdf5' type then use the hdf5 input functions.\n",
-                            "Multiimage Tiffs are not currently implemented in continuous peak fit.",
-                        ]
-                    )
-                    raise ValueError(err_str)
+                logger.moreinfo(f"This file contains {im_all.nframes} frame(s) with a combined shape of {im_all.shape}")
             except:
                 err_str = "".join(
                     [
@@ -378,6 +361,18 @@ class DioptasDetector:
                     ]
                 )
                 raise ValueError(err_str)
+                
+            if im_all.nframes == 1:
+                # squeeze to make sure 1st dimension is not 1.
+                im = im_all.data.squeeze()  
+            else:
+                err_str = "".join(
+                    [
+                        "There is more than 1 image in the file.\n",
+                        "Multiimage Tiffs are not currently implemented in continuous peak fit.",
+                    ]
+                )
+                raise NotImplementedError(err_str)
                 
             #add metadata to instance.
             #done here so only need to open file once.
@@ -497,9 +492,15 @@ class DioptasDetector:
             
         if settings.metadata_labels is not None:
             self.metadata_labels = settings.metadata_labels
+        if (isinstance(diff_file, list) or 
+              os.path.splitext(os.path.basename(diff_file))[1] == ".h5" or 
+              os.path.splitext(os.path.basename(diff_file))[1] == ".nxs"):
+            self._default_metadata_labels = self._default_metadata_labels_hdf5
+            self.metadata_labels = self._default_metadata_labels_hdf5
         else:
-            self.metadata_labels = self._default_metadata_labels
-                
+            self._default_metadata_labels = self._default_metadata_labels_tiff
+            self.metadata_labels = self._default_metadata_labels_tiff
+            
         if self.detector == None:
             self.get_detector(settings=settings)
 
@@ -592,9 +593,7 @@ class DioptasDetector:
             # expected behaviour in some circumstances.
             self.metadata = None
             return
-        elif settings and "metadata_read_func" in settings.__dict__:
-            metadata_dictionary = settings.metadata_read_func(settings, image_obj=image_obj)
-        elif (not image_obj and settings) or cpf.settings.is_settings(image_obj):
+        elif isinstance(image_obj, list) or (not image_obj and settings) or cpf.settings.is_settings(image_obj):
              # when calling hdf5 file there is no image_obj to send (= None) and settings is
              # provided instead. 
              # 
@@ -613,19 +612,19 @@ class DioptasDetector:
             else:
                 metadata_dictionary["image"] = settings.image_list[0][0]
             metadata_dictionary["note"] = "It is not reasonable to load all hdf5 keys into a dictionary as metadata. Instead carry file name and use keys"
-            metadata_dictionary["h5_datakey"] = settings.h5_datakey
+            metadata_dictionary["h5_datakey"] = settings.h5_datakey       
+            # add the file creation and modifications time
+            # metadata_dictionary.update(self._get_file_created_modified(image_obj[0]))
         else:
             if isinstance(image_obj, str) or isinstance(image_obj, Path):
-                metadata_dictionary = fabio.open(image_obj).header
                 metadata_dictionary.update(fabio.open(image_obj).header)
             else:
-                metadata_dictionary = image_obj.header
-                metadata_dictionary.update(image_obj.header)
+                metadata_dictionary.update(image_obj.header)       
+            # add the file creation and modifications time
+            metadata_dictionary.update(self._get_file_created_modified(image_obj))
 
         if settings and "metadata_read_func" in settings.__dict__:
-            metadata_dictionary.update(settings.metadata_read_func(settings, image_obj=image_obj))            
-        # add the file creation and modifications time
-        metadata_dictionary.update(self._get_file_created_modified(image_obj))
+            metadata_dictionary.update(settings.metadata_read_func(settings, image_obj=image_obj))     
         self.metadata = metadata_dictionary
 
     @staticmethod

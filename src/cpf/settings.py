@@ -1333,6 +1333,13 @@ class Settings:
             self.metadata = list(set(self.metadata + self.settings_from_input["metadata"]))
         # make sure values from metadata_labels are in the list
         self.metadata = list(set(self.metadata + list(self.metadata_labels.values())))
+
+        # add metadata from h5_iterate if it exists. 
+        if "h5_iterate" in self.settings_from_input:
+            if self.h5_iterate[-1]["do"] != "sum":
+                for i in self.h5_iterate[-1]["label"]:
+                    if "/" in i:
+                        self.metadata.append(i)
         
         # get metadata_read_func if it exists
         if "metadata_read_func" in self.settings_from_input:
@@ -1342,7 +1349,7 @@ class Settings:
 
         #replace all the wildcards in the metadata.        
         for i in range(len(self.metadata)):
-            if "*" in self.metadata[i]:
+            if "*" in self.metadata[i] and "/" not in self.metadata[i]:
                 if "metadata" not in self.data_class.__dict__:
                     self.data_class.fill_data(self.image_list[0], settings=self)
                 

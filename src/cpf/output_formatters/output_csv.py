@@ -139,8 +139,10 @@ def write_csv(out_file, df, column_headers, file_header=None, col_width=15, dp=5
     
     #shorten hdf5 key names 
     for col in list(df):
+        col_rename = {}
         if "/" in col:
-            df.rename(columns={col: col.split("/")[-1]})
+            col_rename.update({col: col.split("/")[-1]})
+        df = df.rename(columns=col_rename)
 
     # make sure diferent columns are saved as desired.
     for i in df.columns:

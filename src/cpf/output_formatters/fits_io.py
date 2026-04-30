@@ -62,7 +62,7 @@ def WriteFits(settings_class, fitted_param, filename_to_write=None, data_class=N
         for i in out:
             i.pop("correlation_coeffs",None)
     elif data_class:
-        metadata = data_class.get_metadata(settings_class.metadata)
+        metadata = data_class.get_metadata(settings_class=settings_class)
         out = {"metadata": metadata,
                "fits": fitted_param}
     else:

@@ -372,7 +372,7 @@ class MedDetector:
         """
 
         # check inputs
-        if image_name == None and settings.subpattern == None:
+        if image_name == None and settings.subfit_filename == None:
             raise ValueError("Settings are given but no subpattern is set.")
 
         if self.detector == None:
@@ -577,8 +577,11 @@ class MedDetector:
             dictionary of image metadata. 
         """
         # Defined as function to allow get_metadata to call universal image method
-        if settings and "metadata_read" in settings:
-            metadata_dictionary = settings.metadata_read(image_obj)
+        if not image_obj and not settings:
+            # then nothing is provided
+            # expected behaviour in some circumstances.
+            self.metadata = None
+            return
         else:
             im_and_md = Mca.read_ascii_file(image_obj.get_name())
             metadata_dictionary = {}
@@ -593,11 +596,11 @@ class MedDetector:
                     metadata_dictionary["mean_"+l] = metadata_dictionary[l][0]
                 else:
                     metadata_dictionary["mean_"+l] = np.nanmean(metadata_dictionary[l])           
+        
+        if settings and "metadata_read_func" in settings.__dict__:
+            metadata_dictionary.update(settings.metadata_read_func(settings, image_obj=image_obj))            
         # add the file creation and modifications time
-        if isinstance(image_obj, str) or isinstance(image_obj, Path):
-            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
-        else:
-            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj.get_name())
+        metadata_dictionary.update(self._get_file_created_modified(image_obj))
         self.metadata = metadata_dictionary
         
 

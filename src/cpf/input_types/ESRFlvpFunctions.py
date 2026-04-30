@@ -1160,9 +1160,11 @@ class ESRFlvpDetector:
 
     def _set_metadata(self, image_obj, settings=None):
         """
-        Gets all metadata as dictionary from image file.
+        Adds all possible metadata values as dictionary within the in the data_class.
         
-        If the cpf settings class is provided and has the method 'metadata_read'
+        The values that are in settings.metadata (a list) are extracted subsequently using data_class.get_metadata 
+               
+        If the cpf settings class is provided and has the method 'metadata_read_func'
         then this method is used to override the internal default methods and is 
         used to create 'metadata_dictionary' which is parsed.
         In this case the settings class attribute 'metadata_labels' is still needed 
@@ -1187,9 +1189,12 @@ class ESRFlvpDetector:
             dictionary of image metadata. 
         """
         # Defined as function to allow get_metadata to call universal image method
-        if settings and "metadata_read_func" in settings.__dict__:
-            metadata_dictionary = settings.metadata_read_func(settings, image_obj=image_obj)
-            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
+        metadata_dictionary = {}
+        if not image_obj and not settings:
+            # then nothing is provided
+            # expected behaviour in some circumstances.
+            self.metadata = None
+            return
         elif (not image_obj and settings) or cpf.settings.is_settings(image_obj):
             # when calling hdf5 file there is no image_obj to send (= None) and settings is
             # provided instead. 
@@ -1201,7 +1206,7 @@ class ESRFlvpDetector:
             metadata_dictionary["image"] = settings.subfit_filename
             metadata_dictionary["note"] = "It is not reasonable to load all hdf5 keys into a dictionary as metadata. Instead carry file name and use keys"
             metadata_dictionary["h5_datakey"] = settings.h5_datakey
-            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, metadata_dictionary["image"][0])
+            # metadata_dictionary = self._get_file_created_modified(metadata_dictionary, metadata_dictionary["image"][0])
         else:
             metadata_dictionary = {}
             for obj in image_obj:
@@ -1213,8 +1218,11 @@ class ESRFlvpDetector:
                         metadata_dictionary[j].append(float(obj.header.get(j, None)))
                     except:
                         metadata_dictionary[j].append(obj.header.get(j, None))
-                # add the file creation and modifications time
-                metadata_dictionary = self._get_file_created_modified(metadata_dictionary, obj.filename)
+                
+        if settings and "metadata_read_func" in settings.__dict__:
+            metadata_dictionary.update(settings.metadata_read_func(settings, image_obj=image_obj))            
+        # add the file creation and modifications time
+        metadata_dictionary.update(self._get_file_created_modified(metadata_dictionary["image"][0]))
         self.metadata = metadata_dictionary
 
 

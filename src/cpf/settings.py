@@ -1309,8 +1309,14 @@ class Settings:
             ] = "INFO",
     ):
         """
-        Set metadata required by the outputs.
+        Adds list of metadata values, required by inputs, to class.
+        
         Parses input file and output file requirements to confirm all requirements are present.
+        
+        Results in self.metadata which defines what data is read and stored when processing the data. 
+        
+        Used by data_class.get_metadata.
+        
         """
         # get default labels if they exist.
         if (self.data_class and 
@@ -1322,6 +1328,8 @@ class Settings:
             
         # get metadata from inputs
         if "metadata" in self.settings_from_input:
+            if not isinstance(self.settings_from_input["metadata"], list):
+                self.settings_from_input["metadata"] = [self.settings_from_input["metadata"]]
             self.metadata = list(set(self.metadata + self.settings_from_input["metadata"]))
         # make sure values from metadata_labels are in the list
         self.metadata = list(set(self.metadata + list(self.metadata_labels.values())))
@@ -1329,6 +1337,25 @@ class Settings:
         # get metadata_read_func if it exists
         if "metadata_read_func" in self.settings_from_input:
             self.metadata_read_func = self.settings_from_input["metadata_read_func"]
+            # pass settings as 'self'
+            self.metadata.extend(self.metadata_read_func(self,).keys())
+
+        #replace all the wildcards in the metadata.        
+        for i in range(len(self.metadata)):
+            if "*" in self.metadata[i]:
+                if "metadata" not in self.data_class.__dict__:
+                    self.data_class.fill_data(self.image_list[0], settings=self)
+                
+                # add all wildard catches to metadata
+                pattern = re.compile(re.sub('[*]', '([0-9a-zA-Z-+_:]*)', self.metadata[i]))  
+                matches = [word for word in list(self.data_class.metadata) if pattern.match(word)]
+                for j in range(len(matches)):
+                    if j == 0:
+                        self.metadata[i] = matches[j]
+                    else:
+                        self.metadata.append(matches[j])
+            else:
+                pass
         
         # check for wildcards (*) and remove if another metadata corresponds
         remove = []

@@ -559,9 +559,11 @@ class DioptasDetector:
 
     def _set_metadata(self, image_obj, settings=None):
         """
-        Gets all metadata as dictionary from image file.
+        Adds all possible metadata values as dictionary within the in the data_class.
         
-        If the cpf settings class is provided and has the method 'metadata_read'
+        The values that are in settings.metadata (a list) are extracted subsequently using data_class.get_metadata 
+               
+        If the cpf settings class is provided and has the method 'metadata_read_func'
         then this method is used to override the internal default methods and is 
         used to create 'metadata_dictionary' which is parsed.
         In this case the settings class attribute 'metadata_labels' is still needed 
@@ -584,6 +586,7 @@ class DioptasDetector:
             dictionary of image metadata. 
         """
         # Defined as function to allow get_metadata to call universal image method
+        metadata_dictionary = {}
         if not image_obj and not settings:
             # then nothing is provided
             # expected behaviour in some circumstances.
@@ -591,7 +594,6 @@ class DioptasDetector:
             return
         elif settings and "metadata_read_func" in settings.__dict__:
             metadata_dictionary = settings.metadata_read_func(settings, image_obj=image_obj)
-            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj.filename)
         elif (not image_obj and settings) or cpf.settings.is_settings(image_obj):
              # when calling hdf5 file there is no image_obj to send (= None) and settings is
              # provided instead. 
@@ -612,17 +614,19 @@ class DioptasDetector:
                 metadata_dictionary["image"] = settings.image_list[0][0]
             metadata_dictionary["note"] = "It is not reasonable to load all hdf5 keys into a dictionary as metadata. Instead carry file name and use keys"
             metadata_dictionary["h5_datakey"] = settings.h5_datakey
-            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, metadata_dictionary["image"][0])
-            
         else:
             if isinstance(image_obj, str) or isinstance(image_obj, Path):
                 metadata_dictionary = fabio.open(image_obj).header
-                metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
+                metadata_dictionary.update(fabio.open(image_obj).header)
             else:
                 metadata_dictionary = image_obj.header
-                metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj.filename)
+                metadata_dictionary.update(image_obj.header)
+
+        if settings and "metadata_read_func" in settings.__dict__:
+            metadata_dictionary.update(settings.metadata_read_func(settings, image_obj=image_obj))            
+        # add the file creation and modifications time
+        metadata_dictionary.update(self._get_file_created_modified(image_obj))
         self.metadata = metadata_dictionary
-    
 
     @staticmethod
     def detector_check(calibration_data, settings=None):

@@ -108,6 +108,15 @@ def WriteOutput(
                    'peak',   # text_file.write(("{0:<" + str(width_hkl) + "}").format("Peak" + ","))
                    ]
     headers_use += settings.metadata
+    # for i in settings.metadata:
+    #     if "*" in i: # wildcard in metadata name
+    #         # add all wildards to RowLst
+    #         pattern = re.compile(re.sub('[*]', '([0-9a-zA-Z-+_:]*)', i))  
+    #         matches = [word for word in list(df) if pattern.match(word)]
+    #         for k in matches:
+    #             headers_use.append(k)
+    #     else:
+    #         headers_use.append(i)
     headers_use += ["d_mean",          # text_file.write(("{0:>" + str(width_col) + "}").format("d_mean" + ","))
                    "d_mean_err",      # text_file.write(("{0:>" + str(width_col) + "}").format("d_mean_err" + ","))
                    'd-space4',# text_file.write(("{0:>" + str(width_col) + "}").format("d2cos" + ","))

@@ -176,7 +176,7 @@ def write_csv(out_file, df, column_headers, file_header=None, col_width=15, dp=5
                 column_headers[i],
                 column_headers[i].rjust(np.max([len_datafile, col_width])),
             )
-        elif column_headers[i] == "pdatafileeak":
+        elif column_headers[i] == "peak":
             setattr(
                 columns,
                 column_headers[i],

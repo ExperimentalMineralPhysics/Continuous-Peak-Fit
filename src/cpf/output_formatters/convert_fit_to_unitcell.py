@@ -204,7 +204,9 @@ def fits_to_unitcell(
             templbl_without_wildcards = "None"
         r = re.compile(templbl_without_wildcards)
         templbl = list(filter(r.match, list(metadata))) # Read Note below
-        if len(templbl) > 1:
+        if len(templbl) == 1:
+            templbl = templbl[0]
+        elif len(templbl) > 1:
             err_str = "More than one temprature has been found. Assuming the first one. "
             logger.error(err_str)
             templbl = templbl[0]

@@ -362,7 +362,7 @@ def WriteOutput(
         templbl = templbl[0]
         # get temperature
         if templbl in metadata[x]:
-            temp = metadata[x][templbl] + 273.0
+            temp = float(metadata[x][templbl]) + 273.0
         else:
             temp = -1
 

@@ -843,7 +843,7 @@ def series_properties(
         errsum = np.sqrt(
             np.sum(np.array(coefficients[subpattern]["peak"][peak][param+"_err"]) ** 2)
         )
-        num = np.shape(coefficients[subpattern]["peak"][peak][param])
+        num = len(coefficients[subpattern]["peak"][peak][param])
         properties["series mean"] = tot / num
         properties["series mean err"] = errsum / num
     if properties["series mean"] is None:  # catch  'null' as an error

@@ -2,7 +2,7 @@ __all__ = ["outfile_version", "make_header", "write_csv", "csv_align_columns", "
 
 
 import numpy as np
-
+from pandas.api.dtypes import is_string_dtype, is_numeric_dtype, is_object_dtype
 from cpf.util.logging import get_logger
 logger = get_logger("cpf.output_formatters.output_csv")
 
@@ -146,25 +146,24 @@ def write_csv(out_file, df, column_headers, file_header=None, col_width=15, dp=5
 
     # make sure diferent columns are saved as desired.
     for i in df.columns:
-        if ("date" in i.lower() or 
+        if (("date" in i.lower() or 
             "time" in i.lower() or 
             i.lower() == "FILE_CREATION".lower() or 
-            i.lower() == "FILE_MODIFIED".lower() 
-            ):
-            # the a date or time so need to keep all precision.
-            # convert to string so that float_format is passed over.
+            i.lower() == "FILE_MODIFIED".lower() )
+            and 
+            is_numeric_dtype(df[i])
+            ): 
+            # the a date or time as a numeric type -- so need to keep all precision.
             # if treated as a float then unix time looses all the precision.
-            if df[i].dtypes != "O":
-                #then not object type and can assume is a number
-                df[i] = df[i].apply(lambda x: f"{x: {np.max([18, col_width])}.{dp}f}")
-            else:
-                pass #can assume is string?
-        elif 'residuals' in i.lower() and df[i].dtypes == "O":
+            # convert to string so that float_format is passed over.
+            df[i] = df[i].apply(lambda x: f"{x: {np.max([18, col_width])}.{dp}f}")
+            
+        elif 'residuals' in i.lower() and is_object_dtype(df[i]):
             # make sure residual columns are saved as a single string with no line breaks.
-            if df[i].dtypes == "O":
-                #then object type column and can assume is a list
-                df[i] = df[i].apply(lambda x: np.array2string(x, separator=";", max_line_width=np.inf, formatter={"float_kind": lambda x: float_format(x, np.min([12, col_width]), dp) }, sign=" "))
+            df[i] = df[i].apply(lambda x: np.array2string(x, separator=";", max_line_width=np.inf, formatter={"float_kind": lambda x: float_format(x, np.min([12, col_width]), dp) }, sign=" "))
         
+        # is_numeric_dtype(df[i]) and is_object_dtype(df[i]) are needed for breaking change from pandas2->3 
+        # https://pandas.pydata.org/pandas-docs/stable/user_guide/migration-3-strings.html#string-migration-guide
 
     # rename the columns so that the headers are the same width as the columns
     class NewClass(object):

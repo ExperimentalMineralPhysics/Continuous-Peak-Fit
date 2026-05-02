@@ -2,7 +2,7 @@ __all__ = ["outfile_version", "make_header", "write_csv", "csv_align_columns", "
 
 
 import numpy as np
-from pandas.api.dtypes import is_string_dtype, is_numeric_dtype, is_object_dtype
+from pandas.api.types import is_string_dtype, is_numeric_dtype, is_object_dtype
 from cpf.util.logging import get_logger
 logger = get_logger("cpf.output_formatters.output_csv")
 

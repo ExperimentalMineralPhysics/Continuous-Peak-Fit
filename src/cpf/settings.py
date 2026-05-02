@@ -1350,7 +1350,9 @@ class Settings:
         #replace all the wildcards in the metadata.        
         for i in range(len(self.metadata)):
             if "*" in self.metadata[i] and "/" not in self.metadata[i]:
-                if "metadata" not in self.data_class.__dict__:
+                if ("metadata" not in self.data_class.__dict__ or 
+                    (self.data_class.__dict__['metadata']==None) 
+                    ):
                     self.data_class.fill_data(self.image_list[0], settings=self)
                 
                 # add all wildard catches to metadata

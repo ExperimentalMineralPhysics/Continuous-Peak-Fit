@@ -600,7 +600,7 @@ class MedDetector:
         if settings and "metadata_read_func" in settings.__dict__:
             metadata_dictionary.update(settings.metadata_read_func(settings, image_obj=image_obj))            
         # add the file creation and modifications time
-        metadata_dictionary.update(self._get_file_created_modified(image_obj))
+        metadata_dictionary.update(self._get_file_created_modified(image_obj.get_name()))
         self.metadata = metadata_dictionary
         
 

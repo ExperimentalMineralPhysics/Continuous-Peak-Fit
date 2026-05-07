@@ -271,8 +271,8 @@ class _metadata_common:
 
         Parameters
         ----------
-        image : Pth, str
-            location of the image.
+        image : Pth, str, list
+            location of the image or list of images
 
         Returns
         -------
@@ -280,29 +280,42 @@ class _metadata_common:
             dictionary of matadata.
 
         """
-        # check image input
-        if (isinstance(image, str) is False) and (isinstance(image, Path) is False):
-            #then image is image object.
-            try:
-                image = image.filename
-            except:
-                image = image.get_name()
-
+        if not isinstance(image, list):
+            image = [image]
+            
         metadata_dict={}
-        # append times to dictionary incase of multiple files. 
-        if "FILE_CREATION" not in metadata_dict:
-            metadata_dict["FILE_CREATION"] = os.path.getctime(image)
-        else:
-            if not isinstance(metadata_dict["FILE_CREATION"], list):
-                metadata_dict["FILE_CREATION"] = [metadata_dict["FILE_CREATION"]]
-            metadata_dict["FILE_CREATION"].append(os.path.getctime(image))
+        tmp_creations = []
+        tmp_modified = []
+        for i in image:
+            # loop over all images to get data 
+            
+            # check image input
+            if (isinstance(i, str) is False) and (isinstance(i, Path) is False):
+                #then image is image object.
+                try:
+                    i = i.filename
+                except:
+                    i = i.get_name()
+            tmp_creations.append(os.path.getctime(i))
+            tmp_modified.append(os.path.getmtime(i))
+        
+            # # append times to dictionary incase of multiple files. 
+            # if "FILE_CREATION" not in metadata_dict:
+            #     metadata_dict["FILE_CREATION"] = os.path.getctime(i)
+            # else:
+            #     if not isinstance(metadata_dict["FILE_CREATION"], list):
+            #         metadata_dict["FILE_CREATION"] = [metadata_dict["FILE_CREATION"]]
+            #     metadata_dict["FILE_CREATION"].append(os.path.getctime(i))
+    
+            # if "FILE_MODIFIED" not in metadata_dict:
+            #     metadata_dict["FILE_MODIFIED"] = os.path.getmtime(i)
+            # else:
+            #     if not isinstance(metadata_dict["FILE_MODIFIED"], list):
+            #         metadata_dict["FILE_MODIFIED"] = [metadata_dict["FILE_MODIFIED"]]
+            #     metadata_dict["FILE_MODIFIED"].append(os.path.getmtime(i))
 
-        if "FILE_MODIFIED" not in metadata_dict:
-            metadata_dict["FILE_MODIFIED"] = os.path.getmtime(image)
-        else:
-            if not isinstance(metadata_dict["FILE_MODIFIED"], list):
-                metadata_dict["FILE_MODIFIED"] = [metadata_dict["FILE_MODIFIED"]]
-            metadata_dict["FILE_MODIFIED"].append(os.path.getmtime(image))
+        metadata_dict["FILE_CREATION"] = np.median(tmp_creations)
+        metadata_dict["FILE_MODIFIED"] = np.median(tmp_modified)
         
         return metadata_dict
         

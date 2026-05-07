@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-__all__ = ["ReadFits"]
+__all__ = ["WriteFits", "ReadFits_to_list", "ReadFits_to_dataframe", "read_metadata"]
 
 
 import json
@@ -11,18 +11,191 @@ import re
 
 import numpy as np
 import pandas as pd
+import os
 
 import cpf.peak_functions as pf
 from cpf.settings import get_settings
 from cpf.output_formatters.convert_fit_to_crystallographic import fourier_to_crystallographic
-from cpf.IO_functions import make_outfile_name, peak_string, peak_phase, peak_hkl
+from cpf.IO_functions import make_outfile_name, peak_phase, peak_hkl, json_numpy_serializer, replace_null_terms
 from cpf.series_functions import series_properties
 from cpf.util.logging import get_logger
 
-logger = get_logger("cpf.output_formatters.ReadFits")
+logger = get_logger("cpf.output_formatters.fits_io")
 
 
-def ReadFits(
+def WriteFits(settings_class, fitted_param, filename_to_write=None, data_class=None, mode=None):
+    """
+    Write fits and any metadata to json files. 
+
+    Writees the files as:
+    {"fits"":      [list of fits for each range in settings_class.fit_orders],
+     "metadata": {dict of metadata properties as named in settings class .... }
+     }
+    
+    Parameters
+    ----------
+    settings_class : cpf settings class
+        Settings class used for fitting the data.
+    fitted_param : dict
+        Dictionary of the fits returned by cpf. To be written to the file
+    filename_to_write : string, optional
+        String setting the file to be written.
+        If present later optinal parameters are ignored.
+    data_class : cpf data class, optional
+        Data class that contains the image metadata. The default is None.
+    mode : string, optional
+        Switch to add string to file name (if not spedified). The default is None.
+    
+    Returns
+    -------
+    None.
+    """
+    # try and get the meta data
+    # prepare output dictionary
+    if filename_to_write and "PreviousFit" in filename_to_write:
+        # prevent change in behaviour for now
+        # FIXME: cleanup in future push
+        if "fits" in fitted_param:
+            out = fitted_param["fits"]
+        else:
+            out = fitted_param
+        for i in out:
+            i.pop("correlation_coeffs",None)
+    elif data_class:
+        metadata = data_class.get_metadata(settings_class=settings_class)
+        out = {"metadata": metadata,
+               "fits": fitted_param}
+    else:
+        out = {"fits": fitted_param}
+    
+    if filename_to_write is None:
+        if mode == "search":
+            additional_text = settings_class.file_label
+        else:
+            additional_text = None
+        filename_to_write = make_outfile_name(
+            settings_class.subfit_filename,
+            directory=settings_class.output_directory,
+            additional_text=additional_text,
+            extension=".json",
+            overwrite=True,
+        )
+    
+    with open(filename_to_write, "w") as TempFile:
+        # Write a JSON string into the file.
+        json.dump(
+            out,
+            TempFile,
+            sort_keys=True,
+            indent=2,
+            default=json_numpy_serializer,
+        )
+        
+
+
+def ReadFits_to_list(
+    settings,
+    replace=True,
+    *args,
+    **kwargs
+):
+    """
+    Read coefficents from json fits files and return values as list. 
+
+    Parameters
+    ----------
+    settings : [str | Path | dict | Settings()]
+        Class containing all variables and options needed for the fitting, or 
+        dictionary of all the settings or 
+        string or path to a file with the settings in.
+
+    Raises
+    ------
+    ValueError
+        Raised if nether settings_class or settings_file is present.
+
+    Returns
+    -------
+    fits : list
+        List contiaing all the fits made when calling the settings_class/file.
+    metadata : list
+        List contiaing metadata for each file in settings_class/file.
+
+    """
+    
+    if isinstance(settings, str) and "PreviousFit" in settings:
+        #read previous fit
+        with open(settings) as json_data:
+                json_contents = json.load(json_data)
+        if "fits" in json_contents:
+            fits = json_contents["fits"]
+        else:
+            fits = json_contents
+        metadata = None
+    else:
+        
+        # make sure settings is a class
+        settings_class = get_settings(settings)
+    
+        # read all the data.
+        fits = []
+        metadata = []
+        for z in range(settings_class.image_number):
+            settings_class.set_subpattern(z, 0)
+    
+            if settings_class.file_label:
+                additional_text = settings_class.file_label
+            else:
+                additional_text = None
+            filename = make_outfile_name(
+                settings_class.subfit_filename,  
+                directory=settings_class.output_directory,
+                extension=".json",
+                additional_text=additional_text,
+                overwrite=True,
+            )
+    
+            # Read JSON data from file
+            with open(filename) as json_data:
+                json_contents = json.load(json_data)
+                if isinstance(json_contents, dict):
+                    #new style as dictionary with metadata
+                    fits.append(json_contents["fits"])
+                    metadata.append(json_contents["metadata"])
+                else:
+                    # old stype without metadata
+                    fits.append(json_contents)
+                    metadata.append([])
+                if isinstance(settings_class.subfit_filename, list):
+                    fnam = settings_class.subfit_filename[0]
+                else:
+                    fnam = settings_class.subfit_filename
+                if (os.path.isfile(fnam) and
+                    sorted(settings_class.metadata) != sorted(list(metadata[-1]))):
+                        # then we need to read the metadata from the files
+                        metadata[-1] = read_metadata(settings_class)
+            
+            # convert correlation coefficients into panda data frame
+            for y in range(len(fits[-1])):
+                if "correlation_coeffs" in fits[-1][y]:
+                    try:
+                        fits[-1][y]["correlation_coeffs"] = pd.DataFrame.from_dict(
+                                               json.loads(fits[-1][y]["correlation_coeffs"])
+                                               )
+                    except:
+                        pass
+    
+    if replace: 
+        # keep the null terms if we want/need.
+        # used for keeting errors in the previous fits
+        fits = replace_null_terms(
+            fits, val_to_find=None, replace_with=0
+        )
+    return fits, metadata
+
+
+
+def ReadFits_to_dataframe(
     settings,
     includeParameters = "all",
     includeStats=False,
@@ -61,13 +234,8 @@ def ReadFits(
         Data frame contiaing all the fits made when calling the settings_class/file.
 
     """
-
     # make sure settings is a class
     settings_class = get_settings(settings)
-
-    # force all the kwargs that might be needed
-    kwargs.pop("SampleGeometry", "3d")
-    kwargs.pop("SampleDeformation", "compression")
 
     # get what to write
     if includeParameters is False:
@@ -81,14 +249,17 @@ def ReadFits(
         includeParameters = peak_properties[1]
 
     if includeSeriesValues is not False or includeUnitCells is not False:
-        SampleGeometry = kwargs.get("SampleGeometry", "3d")
-        SampleDeformation = kwargs.get("SampleDeformation", "compression")
-        # SampleGeometry = "3d"
-        # SampleDeformation = "compression"
-        # if "SampleGeometry" in kwargs:
-        #     SampleGeometry = kwargs["SampleGeometry"]
-        # if "SampleDeformation" in kwargs:
-        #     SampleDeformation = kwargs["SampleDeformation"]
+        # Parse needed parameters 
+        SampleGeometry     = settings_class.output_settings.get("SampleGeometry", "3d")
+        SampleDeformation  = settings_class.output_settings.get("SampleDeformation", "compression")
+        #override with kwargs
+        SampleGeometry     = kwargs.get("SampleGeometry", SampleGeometry)
+        SampleDeformation  = kwargs.get("SampleDeformation", SampleDeformation)
+        # force all the kwargs that might be needed
+        set_params = {"SampleGeometry": SampleGeometry,
+                    "SampleDeformation": SampleDeformation,
+                    }
+        kwargs.update(set_params)
     
     if includeIntensityRanges is not False: 
         # get the intensity maximum and minimum of the fit, model and residuals
@@ -97,57 +268,53 @@ def ReadFits(
         IntensityValues = []
         
     # read all the data.
-    fits = []
+    fits, metadata = ReadFits_to_list(settings_class, args, kwargs)
+    
     num_fits = 0
     max_peaks = 0
     for z in range(settings_class.image_number):
         settings_class.set_subpattern(z, 0)
-
-        if settings_class.file_label:
-            additional_text = settings_class.file_label
-        else:
-            additional_text = None
-
-        filename = make_outfile_name(
-            settings_class.subfit_filename,  # diff_files[z],
-            directory=settings_class.output_directory,  # directory=FitSettings.Output_directory,
-            extension=".json",
-            additional_text=additional_text,
-            overwrite=True,
-        )  # overwrite =false to get the file name without incrlemeting it.
-
-        # Read JSON data from file
-        with open(filename) as json_data:
-            fits.append(json.load(json_data))
-            if includeSeriesValues is not False:
-                # get converted values.
-                for i in range(len(fits[-1])):
-                    for j in range(len(fits[-1][i]["peak"])):
-                        crystallographic_values = fourier_to_crystallographic(
-                            fits[-1],
-                            SampleGeometry=SampleGeometry,
-                            SampleDeformation=SampleDeformation,
-                            subpattern=i,
-                            peak=j,
+        
+        if includeSeriesValues is not False:
+            # get converted values.
+            for i in range(len(fits[z])):
+                for j in range(len(fits[z][i]["peak"])):
+                    crystallographic_values = fourier_to_crystallographic(
+                        fits[z],
+                        SampleGeometry=SampleGeometry,
+                        SampleDeformation=SampleDeformation,
+                        subpattern=i,
+                        peak=j,
+                    )
+                    fits[z][i]["peak"][j]["crystallographic_values"] = crystallographic_values
+                    
+                    # it not continuous_azm then need to know where the detectors are
+                    if settings_class.data_class.continuous_azm == False:
+                        data_class = settings_class.data_class
+                        data_class.fill_data(
+                            settings_class.image_list[0],
+                            settings=settings_class,
                         )
-                        fits[-1][i]["peak"][j]["crystallographic_values"] = crystallographic_values
-                        
-                        height_properties = series_properties(fits[-1], subpattern = i, peak=j, param="height")
-                        width_properties = series_properties(fits[-1], subpattern = i, peak=j, param="width")
-                        profile_properties = series_properties(fits[-1], subpattern = i, peak=j, param="profile")
-                        
-                        fits[-1][i]["peak"][j]["crystallographic_values"] = fits[-1][i]["peak"][j]["crystallographic_values"] | height_properties
-                        fits[-1][i]["peak"][j]["crystallographic_values"] = fits[-1][i]["peak"][j]["crystallographic_values"] | width_properties
-                        fits[-1][i]["peak"][j]["crystallographic_values"] = fits[-1][i]["peak"][j]["crystallographic_values"] | profile_properties
-            
+                        azms = np.unique(data_class.azm)
+                    else:
+                        azms = 0.01 # default spacing 
+                    
+                    height_properties = series_properties(fits[z], subpattern = i, peak=j, param="height", azm_spacing=azms)
+                    width_properties = series_properties(fits[z], subpattern = i, peak=j, param="width", azm_spacing=azms)
+                    profile_properties = series_properties(fits[z], subpattern = i, peak=j, param="profile", azm_spacing=azms)
+                    
+                    fits[z][i]["peak"][j]["crystallographic_values"] = fits[z][i]["peak"][j]["crystallographic_values"] | height_properties
+                    fits[z][i]["peak"][j]["crystallographic_values"] = fits[z][i]["peak"][j]["crystallographic_values"] | width_properties
+                    fits[z][i]["peak"][j]["crystallographic_values"] = fits[z][i]["peak"][j]["crystallographic_values"] | profile_properties
+        
         if includeSeriesValues is not False:
             #list the entries in crystallographic_values dictionary
-            DerivedValues = fits[-1][0]["peak"][0]["crystallographic_values"].keys()
+            DerivedValues = fits[z][0]["peak"][0]["crystallographic_values"].keys()
         else:
             DerivedValues = []
-        num_fits = np.max([num_fits, len(fits[-1])])
-        for y in range(len(fits[-1])):
-            max_peaks = np.max([max_peaks, len(fits[-1][y]["peak"])])
+        num_fits = np.max([num_fits, len(fits[z])])
+        for y in range(len(fits[z])):
+            max_peaks = np.max([max_peaks, len(fits[z][y]["peak"])])
     
     # get number of coefficients.
     # get the coefficients from the json file rather than the setting/input file
@@ -187,10 +354,15 @@ def ReadFits(
     headers = []
     headers.append("num")
     headers.append("DataFile")
-    headers.append("Phase")
-    headers.append("Peak")
-    headers.append("Range_start")
-    headers.append("Range_end")
+    headers.append("phase")
+    headers.append("peak")
+    # add metadata to list
+    if settings.metadata:
+        for i in settings.metadata:
+            headers.append(i)
+    headers.append("range_start")
+    headers.append("range_end")
+    
     
     # parmeter header list
     for w in range(len(max_coef)):
@@ -198,11 +370,13 @@ def ReadFits(
         if ind == "symmetry":
             headers.append(ind)
         elif ind == "background":
+            headers.append(ind + "_type")
             for u in range(len(max_coef[ind])):
                 for v in range(max_coef[ind][u]):
                     headers.append(ind + str(u) + "_" + str(v))
                     headers.append(ind + str(u) + "_" + str(v) + "_err")
         else: # ind is a peak parameter
+            headers.append(ind + "_type")
             for v in range(max_coef[ind]):
                 headers.append(ind + str(v))
                 headers.append(ind + str(v) + "_err")
@@ -221,17 +395,8 @@ def ReadFits(
     if includeStats is True:
         # include properties from the lmfit output that were passed with the fits.
         #read the list of parameters from the first file.
-        settings_class.set_subpattern(0, 0)
-        filename = make_outfile_name(
-            settings_class.subfit_filename,
-            directory=settings_class.output_directory,
-            extension=".json",
-            additional_text=settings_class.file_label,
-            overwrite=True,
-        )  # overwrite = True to get the file name without incrementing it.
-        with open(filename) as json_data:
-            tmp = json.load(json_data)
-            properties += list(tmp[0]["FitProperties"].keys())
+        if "FitProperties" in fits[0][0]:
+            properties += list(fits[0][0]["FitProperties"])
     if "note" in fits[0][0]:
         # additional test added by cpf.XRD_FitPattern.order_search
         properties.append("note")
@@ -262,24 +427,32 @@ def ReadFits(
         
         if len(data_to_write["peak"]) > lists[z, 2]:
             RowLst["num"] = lists[z, 0]
+            if isinstance(settings_class.subfit_filename, list):
+                # filenames have to be unique but will be a list of h5 type files
+                RowLst["DataFile"] = os.path.split(settings_class.subfit_filename[0])[1]
+            else:
+                RowLst["DataFile"] = os.path.split(settings_class.subfit_filename)[1]
             
-            RowLst["DataFile"] = make_outfile_name(
-                settings_class.subfit_filename,
-                directory="",
-                extension=".json",
-                overwrite=True,
-            )
             # RowLst["Peak"] = peak_string(fits[lists[z, 0]][lists[z, 1]], peak=[lists[z, 2]], fname=False)
-            RowLst["Phase"] = peak_phase(fits[lists[z, 0]][lists[z, 1]], peak=[lists[z, 2]])[0]
-            RowLst["Peak"] = peak_hkl(fits[lists[z, 0]][lists[z, 1]], peak=[lists[z, 2]])[0]
-            RowLst["Range_start"] = data_to_write["range"][0][0]
-            RowLst["Range_end"] = data_to_write["range"][0][1]
+            RowLst["phase"] = peak_phase(fits[lists[z, 0]][lists[z, 1]], peak=[lists[z, 2]])[0]
+            RowLst["peak"] = peak_hkl(fits[lists[z, 0]][lists[z, 1]], peak=[lists[z, 2]])[0]
+            RowLst["range_start"] = data_to_write["range"][0][0]
+            RowLst["range_end"] = data_to_write["range"][0][1]
 
+            for w in settings_class.metadata:
+                if "/" in w:
+                    #cut to last part of h5key
+                    RowLst[w] = metadata[lists[z,0]][w.split("/")[-1]]
+                else:
+                    RowLst[w] = metadata[lists[z,0]][w]
+                
             for w in range(len(includeParameters)):
                 ind = includeParameters[w]
                 ind_err = ind + "_err"
 
                 if ind != "background" and ind != "symmetry":
+                    
+                    RowLst[ind+"_type"] =  data_to_write["peak"][lists[z, 2]][ind+"_type"]
                     for v in range(len(data_to_write["peak"][lists[z, 2]][ind])):
                         if (
                             data_to_write["peak"][lists[z, 2]][ind][v] is None
@@ -310,6 +483,7 @@ def ReadFits(
                         pass
                     
                 else:  # background
+                    RowLst[ind+"_type"] =  data_to_write[ind+"_type"]
                     for u in range(len(data_to_write[ind])):
                         for v in range(len(data_to_write[ind][u])):
                             if (
@@ -383,3 +557,41 @@ def ReadFits(
     df = pd.DataFrame(RowsList, columns=headers)
 
     return df
+
+
+def read_metadata(settings_class):
+    """
+    Reads the metadata for the image specified in settings_class.subfit_filename.
+    
+    Parameters
+    ----------
+    settings_class : cpf settings class
+        Settings clsss in which settings_class.subfit_filename is set to the file 
+        to be read.
+
+    Returns
+    -------
+    metadata : dict
+        metadata of the diffraction image
+    """
+    if isinstance(settings_class.subfit_filename, list):
+        fnam = settings_class.subfit_filename[0]
+    else:
+        fnam = settings_class.subfit_filename
+        
+    if settings_class.subfit_filename == None:
+        raise ValueError("no file is specified")
+    if not os.path.isfile(fnam):
+        raise FileExistsError("The file {os.path.split(fnam)[1]} does not exist on the path")
+    
+    #get data from settings class
+    new_data = settings_class.data_class
+    
+    new_data.fill_data(
+        settings_class.subfit_filename,
+        settings=settings_class,
+    )
+    
+    new_data.import_image(settings=settings_class)
+    metadata = new_data.get_metadata(metadata_values=settings_class.metadata)
+    return metadata

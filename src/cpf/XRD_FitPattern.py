@@ -29,6 +29,7 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
+from cpf.output_formatters.fits_io import WriteFits, ReadFits_to_list
 from cpf.series_functions import get_series_mean
 from cpf.settings import Settings, is_settings, get_settings
 from cpf.util.logging import get_logger, set_global_log_level
@@ -187,7 +188,7 @@ def view(
         # restrict file list to first file
         settings_class.set_data_files(keep=pattern)
 
-    write_output(settings_class, out_type="CollectionMovie")
+    write_output(settings_class, out_type="CollectionMovie", **kwargs)
     
     # write_output(settings_file=settings_file, out_type="RangesMovie")
 
@@ -333,6 +334,7 @@ def initial_peak_position(
         parallel=parallel,
         mode="set-guess",
         report=report,
+        **kwargs
     )
 
 
@@ -727,15 +729,16 @@ def execute(
     for j in progress.iter_bar(image=range(settings_class.image_number)):
         logger.info(f"Processing {title_file_names(image_name=settings_class.image_list[j])}")
 
+        settings_class.set_subpattern(j, 0)
+
         # Get diffraction pattern to process.
-        new_data.import_image(settings_class.image_list[j], debug=debug)
+        new_data.import_image(settings=settings_class, debug=debug)
 
         # get json file name for outputs.
         if mode == "search":
             additional_text = settings_class.file_label
         else:
             additional_text = None
-        settings_class.set_subpattern(j, 0)
         filename = make_outfile_name(
             settings_class.subfit_filename,
             directory=settings_class.output_directory,
@@ -817,26 +820,12 @@ def execute(
             and j != 0  # not the first data in series.
         ):
             # Read JSON data from file
-            logger.moreinfo(  # type: ignore
-                " ".join(
-                    map(
-                        str,
-                        [
-                            (
-                                "Loading previous fit results from %s"
-                                % temporary_data_file
-                            )
-                        ],
-                    )
-                )
-            )
-            with open(temporary_data_file) as json_data:
-                previous_fit = json.load(json_data)
-
-                # if the previous_fit is not the same size as fit_orders the inout file must have been changed.
-                # so discard the previous fit and start again.
-                if len(previous_fit) != len(settings_class.fit_orders):
-                    del previous_fit
+            logger.moreinfo(f"Loading previous fit results from {temporary_data_file}.")
+            previous_fit, _ = ReadFits_to_list(temporary_data_file, replace=False)
+            # if the previous_fit is not the same size as fit_orders the inout file must have been changed.
+            # so discard the previous fit and start again.
+            if len(previous_fit) != len(settings_class.fit_orders):
+                del previous_fit
 
         # Switch to save the first fit in each sequence.
         save_figs = False#True if (j == 0 or save_all is True) else False
@@ -889,9 +878,12 @@ def execute(
                     for k in range(len(params["peak"])):
                         mid.append(get_series_mean(params['peak'][k], "d-space"))
 
-                    cent = new_data.conversion(np.mean(mid), reverse=True)
-                    move_by = cent - np.mean(tth_range)
-                    # move_by = move_by[0]  # this is needed to turn move_by from array to float
+                    if mid == None or mid == 0:
+                        # the previous fits failed in some way.
+                        move_by = 0
+                    else:
+                        cent = new_data.conversion(np.mean(mid), reverse=True)
+                        move_by = cent - np.mean(tth_range)
 
                     # update tth_range and settings
                     tth_range = tth_range + move_by
@@ -930,7 +922,6 @@ def execute(
                     settings_class.set_subpattern(j, i)
 
             sub_data = new_data.duplicate_without_detector(range_bounds=tth_range, as_masked=as_masked)
-            # sub_data.set_limits(range_bounds=tth_range)
 
             # Mask the subpattern by intensity if called for
             if (
@@ -941,7 +932,7 @@ def execute(
 
             if mode == "set-range":
                 fig_1 = plt.figure()
-                sub_data.plot_masked(fig_plot=fig_1)
+                sub_data.plot_masked(fig_plot=fig_1, **kwargs)
                 plt.suptitle(peak_string(settings_class.subfit_orders) + "; masking")
 
                 filename = make_outfile_name(
@@ -964,7 +955,7 @@ def execute(
                 ax = fig.add_subplot(1, 1, 1)
                 ax_o1 = plt.subplot(111)
                 sub_data.plot_calibrated(
-                    fig_plot=fig, axis_plot=ax, show="intensity", rastered="scatter"
+                    fig_plot=fig, axis_plot=ax, show="intensity", **kwargs #rastered="scatter"
                 )
                 plt.suptitle(
                     peak_string(settings_class.subfit_orders) + "; calibrated"
@@ -992,7 +983,8 @@ def execute(
                 ax = fig_1.add_subplot(1, 1, 1)
                 ax_o1 = plt.subplot(111)
                 sub_data.plot_calibrated(
-                    fig_plot=fig_1, axis_plot=ax, y_axis="azimuth", limits=[0, 100]
+                    fig_plot=fig_1, axis_plot=ax, y_axis="azimuth", limits=[0, 100],
+                    **kwargs
                 )
                 plt.title(peak_string(settings_class.subfit_orders))
 
@@ -1052,10 +1044,9 @@ def execute(
                         min_data_intensity=settings_class.fit_min_data_intensity,
                         min_peak_intensity=settings_class.fit_min_peak_intensity,
                         fit_method=fit_method,
+                        **kwargs
                     )
                     fitted_param.append(tmp)
-                    # fitted_param.append(tmp[0])
-                    # lmfit_models.append(tmp[1])
 
         # write output files
         if mode == "fit" or mode == "search":
@@ -1063,43 +1054,13 @@ def execute(
                 tmp = pool.map(parallel_processing, parallel_pile)
                 for i in range(len(settings_class.fit_orders)):
                     fitted_param.append(tmp[i])
-                    # fitted_param.append(tmp[i][0])
-                    # lmfit_models.append(tmp[i][1])
-
+            
             # store the fit parameters' information as a JSON file.
-            if mode == "search":
-                additional_text = settings_class.file_label
-            else:
-                additional_text = None
-
-            filename = make_outfile_name(
-                settings_class.subfit_filename,
-                directory=settings_class.output_directory,
-                additional_text=additional_text,
-                extension=".json",
-                overwrite=True,
-            )
-            with open(filename, "w") as TempFile:
-                # Write a JSON string into the file.
-                json.dump(
-                    fitted_param,
-                    TempFile,
-                    sort_keys=True,
-                    indent=2,
-                    default=json_numpy_serializer,
-                )
+            WriteFits(settings_class, fitted_param, data_class=new_data, mode=mode)
 
             # if propagating the fits write them to a temporary file
             if settings_class.fit_propagate:
-                with open(temporary_data_file, "w") as TempFile:
-                    # Write a JSON string into the file.
-                    json.dump(
-                        fitted_param,
-                        TempFile,
-                        sort_keys=True,
-                        indent=2,
-                        default=json_numpy_serializer,
-                    )
+                WriteFits(settings_class, fitted_param, filename_to_write=temporary_data_file)
 
     if mode == "fit":
         # Write the output files.

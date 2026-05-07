@@ -81,8 +81,10 @@ class MedDetector:
 
         self.reduce_by = None
 
-        self._default_metadata_labels = {"time_label": "mean_start_time", # file creation time.
-                                  'exposure_label': 'mean_live_time'}
+
+        self._default_metadata_labels = {"time": "mean_start_time", # file creation time.
+                                  'exposure': 'mean_live_time',
+                                  "temperature": "*LVP_tc1_calcs.I"}
         
         self.calibration = None
         self.conversion_constant = None
@@ -118,6 +120,9 @@ class MedDetector:
 
         """
 
+        #validate the ranges
+        range_bounds, azi_bounds = self.check_bounds(range_bounds, azi_bounds)
+        
         if with_detector:
             new = copy(self)
         else:
@@ -367,7 +372,7 @@ class MedDetector:
         """
 
         # check inputs
-        if image_name == None and settings.subpattern == None:
+        if image_name == None and settings.subfit_filename == None:
             raise ValueError("Settings are given but no subpattern is set.")
 
         if self.detector == None:
@@ -493,6 +498,7 @@ class MedDetector:
             self.metadata_labels = settings.metadata_labels
         else:
             self.metadata_labels = self._default_metadata_labels
+
             
         if self.detector == None:
             self.get_detector(settings=settings)
@@ -571,8 +577,11 @@ class MedDetector:
             dictionary of image metadata. 
         """
         # Defined as function to allow get_metadata to call universal image method
-        if settings and "metadata_read" in settings:
-            metadata_dictionary = settings.metadata_read(image_obj)
+        if not image_obj and not settings:
+            # then nothing is provided
+            # expected behaviour in some circumstances.
+            self.metadata = None
+            return
         else:
             im_and_md = Mca.read_ascii_file(image_obj.get_name())
             metadata_dictionary = {}
@@ -587,11 +596,11 @@ class MedDetector:
                     metadata_dictionary["mean_"+l] = metadata_dictionary[l][0]
                 else:
                     metadata_dictionary["mean_"+l] = np.nanmean(metadata_dictionary[l])           
+        
+        if settings and "metadata_read_func" in settings.__dict__:
+            metadata_dictionary.update(settings.metadata_read_func(settings, image_obj=image_obj))            
         # add the file creation and modifications time
-        if isinstance(image_obj, str) or isinstance(image_obj, Path):
-            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
-        else:
-            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj.get_name())
+        metadata_dictionary.update(self._get_file_created_modified(image_obj.get_name()))
         self.metadata = metadata_dictionary
         
 
@@ -1049,7 +1058,8 @@ class MedDetector:
         colourmap="jet",
         colourbar=True,
         debug=False,
-        rastered={},
+        cbar_axes=None,
+        **kwargs
     ):
         """
         add data to axes in form collected in.
@@ -1158,7 +1168,7 @@ class MedDetector:
             c_map = plt.get_cmap(name=colourmap)
             for i in range(len(np.unique(self.azm)) - 1, -1, -1):
                 colour = c_map(
-                    normalize(np.mean(plot_c[self.azm == np.unique(self.azm)[i]]))
+                    normalize(np.mean(ma.filled(plot_c[self.azm == np.unique(self.azm)[i]], np.nan)))
                 )
                 if y_axis == "default":
                     the_plot = axis_plot.plot(
@@ -1179,13 +1189,25 @@ class MedDetector:
             # label colour bar with unique azimuths if there are less than 10
             # set colour bar labels with unique azimuths (if there are less than 'unique' azimuths - see function for value of unique).
             ticks = self._dispersion_ticks()
+
+        # fix colour bar. 
+        # cbar_axes = False --> dont have colour bar
+        # cbar_axes = None --> cbar for these axes (default)
+        # cbar_axes = Axis --> make cbar for this/these axes. Used to make 
+        # single colour bar for data and model in self.plot_fitted.
+        if cbar_axes is not False:
+            if cbar_axes is None:
+                cbar_axes = axis_plot
+            try:
+                shrink = 0.6 / len(cbar_axes)
+            except:
+                shrink = 0.6
             if colourbar is True:
                 cbar = plt.colorbar(
-                    s_map, ticks=ticks, orientation=orientation, ax=axis_plot
+                    s_map, ticks=ticks, orientation=orientation, ax=axis_plot,
+                    shrink=shrink,
                 )
                 cbar.set_label(f"{self.Azimuthlabel} ({self.AzimuthUnits})")
-            else:
-                cbar = []
 
         axis_plot.set_xlabel(label_x)
         axis_plot.set_ylabel(label_y)
@@ -1194,12 +1216,13 @@ class MedDetector:
         elif isinstance(limits, dict):
             axis_plot.set_ylim([limits["min"], limits["max"]])
 
-        return the_plot, cbar
+        return the_plot
 
     # add common functions.
     set_limits = _AngleDispersive_common.set_limits
     GetDataType = _AngleDispersive_common.GetDataType
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
+    check_bounds = _AngleDispersive_common.check_bounds
     _reduce_array = _AngleDispersive_common._reduce_array
     get_metadata = _metadata_common.get_metadata
     _get_file_created_modified = _metadata_common._get_file_created_modified

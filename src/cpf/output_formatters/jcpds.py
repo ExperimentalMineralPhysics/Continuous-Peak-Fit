@@ -121,6 +121,32 @@ class jcpds(object):
 
     def load_file(self, filename):
         """
+        Reads a JCPDS or CIF file into the JCPDS object.
+
+        Inputs:
+           file:  The name of the file to read.
+
+        Parameters
+        ----------
+        filename : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        _, ext = os.path.splitext(os.path.basename(filename))
+        if ext == ".cif":
+            self.load_cif(filename)
+        elif ext == ".jcpds":
+            self.load_jcpds(filename)
+        else:
+            raise ValueError("file extension is not recognised. Accepted are 'cif' and 'jcpds'")
+            
+        
+    def load_jcpds(self,filename):
+        """
         Reads a JCPDS file into the JCPDS object.
 
         Inputs:
@@ -195,14 +221,17 @@ class jcpds(object):
            Note that B and ALPHA, BETA and GAMMA are not present, since they are
            not needed for a hexagonal material, and will be simple ignorred if
            they are present.
+           
+           
         """
         self.__init__()
         # Initialize variables
         self._filename = filename
         # Construct base name = file without path and without extension
         name = os.path.basename(filename)
-        pos = name.find('.')
-        if (pos >= 0): name = name[0:pos]
+        name, ext = os.path.splitext(os.path.basename(filename))
+        # pos = name.find('.')
+        # if (pos >= 0): name = name[0:pos]
         self._name = name
         line = ''
         version = 0.
@@ -336,6 +365,28 @@ class jcpds(object):
         #         logger.info(('Reflection ', r.h, r.k, r.l, \
         #             ': calculated D ', r.d, \
         #             ') differs by more than 0.1% from input D (', r.d0, ')'))
+
+
+    def load_cif(self,filename):
+        """
+        Load cif file into data structure but not implemented yet.
+
+        Parameters
+        ----------
+        filename : TYPE
+            DESCRIPTION.
+
+        Raises
+        ------
+        NotImplemented
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        raise NotImplementedError("Reading cif files has not been implemented")
 
 
     def _convert_value(self, value):

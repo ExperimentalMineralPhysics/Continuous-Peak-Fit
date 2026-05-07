@@ -853,6 +853,7 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
 
     # set some defaults for regualr expreassions
     regexp_alphanum = "([-+]?[0-9a-zA-Z-+_]*\.[0-9a-zA-Z-+_]+|[-+]?[0-9a-zA-Z-+_]+)"
+    regexp_alphanum = "([-+]?[0-9a-zA-Z-+_\.]+)"
     regexp_num = "([-+]?[0-9]*\.[0-9]+|[-+]?[0-9]+)"
     regexp_end = "$"
 
@@ -887,10 +888,12 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
             # FIXME this loop should be an iterative loop. so that it can iterate
             # over as many keys as required.
     
-            # find part of key before wildcard.
+            # list all the keys that may match the wild card -- then cut list to 
+            # matching values
+            # key before wildcard.
             h5key_data_sub = h5key_data[: max(j for j in dividers if j < loops[i]) + 1]
-            # get all matching keys
-            lst = h5_tree(df[h5key_data_sub], list_of_keys=[], recurse=False)
+            # get all wild card containing keys:
+            lst_all = h5_tree(df[h5key_data_sub], list_of_keys=[], recurse=False)
             # FIXME: the h5tree function call needs list_of_keys=[] otherwise during
             # testing when the function is run it appends to the previous list of keys.
     
@@ -898,10 +901,12 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
             # find part of key before separation after wildcard.
             # cannot assume that the wildcard is the last part of the keyname.
             h5key_data_sub = h5key_data[: min(j for j in dividers if j > loops[i])]
+            # replace any '.' with regular expresion escape character '\.'
+            h5key_data_sub = re.sub(r"\.", "\\.", h5key_data_sub)
             # replace * with regular expresion search for number
             h5key_data_sub = re.sub(r"\*", regexp_alphanum, h5key_data_sub)
             # match lst to subkey.
-            lst = list(filter(re.compile(h5key_data_sub).match, lst))
+            lst = list(filter(re.compile(h5key_data_sub).match, lst_all))
             ## get keys that match that have subkeys matching h5key_data
             # cannot assume that all the keys have the same subdata.
     
@@ -1005,24 +1010,8 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
         else:
             raise ValueError("unrecognased type")
 
-    # get labels.
+    # # get labels.
     labels = []
-    itera = h5_iterate[0]
-    for i in range(len(keylist)):
-        # FIXME. need to make h5 iterate as long as ther are loops+1
-        label_tmp = []
-        if not isinstance(h5_iterate[0]["label"], list):
-            h5_iterate[0]["label"] = list(h5_iterate[0]["label"])
-        # make the labels.
-        label_tmp = get_labels(
-            df, itera["label"], 1, i, vals[i], sep1=sep1, sep2=sep2, key=keylist[i]
-        )
-        labels.append(label_tmp)
-
-    if len(keylist) == 0:
-        raise ValueError(
-            "No keys have been found. Check that the indices iterating over are in the hdf5 file."
-        )
 
     # iterate over the keylist and expand with labels.
     out = []
@@ -1030,8 +1019,12 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
         # the key list should contain everything that is not the bottom level
         # of the h5 keys. this loop only works on the bottom levels with the data
 
-        # look at the last of the iteration keys.
-        # deepcopy so can check for "to": -1 every time round.
+        labels.append("")
+        # for j in range(len(h5_iterate)):
+                       
+            # look at the last of the iteration keys.
+            # deepcopy so can check for "to": -1 every time round.
+            # itera = deepcopy(h5_iterate[j])
         itera = deepcopy(h5_iterate[-1])
 
         # make sure the key exists
@@ -1039,9 +1032,9 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
             err_str = "The key, '%s' does not exist in '%s'" % (keylist[i], df)
             logger.warning(" ".join(map(str, [(err_str)])))
         else:
-            number_data = df[keylist[i]].shape[itera["dim"]]
+            number_data = np.array(df[keylist[i]]).squeeze().shape[itera["dim"]]
             if itera["do"] == "sum":
-                # index_values = list([*range(itera["start"], itera["stop"], itera["step"])])
+                # add all the frames in the data set
                 if "list" in itera:
                     index_values = itera["list"]
                 else:
@@ -1054,7 +1047,8 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                 out.append([keylist[i], index_values, lbls])
 
             elif itera["do"] == "combine":
-                # index_values = list([*range(itera["start"], itera["stop"], itera["step"])])
+                # return all the frames. 
+                # Used for building compound detectors (e.g. ESRF lvp detector)
                 if "list" in itera:
                     index_values = itera["list"]
                 else:
@@ -1065,7 +1059,7 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                 lbls = licit_filename(labels[i], replacement="+", exclude_dir=False)
                 # lbls = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
                 out.append([keylist[i], index_values, lbls])
-                
+
             elif itera["do"] == "iterate":
                 # iterate over the size of the array in the h5 group.
                 if "list" in itera:
@@ -1087,29 +1081,17 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                         sep2=sep2,
                         key=labels[i],
                     )
-                    # print(additional_label)
-                    if len(additional_label) != "":
+                    if lbls == "":
+                        lbls += f"{additional_label}"
+                    elif additional_label != "":
                         lbls += f"{sep1}{additional_label}"
 
                     # if itera["using"] == "value" and :
-                    out.append([keylist[i], index_values, lbls])
-
-                # for j in range(number_data):
-                #     index_values = j
-
-                #     lbls = labels[i]
-                #     additional_label = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
-                #     # print(additional_label)
-                #     if len(additional_label) != "":
-                #         lbls += f"{sep1}{additional_label}"
-
-                #     # if itera["using"] == "value" and :
-                #     out.append([keylist[i], index_values, lbls])
-
+                    out.append([keylist[i], index_values, lbls])    
             else:
-                err_str = "This h5 process is not recognised."
+                err_str = f"The h5 process '{itera['do']}' is not recognised."
                 raise ValueError(err_str)
-
+    
     df.close()
     return out
 
@@ -1176,7 +1158,7 @@ def get_labels(
             # look up key value
             lb = re.sub(r"\*", vals[0], lb)
             try:
-                ky = datafile[lb][()]
+                ky = datafile[lb][:].squeeze()
 
                 # ky = unique_labels(ky)
 
@@ -1217,6 +1199,8 @@ def get_images(
     image_list=None,
     settings_file=None,
     settings_class=None,
+    do = 'iterate',
+    dimension = 0,
     image_num=None,
     debug=False,
 ):
@@ -1255,61 +1239,51 @@ def get_images(
             # then the list is for a single file and needs to be wrapped in another list
             image_list = [image_list]
     elif settings_class != None:
-        settings_for_fit = settings_class
-        image_list = settings_for_fit.image_list
+        image_list = settings_class.image_list
     elif settings_file != None:
-        settings_for_fit = fp.initiate(settings_file)
-        image_list = settings_for_fit.image_list
+        settings_class = fp.initiate(settings_file)
+        image_list = settings_class.image_list
     else:
         raise ValueError(
             "There are no settings or image_list. The fitting cannot proceed until a recognised "
             "settings file or class is present."
         )
     
-    # if image_num == None:
-    #     image_num = list(range(len(image_list[2])))
-    # elif isinstance(image_num, int):
-    #     image_num = [image_num]
-    # image_num could also be a list -- in which case leave it alone.
-
-    # # get image
-    # for i in range(len(image_num)):
-    #     n = image_num[i]
-    #     datafile = h5py.File(image_list[0], "r")
-    #     datakey = image_list[1]
-    #     data_position_in_key = image_list[2]
-    #     data_tmp = np.array(datafile[datakey][data_position_in_key])
-
-    #     if len(image_num) == 1:
-    #         data = data_tmp
-    #     else:
-    #         axis = 2
-    #         if i == 0:
-    #             data = data_tmp
-    #             data = np.expand_dims(data, axis=axis)
-    #         else:
-    #             data = np.append(data, np.expand_dims(data_tmp, axis=axis), axis=axis)
-
-
+    # how to return the data.
+    if settings_class and "h5_iterate" in settings_class.__dict__:
+        do = settings_class.h5_iterate[-1].get('do', do)
+        dim = settings_class.h5_iterate[-1].get('dim', dimension)
+    
     datafile = h5py.File(image_list[0], "r")
     datakey = image_list[1]
     data_position_in_key = image_list[2]
     if datafile[datakey].size == 1: 
-        data = np.array(datafile[datakey][()])
+        data = np.array(datafile[datakey].squeeze()[()])
     else:
-        data = np.array(datafile[datakey][data_position_in_key])
-
-    # if len(image_num) == 1:
-    #     data = data_tmp
-    # else:
-    #     axis = 2
-    #     if i == 0:
-    #         data = data_tmp
-    #         data = np.expand_dims(data, axis=axis)
-    #     else:
-    #         data = np.append(data, np.expand_dims(data_tmp, axis=axis), axis=axis)
-
-
+        # if ((not setttings_class) or 
+        #     data_position_in_key.size == 1 or 
+        #     len(data_position_in_key) == 1 or 
+        #     do == "iterate"):
+        if do == "iterate":
+            # then take the slice/value given
+            data = np.array(datafile[datakey]).squeeze()[data_position_in_key]
+        elif do == "combine": # multi slice data that might something doing to it
+            data = np.array(datafile[datakey]).squeeze()[data_position_in_key]
+        elif do == "sum": # multi slice data that needs collapsing
+            data = np.array(datafile[datakey]).squeeze()[data_position_in_key].sum(axis=dim)
+            # stop
+            # if not settings_class:
+            #     # just return everything 
+            #     data = np.array(datafile[datakey]).squeeze()[data_position_in_key]
+            # else:
+                
+            #     # assume that we are summing over the first dimension. 
+            #     dim = 0
+            # else:
+            #     # get dim from settings
+            #     dim = settings_class.h5_iterate[-1]["dim"]
+            # data = np.array(datafile[datakey]).squeeze()[data_position_in_key]#.sum(axis=dim)
+    
     return np.array(data)
 
 

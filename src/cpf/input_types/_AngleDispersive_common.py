@@ -201,7 +201,10 @@ class _AngleDispersive_common:
             azi_chunk = np.where((temp_azimuth > start) & (temp_azimuth <= end))
             chunks.append(azi_chunk)
             bin_bounds.append([start, end])
-            bin_mean_azi.append(np.mean(temp_azimuth[azi_chunk]))
+            if len(azi_chunk[-1]) != 0:
+                bin_mean_azi.append(np.mean(temp_azimuth[azi_chunk]))
+            else:
+                bin_mean_azi.append(np.nan)
 
         return chunks, bin_bounds, bin_mean_azi
 
@@ -470,7 +473,8 @@ class _AngleDispersive_common:
                     #     ax1.set_ylabel("after")
 
             return ma.MaskedArray(data_out, mask=mask)
-        
+
+
         if reduce_by is False or (reduce_by is None and self.reduce_by is None):
             # reduce_by = False is used by fill_data to make sure this function is passed
             # if both are none then there is nothing to do.
@@ -500,6 +504,61 @@ class _AngleDispersive_common:
         return data_out
 
 
+    def check_bounds(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf]):
+        """
+        Check that the bounds used to limit the data are valid. 
+        
+        The bounds cannot be the same and must be real numbers (floats or integers)
+    
+        Parameters
+        ----------
+        range_bounds : list, optional
+            Range bounds to be tested. The default is [-np.inf, np.inf].
+        azi_bounds : list, optional
+            Azimuth bounds to be tested. The default is [-np.inf, np.inf].
+    
+        Raises
+        ------
+        ValueError
+            A string for how the bounds have failed.
+    
+        Returns
+        -------
+        range_bounds : list, optional
+            Valid set of range bounds. Defaults to [-np.inf, np.inf].
+        azi_bounds : list, optional
+            Valid set of Azimuth bounds. Defaults to [-np.inf, np.inf].
+    
+        """
+    
+        if len(range_bounds) != 2:
+            err_str = "The range_bounds are not a list or tuple with length 2"
+            raise ValueError(err_str)
+        if range_bounds[0] == range_bounds[1]:
+            err_str = "The range_bounds are the same; cannot proceed"
+            raise ValueError(err_str)
+        elif (np.isnan(range_bounds[0]) or 
+            np.isnan(range_bounds[1])):
+            err_str = "The range_bounds are not floats; cannot proceed"
+            raise ValueError(err_str)
+        if range_bounds[0] > range_bounds[1]:
+            range_bounds = range_bounds[::-1]
+    
+        if len(azi_bounds) != 2:
+            err_str = "The azimuth bounds are not a list or tuple with length 2"
+        if azi_bounds[0] == azi_bounds[1]:
+            err_str = "The azimuth bounds are the same; cannot proceed"
+            raise ValueError(err_str)
+        elif (np.isnan(azi_bounds[0]) or 
+            np.isnan(azi_bounds[1])):
+            err_str = "The azimuth bounds are not floats; cannot proceed"
+            raise ValueError(err_str)
+        if azi_bounds[0] > azi_bounds[1]:
+            azi_bounds = azi_bounds[::-1]
+            
+        return range_bounds, azi_bounds
+            
+    
 
 def equalObs(x, nbin):
     """
@@ -522,3 +581,5 @@ def equalObs(x, nbin):
     nlen = len(x)
     x = np.sort(x)
     return np.interp(np.linspace(0, nlen, nbin + 1), np.arange(nlen), np.sort(x))
+
+

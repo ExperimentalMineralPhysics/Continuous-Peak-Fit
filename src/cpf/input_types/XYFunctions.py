@@ -160,7 +160,8 @@ class XYDetector:
         self.reduce_by = None
 
         self._default_metadata_labels = {"time_label": "FILE_CREATION", # file creation time.
-                                  'exposure_label': None}
+                                  # 'exposure_label': None # no exposure - cant have empty value
+                                  }
         
         self.calibration = None
         self.conversion_constant = None
@@ -200,6 +201,9 @@ class XYDetector:
 
         """
 
+        #validate the ranges
+        range_bounds, azi_bounds = self.check_bounds(range_bounds, azi_bounds)
+        
         if with_detector:
             new = copy(self)
         else:
@@ -571,9 +575,11 @@ class XYDetector:
 
     def _set_metadata(self, image_obj, settings=None):
         """
-        Gets all metadata as dictionary from image file.
+        Adds all possible metadata values as dictionary within the in the data_class.
         
-        If the cpf settings class is provided and has the method 'metadata_read'
+        The values that are in settings.metadata (a list) are extracted subsequently using data_class.get_metadata 
+        
+        If the cpf settings class is provided and has the method 'metadata_read_func'
         then this method is used to override the internal default methods and is 
         used to create 'metadata_dictionary' which is parsed.
         In this case the settings class attribute 'metadata_labels' is still needed 
@@ -596,8 +602,13 @@ class XYDetector:
             dictionary of image metadata. 
         """
         # Defined as function to allow get_metadata to call universal image method
-        if settings and "metadata_read_func" in settings.__dict__:
-            metadata_dictionary = settings.metadata_read_func(settings, image_obj=image_obj)
+        # Defined as function to allow get_metadata to call universal image method
+        metadata_dictionary = {}
+        if not image_obj and not settings:
+            # then nothing is provided
+            # expected behaviour in some circumstances.
+            self.metadata = None
+            return
         elif isinstance(image_obj, list):
             # then it is a h5 type file
             raise ValueError("This is the wrong method to get h5 type metadata.")
@@ -608,11 +619,11 @@ class XYDetector:
             except:
                 # no idea what non-image metadata will look like so pass.
                 metadata_dictionary = {}
+
+        if settings and "metadata_read_func" in settings.__dict__:
+            metadata_dictionary.update(settings.metadata_read_func(settings, image_obj=image_obj))            
         # add the file creation and modifications time
-        if isinstance(image_obj, str) or isinstance(image_obj, Path):
-            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
-        else:
-            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj.filename)
+        metadata_dictionary.update(self._get_file_created_modified(image_obj))
         self.metadata = metadata_dictionary
 
     @staticmethod
@@ -685,6 +696,7 @@ class XYDetector:
     test_azims = _AngleDispersive_common.test_azims
     GetDataType = _AngleDispersive_common.GetDataType
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
+    check_bounds = _AngleDispersive_common.check_bounds
     _reduce_array = _AngleDispersive_common._reduce_array
     get_metadata = _metadata_common.get_metadata
     _get_file_created_modified = _metadata_common._get_file_created_modified

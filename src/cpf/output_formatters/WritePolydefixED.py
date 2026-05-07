@@ -1,54 +1,77 @@
 __all__ = ["Requirements", "WriteOutput"]
 
 
-import datetime
-import json
 import os
 import re
-
+import glob
 import numpy as np
 
 import cpf.series_functions as sf
-from cpf.IO_functions import make_outfile_name, replace_null_terms
+from cpf.output_formatters.fits_io import ReadFits_to_list
+from cpf.IO_functions import make_outfile_name, replace_null_terms, peak_hkl
 from  cpf.settings import get_settings
 from cpf.util.logging import get_logger
+
+import dateutil.parser as parser
 
 logger = get_logger("cpf.output_formatters.WritePolydefixED")
 
 
-
 def Requirements():
-    # List non-universally required parameters for writing this output type.
-
-    RequiredParams = [
-        #'apparently none!
+    """ List non-universally required parameters for writing this output type. """
+    RequiredParams = [ # list
+        # these parameters are names in metadata labels.
+        "time",
+        "temperature"
     ]
-    OptionalParams = [
-        "ElasticProperties",  # FIX ME: this needs to be included
-        "tc",  # which thermocoule to include from 6BMB/X17B2 collection system. default to 1. #FIX ME: this needs to be included
+    OptionalParams = { # dictionary
+        # "time": "time_label", # time stamps for the diffraction paterns
+        # "temperature": "*tc1_calcs.I", # which thermocouple to call.       
+        "Phase": True,  # the phase we are interested in -- if True then guesses nost common phase
+        "ElasticProperties": "phase_name", # default is to use the phase name of the material
+        "differential_only": False,
+        # "which_thermocouple": 1,  # which thermocoule to include from 6BMB/X17B2 collection system. default to 1. #FIX ME: this needs to be included
         ###"Output_directory",  # if no direcrtory is specified write to current directory.
-        "phase",  # the phase we are interested in
-        "Output_TemperaturePower",
-        "Output_tc",
-    ]
-
+        # "Output_TemperaturePower",
+        # "Output_tc",
+        # "SampleGeometry": "3d",  # changes the strain tensor calucaltion from 2d to 3d. This determines how the cetroid and differnetial strain of the dpsaice are extracted from the fourier series.
+        # "SampleDeformation": "compression",  # changes calculation between 'compression' and 'extension'.
+    }
     return RequiredParams, OptionalParams
 
 
-# def WriteOutput(FitSettings, parms_dict, **kwargs):
 def WriteOutput(
     settings,
-    differential_only=False,
     debug=False,
     **kwargs,
 ):
-    # writes *.exp files required by polydefixED.
-    # N.B. this is a different file than that required by polydefix for monochromatic diffraction.
-    # This file contains a list of all the diffraction information. Hence it has to be written after the fitting as a single operation.
+    """
+    Writes *.exp files required by polydefixED.
+    
+    N.B. this is a different file than that required by polydefix for monochromatic diffraction.
+    This file contains a list of all the diffraction information. Hence it has to be written after the fitting as a single operation.
+    
+    Polydefix: Merkel and Hilairet (2015) http://dx.doi.org/10.1107/S1600576715010390.
+    
+    N.B. this is a different file than that required by polydefix for energy dispersive diffraction.
+    
+    Parameters
+    ----------
+    settings_class : cpf settings class
+        Settings class used for fitting the data.
+    differential_only : bool, optional
+        Only include the differential part of the strain (cos^2 and sin^2 parts of the Fourier series). 
+        Ignore the offset (cos and sin parts of the Fourier series).
+        The default is False.
+        
+    Returns
+    -------
+    None.
+
+    """
 
     # make sure settings is a class
     settings_class = get_settings(settings)
-
     # fill calibration into settings class if it is not here.
     if not settings_class.data_class.calibration:
         if settings_class.calibration_data:
@@ -62,48 +85,35 @@ def WriteOutput(
             debug=debug,
         )
 
-    # FitParameters = dir(FitSettings)
-
-    # Parse the required inputs.
-    # base_file_name = FitSettings.datafile_Basename
-
-    # get diffration file names and number.
-    # diff_files, n_diff_files = IO.file_list(FitParameters, FitSettings)
-
-    # base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
-    # if not base:
-    #     logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
-    #     base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
-
+    # Parse optional parameters
+    Phase             = settings_class.output_settings.get("Phase", Requirements()[1]["Phase"])
+    ElasticProperties = settings_class.output_settings.get("ElasticProperties", Requirements()[1]["ElasticProperties"])
+    differential_only = settings_class.output_settings.get("differential_only", Requirements()[1]["differential_only"])
+    #override with kwargs
+    Phase             = kwargs.get("Phase", Phase)
+    ElasticProperties = kwargs.get("ElasticProperties", ElasticProperties)
+    differential_only = kwargs.get("differential_only", differential_only)
+    
+    if "Material" in settings_class.output_settings:
+        raise ValueError(
+            "''Material'' is depreciated as an option. Change your input file to have a ''Phase'' or ''ElasticProperties'' instead."
+        )
+   
+    # get the fits
+    all_fits, metadata = ReadFits_to_list(settings=settings_class)
+ 
     base = settings_class.datafile_basename
     if base is None:
-        logger.info(
-            " ".join(map(str, [("No base filename, using input filename instead.")]))
-        )
+        logger.info("No base filename, using input filename instead.")
         base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
     if differential_only is not False:
         base = base + "_DiffOnly"
-    # out_file = IO.make_outfile_name(
-    #     base, directory=FitSettings.Output_directory, extension=".exp", overwrite=True
-    # )
     out_file = make_outfile_name(
         base,
         directory=settings_class.output_directory,  # directory=FitSettings.Output_directory,
         extension=".exp",
         overwrite=True,
     )
-
-    # if 'Output_directory' in FitParameters:
-    #     out_dir = FitSettings.Output_directory
-    # else:
-    #     out_dir = './'
-
-    # # create output file name from passed name
-    # path, filename = os.path.split(base_file_name)
-    # base, ext = os.path.splitext(filename)
-    # if base[-1:] == '_': #if the base file name ends in an '_' remove it.
-    #     base = base[0:-1]
-    # out_file = out_dir + base + '.exp'
 
     text_file = open(out_file, "w")
     logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
@@ -138,19 +148,16 @@ def WriteOutput(
     for x in range(len(settings_class.data_class.calibration["azimuths"])):
         # determine if detector masked
         if settings_class.calibration_mask is not None:
-            if x + 1 in settings_class.calibration_mask:
+            if x+1 in settings_class.calibration_mask:
                 use = 0
             else:
                 use = 1
                 az_used.append(settings_class.data_class.calibration["azimuths"][x])
-
         # print detector number, if it is being used, then angle, lastly just a number.
         text_file.write(
             "%6i  %i  %7.3f  %i \n"
             % (x + 1, use, settings_class.data_class.calibration["azimuths"][x], 1)
         )
-
-        # FIX ME: if 10 element detector then turn detector 10 off.
 
     # Write number of peaks
     num_subpatterns = len(settings_class.fit_orders)
@@ -164,54 +171,39 @@ def WriteOutput(
     text_file.write("# Peak information \n")
     text_file.write("# Number. use (1/0). h. k. l\n")
     peak = 1
+    #get phase to use
+    if isinstance(Phase, str):
+        phase_name = Phase
+    else:
+        # must be true or none so find most common phase
+        phase_name = []
+        for x in range(num_subpatterns):
+            for y in range(len(settings_class.fit_orders[x]["peak"])):
+                phase_name.append(settings_class.fit_orders[x]["peak"][y]["phase"])
+        phase_name = max(set(phase_name), key=phase_name.count)
+    
     for x in range(num_subpatterns):
+        
+        # get fits for here
+        fit = all_fits[x]
+        
         for y in range(len(settings_class.fit_orders[x]["peak"])):
             if "hkl" in settings_class.fit_orders[x]["peak"][y]:
                 hkl = str(settings_class.fit_orders[x]["peak"][y]["hkl"])
-
-                # check if the d-spacing fits are NaN or not. if NaN switch off (0) otherwise use (1).
-                # Got first file name
-                # filename = os.path.splitext(os.path.basename(diff_files[0]))[0]
-                # filename = filename+'.json'
-
-                filename = make_outfile_name(
-                    settings_class.datafile_list[0],
-                    directory=settings_class.output_directory,
-                    extension=".json",
-                    overwrite=True,
-                )
-                # Read JSON data from file
-                with open(filename) as json_data:
-                    fit = json.load(json_data)
-                # check if the d-spacing fits are NaN or not. if NaN switch off.
-                if np.all(fit[x]["peak"][y]["d-space"]) == None or np.isnan(
-                    fit[x]["peak"][y]["d-space"][0]
-                ):
-                    use = 0
-                else:
-                    use = 1
             else:
                 hkl = "000"
+            # check if the d-spacing fits are NaN or not. if NaN switch off.
+            if np.all(fit[x]["peak"][y]["d-space"]) == None or np.isnan(
+                fit[x]["peak"][y]["d-space"][0] or 
+                fit[x]["peak"][y]["phase"] != phase_name
+            ):
                 use = 0
-            pos = 0
-            if hkl[0] == "-":
-                h = hkl[pos : pos + 2]
-                pos = pos + 2
             else:
-                h = hkl[pos : pos + 1]
-                pos = pos + 1
-            if hkl[pos] == "-":
-                k = hkl[pos : pos + 2]
-                pos = pos + 2
-            else:
-                k = hkl[pos : pos + 1]
-                pos = pos + 1
-            if hkl[pos] == "-":
-                l = hkl[pos : pos + 2]
-                pos = pos + 2
-            else:
-                l = hkl[pos : pos + 1]
-                pos = pos + 1
+                use = 1
+
+            hkl = peak_hkl(settings_class.fit_orders[x], peak=y, string=False)[0]
+            h,k,l = hkl
+            
             text_file.write(" %5i %5i    %s    %s    %s\n" % (peak, use, h, k, l))
             peak = peak + 1
 
@@ -229,21 +221,28 @@ def WriteOutput(
     text_file.write("# Version\n")
     text_file.write("2       \n")
 
-    if "Material" in settings_class.output_settings:
-        raise ValueError(
-            "''Material'' is depreciated as an option. Change your input file to have a ''Phase'' instead."
-        )
-
-    elif "phase" in settings_class.output_settings:
+        
+    if ElasticProperties:
+        if ElasticProperties is True or ElasticProperties == Phase:
+            #use phase name to get elastic properties
+            fname = glob.glob(f"*{Phase}*")
+        elif isinstance(ElasticProperties, str) and "*" in ElasticProperties:
+            fname = glob.glob(ElasticProperties)
+        else:
+            fname = ElasticProperties
+        if isinstance(fname, list):
+            if len(fname) == 1:
+                fname= fname[0]
+            else:
+                raise ValueError("More than 1 property file has been identified.")
+        fid = open(fname, "r")     
+        # pipe ealstic properties to the output file.
+        text_file.write(fid.read())     
+        
+    elif not Phase:
         # left empty on purpose
         text_file.write("")
-
-    elif "ElasticProperties" in settings_class.output_settings:
-        fid = open(settings_class.output_settings["ElasticProperties"], "r")
-
-        # pipe ealstic properties to the output file.
-        text_file.write(fid.read())
-
+        
     else:
         # FIX ME: here I am just writing the elastic properties of olivine with no regard for the structure of the file or the avaliable data.
         #         This should really be fixed.
@@ -325,60 +324,47 @@ def WriteOutput(
 
     # write number of steps
     text_file.write("# Number of time steps in the experiment\n")
-    text_file.write("%i \n" % settings_class.datafile_number)
+    text_file.write("%i \n" % settings_class.image_number)
     text_file.write("# Information on time step       \n")
     text_file.write(
         "# Step number.  Step name.         Step time.    Step temperature (K).    taux de def E\n"
     )
-    for x in range(settings_class.datafile_number):
+    for x in range(settings_class.image_number):
         temp = np.array(
             0.0
         )  # pre-set temperature to 0 incase no value is found in the data file.
-        with open(settings_class.datafile_list[x], "r") as myfile:
-            for line in myfile:  # For each line, stored as line,
-                # get date.
-                if "DATE:" in line:
-                    ftime = datetime.datetime.strptime(
-                        line, "DATE:  %b %d, %Y %H:%M:%S.%f "
-                    )
-                    if x == 0:
-                        t_o = ftime
-                    t = ftime - t_o  # time relative to first diffraction
-
-                # get temperature
-                if (
-                    "Output_TemperaturePower" in settings_class.output_settings
-                ):  # get temperture from furnace power
-                    st = "LVP_furnace_calcs.D"
-                    if st in line:
-                        pwr = float(re.findall(r'"(.*?)"', line)[0])
-                        for i in range(
-                            len(
-                                settings_class.output_settings[
-                                    "Output_TemperaturePower"
-                                ]
-                            )
-                        ):
-                            temp = (
-                                temp
-                                + settings_class.output_settings[
-                                    "Output_TemperaturePower"
-                                ][i]
-                                * pwr**i
-                            )
-                        temp = temp + 273
-                else:  # get temperature from thermocouple reading
-                    if not "Output_tc" in settings_class.output_settings:
-                        st = "LVP_tc1_calcs.I"
-                    else:
-                        st = (
-                            "LVP_tc"
-                            + settings_class.output_settings["Output_tc"]
-                            + "_calcs.I"
-                        )
-                    if st in line:
-                        temp = re.findall(r'"(.*?)"', line)
-                        temp = float(temp[0]) + 273.0
+        
+        tm = settings_class.metadata_labels["time"]
+        # time has to be in the metadata so just get it.
+        if tm in metadata[x]:
+            ftime = metadata[x][tm]
+        else:
+            tm = -1
+        if isinstance(ftime, str):
+            ftime = parser.parse(ftime)
+        if x == 0:
+            t_o = ftime
+        t = ftime - t_o  # time relative to first diffraction
+        if not isinstance(t, float):
+            # then must be a datetime.timedelta
+            t = t.seconds
+        
+        # get label for temperature. Should work for wild cards
+        if "temperature" in settings_class.metadata_labels:
+            templbl_without_wildcards = re.sub(r"\*", ".*", settings_class.metadata_labels["temperature"])
+        else:
+            templbl_without_wildcards = re.sub(r"\*", ".*", settings_class.data_class._default_metadata_labels["temperature"])
+        r = re.compile(templbl_without_wildcards)
+        templbl = list(filter(r.match, list(metadata[0]))) # Read Note below
+        if len(templbl) > 1:
+            err_str = "More than one temprature has been found. Assuming the first one. "
+            logger.error(err_str)
+        templbl = templbl[0]
+        # get temperature
+        if templbl in metadata[x]:
+            temp = float(metadata[x][templbl]) + 273.0
+        else:
+            temp = -1
 
         # strip directory and ending from filename
         diff_name = os.path.splitext(os.path.basename(settings_class.datafile_list[x]))[
@@ -387,7 +373,7 @@ def WriteOutput(
 
         text_file.write(
             "%8i        %s  %8.8g            %6.1f\n"
-            % (x + 1, "{:<18}".format(diff_name), t.seconds, temp)
+            % (x + 1, "{:<18}".format(diff_name), t, temp)
         )
 
     # Write the experimental data fits.
@@ -395,19 +381,11 @@ def WriteOutput(
     text_file.write(
         "# Peak number.  h.  k.  l.  d-spacing.  intensity.  detector number. step number E t \n"
     )
-    for z in range(settings_class.datafile_number):
+    for z in range(settings_class.image_number):
         settings_class.set_subpattern(z, 0)
 
-        filename = make_outfile_name(
-            settings_class.subfit_filename,
-            directory=settings_class.output_directory,
-            extension=".json",
-            overwrite=True,  # overwrite = True to get the file name without incrlemeting it.
-        )
-
-        # Read JSON data from file
-        with open(filename) as json_data:
-            fit = json.load(json_data)
+        # get fit for here
+        fit = all_fits[z]
 
         peak = 1
         for x in range(num_subpatterns):
@@ -418,30 +396,13 @@ def WriteOutput(
                 # [peak number     H     K     L     d-spacing     Intensity     detector number     step number   ]  in data set.
 
                 if "hkl" in settings_class.fit_orders[x]["peak"][y]:
-                    hkl = str(settings_class.fit_orders[x]["peak"][y]["hkl"])
-                    use = 1
+                    hkl = peak_hkl(settings_class.fit_orders[x], peak = y, string=False)
+                    h = hkl[0][0]
+                    k = hkl[0][1]
+                    l = hkl[0][2]
                 else:
                     hkl = "000"
-                    use = 0
                 pos = 0
-                if hkl[0] == "-":
-                    h = hkl[pos : pos + 2]
-                    pos = pos + 2
-                else:
-                    h = hkl[pos : pos + 1]
-                    pos = pos + 1
-                if hkl[pos] == "-":
-                    k = hkl[pos : pos + 2]
-                    pos = pos + 2
-                else:
-                    k = hkl[pos : pos + 1]
-                    pos = pos + 1
-                if hkl[pos] == "-":
-                    l = hkl[pos : pos + 2]
-                    pos = pos + 2
-                else:
-                    l = hkl[pos : pos + 1]
-                    pos = pos + 1
 
                 if "symmetry" in settings_class.fit_orders[x]["peak"][y]:
                     sym = settings_class.fit_orders[x]["peak"][y]["symmetry"]
@@ -450,9 +411,15 @@ def WriteOutput(
 
                 az = settings_class.data_class.calibration["azimuths"]
                 coef_type = sf.get_params_type(fit[x], "d", peak=y)
+                
+                d_coef = replace_null_terms(fit[x]["peak"][y]["d-space"])
+                if differential_only is True:
+                    d_coef[1] = 0  #
+                    d_coef[2] = 0
+                
                 peak_d = sf.coefficient_expand(
                     np.array(az),
-                    replace_null_terms(fit[x]["peak"][y]["d-space"]),
+                    d_coef,
                     coeff_type=coef_type,
                 )
                 # peak_tth = 2.*np.degrees(np.arcsin(wavelength/2/peak_d))

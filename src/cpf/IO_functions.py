@@ -12,6 +12,7 @@ import os
 import re
 from copy import deepcopy
 from pathlib import Path
+import pandas as pd
 
 import numpy as np
 
@@ -488,19 +489,26 @@ def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", any_null=Fal
                 value, val_to_find, index_path + f"['{key}']", any_null=any_null
             )
 
-    if isinstance(obj_to_inspect, list):
+    elif isinstance(obj_to_inspect, list):
         for key, value in enumerate(obj_to_inspect):
             any_null = any_terms_null(
                 value, val_to_find, index_path + f"[{key}]", any_null=any_null
             )
 
-    if obj_to_inspect == val_to_find:
+    elif isinstance(obj_to_inspect, pd.DataFrame):
+        # look indata frame for values
+        tf = (obj_to_inspect.values == val_to_find).any()
+        any_null = tf or any_null
+        
+    elif obj_to_inspect == val_to_find:
         any_null = True
         logger.moreinfo(
             " ".join(map(str, [(f"Value {val_to_find} found at {index_path}")]))
         )
         # could be verbose if verbose logger.
-
+    else:
+        pass #all seems in order
+        
     return any_null
 
 
@@ -540,17 +548,25 @@ def replace_null_terms(
                 deepcopy(value), val_to_find, index_path + f"['{key}']", replace_with=replace_with
             )
 
-    if isinstance(obj_to_inspect, list):
+    elif isinstance(obj_to_inspect, list):
         for key, value in enumerate(obj_to_inspect):
             obj_to_inspect[key] = replace_null_terms(
                 deepcopy(value), val_to_find, index_path + f"[{key}]", replace_with=replace_with
             )
 
-    if obj_to_inspect == val_to_find:# and val_to_find is not None:
+    elif isinstance(obj_to_inspect, pd.DataFrame):
+        # replace contents of panda data frame
+        if val_to_find is not None:
+            obj_to_inspect = obj_to_inspect.replace(val_to_find, replace_with)
+            
+    elif obj_to_inspect == val_to_find:# and val_to_find is not None:
         obj_to_inspect = replace_with
         logger.moreinfo(
             " ".join(map(str, [(f"Value {val_to_find} found at {index_path}")]))
         )
+        
+    else:
+        pass #everything is in order
 
     return obj_to_inspect
 

@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
 from  cpf.settings import get_settings
-from cpf.output_formatters.ReadFits import ReadFits
+from cpf.output_formatters.fits_io import ReadFits_to_dataframe
 from cpf.IO_functions import make_outfile_name, peak_string
 from cpf.util.logging import get_logger
 
@@ -26,10 +26,10 @@ def Requirements():
     RequiredParams = [
         #'apparently none!
     ]
-    OptionalParams = [
+    OptionalParams = {
         ##"Output_directory"  # if no direcrtory is specified write to current directory.
-        "coefs_vals_write"  # -- pick which set of coefficients to write
-    ]
+        #"coefs_vals_write": "given"  # -- pick which set of coefficients to write
+    }
 
     return RequiredParams, OptionalParams
 
@@ -98,7 +98,7 @@ def WriteOutput(
             settings_class.file_label = os.path.splitext(os.path.basename(fls[latest]))[0].split("__")[1]
     
     # read the data.
-    df = ReadFits(settings=settings_class, includeStats=True, includeSeriesValues=True, includePosition=True)
+    df = ReadFits_to_dataframe(settings=settings_class, includeStats=True, includeSeriesValues=True, includePosition=True)
     headers = list(df.columns.values)
     
     # split the notes column into columns and calculate some new values
@@ -114,7 +114,7 @@ def WriteOutput(
     df["Fit_time_without_chunks"] = df["time-elapsed"]-df["chunks-time"]
     df["RedChiSq_per_s"] = df["RedChiSq"]/df["Fit_time_without_chunks"]
     
-    peaks = df["Peak"].unique()
+    peaks = df["peak"].unique()
     searches = df["series_type"].unique()
     param_plot = ["RedChiSq", "Fit_time_without_chunks", "RedChiSq_per_s", "bic", "aic", "d-space0", "time-elapsed", "chunks-time"]
     
@@ -132,7 +132,7 @@ def WriteOutput(
         for h in range(len(param_plot)):
             for j in range(len(searches)):
                 
-                df_tmp = df[(df['Peak'] == peaks[i]) & (df['series_type'] == searches[j])]
+                df_tmp = df[(df['peak'] == peaks[i]) & (df['series_type'] == searches[j])]
                 # if there is more than 1 peak we need to filter the data to 
                 # just look at the one that has been searched over.
                 if len(df_tmp['search_peak'].unique()) == 1:

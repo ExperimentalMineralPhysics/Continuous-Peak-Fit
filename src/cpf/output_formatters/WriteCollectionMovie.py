@@ -28,7 +28,13 @@ def Requirements():
     RequiredParams = [
         #'apparently none!
     ]
-    OptionalParams = ["fps", "file_types", "plot_style"]
+    OptionalParams = {
+        "fps": 10,  # frames per second
+        "file_types": ["mp4"],  # movie file type
+        "Irange": ["pt1percentile", "99pt9percentile"], # range of colour scale
+        "plot data as": "calibrated", 
+        "plot type": "default", #"surface",
+    }
 
     return RequiredParams, OptionalParams
 
@@ -63,26 +69,26 @@ def WriteOutput(settings, debug=False, **kwargs):
     # make sure settings is a class
     settings_class = get_settings(settings)
 
-    file_types = kwargs.pop("file_types", ".mp4")
-    fps = kwargs.pop("fps", 10.)
-    plot_type = kwargs.pop("plot_type", "calibrated")
+    # Parse optional parameters
+    fps        = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
+    file_types = settings_class.output_settings.get("file_types", Requirements()[1]["file_types"])
+    Irange     = settings_class.output_settings.get("Irange", Requirements()[1]["Irange"])
+    plot_data_as = settings_class.output_settings.get("plot data as", Requirements()[1]["plot data as"])
+    plot_type  = settings_class.output_settings.get("plot type", Requirements()[1]["plot type"])
+    #override with kwargs
+    fps        = kwargs.get("fps", fps)
+    file_types = kwargs.get("file_types", file_types)
+    Irange     = kwargs.get("Irange", Irange)
+    plot_data_as = kwargs.get("plot_data_as", plot_data_as)
+    plot_type  = kwargs.get("plot_type", plot_type)
+
     # make sure file_types is a list.
     if isinstance(file_types, str):
         file_types = [file_types]
     if not isinstance(fps, float) and not isinstance(fps, int):
         raise ValueError("The frames per second needs to be a number.")
-    if plot_type != "collected" and plot_type != "calibrated":
+    if plot_data_as != "collected" and plot_data_as != "calibrated":
         raise ValueError("plot_type must be 'collected' or 'calibrated'.")
-        
-    # if not "file_types" in kwargs:
-    #     file_types = ".mp4"
-    # # make sure file_types is a list.
-    # if isinstance(file_types, str):
-    #     file_types = [file_types]
-    # if not "fps" in kwargs:
-    #     fps = 10
-    # elif not isinstance(fps, float):
-    #     raise ValueError("The frames per second needs to be a number.")
 
     # make the base file name
     if settings_class:
@@ -119,10 +125,11 @@ def WriteOutput(settings, debug=False, **kwargs):
     for z in progress.iter_bar(image=range(settings_class.image_number)):
     # for z in range(settings_class.image_number):
         # read data file
-        data_class.import_image(settings_class.image_list[z])
+        settings_class.set_subpattern(z, 0)
+        data_class.import_image(settings=settings_class)
         Ipctl.append(
-            np.percentile(
-                data_class.intensity[data_class.intensity.mask == False], prctl
+            np.nanpercentile(
+                np.ma.filled(data_class.intensity, np.nan), prctl
             )
         )
         Imin.append(np.min(data_class.intensity))
@@ -151,7 +158,9 @@ def WriteOutput(settings, debug=False, **kwargs):
         # logger.info(" ".join(map(str, [(t, int(t*fps), y[int(t*fps)])])))
 
         # Get diffraction pattern to process.
-        data_class.import_image(settings_class.image_list[y[int(t * fps)]])
+        settings_class.set_subpattern(y[int(t * fps)], 0)
+        data_class.import_image(settings=settings_class)
+        # data_class.import_image(settings_class.image_list[y[int(t * fps)]])
 
         if settings_class.datafile_preprocess is not None:
             # needed because image preprocessing adds to the mask and is different for each image.
@@ -169,9 +178,14 @@ def WriteOutput(settings, debug=False, **kwargs):
         else:
             cbar = False
             
-        if plot_type == "calibrated":
+        ax.clear()
+        if plot_data_as == "calibrated":
             data_class.plot_calibrated(
-                fig_plot=fig, axis_plot=ax, show="intensity", limits=deepcopy(lims),
+                fig_plot=fig, 
+                axis_plot=ax, 
+                show="intensity", 
+                limits=deepcopy(lims),
+                plot_type = plot_type,
                 cbar_axes=cbar
             )
         else:

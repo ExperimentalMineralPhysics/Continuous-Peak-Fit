@@ -20,6 +20,8 @@ Calib_data     = "COSI_021_0001.med"
 Calib_param    = 'COSI_021_0001.med'
 Calib_mask     = [5,10]
 
+metadata = "*"
+
 # Fitting properties for peaks.
 fit_track = True
 fit_propagate = True

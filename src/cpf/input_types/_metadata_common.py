@@ -23,11 +23,32 @@ class _metadata_common:
     Class definiing metadata function(s).
 
     These are imported into the detector functions as methods.
+
+    In the settings class and detector functions (referred to as data_class in the code) the metadata should work as follows:
+
+    settings.metadata_labels:
+        This is a dictionary that associates the metadata types needed by the output files to the metadata names in 
+        settings.metadata.
+        for example 
+        settings.metadata_labels = {"temperature": "tc1"} will use "tc1" from the metadata when temperature is called in the outputs. 
+
+    settings_class.metadata_labels are set during the settings class initiate from:
+        (a) dataclass._default_metadata_labels and overridden by 
+        (b) 'metadata_labels' in the input file
+    The default values set are 'time', temperature' and 'exposure'.
+    
+
+    settings.metadata:
+        is the list of metadata parameters that are to be read from the data files. 
+        The list is composed from (a) the 'metadata' values in the input file and the required values from the 
+
+
+
     """
     
-    def get_metadata(self, metadata_values="default", report=None):
+    def get_metadata(self, settings_class= None, metadata_values="default", report=None):
         """
-        Gets metadata from the diffraction patterns. 
+        Gets metadata as from data_class.metadata.
         The default is to get the timestamps of the images but other data 
         stored in the file can be accessed as well with the correct label.
         
@@ -51,7 +72,7 @@ class _metadata_common:
             image_name : string, list, optional
                 Name of the image set to import. Either this or settings are required.
                 The default is None.
-        settings : settings class, optional
+        settings_class : settings class, optional
             cpf settings class. Either this or image_name are required.
             The default is None.
         metadata : string, list, optional
@@ -69,12 +90,13 @@ class _metadata_common:
         
         
         """
-        
-        no_exposure_message = None#"no exposure"
-        
+        # parse inputs
+        if settings_class and metadata_values=="default":
+            metadata_values = settings_class.metadata
         if isinstance(metadata_values, str):
             metadata_values = [metadata_values]
         
+        no_exposure_message = None#"no exposure"
         # options for times
         time_opts = ["time_mid" ,"time_start" ,"time_end", "time_exposure"]
         
@@ -87,8 +109,8 @@ class _metadata_common:
         if "default" in metadata_values:
             metadata_values += time_opts
             metadata_values.remove('default')
-        time_location = self.metadata_labels.get('time_label', self._default_metadata_labels['time_label'])
-        exposure_location = self.metadata_labels.get('exposure_label', self._default_metadata_labels['exposure_label'])
+        time_location = self.metadata_labels.get('time', self._default_metadata_labels.get('time',None))
+        exposure_location = self.metadata_labels.get('exposure', self._default_metadata_labels.get('exposure', None))
         
         #parse metadata_values list 
         discard = []
@@ -113,23 +135,19 @@ class _metadata_common:
         
         # get metadata from images
         # look for os level properties first FILE_CREATION and FILE_MODIFIED 
-        if "FILE_CREATION" in metadata_values:
-            # get file creation time from OS    
-            # metadata["FILE_CREATION"] = []
-            # for k,i in enumerate(imgs_):
-            #     metadata["FILE_CREATION"].append(os.path.getctime(image_name))
+        if "FILE_CREATION" in metadata_values and "FILE_CREATION" in self.metadata:
             metadata_out["FILE_CREATION"] = self.metadata["FILE_CREATION"]
-        if "FILE_MODIFIED" in metadata_values:
-            # get file modificaction time from OS   
-            # metadata["FILE_MODIFIED"] = []
-            # for k,i in enumerate(imgs_):
-            #     metadata["FILE_MODIFIED"].append(os.path.getmtime(image_name))
-            metadata_out["FILE_MODIFIED"] = self.metadata["FILE_CREATION"]
+        if "FILE_MODIFIED" in metadata_values and "FILE_MODIFIED" in self.metadata:
+            metadata_out["FILE_MODIFIED"] = self.metadata["FILE_MODIFIED"]
         #get information from inside datafiles
-        if any("*" in x for x in metadata_values) or any("/" in x for x in metadata_values):
-            # only hdf5 files should have a "*" as wildcard in the keys.
-            # to be sure also check for '/' as a key seperator. 
-                        
+        if "h5_datakey" in self.metadata:
+            # only hdf5 files should have a "h5_datakey" as wildcard in the keys.
+            # this is set by cpf.
+            
+            #if any("*" in x for x in metadata_values) or any("/" in x for x in metadata_values):
+                # only hdf5 files should have a "*" as wildcard in the keys.
+                # to be sure also check for '/' as a key seperator. 
+                            
             #needs --> to be in self.metadata
             # image_name (in the list form) --> get from settings. 
             # self.h5_datakey --> to be used to get wildcard values for metadata keys
@@ -152,33 +170,46 @@ class _metadata_common:
             # check metadata requirements exist 
             # add entries to output dictionary
             for j in metadata_values:
-                if len(iteration.groups()) > 1:
-                    err_str = f"There is more than 1 wildcard in the h5 key {self.h5_datakey}. This is not implemented here."
-                    raise NotImplementedError(err_str)
-                else:
-                    metadata_key = re.sub('[*]', iteration.groups()[0], j)
-                    
-                #get last index in key as the dictionarry entry label
-                ky = metadata_key.split("/")[-1]
-                metadata_out[ky] = h5_functions.get_images([imagename[0], metadata_key, imagename[2], '0'])
-                try:
+                if "/" in j:
+                    # h5 key must have / in the name. No / neams not h5 key
+                    if len(iteration.groups()) > 1:
+                        err_str = f"There is more than 1 wildcard in the h5 key {self.h5_datakey}. This is not implemented here."
+                        raise NotImplementedError(err_str)
+                    elif "*" in j:
+                        metadata_key = re.sub('[*]', iteration.groups()[0], j)
+                    else:
+                        metadata_key = j
+                        
+                    #get last index in key as the dictionarry entry label
+                    ky = metadata_key.split("/")[-1]
                     metadata_out[ky] = h5_functions.get_images([imagename[0], metadata_key, imagename[2], '0'])
-                except:                    
-                    err_str = f"Metadata type {metadata_key} not recognised. Permitted values for this dataset are: any valid h5 key"
-                    raise ValueError(err_str)
+                    try:
+                        metadata_out[ky] = h5_functions.get_images([imagename[0], metadata_key, imagename[2], '0'])
+                    except:                    
+                        err_str = f"Metadata type {metadata_key} not recognised. Permitted values for this dataset are: any valid h5 key"
+                        raise ValueError(err_str)
                     
         else: # image(s) are separate tiff, edf, etc. images
             # check metadata requirements exist and add entries to output dictionary
             headers = list(self.metadata)
             for j in metadata_values:
-                if j in ["FILE_CREATION", "FILE_MODIFIED"]:
+                if j in ["FILE_CREATION", "FILE_MODIFIED"] or j==None:
                     pass
                 elif j in headers:
-                    # metadata_out[j] = []
                     try:
                         metadata_out[j] = float(self.metadata[j])
                     except:
                         metadata_out[j] = self.metadata[j]
+                elif "*" in j: # wildcard in header
+                    # add all wildcards to header
+                    # N.B. this should not be called becuase settings.set_metadata removes all * from metadata.
+                    pattern = re.compile(re.sub('[*]', '([0-9a-zA-Z-+_:]*)', j))  
+                    matches = [word for word in headers if pattern.match(word)]
+                    for k in matches:
+                        try:
+                            metadata_out[k] = float(self.metadata[k])
+                        except:
+                            metadata_out[k] = self.metadata[k]
                 else:
                     err_str = f"Metadata type '{j}' not recognised. Permitted values for this dataset are: {headers}."
                     raise ValueError(err_str)
@@ -234,16 +265,14 @@ class _metadata_common:
         return metadata_out
 
 
-    def _get_file_created_modified(self, medtadata_dict, image):
+    def _get_file_created_modified(self, image):
         """
         Adds file creation and modification times to the metadata dictionary.
 
         Parameters
         ----------
-        medtadata_dict : dict
-            dictionary of matadata.
-        image : Pth, str
-            location of the image.
+        image : Pth, str, list
+            location of the image or list of images
 
         Returns
         -------
@@ -251,22 +280,44 @@ class _metadata_common:
             dictionary of matadata.
 
         """
-        # append times to dictionary incase of multiple files. 
-        if "FILE_CREATION" not in medtadata_dict:
-            medtadata_dict["FILE_CREATION"] = os.path.getctime(image)
-        else:
-            if not isinstance(medtadata_dict["FILE_CREATION"], list):
-                medtadata_dict["FILE_CREATION"] = [medtadata_dict["FILE_CREATION"]]
-            medtadata_dict["FILE_CREATION"].append(os.path.getmtime(image))
-
-        if "FILE_MODIFIED" not in medtadata_dict:
-            medtadata_dict["FILE_MODIFIED"] = os.path.getmtime(image)
-        else:
-            if not isinstance(medtadata_dict["FILE_MODIFIED"], list):
-                medtadata_dict["FILE_MODIFIED"] = [medtadata_dict["FILE_MODIFIED"]]
-            medtadata_dict["FILE_MODIFIED"].append(os.path.getmtime(image))
+        if not isinstance(image, list):
+            image = [image]
+            
+        metadata_dict={}
+        tmp_creations = []
+        tmp_modified = []
+        for i in image:
+            # loop over all images to get data 
+            
+            # check image input
+            if (isinstance(i, str) is False) and (isinstance(i, Path) is False):
+                #then image is image object.
+                try:
+                    i = i.filename
+                except:
+                    i = i.get_name()
+            tmp_creations.append(os.path.getctime(i))
+            tmp_modified.append(os.path.getmtime(i))
         
-        return medtadata_dict
+            # # append times to dictionary incase of multiple files. 
+            # if "FILE_CREATION" not in metadata_dict:
+            #     metadata_dict["FILE_CREATION"] = os.path.getctime(i)
+            # else:
+            #     if not isinstance(metadata_dict["FILE_CREATION"], list):
+            #         metadata_dict["FILE_CREATION"] = [metadata_dict["FILE_CREATION"]]
+            #     metadata_dict["FILE_CREATION"].append(os.path.getctime(i))
+    
+            # if "FILE_MODIFIED" not in metadata_dict:
+            #     metadata_dict["FILE_MODIFIED"] = os.path.getmtime(i)
+            # else:
+            #     if not isinstance(metadata_dict["FILE_MODIFIED"], list):
+            #         metadata_dict["FILE_MODIFIED"] = [metadata_dict["FILE_MODIFIED"]]
+            #     metadata_dict["FILE_MODIFIED"].append(os.path.getmtime(i))
+
+        metadata_dict["FILE_CREATION"] = np.median(tmp_creations)
+        metadata_dict["FILE_MODIFIED"] = np.median(tmp_modified)
+        
+        return metadata_dict
         
         
 

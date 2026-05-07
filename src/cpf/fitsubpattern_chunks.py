@@ -506,7 +506,7 @@ def fit_chunks(
                     # then the peak_pos_guesses are not in d-spacing
                     # therefore change
                     cent_guess = list(np.atleast_1d(data_as_class.conversion(
-                        cent_guess, azm=None, reverse=True)))
+                        cent_guess, azm=None, reverse=False)))
                 # convert to dictionary
                 peaks = []
                 for a,b,c,d in zip(cent_guess, h_guess, w_guess, p_guess):

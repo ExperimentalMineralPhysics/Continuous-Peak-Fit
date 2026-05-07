@@ -68,7 +68,7 @@ def peak_components(full=False, include_profile=True):
 def expand_component_string(comp):
     """
     Exapand he compnent name from its short representation to its full name.
-    e.g. "d" --> "d-spance"
+    e.g. "d" --> "d-space"
     
     Conversion is performed using lookup of outputs from peak_functions.peak_components()
 
@@ -101,7 +101,7 @@ def expand_component_string(comp):
 # Gaussian shape
 def gaussian_peak(two_theta, two_theta_0, w_all, h_all):
     """
-    Calculates intensiities for Gaussian peak shape
+    Calculates intensiities (height) at each position for Gaussian peak shape
 
     Parameters
     ----------
@@ -127,7 +127,7 @@ def gaussian_peak(two_theta, two_theta_0, w_all, h_all):
 
 def lorentzian_peak(two_theta, two_theta_0, w_all, h_all):
     """
-    Calculates intensiities for Lorentz peak shape
+    Calculates intensity (height) at each position for Lorentz peak shape
 
     Parameters
     ----------
@@ -152,7 +152,7 @@ def lorentzian_peak(two_theta, two_theta_0, w_all, h_all):
 
 def pseudo_voigt_peak(two_theta, two_theta_0, w_all, h_all, l_g_ratio):
     """
-    Calculates intensiities for Lorentz peak shape
+    Calculates intensities (heights) of Pseudo-Voigt peak shape
 
     Parameters
     ----------
@@ -172,10 +172,116 @@ def pseudo_voigt_peak(two_theta, two_theta_0, w_all, h_all, l_g_ratio):
     Returns
     -------
     PesudoVoigt_peak : np.array
-        Intensity of the Pesudo-Voigt peak at each two theta value.
+        height of the Pesudo-Voigt peak at each two theta value.
 
     """
     PesudoVoigt_peak = l_g_ratio * gaussian_peak(two_theta, two_theta_0, w_all, h_all) + (
         1 - l_g_ratio
     ) * lorentzian_peak(two_theta, two_theta_0, w_all, h_all)
     return PesudoVoigt_peak
+
+
+
+def integrated(w_all, h_all, l_g_ratio):
+    """
+    Calculates integrated intensiities for Pseudo-Voigt peak shape
+
+    Parameters
+    ----------
+    w_all : np.array
+        Width of the peak at each two theta value.
+    h_all : np.array
+        Height of the peak at each two theta value.
+    l_g_ratio : np.array
+        Proportions of Gauss and Lorentz peak at each two theta value.
+        if l_g_ratio = 1 returns Gaussian peak 
+        if l_g_ratio = 0 returns Lorentzian peak 
+        
+    Returns
+    -------
+    PesudoVoigt_peak : np.array
+        Integrated intensity of the Pesudo-Voigt peak at each two theta value.
+
+    """
+    # Gauss Sum
+    sumG = h_all *np.sqrt(np.pi*(2 * (w_all/np.sqrt(np.log(4)))**2))
+    
+    # lotentz sum
+    sumL = h_all * np.pi /np.sqrt(1/w_all**2)
+    # lorentz sum for h_all=1 and w_all = i converges on pi at infinity.
+    # we just assume this here as it is simplest but should perhaps have a cut off     
+    
+    return l_g_ratio * sumG + (1 - l_g_ratio) * sumL
+    
+
+def plot_sum():
+    """
+    Plot shape functions for the peak profiles. 
+    
+    Calculates some sums to show self.integrated is correct.
+    
+    Returns
+    -------
+    None.
+
+    """
+    # make graph showing the peak functions
+    x = np.linspace(-5,5,500)
+    
+    h=1
+    w=1
+    
+    y_g = pseudo_voigt_peak(x,0,w,h,1)
+    y_l = pseudo_voigt_peak(x,0,w,h,0)
+    
+    import matplotlib.pyplot as plt
+    plt.plot(x,y_g,'-r', label = "Gaussian (profile=1)")
+    plt.plot(x, y_l,'-b', label = "Lorentz (profile=0)")
+    plt.legend()
+    plt.title(f"cpf peak shapes: height={h}, width={w}$")
+    
+        
+    # proof of sum functions.
+    h = 3
+    w = .234
+    
+    a = np.linspace(-10000,10000,500000)
+    y_l = pseudo_voigt_peak(a,0,w,h,0)
+    y_g = pseudo_voigt_peak(a,0,w,h,1)
+    y_mix = pseudo_voigt_peak(a,0,w,h,0.5)
+    
+    L_sum = np.sum(y_l)*(a[1]-a[0])
+    G_sum = np.sum(y_g)*(a[1]-a[0])
+    mix_sum = np.sum(y_mix)*(a[1]-a[0])
+    
+    G_sum2 = integrated(w, h, 1)
+    L_sum2 = integrated(w, h, 0)
+    mix_sum2 = integrated(w, h, 0.5)
+    
+    print("Gaussian")
+    print(f"Numerical integration: {G_sum}")
+    print(f"arithmetic integration: {G_sum2}")
+    print(f"difference = {G_sum2-G_sum}")
+    
+    print("Lorentz")
+    print(f"Numerical integration: {L_sum}")
+    print(f"arithmetic integration: {L_sum2}")
+    print(f"difference = {L_sum2-L_sum}")
+    
+    
+    print("mixed")
+    print(f"Numerical integration: {mix_sum}")
+    print(f"arithmetic integration: {mix_sum2}")
+    print(f"difference = {mix_sum2-mix_sum}")
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

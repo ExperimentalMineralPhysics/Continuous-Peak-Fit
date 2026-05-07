@@ -296,6 +296,9 @@ class ESRFlvpDetector:
 
         """
 
+        #validate the ranges
+        range_bounds, azi_bounds = self.check_bounds(range_bounds, azi_bounds)
+        
         if with_detector:
             new = copy(self)
         else:
@@ -377,7 +380,9 @@ class ESRFlvpDetector:
         -------
         None.
         """
-
+        # orientation of detector for ESRF lvp
+        orientation = 3
+        
         if settings != None:
             parms_file = settings.calibration_parameters
         else:
@@ -385,6 +390,16 @@ class ESRFlvpDetector:
 
         with open(parms_file, "r") as f:
             self.calibration = json.load(f)
+
+        if isinstance(self.calibration["detector"], str):
+            # this is the custrom detector for ESRF so hard code here. 
+            self.calibration["detector"] = pyFAI.detectors.PilatusCdTe900kw(
+                orientation=orientation, 
+                sensor=pyFAI.detectors.sensors.SensorConfig.parse("CdTe, 1mm")
+                )
+        if "orientation" not in self.calibration["detector_config"]:
+            # then there is no orientation information in the poni file
+            self.calibration["detector_config"]["orientation"] = orientation
 
         self.conversion_constant = self.calibration["wavelength"] * 1e10  # in angstroms
 
@@ -437,7 +452,7 @@ class ESRFlvpDetector:
         # load the list of files
         # print("file_string", file_string)
         # print(file_string)
-        if isinstance(file_string, list) and os.path.splitext(os.path.basename(file_string[0]))[1] == ".h5":
+        if isinstance(file_string, list):# and os.path.splitext(os.path.basename(file_string[0]))[1] == ".h5":
             #define where data locations are in the initaition of the class.
             
             #file string is a list of format 
@@ -546,6 +561,8 @@ class ESRFlvpDetector:
                 else:
                     pass
             # positions = np.deg2rad(positions)
+
+
         return files_list, positions
 
     def get_detector(
@@ -626,7 +643,7 @@ class ESRFlvpDetector:
         # else:
         imgs_, positions = self._get_sorted_files(calib_frames, debug=False)
         positions = np.deg2rad(positions)
-        frames = int(len(positions))
+        frames = positions.size#int(len(positions))
         
         # make list of AzimuthalIntegrator objects for all detector postions
         ais = []
@@ -666,14 +683,15 @@ class ESRFlvpDetector:
             # edited from ESRP code - which edited AzimuthalIntegrator properties and is comparatively very slow.
             # makeing a new AzimuthalIntegrator each time is 100s-1000s of times faster.
             my_ai = AzimuthalIntegrator(
-                detector=self.calibration["detector"],
-                wavelength=self.calibration["wavelength"],
                 dist=dist_expr,
                 poni1=poni1_expr,
                 poni2=poni2_expr,
                 rot1=rot1_expr,
                 rot2=rot2_expr,
                 rot3=pos,
+                detector=self.calibration["detector"],
+                wavelength=self.calibration["wavelength"],
+                orientation=self.calibration["detector_config"]["orientation"]
             )
             ais.append(my_ai)
 
@@ -747,15 +765,17 @@ class ESRFlvpDetector:
 
         """
         
-        imagedata = []
+        imagedata = None
         md_tmp = []
-        for frame in frames:
-            with fabio.open(frame) as f:
-                imagedata.append(self._reduce_array(np.array(f.data, dtype=dtype), reduce_by=reduce_by))
+        for frame in range(len(frames)):
+            with fabio.open(frames[frame]) as f:
+                if frame == 0:
+                    shape = self._reduce_array(np.array(f.data, dtype=dtype), reduce_by=reduce_by).shape
+                    imagedata = np.zeros((len(frames),)+shape, dtype=dtype)
+                imagedata[frame::] = np.flipud(self._reduce_array(np.array(f.data, dtype=dtype), reduce_by=reduce_by))
                 f_without_data = f
                 f_without_data.data = None
                 md_tmp.append(f_without_data)
-        imagedata = np.flipud(imagedata)
         if return_metadata:
             return imagedata, md_tmp
         else:
@@ -803,7 +823,7 @@ class ESRFlvpDetector:
         """
 
         # check inputs
-        if image_name == None and settings.subpattern == None:
+        if image_name == None and settings.subfit_filename == None:
             raise ValueError("Settings are given but no subpattern is set.")
 
         if self.detector == None:
@@ -894,6 +914,7 @@ class ESRFlvpDetector:
                         dtype = self.GetDataType(tmp_image[0], minimumPrecision=False)
     
                 self.intensity, metadata_tmp = self._read_frames(frames, dtype, reduce_by, return_metadata=True)
+                # the images are flipped up-down in self._read_frames
                 
                 #make a full size mask and then reduce it if necessary. 
                 frame_mask = self._reduce_array(
@@ -1001,7 +1022,7 @@ class ESRFlvpDetector:
 
         if settings.metadata_labels is not None:
             self.metadata_labels = settings.metadata_labels
-        elif (isinstance(diff_file, list) or 
+        if (isinstance(diff_file, list) or 
               os.path.splitext(os.path.basename(diff_file))[1] == ".h5"):
             self._default_metadata_labels = self._default_metadata_labels_hdf5
             self.metadata_labels = self._default_metadata_labels_hdf5
@@ -1023,7 +1044,6 @@ class ESRFlvpDetector:
 
         # get ordered list of images
         frames, detectorangles = self._get_sorted_files(diff_file, reduce_by=self.reduce_by, debug=debug)
-
         detectorangles = np.deg2rad(detectorangles)
         self.detector_check(calibration_data=diff_file, detectorangles=detectorangles)
         
@@ -1088,9 +1108,8 @@ class ESRFlvpDetector:
         # print("frames", frames)
         # print(len(self.detector.ais))
         for i in range(len(self.detector.ais)):
-            # print(self._reduce_array(np.rad2deg(self.detector.ais[i].twoThetaArray())).shape)
-            self.tth[i, :, :] = self._reduce_array(np.rad2deg(self.detector.ais[i].twoThetaArray()))
-            self.azm[i, :, :] = self._reduce_array(np.rad2deg(self.detector.ais[i].chiArray()), polar=True, keep_FirstDim=False)
+            self.tth[i, :, :] = self._reduce_array(self.detector.ais[i].center_array(unit='2th_deg'))
+            self.azm[i, :, :] = self._reduce_array(self.detector.ais[i].center_array(unit='chi_deg'), polar=True, keep_FirstDim=False)
             if make_zyx:
                 zyx = self.detector.ais[i].calc_pos_zyx()
                 self.z[i, :, :] = self._reduce_array(zyx[0])
@@ -1156,9 +1175,11 @@ class ESRFlvpDetector:
 
     def _set_metadata(self, image_obj, settings=None):
         """
-        Gets all metadata as dictionary from image file.
+        Adds all possible metadata values as dictionary within the in the data_class.
         
-        If the cpf settings class is provided and has the method 'metadata_read'
+        The values that are in settings.metadata (a list) are extracted subsequently using data_class.get_metadata 
+               
+        If the cpf settings class is provided and has the method 'metadata_read_func'
         then this method is used to override the internal default methods and is 
         used to create 'metadata_dictionary' which is parsed.
         In this case the settings class attribute 'metadata_labels' is still needed 
@@ -1183,9 +1204,12 @@ class ESRFlvpDetector:
             dictionary of image metadata. 
         """
         # Defined as function to allow get_metadata to call universal image method
-        if settings and "metadata_read_func" in settings.__dict__:
-            metadata_dictionary = settings.metadata_read_func(settings, image_obj=image_obj)
-            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, image_obj)
+        metadata_dictionary = {}
+        if not image_obj and not settings:
+            # then nothing is provided
+            # expected behaviour in some circumstances.
+            self.metadata = None
+            return
         elif (not image_obj and settings) or cpf.settings.is_settings(image_obj):
             # when calling hdf5 file there is no image_obj to send (= None) and settings is
             # provided instead. 
@@ -1197,7 +1221,7 @@ class ESRFlvpDetector:
             metadata_dictionary["image"] = settings.subfit_filename
             metadata_dictionary["note"] = "It is not reasonable to load all hdf5 keys into a dictionary as metadata. Instead carry file name and use keys"
             metadata_dictionary["h5_datakey"] = settings.h5_datakey
-            metadata_dictionary = self._get_file_created_modified(metadata_dictionary, metadata_dictionary["image"][0])
+            # metadata_dictionary = self._get_file_created_modified(metadata_dictionary, metadata_dictionary["image"][0])
         else:
             metadata_dictionary = {}
             for obj in image_obj:
@@ -1209,8 +1233,11 @@ class ESRFlvpDetector:
                         metadata_dictionary[j].append(float(obj.header.get(j, None)))
                     except:
                         metadata_dictionary[j].append(obj.header.get(j, None))
-                # add the file creation and modifications time
-                metadata_dictionary = self._get_file_created_modified(metadata_dictionary, obj.filename)
+            # add the file creation and modifications time
+            metadata_dictionary.update(self._get_file_created_modified(image_obj))
+            
+        if settings and "metadata_read_func" in settings.__dict__:
+            metadata_dictionary.update(settings.metadata_read_func(settings, image_obj=image_obj))   
         self.metadata = metadata_dictionary
 
 
@@ -1345,6 +1372,7 @@ class ESRFlvpDetector:
     test_azims = _AngleDispersive_common.test_azims
     GetDataType = _AngleDispersive_common.GetDataType
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
+    check_bounds = _AngleDispersive_common.check_bounds
     _reduce_array = _AngleDispersive_common._reduce_array
     get_metadata = _metadata_common.get_metadata
     _get_file_created_modified = _metadata_common._get_file_created_modified

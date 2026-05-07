@@ -18,6 +18,7 @@ from cpf.IO_functions import (
     peak_string,
     title_file_names,
 )
+from cpf.output_formatters.fits_io import ReadFits_to_list
 from cpf.util.logging import get_logger
 from cpf.util.output_formatters import mplfig_to_npimage
 from cpf.XRD_FitSubpattern import plot_FitAndModel
@@ -31,14 +32,19 @@ def Requirements():
     RequiredParams = [
         #'apparently none!
     ]
-    OptionalParams = ["fps", "file_types"]
+    OptionalParams = {
+        "fps": 10,  # frames per second
+        "file_types": ["mp4"],  # movie file type
+        "Irange": ["pt1percentile", "99pt9percentile"], # range of colour scale
+        "plot type": "default", #"surface",
+    }
 
     return RequiredParams, OptionalParams
 
 
 def WriteOutput(settings, debug=False, **kwargs):
     """
-    Writes a *.?? file of the fits.
+    Writes a movie file of the fits.
 
     N.B. this output requires the data files to be present to work.
 
@@ -62,35 +68,34 @@ def WriteOutput(settings, debug=False, **kwargs):
     # make sure settings is a class
     settings_class = get_settings(settings)
     
-    if not "file_types" in kwargs:
-        file_types = ".mp4"
+    # Parse optional parameters
+    fps        = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
+    file_types = settings_class.output_settings.get("file_types", Requirements()[1]["file_types"])
+    Irange     = settings_class.output_settings.get("Irange", Requirements()[1]["Irange"])
+    plot_type  = settings_class.output_settings.get("plot type", Requirements()[1]["plot type"])
+    #override with kwargs
+    fps        = kwargs.get("fps", fps)
+    file_types = kwargs.get("file_types", file_types)
+    Irange     = kwargs.get("Irange", Irange)
+    plot_type     = kwargs.get("plot type", plot_type)
+
     # make sure file_types is a list.
     if isinstance(file_types, str):
         file_types = [file_types]
-    if not "fps" in kwargs:
-        fps = 10
-    elif not isinstance(fps, float):
+    if not isinstance(fps, float) and not isinstance(fps, int):
         raise ValueError("The frames per second needs to be a number.")
-    if not "Irange" in kwargs:
-        Irange = ["pt1percentile", "99pt9percentile"]
         
     # make the base file name
     base = settings_class.datafile_basename
     if base is None or len(base) == 0:
-        logger.info(
-            " ".join(
-                map(
-                    str,
-                    [("No base filename, trying ending without extension instead.")],
-                )
-            )
-        )
+        logger.info("No base filename, trying ending without extension instead.")
         base = settings_class.datafile_ending
     if base is None:
-        logger.info(
-            " ".join(map(str, [("No base filename, using input filename instead.")]))
-        )
+        logger.info("No base filename, using input filename instead.")
         base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
+
+    # get the fits
+    all_fits, _ = ReadFits_to_list(settings=settings_class)
 
     # make the data class.
     data_to_fill = settings_class.image_list[0]
@@ -108,17 +113,9 @@ def WriteOutput(settings, debug=False, **kwargs):
     dispersion_range = [[] for i in range(len(settings_class.fit_orders))]
     for z in range(settings_class.image_number):
         settings_class.set_subpattern(z, 0)
-
-        # read fit file
-        json_file = make_outfile_name(
-            settings_class.subfit_filename,  # diff_files[z],
-            directory=settings_class.output_directory,
-            additional_text=settings_class.file_label,
-            extension=".json",
-            overwrite=True,
-        )
-        with open(json_file) as json_data:
-            data_fit = json.load(json_data)
+        # get fits 
+        data_fit = all_fits[z]
+        
         for y in range(len(data_fit)):
             dispersion_range[y].append(data_fit[y]["range"][0])
             if "data_ranges" in data_fit[y]:
@@ -220,16 +217,7 @@ def WriteOutput(settings, debug=False, **kwargs):
             ):
                 sub_data = SpotProcess(sub_data, settings_class)
 
-            # read fit file
-            json_file = make_outfile_name(
-                settings_class.subfit_filename,  # diff_files[z],
-                directory=settings_class.output_directory,
-                additional_text=settings_class.file_label,
-                extension=".json",
-                overwrite=True,
-            )
-            with open(json_file) as json_data:
-                data_fit = json.load(json_data)[z]
+            data_fit = all_fits[y[int(t * fps)]][z]
 
             # make the plot of the fits.
             fig = plt.figure(1)
@@ -239,7 +227,7 @@ def WriteOutput(settings, debug=False, **kwargs):
                 # param_lmfit=None,
                 params_dict=data_fit,
                 figure=fig,
-                # plot_type = "surface",
+                plot_type = plot_type,
                 plot_ColourRange={
                     "max": Imax[z],
                     "min": Imin[z],

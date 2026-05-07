@@ -2,15 +2,16 @@ __all__ = ["Requirements", "WriteOutput"]
 
 import json
 import os
+import glob
 from pathlib import Path
 
 import numpy as np
 
 import cpf.output_formatters.WriteMultiFit as WriteMultiFit
-# from cpf.output_formatters.crystallographic_operations import indicies4to3
-from  cpf.settings import get_settings
-from cpf.IO_functions import make_outfile_name
-from cpf.output_formatters.crystallographic_operations import plane_indices_4_to_3
+# from cpf.output_formatters.crystallographic_operations import plane_indices_4_to_3
+from cpf.settings import get_settings
+from cpf.IO_functions import make_outfile_name, peak_hkl
+from cpf.output_formatters.fits_io import ReadFits_to_list, ReadFits_to_dataframe
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WritePolydefix")
@@ -22,22 +23,35 @@ def Requirements():
     RequiredParams = [
         #'apparently none!
     ]
-    OptionalParams = [
-        "Output_ElasticProperties",  # FIX ME: this needs to be included
-        "tc",  # which thermocoule to include from 6BMB/X17B2 collection system. default to 1. #FIX ME: this needs to be included
-        # "Output_directory",  # if no direcrtory is specified write to current directory. -- not set by default in settings class.
-        "phase",  # the phase we are interested in
-        "datafile_StartNum",  # start num and end num are needed for Polydefix which assumes continuous data files.
-        "datafile_EndNum",
-        "datafile_NumDigit",
-        # FIXME: we should be able to re-number the data files so that processing them is possible with polydexif.
-        # FIXME: these are addressed in the code as .
-    ]
+    OptionalParams = { # dictionary
+        # "time": "time_label", # time stamps for the diffraction paterns
+        # "temperature": "*tc1_calcs.I", # which thermocouple to call.       
+        "Phase": True,  # the phase we are interested in -- if True then guesses most common phase
+        "ElasticProperties": True, # default is to use the phase name of the material. If more than 1 material need wild cards to match phase names. 
+        "differential_only": False,
+        # "which_thermocouple": 1,  # which thermocoule to include from 6BMB/X17B2 collection system. default to 1. #FIX ME: this needs to be included
+        ###"Output_directory",  # if no direcrtory is specified write to current directory.
+        # "Output_TemperaturePower",
+        # "Output_tc",
+        # "SampleGeometry": "3d",  # changes the strain tensor calucaltion from 2d to 3d. This determines how the cetroid and differnetial strain of the dpsaice are extracted from the fourier series.
+        # "SampleDeformation": "compression",  # changes calculation between 'compression' and 'extension'.
+    }
+    # OptionalParams = [
+    #     "Output_ElasticProperties",  # FIX ME: this needs to be included
+    #     "tc",  # which thermocoule to include from 6BMB/X17B2 collection system. default to 1. #FIX ME: this needs to be included
+    #     # "Output_directory",  # if no direcrtory is specified write to current directory. -- not set by default in settings class.
+    #     "phase",  # the phase we are interested in
+    #     "datafile_StartNum",  # start num and end num are needed for Polydefix which assumes continuous data files.
+    #     "datafile_EndNum",
+    #     "datafile_NumDigit",
+    #     # FIXME: we should be able to re-number the data files so that processing them is possible with polydexif.
+    #     # FIXME: these are addressed in the code as .
+    # ]
 
     # append the requirements from WriteMultiFit to the lists because PolyDefix requires WriteMultiFit.
     r, o = WriteMultiFit.Requirements()
     RequiredParams = RequiredParams + r
-    OptionalParams = OptionalParams + o
+    OptionalParams = OptionalParams | o
 
     return RequiredParams, OptionalParams
 
@@ -49,131 +63,88 @@ def WriteOutput(
     debug=False,
     **kwargs,
 ):
-    # writes *.fit files produced by multifit (as input for polydefix)
-    # writes *.exp files required by polydefix.
-    # N.B. this is a different file than that required by polydefix for energy dispersive diffraction.
+    """
+    Writes *.exp files required by polydefix. 
+    Calls WriteMltiFit to create *.fit files needed by polydefix
+    
+    Polydefix: Merkel and Hilairet (2015) http://dx.doi.org/10.1107/S1600576715010390.
+    
+    N.B. this is a different file than that required by polydefix for energy dispersive diffraction.
+    
+    Parameters
+    ----------
+    settings_class : cpf settings class
+        Settings class used for fitting the data.
+    differential_only : bool, optional
+        Only include the differential part of the strain (cos^2 and sin^2 parts of the Fourier series). 
+        Ignore the offset (cos and sin parts of the Fourier series).
+        The default is False.
+        
+    Returns
+    -------
+    None.
 
+    """
     # make sure settings is a class
     settings_class = get_settings(settings)
 
-    # Write fit files
-    # WriteMultiFit.WriteOutput(
-    #     FitSettings, parms_dict, differential_only=differential_only
-    # )
+    # Parse optional parameters
+    Phase             = settings_class.output_settings.get("Phase", Requirements()[1]["Phase"])
+    ElasticProperties = settings_class.output_settings.get("ElasticProperties", Requirements()[1]["ElasticProperties"])
+    differential_only = settings_class.output_settings.get("differential_only", Requirements()[1]["differential_only"])
+    #override with kwargs
+    Phase             = kwargs.get("Phase", Phase)
+    ElasticProperties = kwargs.get("ElasticProperties", ElasticProperties)
+    differential_only = kwargs.get("differential_only", differential_only)
+    
+        
+    # write *.fit files
     WriteMultiFit.WriteOutput(
-        settings_class, differential_only=False, debug=debug
+        settings_class, differential_only=differential_only, debug=debug
     )
 
-    # FitParameters = dir(FitSettings)
-
-    # Parse the required inputs.
-    # base_file_name = FitSettings.datafile_Basename
-
-    # diffraction patterns
-    # diff_files, n_diff_files = IO.file_list(FitParameters, FitSettings)
-
-    # base, ext = os.path.splitext(os.path.split(FitSettings.datafile_Basename)[1])
+    # get the fits
+    fits, _ = ReadFits_to_list(settings=settings_class)
+    fitsDF = ReadFits_to_dataframe(settings=settings_class)
+    
+    #parse Phase and ElasticProperties
+    if Phase is True:
+       phases = fitsDF["phase"].unique()
+       num_occurences = []
+       for i in phases:
+           num_occurences.append(fitsDF["phase"].str.count(i).sum())
+       Phase = [phases[num_occurences.index(max(num_occurences))]] 
+    elif isinstance(Phase, str):
+        Phase = [Phase]
+    else:
+        #phase is a list
+        pass
+    
+    
     base = settings_class.datafile_basename
     if base is None:
         logger.info(
             " ".join(map(str, [("No base filename, using input filename instead.")]))
         )
         base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
-    # if not base:
-    #     logger.info(" ".join(map(str, [("No base filename, using input filename instead.")])))
-    #     base = os.path.splitext(os.path.split(FitSettings.inputfile)[1])[0]
     if differential_only is not False:
         base = base + "_DiffOnly"
-    # out_file = IO.make_outfile_name(base, directory=FitSettings.Output_directory, extension='.exp', overwrite=True)
 
-    # #Parse the required inputs.
-    # base_file_name = FitSettings.datafile_Basename
-    # diff_files, n_diff_files = FileList(FitParameters, FitSettings)
-    # if 'Output_directory' in FitParameters:
-    #     out_dir = FitSettings.Output_directory
-    # else:
-    #     out_dir = './'
-
-    # # create output file name from passed name
-    # path, filename = os.path.split(base_file_name)
-    # base, ext = os.path.splitext(filename)
-    # if base[-1:] == '_': #if the base file name ends in an '_' remove it.
-    #     base = base[0:-1]
-
-    # if differential_only is not False:
-    #     base = base+'_DiffOnly'
-    # out_file = out_dir + base + '.exp'
-
-    # get how many files to write -- one for each phase or set of elastic properties
-    if "Output_ElasticProperties" in settings_class.output_settings:
-        if isinstance(settings_class.output_settings["Output_ElasticProperties"], list):
-            Files = len(settings_class.output_settings["Output_ElasticProperties"])
-        else:
-            Files = 1
-            # force the elastic properties to be a list
-            settings_class.output_settings["Output_ElasticProperties"] = [
-                settings_class.output_settings["Output_ElasticProperties"]
-            ]
-    elif "phase" in settings_class.output_settings:
-        if isinstance(settings_class.output_settings["phase"], list):
-            Files = len(settings_class.output_settings["phase"])
-        else:
-            Files = 1
-            # force the phase to be a list
-            settings_class.output_settings["phase"] = [
-                settings_class.output_settings["phase"]
-            ]
-    else:
-        Files = 1
-
-    # if "Output_ElasticProperties" in FitParameters:
-    #     if isinstance(FitSettings.Output_ElasticProperties, list):
-    #         Files = len(FitSettings.Output_ElasticProperties)
-    #     else:
-    #         Files = 1
-    #         FitSettings.Output_ElasticProperties = [
-    #             FitSettings.Output_ElasticProperties
-    #         ]
-    # elif "phase" in FitParameters:
-    #     if isinstance(FitSettings.phase, list):
-    #         Files = len(FitSettings.phase)
-    #     else:
-    #         Files = 1
-    #         FitSettings.phase = [FitSettings.phase]
-    # else:
-    #     Files = 1
-
-    for i in range(Files):
+    # write all the files
+    for i in range(len(Phase)):
         fnam = base
-        if Files > 1:
-            # if "Output_ElasticProperties" in FitParameters:
-            if "Output_ElasticProperties" in settings_class.output_settings:
-                fnam = (
-                    base
-                    + "_"
-                    + os.path.splitext(
-                        os.path.split(
-                            settings_class.output_settings["Output_ElasticProperties"][
-                                i
-                            ]
-                        )[1]
-                    )[0]
-                )
-            # elif "phase" in FitParameters:
-            elif "phase" in settings_class.output_settings:
-                fnam = (
-                    base
-                    + "_"
-                    + os.path.splitext(
-                        os.path.split(settings_class.output_settings["phase"][i])[1]
-                    )[0]
-                )
-
+        add_txt = None
+        
+        if len(Phase) > 1:
+            add_txt = Phase[i]
+        else:
+            add_txt = None # because Files = 1
         out_file = make_outfile_name(
             fnam,
             directory=settings_class.output_directory,  # directory=FitSettings.Output_directory,
             extension=".exp",
             overwrite=True,
+            additional_text=add_txt
         )
         text_file = open(out_file, "w")
         logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
@@ -182,7 +153,7 @@ def WriteOutput(
         text_file.write("# Experiment analysis file. to be used with Polydefix\n")
         text_file.write("# For more information: http://merkel.zoneo.net/Polydefix/\n")
         text_file.write(
-            "# File Created by WritePolydefixED function in ContinuousPeakFit\n"
+            "# File Created by WritePolydefix function in ContinuousPeakFit\n"
         )
         text_file.write("# For more information: http://www.github.com/me/something\n")
 
@@ -246,156 +217,56 @@ def WriteOutput(
         text_file.write("# Peaks info (use, h, k, l)\n")
         for x in range(len(settings_class.fit_orders)):
             for y in range(len(settings_class.fit_orders[x]["peak"])):
+                
                 # FIXME: use this line below as a shortening for all the x and y pointers
                 settings_class.set_subpattern(i, x)
+                
+                use = 1
+                if Phase[i] != settings_class.fit_orders[x]["peak"][y]["phase"]:
+                    use = 0
+                
+                # check if the d-spacing fits are NaN or not. if NaN switch off.
+                if type(fits[i][x]["peak"][y]["d-space"][0]) == type(None) or np.isnan(
+                    fits[i][x]["peak"][y]["d-space"][0]
+                ):
+                    use = 0
 
                 if "hkl" in settings_class.fit_orders[x]["peak"][y]:
                     hkl = str(settings_class.fit_orders[x]["peak"][y]["hkl"])
-
                     if hkl == "0" or hkl == 0:
                         hkl = "000"
-
-                    # check if the d-spacing fits are NaN or not. if NaN switch off (0) otherwise use (1).
-                    # Got first file name
-                    # filename = os.path.splitext(os.path.basename(diff_files[0]))[0]
-                    # filename = filename+'.json'
-
-                    filename = make_outfile_name(
-                        settings_class.subfit_filename,  # diff_files[z],
-                        directory=settings_class.output_directory,  # directory=FitSettings.Output_directory,
-                        # diff_files[0],
-                        # directory=FitSettings.Output_directory,
-                        extension=".json",
-                        overwrite=True,
-                    )  # overwrite =false to get the file name without incrlemeting it.
-
-                    # Read JSON data from file
-                    with open(filename) as json_data:
-                        fit = json.load(json_data)
-                    # check if the d-spacing fits are NaN or not. if NaN switch off.
-                    if type(fit[x]["peak"][y]["d-space"][0]) == type(None) or np.isnan(
-                        fit[x]["peak"][y]["d-space"][0]
-                    ):
-                        use = 0
-                    else:
-                        use = 1
-
-                    # check if the phase name matches the material (if exists)
-                    # if "phase" in FitParameters:
-                    if "phase" in settings_class.output_settings:
-                        if (
-                            # FitSettings.phase[i]
-                            # == FitSettings.fit_orders[x]["peak"][y]["phase"]
-                            settings_class.output_settings["phase"]
-                            == settings_class.fit_orders[x]["peak"][y]["phase"]
-                        ):
-                            use = use
-                        else:
-                            use = 0
-                    elif (
-                        "Output_ElasticProperties" in settings_class.output_settings
-                    ):  # elif "Output_ElasticProperties" in FitParameters:
-                        # phase_str = FitSettings.Output_ElasticProperties[i]
-                        # phase_str = settings_class.output_settings["Output_ElasticProperties"][i]
-                        phase_str = os.path.splitext(
-                            os.path.split(
-                                settings_class.output_settings[
-                                    "Output_ElasticProperties"
-                                ][i]
-                            )[1]
-                        )[0]
-                        strt = phase_str.find("_")
-                        phase_str = phase_str[strt + 1 :]
-                        if (
-                            phase_str
-                            == settings_class.fit_orders[x]["peak"][y]["phase"]
-                        ):
-                            use = use
-                        else:
-                            use = 0
-                    else:
-                        use = 0
                 else:
                     hkl = "000"
                     use = 0
-                pos = 0
-
-                if hkl[0] == "-":
-                    h = hkl[pos : pos + 2]
-                    pos = pos + 2
-                else:
-                    h = hkl[pos : pos + 1]
-                    pos = pos + 1
-                if hkl[pos] == "-":
-                    k = hkl[pos : pos + 2]
-                    pos = pos + 2
-                else:
-                    k = hkl[pos : pos + 1]
-                    pos = pos + 1
-                if hkl[pos] == "-":
-                    l = hkl[pos : pos + 2]
-                    pos = pos + 2
-                else:
-                    l = hkl[pos : pos + 1]
-                    pos = pos + 1
-                if len(hkl) > pos:
-                    if hkl[pos] == "-":
-                        m = hkl[pos : pos + 2]
-                        pos = pos + 2
-                    else:
-                        m = hkl[pos : pos + 1]
-                        pos = pos + 1
-                    HKL = plane_indices_4_to_3(np.array([h, k, l, m], dtype=int))
-                    h, k, l = HKL
+                    
+                hkl = peak_hkl(settings_class.fit_orders[x], peak=y, string=False)[0]
+                h,k,l = hkl
+                
                 text_file.write(" %5i    %s    %s    %s\n" % (use, h, k, l))
 
         # material properties
         text_file.write("# Material properties\n")
-        if "Material" in settings_class.output_settings:
-            raise ValueError(
-                "''Material'' is depreciated as an option. Change your input file to have a ''Phase'' instead."
-            )
-
-        elif "Output_ElasticProperties" in settings_class.output_settings:
-            fid = open(
-                settings_class.output_settings["Output_ElasticProperties"][i], "r"
-            )
-
+        
+        if ElasticProperties:
+            if ElasticProperties is True or ElasticProperties == Phase[i]:
+                #use phase name to get elastic properties
+                fname = glob.glob(f"*{Phase[i]}*")
+            elif isinstance(ElasticProperties, str) and "*" in ElasticProperties:
+                fname = glob.glob(ElasticProperties)
+            else:
+                fname = ElasticProperties
+            if isinstance(fname, list):
+                if len(fname) == 1:
+                    fname= fname[0]
+                else:
+                    raise ValueError("More than 1 property file has been identified.")
+            fid = open(fname, "r")     
             # pipe ealstic properties to the output file.
-            text_file.write(fid.read())
-
-        elif "phase" in settings_class.output_settings:
-            try:
-                fid = open(
-                    (
-                        settings_class.output_settings["phase"][i]
-                        + "_elastic_properties.txt"
-                    ),
-                    "r",
-                )
-
-                # pipe ealstic properties to the output file.
-                text_file.write(fid.read())
-            except:
-                try:
-                    fid = open(
-                        (
-                            "Properties_"
-                            + settings_class.output_settings["phase"][i]
-                            + ".txt"
-                        ),
-                        "r",
-                    )
-                    # pipe ealstic properties to the output file.
-                    text_file.write(fid.read())
-                except:
-                    raise ValueError(
-                        "The files "
-                        + settings_class.output_settings["phase"][i]
-                        + "_elastic_properties.txt and Properties_"
-                        + settings_class.output_settings["phase"][i]
-                        + " are not found. Edit input file and try again."
-                    )
+            text_file.write(fid.read())   
+            
+        elif not Phase:
+            # left empty on purpose
+            text_file.write("")
 
         else:
             # FIX ME: here I am just writing the elastic properties of BCC iron with no regard for the structure of the file or the avaliable data.

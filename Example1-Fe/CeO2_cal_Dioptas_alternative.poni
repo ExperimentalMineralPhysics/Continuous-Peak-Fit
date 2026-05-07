@@ -1,8 +1,8 @@
 # Nota: C-Order, 1 refers to the Y axis, 2 to the X axis
-# Calibration done on Thu Apr 23 06:32:56 2026
+# Calibration done on Thu Apr 23 06:57:55 2026
 poni_version: 2.1
-Detector: Detector
-Detector_config: {"pixel1": 0.000172, "pixel2": 0.000172, "max_shape": [1043, 981], "orientation": 2}
+Detector: Pilatus1M
+Detector_config: {"orientation": 2}
 Distance: 0.207392133664
 Poni1: 0.0887343847853
 Poni2: 0.0808035652931

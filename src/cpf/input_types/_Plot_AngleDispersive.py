@@ -105,28 +105,26 @@ class _Plot_AngleDispersive:
              "surf",
              "scatter",
              "raster",
-             "rast",
-             True,
-             False]
+             "rast"]
         
-        surf_threshold = 2e4
-        raster_threshold = 1e6
+        surf_threshold = 5e3
+        raster_threshold = 5e5
         
         if plot_type not in recognised_plots: 
             # then set it
             if ma.MaskedArray(self.intensity).compressed().size < surf_threshold:
                 plot_type = "surface"
-            elif ma.MaskedArray(self.intensity).compressed() > raster_threshold:
+            elif ma.MaskedArray(self.intensity).compressed().size > raster_threshold:
                 plot_type = "rastered"
             else:
                 plot_type = "scatter"
 
-        if plot_type not in ["rast", "rastered"] and ma.MaskedArray(self.intensity).compressed() > raster_threshold:
+        logger.effusive(f"plot_type is {plot_type}")
+        if plot_type not in ["rast", "rastered"] and any(ma.MaskedArray(self.intensity).compressed() > raster_threshold):
             logger.moreinfo(" Have patience. The plot(s) will appear but it can take its time to render.")
-        if plot_type not in ["surf", "surface"] and ma.MaskedArray(self.intensity).compressed() > surf_threshold:
+        if plot_type not in ["surf", "surface"] and any(ma.MaskedArray(self.intensity).compressed() > surf_threshold):
             logger.moreinfo(" Have patience. The plot(s) will appear but it can take its time to render.")
 
-        logger.effusive("plot_type", plot_type)
         return plot_type        
         
 
@@ -294,7 +292,7 @@ class _Plot_AngleDispersive:
         """
 
         #check plot type
-        plot_type = self.what_plot_type()
+        plot_type = self.what_plot_type(plot_type=plot_type)
         # match max and min of colour scales
         if plot_ColourRange:
             if not isinstance(plot_ColourRange, dict):
@@ -589,11 +587,11 @@ class _Plot_AngleDispersive:
             if limits[1] == 100:
                 IMax = np.max(plot_i)
             else:
-                IMax = np.nanpercentile(plot_i.compressed(), limits[1])
+                IMax = np.nanpercentile(ma.filled(plot_i, np.nan), limits[1])
             if limits[0] == 0:
                 IMin = np.min(plot_i)
             else:
-                IMin = np.nanpercentile(plot_i.compressed(), limits[0])
+                IMin = np.nanpercentile(ma.filled(plot_i, np.nan), limits[0])
 
             if IMin > 0 and IMax < 100:
                 cb_extend = "both"
@@ -797,11 +795,11 @@ class _Plot_AngleDispersive:
             if limits[1] == 100:
                 IMax = np.max(plot_i)
             else:
-                IMax = np.nanpercentile(ma.array(plot_i).compressed(), limits[1])
+                IMax = np.nanpercentile(ma.filled(plot_i, np.nan), limits[1])
             if limits[0] == 0:
                 IMin = np.min(plot_i)
             else:
-                IMin = np.nanpercentile(ma.array(plot_i).compressed(), limits[0])
+                IMin = np.nanpercentile(ma.filled(plot_i, np.nan), limits[0])
             if limits[0] > 0 and limits[1] < 100:
                 cb_extend = "both"
             elif limits[1] < 100:

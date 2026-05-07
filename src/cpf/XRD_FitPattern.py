@@ -334,6 +334,7 @@ def initial_peak_position(
         parallel=parallel,
         mode="set-guess",
         report=report,
+        **kwargs
     )
 
 
@@ -921,7 +922,6 @@ def execute(
                     settings_class.set_subpattern(j, i)
 
             sub_data = new_data.duplicate_without_detector(range_bounds=tth_range, as_masked=as_masked)
-            # sub_data.set_limits(range_bounds=tth_range)
 
             # Mask the subpattern by intensity if called for
             if (
@@ -932,7 +932,7 @@ def execute(
 
             if mode == "set-range":
                 fig_1 = plt.figure()
-                sub_data.plot_masked(fig_plot=fig_1)
+                sub_data.plot_masked(fig_plot=fig_1, **kwargs)
                 plt.suptitle(peak_string(settings_class.subfit_orders) + "; masking")
 
                 filename = make_outfile_name(
@@ -955,7 +955,7 @@ def execute(
                 ax = fig.add_subplot(1, 1, 1)
                 ax_o1 = plt.subplot(111)
                 sub_data.plot_calibrated(
-                    fig_plot=fig, axis_plot=ax, show="intensity", rastered="scatter"
+                    fig_plot=fig, axis_plot=ax, show="intensity", **kwargs #rastered="scatter"
                 )
                 plt.suptitle(
                     peak_string(settings_class.subfit_orders) + "; calibrated"
@@ -983,7 +983,8 @@ def execute(
                 ax = fig_1.add_subplot(1, 1, 1)
                 ax_o1 = plt.subplot(111)
                 sub_data.plot_calibrated(
-                    fig_plot=fig_1, axis_plot=ax, y_axis="azimuth", limits=[0, 100]
+                    fig_plot=fig_1, axis_plot=ax, y_axis="azimuth", limits=[0, 100],
+                    **kwargs
                 )
                 plt.title(peak_string(settings_class.subfit_orders))
 
@@ -1043,6 +1044,7 @@ def execute(
                         min_data_intensity=settings_class.fit_min_data_intensity,
                         min_peak_intensity=settings_class.fit_min_peak_intensity,
                         fit_method=fit_method,
+                        **kwargs
                     )
                     fitted_param.append(tmp)
 

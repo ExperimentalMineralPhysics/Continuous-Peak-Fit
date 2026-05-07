@@ -380,7 +380,9 @@ class ESRFlvpDetector:
         -------
         None.
         """
-
+        # orientation of detector for ESRF lvp
+        orientation = 3
+        
         if settings != None:
             parms_file = settings.calibration_parameters
         else:
@@ -388,6 +390,16 @@ class ESRFlvpDetector:
 
         with open(parms_file, "r") as f:
             self.calibration = json.load(f)
+
+        if isinstance(self.calibration["detector"], str):
+            # this is the custrom detector for ESRF so hard code here. 
+            self.calibration["detector"] = pyFAI.detectors.PilatusCdTe900kw(
+                orientation=orientation, 
+                sensor=pyFAI.detectors.sensors.SensorConfig.parse("CdTe, 1mm")
+                )
+        if "orientation" not in self.calibration["detector_config"]:
+            # then there is no orientation information in the poni file
+            self.calibration["detector_config"]["orientation"] = orientation
 
         self.conversion_constant = self.calibration["wavelength"] * 1e10  # in angstroms
 
@@ -440,7 +452,7 @@ class ESRFlvpDetector:
         # load the list of files
         # print("file_string", file_string)
         # print(file_string)
-        if isinstance(file_string, list) and os.path.splitext(os.path.basename(file_string[0]))[1] == ".h5":
+        if isinstance(file_string, list):# and os.path.splitext(os.path.basename(file_string[0]))[1] == ".h5":
             #define where data locations are in the initaition of the class.
             
             #file string is a list of format 
@@ -631,7 +643,7 @@ class ESRFlvpDetector:
         # else:
         imgs_, positions = self._get_sorted_files(calib_frames, debug=False)
         positions = np.deg2rad(positions)
-        frames = int(len(positions))
+        frames = positions.size#int(len(positions))
         
         # make list of AzimuthalIntegrator objects for all detector postions
         ais = []
@@ -671,14 +683,15 @@ class ESRFlvpDetector:
             # edited from ESRP code - which edited AzimuthalIntegrator properties and is comparatively very slow.
             # makeing a new AzimuthalIntegrator each time is 100s-1000s of times faster.
             my_ai = AzimuthalIntegrator(
-                detector=self.calibration["detector"],
-                wavelength=self.calibration["wavelength"],
                 dist=dist_expr,
                 poni1=poni1_expr,
                 poni2=poni2_expr,
                 rot1=rot1_expr,
                 rot2=rot2_expr,
                 rot3=pos,
+                detector=self.calibration["detector"],
+                wavelength=self.calibration["wavelength"],
+                orientation=self.calibration["detector_config"]["orientation"]
             )
             ais.append(my_ai)
 
@@ -752,15 +765,17 @@ class ESRFlvpDetector:
 
         """
         
-        imagedata = []
+        imagedata = None
         md_tmp = []
-        for frame in frames:
-            with fabio.open(frame) as f:
-                imagedata.append(self._reduce_array(np.array(f.data, dtype=dtype), reduce_by=reduce_by))
+        for frame in range(len(frames)):
+            with fabio.open(frames[frame]) as f:
+                if frame == 0:
+                    shape = self._reduce_array(np.array(f.data, dtype=dtype), reduce_by=reduce_by).shape
+                    imagedata = np.zeros((len(frames),)+shape, dtype=dtype)
+                imagedata[frame::] = np.flipud(self._reduce_array(np.array(f.data, dtype=dtype), reduce_by=reduce_by))
                 f_without_data = f
                 f_without_data.data = None
                 md_tmp.append(f_without_data)
-        imagedata = np.flipud(imagedata)
         if return_metadata:
             return imagedata, md_tmp
         else:
@@ -808,7 +823,7 @@ class ESRFlvpDetector:
         """
 
         # check inputs
-        if image_name == None and settings.subpattern == None:
+        if image_name == None and settings.subfit_filename == None:
             raise ValueError("Settings are given but no subpattern is set.")
 
         if self.detector == None:
@@ -899,6 +914,7 @@ class ESRFlvpDetector:
                         dtype = self.GetDataType(tmp_image[0], minimumPrecision=False)
     
                 self.intensity, metadata_tmp = self._read_frames(frames, dtype, reduce_by, return_metadata=True)
+                # the images are flipped up-down in self._read_frames
                 
                 #make a full size mask and then reduce it if necessary. 
                 frame_mask = self._reduce_array(
@@ -1092,9 +1108,8 @@ class ESRFlvpDetector:
         # print("frames", frames)
         # print(len(self.detector.ais))
         for i in range(len(self.detector.ais)):
-            # print(self._reduce_array(np.rad2deg(self.detector.ais[i].twoThetaArray())).shape)
-            self.tth[i, :, :] = self._reduce_array(np.rad2deg(self.detector.ais[i].twoThetaArray()))
-            self.azm[i, :, :] = self._reduce_array(np.rad2deg(self.detector.ais[i].chiArray()), polar=True, keep_FirstDim=False)
+            self.tth[i, :, :] = self._reduce_array(self.detector.ais[i].center_array(unit='2th_deg'))
+            self.azm[i, :, :] = self._reduce_array(self.detector.ais[i].center_array(unit='chi_deg'), polar=True, keep_FirstDim=False)
             if make_zyx:
                 zyx = self.detector.ais[i].calc_pos_zyx()
                 self.z[i, :, :] = self._reduce_array(zyx[0])
@@ -1218,11 +1233,11 @@ class ESRFlvpDetector:
                         metadata_dictionary[j].append(float(obj.header.get(j, None)))
                     except:
                         metadata_dictionary[j].append(obj.header.get(j, None))
-                
+            # add the file creation and modifications time
+            metadata_dictionary.update(self._get_file_created_modified(image_obj))
+            
         if settings and "metadata_read_func" in settings.__dict__:
-            metadata_dictionary.update(settings.metadata_read_func(settings, image_obj=image_obj))            
-        # add the file creation and modifications time
-        metadata_dictionary.update(self._get_file_created_modified(metadata_dictionary["image"][0]))
+            metadata_dictionary.update(settings.metadata_read_func(settings, image_obj=image_obj))   
         self.metadata = metadata_dictionary
 
 

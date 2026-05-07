@@ -125,7 +125,8 @@ def WriteOutput(settings, debug=False, **kwargs):
     for z in progress.iter_bar(image=range(settings_class.image_number)):
     # for z in range(settings_class.image_number):
         # read data file
-        data_class.import_image(settings_class.image_list[z])
+        settings_class.set_subpattern(z, 0)
+        data_class.import_image(settings=settings_class)
         Ipctl.append(
             np.nanpercentile(
                 np.ma.filled(data_class.intensity, np.nan), prctl
@@ -157,7 +158,9 @@ def WriteOutput(settings, debug=False, **kwargs):
         # logger.info(" ".join(map(str, [(t, int(t*fps), y[int(t*fps)])])))
 
         # Get diffraction pattern to process.
-        data_class.import_image(settings_class.image_list[y[int(t * fps)]])
+        settings_class.set_subpattern(y[int(t * fps)], 0)
+        data_class.import_image(settings=settings_class)
+        # data_class.import_image(settings_class.image_list[y[int(t * fps)]])
 
         if settings_class.datafile_preprocess is not None:
             # needed because image preprocessing adds to the mask and is different for each image.
@@ -175,6 +178,7 @@ def WriteOutput(settings, debug=False, **kwargs):
         else:
             cbar = False
             
+        ax.clear()
         if plot_data_as == "calibrated":
             data_class.plot_calibrated(
                 fig_plot=fig, 

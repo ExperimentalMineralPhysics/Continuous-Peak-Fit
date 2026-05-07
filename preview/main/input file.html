@@ -214,7 +214,20 @@
 </section>
 <section id="output-settings">
 <span id="output-definitions"></span><h2>Output settings<a class="headerlink" href="#output-settings" title="Link to this heading">¶</a></h2>
-<p>blah balh balh</p>
+<p>The outputs are set through three values:</p>
+<p><code class="docutils literal notranslate"><span class="pre">Output_directory</span></code> which is the directory to write all the fits and post-processed files to</p>
+<p><code class="docutils literal notranslate"><span class="pre">Output_type</span></code> is a list of the output post-procssors to call.</p>
+<p><code class="docutils literal notranslate"><span class="pre">output_options</span></code> is a dictionary of the post-processor options.  = {“SampleGeometry”: “1D”}</p>
+<p>For example:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Output_directory</span>   <span class="o">=</span> <span class="s1">&#39;./results/&#39;</span>
+<span class="n">Output_type</span>        <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;PolydefixED&quot;</span><span class="p">,</span> <span class="s1">&#39;DifferentialStrain&#39;</span><span class="p">,</span> <span class="s1">&#39;FitMovie&#39;</span><span class="p">,</span> <span class="s1">&#39;CoefficientTable&#39;</span><span class="p">,</span> <span class="s1">&#39;CollectionMovie&#39;</span><span class="p">]</span>
+
+<span class="n">output_options</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;SampleGeometry&quot;</span><span class="p">:</span> <span class="s2">&quot;1D&quot;</span><span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>Depreciated were separate values which were named. e.g. <code class="docutils literal notranslate"><span class="pre">Output_ElasticProperties</span></code>. These should not be used.</p>
 </section>
 <section id="additional-optional-settings">
 <span id="optional-definitions"></span><h2>Additional (Optional) Settings<a class="headerlink" href="#additional-optional-settings" title="Link to this heading">¶</a></h2>

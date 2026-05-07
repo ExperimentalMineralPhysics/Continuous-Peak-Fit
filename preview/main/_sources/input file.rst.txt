@@ -135,10 +135,26 @@ A full description of the structure required for each subpattern is given here: 
 Output settings
 =====================================
 
+The outputs are set through three values:
+
+``Output_directory`` which is the directory to write all the fits and post-processed files to
 
 
+``Output_type`` is a list of the output post-procssors to call. 
 
-blah balh balh
+``output_options`` is a dictionary of the post-processor options.  = {"SampleGeometry": "1D"}
+
+For example:
+
+ .. code-block:: python
+
+  Output_directory   = './results/'
+  Output_type        = ["PolydefixED", 'DifferentialStrain', 'FitMovie', 'CoefficientTable', 'CollectionMovie']
+
+  output_options = {"SampleGeometry": "1D"}
+
+Depreciated were separate values which were named. e.g. ``Output_ElasticProperties``. These should not be used. 
+
 
 .. _optional_definitions:
 

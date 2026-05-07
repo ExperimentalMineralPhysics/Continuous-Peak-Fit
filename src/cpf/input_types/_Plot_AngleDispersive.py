@@ -119,7 +119,7 @@ class _Plot_AngleDispersive:
             else:
                 plot_type = "scatter"
 
-        logger.effusive("plot_type is ", plot_type)
+        logger.effusive(f"plot_type is {plot_type}")
         if plot_type not in ["rast", "rastered"] and any(ma.MaskedArray(self.intensity).compressed() > raster_threshold):
             logger.moreinfo(" Have patience. The plot(s) will appear but it can take its time to render.")
         if plot_type not in ["surf", "surface"] and any(ma.MaskedArray(self.intensity).compressed() > surf_threshold):

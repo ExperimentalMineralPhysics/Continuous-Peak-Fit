@@ -6,7 +6,8 @@ name: Build and test package
 on:
   push:
     branches:
-      - master # Trigger on pushes to master branch
+      - main # Trigger on pushes to master branch
+      - dev
   pull_request:
     branches:
       - "**" # Trigger on PRs of ANY branch

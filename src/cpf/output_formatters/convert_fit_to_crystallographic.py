@@ -11,7 +11,7 @@ from cpf.output_formatters.crystallographic_operations import plane_indices_4_to
 
 # from uncertainties import ufloat
 from cpf.output_formatters.jcpds import jcpds
-from cpf.util.io import make_outfile_name, peak_hkl, replace_null_terms
+from cpf.util.io import make_outfile_name, peak_hkl, replace_value
 from cpf.util.logging import get_logger
 
 
@@ -114,7 +114,7 @@ def fourier_to_crystallographic(
         raise ValueError("The coefficients need to be a list of dictionaries.")
 
     # catch 'null' terms in fits
-    coefficients = replace_null_terms(coefficients, replace_with=np.nan)
+    coefficients = replace_value(coefficients, replace_with=np.nan)
 
     # catch d-spacing that is too short for 3D geometry to work.
     if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3:
@@ -495,7 +495,7 @@ def fourier_to_unitcellvolume(
         reflections_to_use = list(range(len(flat_coef)))
 
     # catch 'null' terms in fits
-    flat_coef = replace_null_terms(flat_coef, replace_with=np.nan)
+    flat_coef = replace_value(flat_coef, replace_with=np.nan)
 
     # get or guess phase
     if phase is None:

@@ -16,7 +16,7 @@ from cpf.output_formatters.fits_io import ReadFits_to_dataframe, ReadFits_to_lis
 # from uncertainties import ufloat
 from cpf.output_formatters.jcpds import jcpds
 from cpf.settings import get_settings
-from cpf.util.io import make_outfile_name, peak_hkl, replace_null_terms
+from cpf.util.io import make_outfile_name, peak_hkl, replace_value
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.convert_fit_to_unitcell")

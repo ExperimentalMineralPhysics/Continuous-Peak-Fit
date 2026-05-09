@@ -29,7 +29,7 @@ from scipy.interpolate import CubicSpline, make_interp_spline
 
 import cpf.peak_functions as pf
 import cpf.series_constraints as sc
-from cpf.util.io import replace_null_terms
+from cpf.util.io import replace_value
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.series_functions")
@@ -868,7 +868,7 @@ def series_properties(
         raise ValueError("The coefficients need to be a list of dictionaries.")
 
     # catch 'null' terms in fits
-    coefficients = replace_null_terms(coefficients, replace_with=np.nan)
+    coefficients = replace_value(coefficients, replace_with=np.nan)
 
     properties = {}
 

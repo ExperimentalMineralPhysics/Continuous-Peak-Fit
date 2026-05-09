@@ -11,7 +11,7 @@ import numpy as np
 import cpf.series_functions as sf
 from cpf.output_formatters.fits_io import ReadFits_to_list
 from cpf.settings import get_settings
-from cpf.util.io import make_outfile_name, peak_hkl, replace_null_terms
+from cpf.util.io import make_outfile_name, peak_hkl, replace_value
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WritePolydefixED")
@@ -422,7 +422,7 @@ def WriteOutput(
                 az = settings_class.data_class.calibration["azimuths"]
                 coef_type = sf.get_params_type(fit[x], "d", peak=y)
 
-                d_coef = replace_null_terms(fit[x]["peak"][y]["d-space"])
+                d_coef = replace_value(fit[x]["peak"][y]["d-space"])
                 if differential_only is True:
                     d_coef[1] = 0  #
                     d_coef[2] = 0
@@ -436,7 +436,7 @@ def WriteOutput(
                 coef_type = sf.get_params_type(fit[x], "h", peak=y)
                 peak_i = sf.coefficient_expand(
                     np.array(az_used) * sym,
-                    replace_null_terms(fit[x]["peak"][y]["height"]),
+                    replace_value(fit[x]["peak"][y]["height"]),
                     coeff_type=coef_type,
                 )
                 n = -1

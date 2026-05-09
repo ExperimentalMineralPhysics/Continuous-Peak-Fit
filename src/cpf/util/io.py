@@ -517,7 +517,7 @@ def has_value(
     return is_present
 
 
-def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", replace_with=0):
+def replace_value(obj_to_inspect, val_to_find=None, index_path="", replace_with=0):
     """
     This function accepts a nested dictionary and list as argument
     and iterates over all values of nested dictionaries and lists.
@@ -547,7 +547,7 @@ def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", replace_
 
     if isinstance(obj_to_inspect, dict):
         for key, value in obj_to_inspect.items():
-            obj_to_inspect[key] = replace_null_terms(
+            obj_to_inspect[key] = replace_value(
                 deepcopy(value),
                 val_to_find,
                 index_path + f"['{key}']",
@@ -556,7 +556,7 @@ def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", replace_
 
     elif isinstance(obj_to_inspect, list):
         for key, value in enumerate(obj_to_inspect):
-            obj_to_inspect[key] = replace_null_terms(
+            obj_to_inspect[key] = replace_value(
                 deepcopy(value),
                 val_to_find,
                 index_path + f"[{key}]",

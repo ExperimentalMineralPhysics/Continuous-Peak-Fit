@@ -500,7 +500,7 @@ def test_replace_value(test_params: tuple[T, Any, Any, T]):
         assert replace_value(obj, old, new) == out
 
 
-def test_any_errors_huge():
+def test_has_huge_errors():
     pass
 
 

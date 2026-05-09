@@ -21,7 +21,7 @@ import cpf.series_constraints as sc
 import cpf.series_functions as sf
 from cpf.fitsubpattern_chunks import fit_chunks, fit_series
 from cpf.util.io import (
-    any_errors_huge,
+    has_huge_errors,
     has_value,
     make_outfile_name,
     numpy_to_json,
@@ -299,7 +299,7 @@ def fit_sub_pattern(
         # check if the previous fit was 'good' i.e. constrains no 'null' values.
         # N.B. null values in json file are read in as None
         any_bad_vals = has_value(previous_params, val=None)
-        any_bad_vals = any_errors_huge(
+        any_bad_vals = has_huge_errors(
             previous_params, large_errors=large_errors, any_huge=any_bad_vals
         )
         if any_bad_vals == True:
@@ -749,7 +749,7 @@ def fit_sub_pattern(
             if (
                 fout.success is True
                 and previous_params != None
-                and any_errors_huge(
+                and has_huge_errors(
                     lmm.params_to_new_params(
                         master_params, orders=settings_as_class.subfit_orders
                     ),

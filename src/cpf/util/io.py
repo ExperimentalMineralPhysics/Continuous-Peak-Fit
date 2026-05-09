@@ -612,7 +612,7 @@ def replace_value(
     return obj
 
 
-def any_errors_huge(obj_to_inspect, large_errors=3, any_huge=False):
+def has_huge_errors(obj_to_inspect, large_errors=3, any_huge=False):
     """
     This function accepts a nested dictionary and list as argument
     and iterates over all values of nested dictionaries and lists.

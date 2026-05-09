@@ -1,9 +1,11 @@
-from typing import Any
+from typing import Any, TypeVar
 
 import numpy as np
 import pandas as pd
 import pytest
-from cpf.util.io import has_value, numpy_to_json
+from cpf.util.io import has_value, numpy_to_json, replace_value
+
+T = TypeVar("T", dict, list, pd.DataFrame)
 
 
 @pytest.mark.parametrize(
@@ -335,8 +337,167 @@ def test_has_value(
     assert has_value(obj, val) == result
 
 
-def test_replace_value():
-    pass
+@pytest.mark.parametrize(
+    "test_params",
+    (  # Initial object | Old value | New value | Expected output
+        # Simple dict
+        (
+            {
+                0: None,
+                1: 1,
+                2: None,
+                3: 3,
+            },
+            None,
+            0,
+            {
+                0: 0,
+                1: 1,
+                2: 0,
+                3: 3,
+            },
+        ),
+        # Nested dict
+        (
+            {
+                0: {
+                    0: None,
+                    1: 1,
+                    2: None,
+                    3: 3,
+                },
+                1: {
+                    0: None,
+                    1: 1,
+                    2: None,
+                    3: 3,
+                },
+            },
+            None,
+            0,
+            {
+                0: {
+                    0: 0,
+                    1: 1,
+                    2: 0,
+                    3: 3,
+                },
+                1: {
+                    0: 0,
+                    1: 1,
+                    2: 0,
+                    3: 3,
+                },
+            },
+        ),
+        # Simple list
+        (
+            [None, 1, 2, None, 4],
+            None,
+            0,
+            [0, 1, 2, 0, 4],
+        ),
+        # Nested list
+        (
+            [[None, 1, 2, None, 4] * 5],
+            None,
+            0,
+            [[0, 1, 2, 0, 4] * 5],
+        ),
+        # Pandas DataFrame (None)
+        (
+            pd.DataFrame(
+                {
+                    "alpha": [i for i in range(5)] + [None],
+                    "beta": [i for i in range(5)] + [None],
+                }
+            ),
+            None,
+            0,
+            pd.DataFrame(
+                {
+                    "alpha": [i for i in range(5)] + [0],
+                    "beta": [i for i in range(5)] + [0],
+                }
+            ),
+        ),
+        # Pandas DataFrame (NaN)
+        (
+            pd.DataFrame(
+                {
+                    "alpha": [i for i in range(5)] + [np.nan],
+                    "beta": [i for i in range(5)] + [np.nan],
+                }
+            ),
+            np.nan,
+            0,
+            pd.DataFrame(
+                {
+                    "alpha": [i for i in range(5)] + [0],
+                    "beta": [i for i in range(5)] + [0],
+                }
+            ),
+        ),
+        # Pandas DataFrame (check that NaN and None are interchangeable)
+        (
+            pd.DataFrame(
+                {
+                    "alpha": [i for i in range(5)] + [None],
+                    "beta": [i for i in range(5)] + [None],
+                }
+            ),
+            np.nan,
+            0,
+            pd.DataFrame(
+                {
+                    "alpha": [i for i in range(5)] + [0],
+                    "beta": [i for i in range(5)] + [0],
+                }
+            ),
+        ),
+        # Pandas DataFrame (check that NaN and None are interchangeable)
+        (
+            pd.DataFrame(
+                {
+                    "alpha": [i for i in range(5)] + [np.nan],
+                    "beta": [i for i in range(5)] + [np.nan],
+                }
+            ),
+            None,
+            np.nan,
+            pd.DataFrame(
+                {
+                    "alpha": [i for i in range(5)] + [None],
+                    "beta": [i for i in range(5)] + [None],
+                }
+            ),
+        ),
+        # Pandas DataFrame (check that replacing with None works)
+        (
+            pd.DataFrame(
+                {
+                    "alpha": [i for i in range(5)] + [np.nan],
+                    "beta": [i for i in range(5)] + [np.nan],
+                }
+            ),
+            None,
+            None,
+            pd.DataFrame(
+                {
+                    "alpha": [i for i in range(5)] + [None],
+                    "beta": [i for i in range(5)] + [None],
+                }
+            ),
+        ),
+    ),
+)
+def test_replace_value(test_params: tuple[T, Any, Any, T]):
+    # Unpack test params
+    obj, old, new, out = test_params
+    if isinstance(obj, pd.DataFrame) and isinstance(out, pd.DataFrame):
+        assert replace_value(obj, old, new).astype(float).equals(out.astype(float))
+    else:
+        assert replace_value(obj, old, new) == out
 
 
 def test_any_errors_huge():

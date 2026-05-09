@@ -122,7 +122,7 @@ def test_image_list():
     pass
 
 
-def test_get_file_keys():
+def test_get_file_indices():
     pass
 
 

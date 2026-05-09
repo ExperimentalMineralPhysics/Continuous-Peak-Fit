@@ -279,8 +279,8 @@ def image_list(fit_parameters, files_only=False):
     return diff_files, n_diff_files, image_list, n_images
 
 
-def get_file_keys(
-    param_dict: dict = None,
+def get_file_indices(
+    param_dict: dict | None = None,
     start_num: int | None = None,
     end_num: int | None = None,
     step: int = 1,
@@ -364,31 +364,27 @@ def get_file_keys(
 
     Returns
     -------
-    file_key_list : list
+    file_indices : list
         List of file or key numbers.
     numFKlist : list
-        Number of entries in file_key_list.
+        Number of entries in file_indices.
 
     """
-
-    # Store checks to see if correct parameters are provided
+    # Check once for existence of variables, then reuse
     has_files = files is not None
     has_keys = keys is not None
-    has_start_num = start_num is not None
-    has_end_num = end_num is not None
 
-    # Extract start/
-    file_key_list: list[int] = []
+    file_indices: list[int] = []
     if param_dict is not None:
         if isinstance(param_dict, dict):
             # if is a dictionary assume from hdf5 files.
             # dictionary from hdf5 functions
             if "from" in param_dict:
-                start_num = int(param_dict["from"])
+                start_num = param_dict["from"]
             if "to" in param_dict:
-                end_num = int(param_dict["to"])
+                end_num = param_dict["to"]
             if "step" in param_dict:
-                step = int(param_dict["step"])
+                step = param_dict["step"]
         else:
             if "start_num" in param_dict:
                 start_num = param_dict["datafile_StartNum"]
@@ -396,27 +392,26 @@ def get_file_keys(
                 end_num = param_dict["datafile_EndNum"]
             if "step" in param_dict:
                 step = param_dict["datafile_Step"]
-    elif has_files and has_keys:
-        raise ValueError("File and key lists cannot both be provided")
-    elif not has_files and not has_keys:
-        raise ValueError("Neither files, keys or start_num are defined")
     elif has_files and not has_keys:
-        file_key_list = files
+        file_indices = files
     elif has_keys and not has_files:
-        file_key_list = keys
-    elif not has_files and not has_keys and has_start_num:
+        file_indices = keys
+    elif not has_files and not has_keys and start_num is not None:
         pass
-    elif has_start_num and not has_end_num:
-        raise ValueError("end_num is not defined")
+    elif start_num is not None:
+        if end_num == None:
+            raise ValueError("end_num is not defined")
+    else:
+        raise ValueError("Neither files, keys or start_num are defined")
 
     # exclude negative numbers from start num and end_num.
     # this just makes life simpler.
-    if has_start_num and start_num < 0:
+    if start_num is not None and start_num < 0:
         raise ValueError("start_num must be greater than 0")
-    if has_end_num and end_num < 0:
+    if end_num is not None and end_num < 0:
         raise ValueError("end_num must be greater than 0")
 
-    if not file_key_list:
+    if not file_indices:
         # make Lst from start, stop and step.
         if start_num > end_num:
             start_num, end_num = end_num, start_num
@@ -424,23 +419,23 @@ def get_file_keys(
         else:
             end_num += 1
 
-        file_key_list = np.arange(start_num, end_num, np.abs(step))
+        file_indices = np.arange(start_num, end_num, np.abs(step))
         if step < 0:
             # reverse list
-            file_key_list = file_key_list[::-1]
+            file_indices = file_indices[::-1]
 
     # make maximal list
     # based on values in the list
-    if not has_start_num:
-        s = np.min(file_key_list)
+    if start_num is None:
+        s = np.min(file_indices)
     elif start_num == -1:
-        s = np.max(file_key_list)
+        s = np.max(file_indices)
     else:
         s = start_num
-    if not has_end_num:
-        e = np.max(file_key_list) + 1
+    if end_num is None:
+        e = np.max(file_indices) + 1
     elif start_num == -1:
-        s = np.min(file_key_list)
+        s = np.min(file_indices)
     else:
         e = end_num + 1
 
@@ -456,14 +451,14 @@ def get_file_keys(
     # cut Lst to allowed values
     if has_files and isinstance(files[0], str):
         # files is a list of strings
-        file_key_list = file_key_list[list_all]
+        file_indices = file_indices[list_all]
     else:
         # get list of matching values
-        file_key_list = [x for x in list_all if x in file_key_list]
+        file_indices = [x for x in list_all if x in file_indices]
         # collapse incase it is a list of np arrays
-        file_key_list = np.array(file_key_list)
+        file_indices = np.array(file_indices)
 
-    return file_key_list, len(file_key_list)
+    return file_indices, len(file_indices)
 
 
 @overload

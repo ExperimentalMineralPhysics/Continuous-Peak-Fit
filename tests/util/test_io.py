@@ -117,7 +117,7 @@ def test_image_list():
     pass
 
 
-def test_start_stop_files_to_list():
+def test_get_file_keys():
     pass
 
 

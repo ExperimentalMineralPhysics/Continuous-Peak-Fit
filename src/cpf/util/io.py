@@ -276,8 +276,13 @@ def image_list(fit_parameters, files_only=False):
     return diff_files, n_diff_files, image_list, n_images
 
 
-def StartStopFilesToList(
-    paramDict=None, StartNum=None, EndNum=None, Step=1, Files=None, Keys=None
+def get_file_keys(
+    param_dict: dict = None,
+    start_num: int | None = None,
+    end_num: int | None = None,
+    step: int = 1,
+    files: list[int] | None = None,
+    keys: list[int] | None = None,
 ):
     """
     Convert parameters into a list of numerical. Takes with a settings class, a
@@ -287,177 +292,175 @@ def StartStopFilesToList(
 
     The function cannot accept both keys and files in the same call.
 
-    The heirerarchy works as follow:
-    1. If Files (or keys) is given and StartNum,EndNum,Step are not given
+    The hierarchy works as follow:
+    1. If files (or keys) is given and start_num, end_num, step are not given
     the contents of files/keys is returned.
-    2. If Files (or keys) is given and StartNum, EndNum or Step are also given
-    files/keys are trimmed to values between StartNum and EndNum using Step.
-    - if only Step and Step = -1, the order of Files/Keys is reversed.
-    3. If only StartNum, EndNum +/- Step are given a list of numbers is
+    2. If files (or keys) is given and start_num, end_num or step are also given
+    files/keys are trimmed to values between start_num and end_num using step.
+    - if only step and step = -1, the order of files/keys is reversed.
+    3. If only start_num, end_num +/- step are given a list of numbers is
     made from these values.
-    - StartNum is  present in the file list if step > 0
-    - EndNum is present in the list if Step < 0
+    - start_num is present in the file list if step > 0
+    - end_num is present in the list if step < 0
 
     e.g.
-    A.  Files = [1,3,4,6,7,9,10]
+    A.  files = [1,3,4,6,7,9,10]
         gives: [1,3,4,6,7,9,10]
 
-    B.  Files = [1,3,4,6,7,9,10]
-        StartNum = 2
-        EndNum   = 9
+    B.  files = [1,3,4,6,7,9,10]
+        start_num = 2
+        end_num   = 9
         gives: [3,4,6,7,9]
 
-    C.  Files = [1,3,4,6,7,9,10]
-        StartNum = 2
-        EndNum   = 9
+    C.  files = [1,3,4,6,7,9,10]
+        start_num = 2
+        end_num   = 9
         step = -1
         gives: [9,7,6,4,3]
 
-    D.  StartNum = 1
-        EndNum   = 10
+    D.  start_num = 1
+        end_num   = 10
         step = 1
         gives: 1,2,3,4,5,6,7,8,9,10
 
-    E.  StartNum = 1
-        EndNum   = 10
+    E.  start_num = 1
+        end_num   = 10
         step = 4
         gives: 1,5,9
 
-    F.  StartNum = 1
-        EndNum   = 10
+    F.  start_num = 1
+        end_num   = 10
         step = -4
         gives: 9,5,1
 
-    G.  StartNum = 10
-        EndNum   = 1
+    G.  start_num = 10
+        end_num   = 1
         step = 4
         gives: 10,6,2
 
-    H.  StartNum = 10
-        EndNum   = 1
+    H.  start_num = 10
+        end_num   = 1
         step = -4
         gives: 2,6,10
 
 
-
     Parameters
     ----------
-    paramDict : TYPE, optional
+    param_dict : TYPE, optional
         DESCRIPTION. The default is None.
-    StartNum : float, optional
+    start_num : int, optional
         Starting value for the file index/number. The default is None.
-    EndNum : float, optional
+    end_num : int, optional
         End value for the file index/number. The default is None.
-    Step : int, optional
-        Step value for the indices. The default is 1.
-    Files : list, optional
+    step : int, optional
+        step value for the indices. The default is 1.
+    files : list, optional
         List of file indices. The default is None.
-    Keys : list, optional
+    keys : list, optional
         List of key indices for hdf5 file. The default is None.
 
     Returns
     -------
-    FKlist : list
+    file_key_list : list
         List of file or key numbers.
     numFKlist : list
-        Number of entries in FKlist.
+        Number of entries in file_key_list.
 
     """
 
-    if paramDict != None:
-        if isinstance(paramDict, dict):
+    # Store checks to see if correct parameters are provided
+    has_files = files is not None
+    has_keys = keys is not None
+    has_start_num = start_num is not None
+    has_end_num = end_num is not None
+
+    # Extract start/
+    file_key_list: list[int] = []
+    if param_dict is not None:
+        if isinstance(param_dict, dict):
             # if is a dictionary assume from hdf5 files.
             # dictionary from hdf5 functions
-            if "from" in paramDict:
-                StartNum = paramDict["from"]
-            if "to" in paramDict:
-                EndNum = paramDict["to"]
-            if "step" in paramDict:
-                Step = paramDict["step"]
+            if "from" in param_dict:
+                start_num = int(param_dict["from"])
+            if "to" in param_dict:
+                end_num = int(param_dict["to"])
+            if "step" in param_dict:
+                step = int(param_dict["step"])
         else:
-            if "StartNum" in paramDict:
-                From = paramDict["datafile_StartNum"]
-            if "EndNum" in paramDict:
-                To = paramDict["datafile_EndNum"]
-            if "Step" in paramDict:
-                Step = paramDict["datafile_Step"]
-
-        if Keys != True:
-            # get information for Files
-            pass
-        else:
-            # get information for hdf5 keys
-            pass
+            if "start_num" in param_dict:
+                start_num = param_dict["datafile_StartNum"]
+            if "end_num" in param_dict:
+                end_num = param_dict["datafile_EndNum"]
+            if "step" in param_dict:
+                step = param_dict["datafile_Step"]
+    elif has_files and has_keys:
+        raise ValueError("File and key lists cannot both be provided")
+    elif not has_files and not has_keys:
+        raise ValueError("Neither files, keys or start_num are defined")
+    elif has_files and not has_keys:
+        file_key_list = files
+    elif has_keys and not has_files:
+        file_key_list = keys
+    elif not has_files and not has_keys and has_start_num:
         pass
-        FKlist = []
-    elif Files != None and Keys == None:
-        FKlist = Files
-    elif Files == None and Keys != None:
-        FKlist = Keys
-    elif Files == None and Keys == None and StartNum != None:
-        FKlist = []
-    elif StartNum != None:
-        FKlist = []
-        if EndNum == None:
-            raise ValueError("EndNum is not defined")
-    else:
-        raise ValueError("Neither Files, Keys or StartNum are defined")
+    elif has_start_num and not has_end_num:
+        raise ValueError("end_num is not defined")
 
-    # exclude negative numbers from start num and EndNum.
+    # exclude negative numbers from start num and end_num.
     # this just makes life simpler.
-    if StartNum != None and StartNum < 0:
-        raise ValueError("StartNum must be greater than 0")
-    if EndNum != None and EndNum < 0:
-        raise ValueError("EndNum must be greater than 0")
+    if has_start_num and start_num < 0:
+        raise ValueError("start_num must be greater than 0")
+    if has_end_num and end_num < 0:
+        raise ValueError("end_num must be greater than 0")
 
-    if FKlist == []:
+    if not file_key_list:
         # make Lst from start, stop and step.
-        if StartNum > EndNum:
-            StartNum, EndNum = EndNum, StartNum
-            EndNum -= 1
+        if start_num > end_num:
+            start_num, end_num = end_num, start_num
+            end_num -= 1
         else:
-            EndNum += 1
+            end_num += 1
 
-        FKlist = np.arange(StartNum, EndNum, np.abs(Step))
-        if Step < 0:
+        file_key_list = np.arange(start_num, end_num, np.abs(step))
+        if step < 0:
             # reverse list
-            FKlist = FKlist[::-1]
+            file_key_list = file_key_list[::-1]
 
     # make maximal list
     # based on values in the list
-    if StartNum == None:
-        s = np.min(FKlist)
-    elif StartNum == -1:
-        s = np.max(FKlist)
+    if not has_start_num:
+        s = np.min(file_key_list)
+    elif start_num == -1:
+        s = np.max(file_key_list)
     else:
-        s = StartNum
-    if EndNum == None:
-        e = np.max(FKlist) + 1
-    elif StartNum == -1:
-        s = np.min(FKlist)
+        s = start_num
+    if not has_end_num:
+        e = np.max(file_key_list) + 1
+    elif start_num == -1:
+        s = np.min(file_key_list)
     else:
-        e = EndNum + 1
+        e = end_num + 1
 
     if s > e:
         s, e = e, s
     #     e -= 1
     else:
         e += 1
-    LstAll = np.arange(s, e + 1, np.abs(Step))
-    if Step < 0:
+    list_all = np.arange(s, e + 1, np.abs(step))
+    if step < 0:
         # reverse list
-        LstAll = LstAll[::-1]
+        list_all = list_all[::-1]
     # cut Lst to allowed values
-    if Files != None and isinstance(Files[0], str):
+    if has_files and isinstance(files[0], str):
         # files is a list of strings
-        FKlist = FKlist[LstAll]
+        file_key_list = file_key_list[list_all]
     else:
         # get list of matching values
-        FKlist = [x for x in LstAll if x in FKlist]
+        file_key_list = [x for x in list_all if x in file_key_list]
         # collapse incase it is a list of np arrays
-        FKlist = np.array(FKlist)
+        file_key_list = np.array(file_key_list)
 
-    return FKlist, len(FKlist)
+    return file_key_list, len(file_key_list)
 
 
 def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", any_null=False):

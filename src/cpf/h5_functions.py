@@ -13,7 +13,7 @@ import numpy as np
 
 import cpf.XRD_FitPattern as fp
 from cpf.util.io import (
-    StartStopFilesToList,
+    get_file_keys,
     licit_filename,
     make_outfile_name,
     title_file_names,
@@ -981,7 +981,7 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                 if itera["to"] == -1:
                     itera["to"] = float(vals[-1][0])
 
-                keep, _ = StartStopFilesToList(paramDict=itera)
+                keep, _ = get_file_keys(param_dict=itera)
             present = np.atleast_1d(
                 np.array(
                     [
@@ -1003,7 +1003,7 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                 if itera["to"] == -1:
                     itera["to"] = int(len(vals)) - 1
 
-                keep, _ = StartStopFilesToList(paramDict=itera)
+                keep, _ = get_file_keys(param_dict=itera)
             keylist = [keylist[x] for x in keep]
             vals = [vals[x] for x in keep]
 
@@ -1040,7 +1040,7 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                 else:
                     if itera["to"] == -1:
                         itera["to"] = number_data - 1
-                    index_values, _ = StartStopFilesToList(paramDict=itera)
+                    index_values, _ = get_file_keys(param_dict=itera)
                 # get the labels -- only need labels from layers above because summing the data.
                 lbls = licit_filename(labels[i], replacement="+", exclude_dir=False)
                 # lbls = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
@@ -1054,7 +1054,7 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                 else:
                     if itera["to"] == -1:
                         itera["to"] = number_data - 1
-                    index_values, _ = StartStopFilesToList(paramDict=itera)
+                    index_values, _ = get_file_keys(param_dict=itera)
                 # get the labels -- only need labels from layers above because returning data array.
                 lbls = licit_filename(labels[i], replacement="+", exclude_dir=False)
                 # lbls = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])

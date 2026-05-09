@@ -54,19 +54,18 @@ from scipy.signal import find_peaks
 import cpf.XRD_FitPattern as XRD_FitPattern
 from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
-from cpf.IO_functions import (
+from cpf.settings import Settings
+from cpf.util.io import (
     any_terms_null,
     json_numpy_serializer,
     make_outfile_name,
     peak_string,
     title_file_names,
 )
-from cpf.settings import Settings
 from cpf.util.logging import get_logger
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 
 logger = get_logger("cpf.Cascade")
-
 
 
 def initiate(*args, **kwargs):
@@ -119,7 +118,6 @@ def execute(
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
     ] = "INFO",
-
     show_plots: bool = False,
     **kwargs,
 ):

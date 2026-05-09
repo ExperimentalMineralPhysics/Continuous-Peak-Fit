@@ -6,16 +6,16 @@ import os
 import numpy as np
 
 import cpf.series_functions as sf
-from  cpf.settings import get_settings
-from cpf.IO_functions import make_outfile_name
 from cpf.output_formatters.fits_io import ReadFits_to_list
+from cpf.settings import get_settings
+from cpf.util.io import make_outfile_name
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WriteMultiFit")
 
 
 def Requirements():
-    """ List non-universally required parameters for writing this output type. """
+    """List non-universally required parameters for writing this output type."""
 
     RequiredParams = [
         #'apparently none!
@@ -36,21 +36,21 @@ def WriteOutput(
     """
     Writes output files in style of multifit *.fit files required for polydefix
     program of Merkel and Hilairet (2015) http://dx.doi.org/10.1107/S1600576715010390.
-        
+
     A separate file is written for each diffraction pattern.
-    
+
 
     Parameters
     ----------
     settings : cpf settings class, str, Path,
-        Settings class used for fitting the data. or 
-        Path to settings_class file or 
+        Settings class used for fitting the data. or
+        Path to settings_class file or
         filename string for settings_class file
     differential_only : bool, optional
-        Only include the differential part of the strain (cos^2 and sin^2 parts of the Fourier series). 
+        Only include the differential part of the strain (cos^2 and sin^2 parts of the Fourier series).
         Ignore the offset (cos and sin parts of the Fourier series).
         The default is False.
-        
+
     Returns
     -------
     None.
@@ -61,19 +61,21 @@ def WriteOutput(
     wavelength = settings_class.data_class.conversion_constant
 
     # Parse optional parameters
-    NumAziWrite             = settings_class.output_settings.get("NumAziWrite", Requirements()[1]["NumAziWrite"])
-    #override with kwargs
-    NumAziWrite             = kwargs.get("NumAziWrite", NumAziWrite)
-    
+    NumAziWrite = settings_class.output_settings.get(
+        "NumAziWrite", Requirements()[1]["NumAziWrite"]
+    )
+    # override with kwargs
+    NumAziWrite = kwargs.get("NumAziWrite", NumAziWrite)
+
     # get the fits
     fits, _ = ReadFits_to_list(settings=settings_class)
-    
+
     for z in range(settings_class.image_number):
         settings_class.set_subpattern(z, 0)
 
         # get correct bit of data
         data_to_write = fits[z]
-        
+
         # create output file name from passed name
         base = settings_class.subfit_filename
         if base is None:

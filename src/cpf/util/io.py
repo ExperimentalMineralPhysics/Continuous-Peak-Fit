@@ -12,9 +12,9 @@ import os
 import re
 from copy import deepcopy
 from pathlib import Path
-import pandas as pd
 
 import numpy as np
+import pandas as pd
 
 from cpf.util.logging import get_logger
 
@@ -73,77 +73,6 @@ def json_numpy_serializer(o):
         )
 
 
-def image_list(fit_parameters, files_only=False):
-    """
-    From the Settings make a list of all the data images to be processed.
-    If the images are h5 type files a list of files is made first then the list is expanded for the images in the h5 files.
-
-    #FIXME: This function is called by the output writing scripts to make sure the file names are called consistently.
-
-
-    Parameters
-    ----------
-    fit_parameters : TYPE
-        DESCRIPTION.
-    fit_settings : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    None.
-
-    """
-
-    # Local import to avoid circular errors
-    import cpf.h5_functions as h5_functions
-
-    # make the file list
-    diff_files, n_diff_files = file_list(fit_parameters)
-
-    if files_only != True:
-        # iterate for h5 files.
-        image_list = []
-        if "h5_datakey" in fit_parameters:
-            # if new h5 format is present then call it.
-            for i in range(n_diff_files):
-                h5_list = h5_functions.get_image_keys_new(
-                    diff_files[i],
-                    h5key_data=fit_parameters["h5_datakey"],
-                    h5_iterate=fit_parameters["h5_iterate"],
-                )
-                for j in range(len(h5_list)):
-                    tmp = [diff_files[i]]
-                    tmp.extend(h5_list[j])
-                    image_list.append(tmp)
-    
-        elif "h5_key_list" in fit_parameters:
-            # if the input contains the old hdf5 file instircutions make the new
-            # dictionary based format and call that
-            h5datakey, h5iterations = h5_functions.update_key_structure(
-                fit_parameters
-            )
-            for i in range(n_diff_files):
-                h5_list = h5_functions.get_image_keys_new(
-                    diff_files[i],
-                    h5key_data=h5datakey,
-                    h5_iterate=h5iterations,
-                )
-                for j in range(len(h5_list)):
-                    tmp = [diff_files[i]]
-                    tmp.extend(h5_list[j])
-                    image_list.append(tmp)
-            
-        else:
-            image_list = diff_files
-    
-    else:
-        image_list = diff_files
-
-    n_images = len(image_list)
-
-    return diff_files, n_diff_files, image_list, n_images
-
-
 def file_list(fit_parameters):
     """
     From the Settings make a list of all the data files.
@@ -194,7 +123,9 @@ def file_list(fit_parameters):
 
     # Diffraction patterns -- make list of files
     diff_files = []
-    if "datafile_Files" not in list(fit_parameters) and "datafile_StartNum" not in list(fit_parameters):
+    if "datafile_Files" not in list(fit_parameters) and "datafile_StartNum" not in list(
+        fit_parameters
+    ):
         # There is only a single file because nothing else is defined
         n_diff_files = 1
         diff_files.append(
@@ -207,16 +138,19 @@ def file_list(fit_parameters):
         )
         # diff_files.append(
         #     os.path.abspath(
-        #         getattr(fit_settings, 'datafile_directory', '.')  
+        #         getattr(fit_settings, 'datafile_directory', '.')
         #         + os.sep
-        #         + getattr(fit_settings, 'datafile_Basename', '')  
-        #         + getattr(fit_settings, 'datafile_Ending', '')  
+        #         + getattr(fit_settings, 'datafile_Basename', '')
+        #         + getattr(fit_settings, 'datafile_Ending', '')
         #     )
         # )
     elif "datafile_Files" not in list(fit_parameters):
         n_diff_files = int(
             np.floor(
-                np.abs(fit_parameters["datafile_EndNum"] - fit_parameters["datafile_StartNum"])
+                np.abs(
+                    fit_parameters["datafile_EndNum"]
+                    - fit_parameters["datafile_StartNum"]
+                )
                 / np.abs(step)
             )
             + 1
@@ -228,9 +162,9 @@ def file_list(fit_parameters):
                     fit_parameters["datafile_NumDigit"]
                 )
             else:
-                n = str(fit_parameters["datafile_StartNum"] + (j * -np.abs(step))).zfill(
-                    fit_parameters["datafile_NumDigit"]
-                )
+                n = str(
+                    fit_parameters["datafile_StartNum"] + (j * -np.abs(step))
+                ).zfill(fit_parameters["datafile_NumDigit"])
             # Append diffraction pattern name and directory
             diff_files.append(
                 os.path.abspath(
@@ -245,7 +179,9 @@ def file_list(fit_parameters):
             diff_files = diff_files[::-1]
 
     elif "datafile_Files" in list(fit_parameters):
-        n_diff_files = int(np.round(len(fit_parameters["datafile_Files"]) / np.abs(step)))
+        n_diff_files = int(
+            np.round(len(fit_parameters["datafile_Files"]) / np.abs(step))
+        )
         for j in range(n_diff_files):
             # Make list of diffraction pattern names and no. of pattern
             if step < 0:
@@ -269,6 +205,75 @@ def file_list(fit_parameters):
     else:
         n_diff_files = int(len(fit_parameters["datafile_Files"]) / step + 1)
     return diff_files, n_diff_files
+
+
+def image_list(fit_parameters, files_only=False):
+    """
+    From the Settings make a list of all the data images to be processed.
+    If the images are h5 type files a list of files is made first then the list is expanded for the images in the h5 files.
+
+    #FIXME: This function is called by the output writing scripts to make sure the file names are called consistently.
+
+
+    Parameters
+    ----------
+    fit_parameters : TYPE
+        DESCRIPTION.
+    fit_settings : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+
+    # Local import to avoid circular errors
+    import cpf.h5_functions as h5_functions
+
+    # make the file list
+    diff_files, n_diff_files = file_list(fit_parameters)
+
+    if files_only != True:
+        # iterate for h5 files.
+        image_list = []
+        if "h5_datakey" in fit_parameters:
+            # if new h5 format is present then call it.
+            for i in range(n_diff_files):
+                h5_list = h5_functions.get_image_keys_new(
+                    diff_files[i],
+                    h5key_data=fit_parameters["h5_datakey"],
+                    h5_iterate=fit_parameters["h5_iterate"],
+                )
+                for j in range(len(h5_list)):
+                    tmp = [diff_files[i]]
+                    tmp.extend(h5_list[j])
+                    image_list.append(tmp)
+
+        elif "h5_key_list" in fit_parameters:
+            # if the input contains the old hdf5 file instircutions make the new
+            # dictionary based format and call that
+            h5datakey, h5iterations = h5_functions.update_key_structure(fit_parameters)
+            for i in range(n_diff_files):
+                h5_list = h5_functions.get_image_keys_new(
+                    diff_files[i],
+                    h5key_data=h5datakey,
+                    h5_iterate=h5iterations,
+                )
+                for j in range(len(h5_list)):
+                    tmp = [diff_files[i]]
+                    tmp.extend(h5_list[j])
+                    image_list.append(tmp)
+
+        else:
+            image_list = diff_files
+
+    else:
+        image_list = diff_files
+
+    n_images = len(image_list)
+
+    return diff_files, n_diff_files, image_list, n_images
 
 
 def StartStopFilesToList(
@@ -499,7 +504,7 @@ def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", any_null=Fal
         # look indata frame for values
         tf = (obj_to_inspect.values == val_to_find).any()
         any_null = tf or any_null
-        
+
     elif obj_to_inspect == val_to_find:
         any_null = True
         logger.moreinfo(
@@ -507,20 +512,18 @@ def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", any_null=Fal
         )
         # could be verbose if verbose logger.
     else:
-        pass #all seems in order
-        
+        pass  # all seems in order
+
     return any_null
 
 
-def replace_null_terms(
-    obj_to_inspect, val_to_find=None, index_path="", replace_with=0
-):
+def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", replace_with=0):
     """
     This function accepts a nested dictionary and list as argument
     and iterates over all values of nested dictionaries and lists.
-    If any of the values are "Null" (or 'val_to_find') it replaces it with 
+    If any of the values are "Null" (or 'val_to_find') it replaces it with
     the value in 'replace_with'
-    
+
     Parameters
     ----------
     obj_to_inspect : dict, list
@@ -530,7 +533,7 @@ def replace_null_terms(
     index_path : str
         Index to look at in dictionary. The default is "".
     replace_with : str, float
-        Value or string to use as replacement in the dictionary. 
+        Value or string to use as replacement in the dictionary.
         The default is 0.
 
     Returns
@@ -545,28 +548,34 @@ def replace_null_terms(
     if isinstance(obj_to_inspect, dict):
         for key, value in obj_to_inspect.items():
             obj_to_inspect[key] = replace_null_terms(
-                deepcopy(value), val_to_find, index_path + f"['{key}']", replace_with=replace_with
+                deepcopy(value),
+                val_to_find,
+                index_path + f"['{key}']",
+                replace_with=replace_with,
             )
 
     elif isinstance(obj_to_inspect, list):
         for key, value in enumerate(obj_to_inspect):
             obj_to_inspect[key] = replace_null_terms(
-                deepcopy(value), val_to_find, index_path + f"[{key}]", replace_with=replace_with
+                deepcopy(value),
+                val_to_find,
+                index_path + f"[{key}]",
+                replace_with=replace_with,
             )
 
     elif isinstance(obj_to_inspect, pd.DataFrame):
         # replace contents of panda data frame
         if val_to_find is not None:
             obj_to_inspect = obj_to_inspect.replace(val_to_find, replace_with)
-            
-    elif obj_to_inspect == val_to_find:# and val_to_find is not None:
+
+    elif obj_to_inspect == val_to_find:  # and val_to_find is not None:
         obj_to_inspect = replace_with
         logger.moreinfo(
             " ".join(map(str, [(f"Value {val_to_find} found at {index_path}")]))
         )
-        
+
     else:
-        pass #everything is in order
+        pass  # everything is in order
 
     return obj_to_inspect
 
@@ -576,7 +585,7 @@ def any_errors_huge(obj_to_inspect, large_errors=3, any_huge=False):
     This function accepts a nested dictionary and list as argument
     and iterates over all values of nested dictionaries and lists.
     If any of the error values are more than scale times the fitted value it
-    flags the errors as huge    
+    flags the errors as huge
 
     Huge errors are flagged if:
         1. value_err/value >= large_errors
@@ -988,9 +997,9 @@ def licit_filename(fname, replacement="==", exclude_dir=True):
 
     # the file name might include a directory link...
     if exclude_dir == False:
-        fname=fname.replace("/",replacement)
-        fname=fname.replace("\\",replacement)
-    
+        fname = fname.replace("/", replacement)
+        fname = fname.replace("\\", replacement)
+
     fname = number_to_string(fname)
 
     return fname

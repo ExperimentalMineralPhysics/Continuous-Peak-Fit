@@ -20,7 +20,7 @@ import cpf.peak_functions as pf
 import cpf.series_constraints as sc
 import cpf.series_functions as sf
 from cpf.fitsubpattern_chunks import fit_chunks, fit_series
-from cpf.IO_functions import (
+from cpf.util.io import (
     any_errors_huge,
     any_terms_null,
     json_numpy_serializer,
@@ -96,7 +96,9 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
         for param in choice_list:
             coeff_type = sf.get_params_type(previous_params, param, peak=y)
             coeff_type = sf.coefficient_type_as_number(coeff_type)
-            if coeff_type != sf.coefficient_types()["independent"]:  # if parameters are not independent
+            if (
+                coeff_type != sf.coefficient_types()["independent"]
+            ):  # if parameters are not independent
                 if sc.BiggestValue(orders["peak"][y][param]) > sf.get_order_from_params(
                     previous_params["peak"][y][param]
                 ):
@@ -108,9 +110,9 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
                     previous_params["peak"][y][param] = (
                         previous_params["background"][y] + [0] * change_by
                     )
-                elif sc.BiggestValue(orders["peak"][y][param]) < sf.get_order_from_params(
-                    previous_params["peak"][y][param]
-                ):
+                elif sc.BiggestValue(
+                    orders["peak"][y][param]
+                ) < sf.get_order_from_params(previous_params["peak"][y][param]):
                     change_by = (
                         np.size(previous_params["peak"][y][param])
                         - np.max(orders["peak"][y][param]) * 2
@@ -126,7 +128,8 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
 
     # loop for background orders/size
     if (
-        sf.get_params_type(previous_params, "background") != sf.coefficient_types()["independent"]
+        sf.get_params_type(previous_params, "background")
+        != sf.coefficient_types()["independent"]
     ):  # if parameters are not independent
         for y in range(
             np.max([len(orders["background"]), len(previous_params["background"])])
@@ -198,7 +201,7 @@ def check_num_azimuths(peeks, azimu, orders):
             coeff_type = sf.coefficient_type_as_number(
                 sf.get_params_type(orders, param, peak=y)
             )
-            if coeff_type != sf.coefficient_types(full=True)["independent"]["num"]:  
+            if coeff_type != sf.coefficient_types(full=True)["independent"]["num"]:
                 # if parameters are not independent
                 max_coeff = np.max(
                     [max_coeff, sf.get_number_coeff(orders, param, peak=y)]
@@ -257,7 +260,7 @@ def fit_sub_pattern(
     # set a limit to the maximum number of function evaluations.
     # make variable in case need more iterations for other data
     default_max_f_eval = 400
-    max_f_eval =  default_max_f_eval
+    max_f_eval = default_max_f_eval
 
     # Measure the elapsed time during fitting.
     # To help decide what is bad fit or if over fitting the data.
@@ -296,10 +299,14 @@ def fit_sub_pattern(
         # check if the previous fit was 'good' i.e. constrains no 'null' values.
         # N.B. null values in json file are read in as None
         any_bad_vals = any_terms_null(previous_params, val_to_find=None)
-        any_bad_vals = any_errors_huge(previous_params, large_errors=large_errors, any_huge=any_bad_vals)
+        any_bad_vals = any_errors_huge(
+            previous_params, large_errors=large_errors, any_huge=any_bad_vals
+        )
         if any_bad_vals == True:
             # the previous fit has problems so discard it
-            logger.moreinfo("Propagated fit has problems so discarding it and doing fit from scratch")
+            logger.moreinfo(
+                "Propagated fit has problems so discarding it and doing fit from scratch"
+            )
             previous_params = None
 
     if previous_params:
@@ -321,12 +328,14 @@ def fit_sub_pattern(
             np.min(fit_centroid) < settings_as_class.subfit_orders["range"][0]
             or np.min(fit_centroid) > settings_as_class.subfit_orders["range"][1]
         ):
-            logger.moreinfo("Fitted d-spacing limits are out of bounds; discarding the fit and starting again.")
+            logger.moreinfo(
+                "Fitted d-spacing limits are out of bounds; discarding the fit and starting again."
+            )
             previous_params = None
 
     # initiate counter for while loop.
     if previous_params is None or previous_params == [] or previous_params is False:
-        previous_params = None # make sure expected value for later
+        previous_params = None  # make sure expected value for later
         step = [0]
     else:
         step = [5]
@@ -352,15 +361,17 @@ def fit_sub_pattern(
         if step[-1] <= 9:
             # generate chunks and initial fits
             # or parse previous fits into correct data structure
-                
+
             # Measure the time taken to do the chunks, the elapsed time during fitting.
             # To help decide which is the best peak parameters.
             chunks_start = time.time()
-            
+
             # check if the data intensity is above threshold.
             if np.max(data_as_class.intensity) <= min_data_intensity:
                 # then there is likely no determinable peak in the data
-                logger.moreinfo(f"Not sufficient intensity in the data to proceed with fitting (I_max < {min_data_intensity}).")
+                logger.moreinfo(
+                    f"Not sufficient intensity in the data to proceed with fitting (I_max < {min_data_intensity})."
+                )
                 # set step to -21 so that it is still negative at the end
                 step.append(-21)  # get to the end and void the fit
                 # void so send empty parameter set to out.
@@ -465,7 +476,9 @@ def fit_sub_pattern(
 
                 if np.max(ave_intensity) <= min_peak_intensity:
                     # then there is no determinable peak(s) in the data
-                    logger.moreinfo(f"Not sufficient intensity in the chunked peaks to proceed with fitting (h_max < {min_peak_intensity}).")
+                    logger.moreinfo(
+                        f"Not sufficient intensity in the chunked peaks to proceed with fitting (h_max < {min_peak_intensity})."
+                    )
                     # set step to -11 so that it is still negative at the end
                     step.append(-11)  # get to the end and void the fit
                     # void so send empty parameter set to out.
@@ -476,7 +489,9 @@ def fit_sub_pattern(
                     )
 
             elif step[-1] >= 0 and previous_params:
-                logger.moreinfo("Using previously fitted parameters and propagating fit")
+                logger.moreinfo(
+                    "Using previously fitted parameters and propagating fit"
+                )
                 # FIX ME: This should load the saved lmfit Parameter class object.
                 # Need to initiate usage (save and load).
                 # For now have propagated use of new_params so re-instantiate the master_params object below,
@@ -658,8 +673,12 @@ def fit_sub_pattern(
 
                 if np.max(ave_intensity) <= min_peak_intensity:
                     # then there is no determinable peak in the data
-                    logger.moreinfo("Not sufficient intensity in the chunked peaks to proceed with fitting.")
-                    logger.moreinfo(f"most inense chunk {np.max(ave_intensity)} <= min allowed peak intensity {min_peak_intensity}")
+                    logger.moreinfo(
+                        "Not sufficient intensity in the chunked peaks to proceed with fitting."
+                    )
+                    logger.moreinfo(
+                        f"most inense chunk {np.max(ave_intensity)} <= min allowed peak intensity {min_peak_intensity}"
+                    )
                     # logger.moreinfo("Not sufficient intensity in the chunked peaks to proceed with fitting.")
                     # set step to -101 so that it is still negative at the end
                     step.append(-101)  # get to the end and void the fit
@@ -730,14 +749,17 @@ def fit_sub_pattern(
             if (
                 fout.success is True
                 and previous_params != None
-                and  any_errors_huge(
+                and any_errors_huge(
                     lmm.params_to_new_params(
                         master_params, orders=settings_as_class.subfit_orders
                     ),
                     large_errors=large_errors,
-                ) == True
+                )
+                == True
             ):
-                logger.moreinfo("The fitting worked, but propagated params could have lead to rubbish fits (huge errors). Try again.")
+                logger.moreinfo(
+                    "The fitting worked, but propagated params could have lead to rubbish fits (huge errors). Try again."
+                )
                 step.append(0)
                 # clear previous_params so we can't get back here
                 previous_params = None
@@ -746,11 +768,13 @@ def fit_sub_pattern(
                 and previous_params != None
                 and any_terms_null(master_params, val_to_find=None) == True
             ):
-                logger.moreinfo("The fitting worked, but propagated params could have lead to rubbish fits (null values). Try again.")
+                logger.moreinfo(
+                    "The fitting worked, but propagated params could have lead to rubbish fits (null values). Try again."
+                )
                 step.append(0)
                 # clear previous_params so we can't get back here
                 previous_params = None
-            elif fout.success: #True
+            elif fout.success:  # True
                 # it worked, errors are not massive, carry on
                 step.append(step[-1] + 100)
                 master_params = fout.params
@@ -767,19 +791,19 @@ def fit_sub_pattern(
                 step.append(step[-1] - 9)
                 max_f_eval = np.inf
             elif step[-1] == 28 and fout.success == 0:
-                # we tried all the way with the previous fits. 
+                # we tried all the way with the previous fits.
                 # get rid of them and start again
                 step.append(0)
                 previous_params = None
-            else: #23,24,29 and other values >=30
+            else:  # 23,24,29 and other values >=30
                 err_str = "The value of step here should not be achievable. Oops. \n The data is not fitting. Discard."
                 logger.critical(" ".join(map(str, [(err_str)])))
                 step.append(step[-1] - 200)
-        
-        if 0: #report_status:
-            print(f"    status: step = {step}")  
+
+        if 0:  # report_status:
+            print(f"    status: step = {step}")
             print(f"        time elaspsed = {time.time() - t_start}")
-        
+
         if step[-1] < 0:
             # the fit is void and we need to exit.
             # make sure all the height values are nan so that we dont propagate rubbish
@@ -889,39 +913,86 @@ def fit_sub_pattern(
                 }
             }
         )
-        new_params.update({'data_ranges':{
-                'data':{
-                    "max": np.max(ma.filled(data_as_class.intensity, np.nan)),
-                    "min": np.min(ma.filled(data_as_class.intensity, np.nan)),
-                    "pt1percentile": np.nanpercentile(ma.filled(data_as_class.intensity, np.nan), 0.1, method='closest_observation'),
-                    "1percentile":   np.nanpercentile(ma.filled(data_as_class.intensity, np.nan), 1, method='closest_observation'),
-                    "99percentile":    np.nanpercentile(ma.filled(data_as_class.intensity, np.nan), 99, method='closest_observation'),
-                    "99pt9percentile": np.nanpercentile(ma.filled(data_as_class.intensity, np.nan), 99.9, method='closest_observation'),
-                },
-                'model':{
-                    "max": np.max(fout.best_fit),
-                    "min": np.min(fout.best_fit),
-                    "pt1percentile": np.nanpercentile(fout.best_fit, 0.1, method='closest_observation'),
-                    "1percentile": np.nanpercentile(fout.best_fit, 1, method='closest_observation'),
-                    "99percentile": np.nanpercentile(fout.best_fit, 99, method='closest_observation'),
-                    "99pt9percentile": np.nanpercentile(fout.best_fit, 99.9, method='closest_observation'),
-                },
-                'residuals':{
-                    "max": np.max(ma.filled(data_as_class.intensity, np.nan) - fout.best_fit),
-                    "min": np.min(ma.filled(data_as_class.intensity, np.nan) - fout.best_fit),
-                    "pt1percentile": np.nanpercentile(ma.filled(data_as_class.intensity, np.nan) - fout.best_fit, 0.1, method='closest_observation'),
-                    "1percentile":   np.nanpercentile(ma.filled(data_as_class.intensity, np.nan) - fout.best_fit, 1, method='closest_observation'),
-                    "99percentile":    np.nanpercentile(ma.filled(data_as_class.intensity, np.nan) - fout.best_fit, 99, method='closest_observation'),
-                    "99pt9percentile": np.nanpercentile(ma.filled(data_as_class.intensity, np.nan) - fout.best_fit, 99.9, method='closest_observation'),
+        new_params.update(
+            {
+                "data_ranges": {
+                    "data": {
+                        "max": np.max(ma.filled(data_as_class.intensity, np.nan)),
+                        "min": np.min(ma.filled(data_as_class.intensity, np.nan)),
+                        "pt1percentile": np.nanpercentile(
+                            ma.filled(data_as_class.intensity, np.nan),
+                            0.1,
+                            method="closest_observation",
+                        ),
+                        "1percentile": np.nanpercentile(
+                            ma.filled(data_as_class.intensity, np.nan),
+                            1,
+                            method="closest_observation",
+                        ),
+                        "99percentile": np.nanpercentile(
+                            ma.filled(data_as_class.intensity, np.nan),
+                            99,
+                            method="closest_observation",
+                        ),
+                        "99pt9percentile": np.nanpercentile(
+                            ma.filled(data_as_class.intensity, np.nan),
+                            99.9,
+                            method="closest_observation",
+                        ),
+                    },
+                    "model": {
+                        "max": np.max(fout.best_fit),
+                        "min": np.min(fout.best_fit),
+                        "pt1percentile": np.nanpercentile(
+                            fout.best_fit, 0.1, method="closest_observation"
+                        ),
+                        "1percentile": np.nanpercentile(
+                            fout.best_fit, 1, method="closest_observation"
+                        ),
+                        "99percentile": np.nanpercentile(
+                            fout.best_fit, 99, method="closest_observation"
+                        ),
+                        "99pt9percentile": np.nanpercentile(
+                            fout.best_fit, 99.9, method="closest_observation"
+                        ),
+                    },
+                    "residuals": {
+                        "max": np.max(
+                            ma.filled(data_as_class.intensity, np.nan) - fout.best_fit
+                        ),
+                        "min": np.min(
+                            ma.filled(data_as_class.intensity, np.nan) - fout.best_fit
+                        ),
+                        "pt1percentile": np.nanpercentile(
+                            ma.filled(data_as_class.intensity, np.nan) - fout.best_fit,
+                            0.1,
+                            method="closest_observation",
+                        ),
+                        "1percentile": np.nanpercentile(
+                            ma.filled(data_as_class.intensity, np.nan) - fout.best_fit,
+                            1,
+                            method="closest_observation",
+                        ),
+                        "99percentile": np.nanpercentile(
+                            ma.filled(data_as_class.intensity, np.nan) - fout.best_fit,
+                            99,
+                            method="closest_observation",
+                        ),
+                        "99pt9percentile": np.nanpercentile(
+                            ma.filled(data_as_class.intensity, np.nan) - fout.best_fit,
+                            99.9,
+                            method="closest_observation",
+                        ),
+                    },
                 }
-                }
-            })
+            }
+        )
     else:
         # remove background estimates from the defunct model
-        for i in range(len(new_params['background'])):
-            new_params['background'][i] = [None] * len(new_params['background'][i])
-            new_params['background_err'][i] = [None] * len(new_params['background'][i])
-        
+        for i in range(len(new_params["background"])):
+            new_params["background"][i] = [None] * len(new_params["background"][i])
+            new_params["background_err"][i] = [None] * len(new_params["background"][i])
+
         fit_stats = {
             "time-elapsed": t_elapsed,
             "chunks-time": chunks_time,
@@ -948,43 +1019,47 @@ def fit_sub_pattern(
         )
         new_params.update({"ModelProperties": {"max": np.nan, "min": np.nan}})
         new_params.update({"ResidualProperties": {"max": np.nan, "min": np.nan}})
-        new_params.update({'data_ranges':{
-                'data':{
-                    "max": np.max(data_as_class.intensity),
-                    "min": np.min(data_as_class.intensity),
-                    "pt1percentile": np.nanpercentile(data_as_class.intensity, 0.1),
-                    "1percentile": np.nanpercentile(data_as_class.intensity, 1),
-                    "99percentile": np.nanpercentile(data_as_class.intensity, 99),
-                    "99pt9percentile": np.nanpercentile(data_as_class.intensity, 99.9),
-                },
-                'model':{
-                    "max": np.nan,
-                    "min": np.nan,
-                    "pt1percentile": np.nan,
-                    "1percentile": np.nan,
-                    "99percentile": np.nan,
-                    "99pt9percentile": np.nan,
-                },
-                'residuals':{
-                    "max": np.nan,
-                    "min": np.nan,
-                    "pt1percentile": np.nan,
-                    "1percentile": np.nan,
-                    "99percentile": np.nan,
-                    "99pt9percentile": np.nan,
+        new_params.update(
+            {
+                "data_ranges": {
+                    "data": {
+                        "max": np.max(data_as_class.intensity),
+                        "min": np.min(data_as_class.intensity),
+                        "pt1percentile": np.nanpercentile(data_as_class.intensity, 0.1),
+                        "1percentile": np.nanpercentile(data_as_class.intensity, 1),
+                        "99percentile": np.nanpercentile(data_as_class.intensity, 99),
+                        "99pt9percentile": np.nanpercentile(
+                            data_as_class.intensity, 99.9
+                        ),
+                    },
+                    "model": {
+                        "max": np.nan,
+                        "min": np.nan,
+                        "pt1percentile": np.nan,
+                        "1percentile": np.nan,
+                        "99percentile": np.nan,
+                        "99pt9percentile": np.nan,
+                    },
+                    "residuals": {
+                        "max": np.nan,
+                        "min": np.nan,
+                        "pt1percentile": np.nan,
+                        "1percentile": np.nan,
+                        "99percentile": np.nan,
+                        "99pt9percentile": np.nan,
+                    },
                 }
-                }
-            })
-
+            }
+        )
 
     new_params.update({"FitProperties": fit_stats})
 
     # add peak names to new_params
     new_params.update({"PeakLabel": peak_string(settings_as_class.subfit_orders)})
-    #add notes if they are present.
+    # add notes if they are present.
     if "note" in settings_as_class.subfit_orders:
-            new_params.update({"note": settings_as_class.subfit_orders["note"]})
-            
+        new_params.update({"note": settings_as_class.subfit_orders["note"]})
+
     # Plot results to check
     view = 0
     if (save_fit == 1 or view == 1 or logger.is_below_level("EFFUSIVE")) and step[
@@ -1051,7 +1126,7 @@ def fit_sub_pattern(
             #     save_modelresult(out, filename)
             # else:
             #     logger.info(" ".join(map(str, [("File does not exist!")])))
-    
+
     # return [new_params, fout]
     return new_params
 

@@ -5,32 +5,28 @@ from __future__ import annotations
 
 __all__ = ["settings", "get_output_options", "detector_factory"]
 
+import glob
 import importlib.util
 import json
-import glob
+import os
+import re
 from copy import copy, deepcopy
 from pathlib import Path
 from typing import Any, Literal, Optional
-import os
-import re
-import numpy as np
 
+import numpy as np
 import proglog
+
 import cpf.input_types as input_types
 import cpf.output_formatters as output_formatters
-from cpf.IO_functions import (
-    image_list,
-    json_numpy_serializer,
-    make_outfile_name
-)
+from cpf.peak_functions import peak_components
 from cpf.series_functions import (
     coefficient_type_as_number,
     coefficient_type_as_string,
     coefficient_types,
     get_number_coeff,
 )
-from cpf.peak_functions import peak_components
-
+from cpf.util.io import image_list, json_numpy_serializer, make_outfile_name
 
 # , get_output_options, detector_factory, register_default_formats
 from cpf.util.logging import get_logger
@@ -41,6 +37,7 @@ from cpf.util.logging import get_logger
 logger = get_logger("cpf.settings")
 
 # from cpf.XRD_FitPattern import logger
+
 
 class Settings:
     """
@@ -79,7 +76,7 @@ class Settings:
         ] = "INFO",
         debug: bool = False,
         mode: Literal["fit"] = "fit",
-        **kwargs
+        **kwargs,
     ):
         """
         Initialise the cpf settings class.
@@ -154,8 +151,8 @@ class Settings:
         self.fit_track: bool = False
         self.fit_propagate: bool = True
 
-        self.metadata = []#None
-        self.metadata_labels = {}#None
+        self.metadata = []  # None
+        self.metadata_labels = {}  # None
         self.metadata_read = None
 
         self.cascade_bin_type: Optional[int] = (
@@ -210,7 +207,6 @@ class Settings:
         new.subfit_orders = deepcopy(self.subfit_orders)
         return new
 
-
     def duplicate_without_dataclass(self):
         """
         Makes a copy of an settings instance but without the data class.
@@ -223,10 +219,9 @@ class Settings:
         """
         new = self.duplicate()
         # remove data_class to allow parallel processing
-        delattr(new, 'data_class')
-        delattr(new, '_unmodified_self')
+        delattr(new, "data_class")
+        delattr(new, "_unmodified_self")
         return new
-
 
     def _validation_copy(self):
         """
@@ -256,25 +251,24 @@ class Settings:
         # remove data_class to allow parallel processing
         copy.pop("data_class", None)
         # remove any possible previous unmodified previous variable.
-        copy.pop('_unmodified_self', None)
+        copy.pop("_unmodified_self", None)
         # remove following from check becuase these can be changed without invalidating the settings class.
-        copy.pop('subfit_file_position', None)
-        copy.pop('subfit_filename', None)
-        copy.pop('subfit_order_position', None)
-        copy.pop('subfit_orders', None)
-        copy.pop('output_types', None)
+        copy.pop("subfit_file_position", None)
+        copy.pop("subfit_filename", None)
+        copy.pop("subfit_order_position", None)
+        copy.pop("subfit_orders", None)
+        copy.pop("output_types", None)
 
         return copy
-
 
     def populate(
         self,
         settings: Optional[str | Path | dict] = None,
-        validate = True,
+        validate=True,
         out_type=None,
         report=False,
         debug=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Fills the settings class from the settings file.
@@ -296,9 +290,13 @@ class Settings:
         """
         # Fail gracefully
         if settings is None:
-            raise ValueError("The settings needs to be specified: it is either a file string, a file path or a dictionary.")
+            raise ValueError(
+                "The settings needs to be specified: it is either a file string, a file path or a dictionary."
+            )
         elif isinstance(settings, type(Settings())):
-            logger.info("The settings are already a cpf Settings class instance. No initiation.")
+            logger.info(
+                "The settings are already a cpf Settings class instance. No initiation."
+            )
             return
 
         elif isinstance(settings, dict):
@@ -316,11 +314,12 @@ class Settings:
                         if isinstance(value, dict):
                             value = RecursiveObject(value)
                         setattr(self, key, value)
-            self.settings_from_input = settings#RecursiveObject(dictionary = settings)
 
+            self.settings_from_input = (
+                settings  # RecursiveObject(dictionary = settings)
+            )
 
         else:
-
             # Convert to a Path object
             if isinstance(settings, str):
                 try:
@@ -337,10 +336,12 @@ class Settings:
 
             # store all the settings from file in a module class.
             module_name = self.settings_file.stem
-            spec = importlib.util.spec_from_file_location(module_name, self.settings_file)
+            spec = importlib.util.spec_from_file_location(
+                module_name, self.settings_file
+            )
             self.settings_from_input = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(self.settings_from_input)
-            #convert to a dictionary
+            # convert to a dictionary
             self.settings_from_input = self.settings_from_input.__dict__
             self.settings_from_input["run_name"] = str(settings)
 
@@ -356,8 +357,7 @@ class Settings:
         """
         self.populate()
 
-
-    def fill_settings(self, validate = True):
+    def fill_settings(self, validate=True):
         """
         adds values to the class from the settings file.
         Fails with a list of missing parameters if not complete.
@@ -428,19 +428,18 @@ class Settings:
             logger.warning(
                 "'Image_prepare' is depreciated nomenclature. Has been replased by 'image_preprocess'"
             )
-            self.settings_from_input["image_preprocess"] = (
-                self.settings_from_input["Image_prepare"]
-            )
+            self.settings_from_input["image_preprocess"] = self.settings_from_input[
+                "Image_prepare"
+            ]
 
         if "image_preprocess" in list(self.settings_from_input):
             self.datafile_preprocess = self.settings_from_input["Image_prepare"]
-
 
         # add data directory and data files
         self.datafile_directory = self.settings_from_input["datafile_directory"]
         if isinstance(self.datafile_directory, str):  # Convert to Path object
             self.datafile_directory = Path(self.datafile_directory)
-        self.check_directory_exists(self.datafile_directory, make_dir = False)
+        self.check_directory_exists(self.datafile_directory, make_dir=False)
 
         (
             self.datafile_list,
@@ -463,19 +462,21 @@ class Settings:
         # If the file type is h5/nxs and there is no h5 related settings in the input then read defaults from the detector class.
         # These settings are then used by the detector class.
         # When the h5 settings are in the settings class we need to re-initiate the image list.
-        if (len(self.datafile_list) == 1
-                and (self.datafile_list[0].suffix == ".h5"
-                or self.datafile_list[0].suffix == ".nxs")):
-            #both "h5_datakey" and "h5_iterate" are required for the h5 file reading to work
+        if len(self.datafile_list) == 1 and (
+            self.datafile_list[0].suffix == ".h5"
+            or self.datafile_list[0].suffix == ".nxs"
+        ):
+            # both "h5_datakey" and "h5_iterate" are required for the h5 file reading to work
             if "h5_datakey" not in list(self.settings_from_input):
-
                 # need to load a data class so we know what the h5 defaults are
                 temp_settings = Settings()
                 temp_settings.calibration_type = self.settings_from_input["Calib_type"]
                 temp_data_class = detector_factory(settings_class=temp_settings)
 
                 if "_default_h5_datakey" in dir(temp_data_class):
-                    self.settings_from_input["h5_datakey"] = temp_data_class._default_h5_datakey
+                    self.settings_from_input["h5_datakey"] = (
+                        temp_data_class._default_h5_datakey
+                    )
                 else:
                     err_str = "The data class has no value for '_default_h5_datakey'. Need to define 'h5_datakey' in settings."
                     logger.warning(err_str)
@@ -483,14 +484,15 @@ class Settings:
             self.h5_datakey = self.settings_from_input["h5_datakey"]
 
             if "h5_iterate" not in list(self.settings_from_input):
-
                 # need to load a data class so we know what the h5 defaults are
                 temp_settings = Settings()
                 temp_settings.calibration_type = self.settings_from_input["Calib_type"]
                 temp_data_class = detector_factory(settings_class=temp_settings)
 
                 if "_default_h5_iterate" in dir(temp_data_class):
-                    self.settings_from_input["h5_iterate"] = temp_data_class._default_h5_iterate
+                    self.settings_from_input["h5_iterate"] = (
+                        temp_data_class._default_h5_iterate
+                    )
                 else:
                     err_str = "The data class has no value for '_default_h5_iterate'. Need to define 'h5_iterate' in settings."
                     logger.warning(err_str)
@@ -506,7 +508,9 @@ class Settings:
             if len(self.datafile_list) > 0:
                 try:
                     self.datafile_list = [
-                        Path(file) for file in self.datafile_list if isinstance(file, str)
+                        Path(file)
+                        for file in self.datafile_list
+                        if isinstance(file, str)
                     ]
                 except Exception as error:
                     raise error
@@ -521,13 +525,13 @@ class Settings:
         if "cascade_bin_type" in list(self.settings_from_input):
             self.cascade_bin_type = self.settings_from_input["cascade_bin_type"]
         if "cascade_historgram_type" in list(self.settings_from_input):
-            self.cascade_historgram_type = (
-                self.settings_from_input["cascade_historgram_type"]
-            )
+            self.cascade_historgram_type = self.settings_from_input[
+                "cascade_historgram_type"
+            ]
         if "cascade_historgram_bins" in list(self.settings_from_input):
-            self.cascade_historgram_bins = (
-                self.settings_from_input["cascade_historgram_bins"]
-            )
+            self.cascade_historgram_bins = self.settings_from_input[
+                "cascade_historgram_bins"
+            ]
 
         # organise the fits
         if "fit_orders" in list(self.settings_from_input):
@@ -539,9 +543,13 @@ class Settings:
         if "fit_propagate" in list(self.settings_from_input):
             self.fit_propagate = self.settings_from_input["fit_propagate"]
         if "fit_min_data_intensity" in list(self.settings_from_input):
-            self.fit_min_data_intensity = self.settings_from_input["fit_min_data_intensity"]
+            self.fit_min_data_intensity = self.settings_from_input[
+                "fit_min_data_intensity"
+            ]
         if "fit_min_peak_intensity" in list(self.settings_from_input):
-            self.fit_min_peak_intensity = self.settings_from_input["fit_min_peak_intensity"]
+            self.fit_min_peak_intensity = self.settings_from_input[
+                "fit_min_peak_intensity"
+            ]
 
         if "AziDataPerBin" in list(self.settings_from_input):
             self.fit_per_bin = self.settings_from_input["AziDataPerBin"]
@@ -554,15 +562,14 @@ class Settings:
 
         # load the data class.
         self.data_class = detector_factory(settings_class=self)
-        
-        #set metadata after data class so can get metadata defaults from it
+
+        # set metadata after data class so can get metadata defaults from it
         self.set_output_types()
         self.set_metadata()
-        
+
         if validate == True:
             self.validate_settings_file()
             # FIXME: it needs to fail if everything is not present as needed and report what is missing
-
 
     def validate_settings_file(self):
         """
@@ -605,12 +612,11 @@ class Settings:
         if self.output_types:
             self.validate_output_types()
 
-        #if it gets to here the settings file has passed all the tests.
+        # if it gets to here the settings file has passed all the tests.
         self._unmodified_self = self._validation_copy()
 
         logger.info("End of Validation")
         logger.info("-----------------------------------------------------------------")
-
 
     def is_valid(self):
         """
@@ -633,10 +639,7 @@ class Settings:
         else:
             return False
 
-    def check_files_exist(
-        self,
-        files_to_check: list[Path] | Path
-    ):
+    def check_files_exist(self, files_to_check: list[Path] | Path):
         """
         Check if a file exists. If not issue an error
         """
@@ -652,14 +655,18 @@ class Settings:
         if len(files_to_check) == 0:
             logger.warning("There are no data files in the settings.")
         else:
-            progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
+            progress = proglog.default_bar_logger(
+                "bar"
+            )  # shorthand to generate a bar logger
             for j in progress.iter_bar(image_files=range(len(files_to_check))):
                 if not glob.glob(str(files_to_check[j])):
                     # use glob.glob for a file search to account for compund detectors of ESRFlvp detectors
                     missing_files.append(files_to_check[j])
                     missing_indicies.append(j)
                 else:
-                    logger.moreinfo(" ".join(map(str, [(f"{files_to_check[j]} exists.")])))
+                    logger.moreinfo(
+                        " ".join(map(str, [(f"{files_to_check[j]} exists.")]))
+                    )
 
             if len(missing_files) != 0:
                 if len(missing_files) <= 30:
@@ -672,7 +679,6 @@ class Settings:
                     )
             else:
                 logger.info(" ".join(map(str, [(f"{files_to_check[j]} exists.")])))
-
 
     def check_directory_exists(
         self,
@@ -689,7 +695,9 @@ class Settings:
                 )
             else:
                 os.makedirs(directory)
-                logger.info(" ".join(map(str, [(f"{directory.as_posix()!r} was created.")])))
+                logger.info(
+                    " ".join(map(str, [(f"{directory.as_posix()!r} was created.")]))
+                )
         else:
             logger.info(" ".join(map(str, [(f"{directory.as_posix()!r} exists.")])))
 
@@ -706,7 +714,6 @@ class Settings:
         report: Literal[
             "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
         ] = "INFO",
-
         peak=None,
         orders=None,
     ):
@@ -981,7 +988,6 @@ class Settings:
         report: Literal[
             "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
         ] = "INFO",
-
     ):
         """
         Checks that a set component type is valid -- i.e. it exists in PeakFunctions.
@@ -1223,7 +1229,6 @@ class Settings:
         else:
             logger.info(" ".join(map(str, [("fit_bounds appears to be correct")])))
 
-
     def set_output_types(
         self,
         out_type_list: list[str] = [],
@@ -1237,18 +1242,20 @@ class Settings:
         if out_type_list:
             self.output_types = get_output_options(out_type_list)
         elif "Output_type" in self.settings_from_input:
-            self.output_types = get_output_options(self.settings_from_input["Output_type"])
+            self.output_types = get_output_options(
+                self.settings_from_input["Output_type"]
+            )
         else:
             self.output_types = []
-            
-        # get the lists of required an optional values. 
-        # store in the settings. 
+
+        # get the lists of required an optional values.
+        # store in the settings.
         disagree = []
         required = []
         output_settings = {}
         for i in range(len(self.output_types)):
             wr = getattr(output_formatters, "Write" + self.output_types[i])
-            r,o = wr.Requirements()
+            r, o = wr.Requirements()
             # store all the required options to parse next
             required.extend(r)
             # filter optional settings in single dictionary.
@@ -1257,107 +1264,130 @@ class Settings:
                     # defaults are not in agreement
                     disagree.append(j)
                 output_settings[j] = o[j]
-        
+
         # parse output_* [old format for outputs]
         for j in output_settings:
-            if "output_"+j in self.settings_from_input:
-                output_settings[j] = self.settings_from_input["output_"+j]
-            elif "Output_"+j in self.settings_from_input:
-                output_settings[j] = self.settings_from_input["Output_"+j]
+            if "output_" + j in self.settings_from_input:
+                output_settings[j] = self.settings_from_input["output_" + j]
+            elif "Output_" + j in self.settings_from_input:
+                output_settings[j] = self.settings_from_input["Output_" + j]
             if j in disagree and j in list(self.settings_from_input):
                 disagree.remove(j)
             if j in required and j in list(self.settings_from_input):
                 required.remove(j)
         for j in required:
-            if "output_"+j in self.settings_from_input:
-                output_settings[j] = self.settings_from_input["output_"+j]
-            elif "Output_"+j in self.settings_from_input:
-                output_settings[j] = self.settings_from_input["Output_"+j]
+            if "output_" + j in self.settings_from_input:
+                output_settings[j] = self.settings_from_input["output_" + j]
+            elif "Output_" + j in self.settings_from_input:
+                output_settings[j] = self.settings_from_input["Output_" + j]
             if j in disagree and j in list(self.settings_from_input):
                 disagree.remove(j)
             if j in required and j in list(self.settings_from_input):
                 required.remove(j)
         # parse output_options dictionary [new format for outputs]
         # new style overrides old style
-        if "output_options" in [item.lower() for item in list(self.settings_from_input)]:
+        if "output_options" in [
+            item.lower() for item in list(self.settings_from_input)
+        ]:
             for key, value in self.settings_from_input["output_options"].items():
                 output_settings[key] = value
-                if key in disagree and key in list(self.settings_from_input["output_options"]):
+                if key in disagree and key in list(
+                    self.settings_from_input["output_options"]
+                ):
                     disagree.remove(key)
-                if key in required and key in list(self.settings_from_input["output_options"]):
+                if key in required and key in list(
+                    self.settings_from_input["output_options"]
+                ):
                     required.remove(key)
-            
+
             # for j in len(self.settings_from_input["output_options"]):
             #     output_settings[j] = self.settings_from_input.output_options[j]
             #     if j in disagree and j in list(self.settings_from_input.output_options):
             #         disagree.remove(j)
             #     if j in required and j in list(self.settings_from_input.output_options):
             #         required.remove(j)
-                    
+
         self.output_settings = output_settings
         if disagree:
-            logger.warning("There are conflicts between outputs for the following parameters:")
+            logger.warning(
+                "There are conflicts between outputs for the following parameters:"
+            )
             for i in range(len(disagree)):
                 logger.warning(f" {disagree[i]},")
-            logger.warning("The convlicting parameters listed above may prevent outputs being written as expected.")
+            logger.warning(
+                "The convlicting parameters listed above may prevent outputs being written as expected."
+            )
             logger.warning("These need to be changed.")
 
-            
-    def set_metadata(self,
-            report: Literal[
-                "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
-            ] = "INFO",
+    def set_metadata(
+        self,
+        report: Literal[
+            "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+        ] = "INFO",
     ):
         """
         Adds list of metadata values, required by inputs, to class.
-        
+
         Parses input file and output file requirements to confirm all requirements are present.
-        
-        Results in self.metadata which defines what data is read and stored when processing the data. 
-        
+
+        Results in self.metadata which defines what data is read and stored when processing the data.
+
         Used by data_class.get_metadata.
-        
+
         """
         # get default labels if they exist.
-        if (self.data_class and 
-            "_default_metadata_labels" in self.data_class.__dict__):
+        if self.data_class and "_default_metadata_labels" in self.data_class.__dict__:
             self.metadata_labels.update(self.data_class._default_metadata_labels)
-        # use set values - if given 
+        # use set values - if given
         if "metadata_labels" in self.settings_from_input:
             self.metadata_labels.update(self.settings_from_input["metadata_labels"])
-            
+
         # get metadata from inputs
         if "metadata" in self.settings_from_input:
             if not isinstance(self.settings_from_input["metadata"], list):
-                self.settings_from_input["metadata"] = [self.settings_from_input["metadata"]]
-            self.metadata = list(set(self.metadata + self.settings_from_input["metadata"]))
+                self.settings_from_input["metadata"] = [
+                    self.settings_from_input["metadata"]
+                ]
+            self.metadata = list(
+                set(self.metadata + self.settings_from_input["metadata"])
+            )
         # make sure values from metadata_labels are in the list
         self.metadata = list(set(self.metadata + list(self.metadata_labels.values())))
 
-        # add metadata from h5_iterate if it exists. 
+        # add metadata from h5_iterate if it exists.
         if "h5_iterate" in self.settings_from_input:
             if self.h5_iterate[-1]["do"] != "sum":
                 for i in self.h5_iterate[-1]["label"]:
                     if "/" in i:
                         self.metadata.append(i)
-        
+
         # get metadata_read_func if it exists
         if "metadata_read_func" in self.settings_from_input:
             self.metadata_read_func = self.settings_from_input["metadata_read_func"]
             # pass settings as 'self'
-            self.metadata.extend(self.metadata_read_func(self,).keys())
+            self.metadata.extend(
+                self.metadata_read_func(
+                    self,
+                ).keys()
+            )
 
-        #replace all the wildcards in the metadata.        
+        # replace all the wildcards in the metadata.
         for i in range(len(self.metadata)):
             if "*" in self.metadata[i] and "/" not in self.metadata[i]:
-                if ("metadata" not in self.data_class.__dict__ or 
-                    (self.data_class.__dict__['metadata']==None) 
-                    ):
+                if "metadata" not in self.data_class.__dict__ or (
+                    self.data_class.__dict__["metadata"] == None
+                ):
                     self.data_class.fill_data(self.image_list[0], settings=self)
-                
+
                 # add all wildard catches to metadata
-                pattern = re.compile(re.sub('[*]', '([0-9a-zA-Z-+_:]*)', self.metadata[i]))  
-                matches = [word for word in list(self.data_class.metadata) if pattern.match(word)]
+                pattern = re.compile(
+                    re.sub("[*]", "([0-9a-zA-Z-+_:]*)", self.metadata[i])
+                )
+                matches = [
+                    word
+                    for word in list(self.data_class.metadata)
+                    if pattern.match(word)
+                ]
                 for j in range(len(matches)):
                     if j == 0:
                         self.metadata[i] = matches[j]
@@ -1365,20 +1395,20 @@ class Settings:
                         self.metadata.append(matches[j])
             else:
                 pass
-        
+
         # check for wildcards (*) and remove if another metadata corresponds
         remove = []
         for i in self.metadata:
             if "*" in i:
                 regex = re.compile(i.replace("*", ".*"))
                 filtered = [
-                    item for item in self.metadata
-                    if re.match(regex, item) # Checks if each item matches the regex.
+                    item
+                    for item in self.metadata
+                    if re.match(regex, item)  # Checks if each item matches the regex.
                 ]
                 if len(filtered) == 2:
                     remove.append(i)
         self.metadata = list(set(self.metadata) - set(remove))
-        
 
     def validate_output_types(self, report=False):
         """
@@ -1398,18 +1428,18 @@ class Settings:
                     "type exists."
                 )
 
-        # get the lists of required an optional values. 
-        # store in the settings. 
+        # get the lists of required an optional values.
+        # store in the settings.
         required = []
         optional = []
         for i in range(len(self.output_types)):
             wr = getattr(output_formatters, "Write" + self.output_types[i])
-            r,o = wr.Requirements()
+            r, o = wr.Requirements()
             # store all the required options to parse next
             required.extend(r)
             optional.extend(o)
-            
-        # list missing parameters            
+
+        # list missing parameters
         required = list(set(required) - set(list(self.output_settings)))
         optional = list(set(optional) - set(list(self.output_settings)))
 
@@ -1425,7 +1455,6 @@ class Settings:
             logger.warning("These parameters need to be set in order to proceed")
         else:
             logger.info("The output settings appear to be in order")
-
 
     def set_data_files(
         self,
@@ -1513,50 +1542,56 @@ class Settings:
 
         # make new order search list
         if isinstance(search_over, list) and len(search_over) == 2:
-            search = list(range(search_over[0], search_over[1]+1))
+            search = list(range(search_over[0], search_over[1] + 1))
         else:
             search = [int(x) for x in str(search_over)]
 
-        #search series
+        # search series
         if isinstance(search_series, str):
             search_series = [search_series]
         if search_series[0] == "all":
-            search_series = [coefficient_type_as_string(0),
-                             coefficient_type_as_string(1),
-                             coefficient_type_as_string(2),
-                             coefficient_type_as_string(3)]
+            search_series = [
+                coefficient_type_as_string(0),
+                coefficient_type_as_string(1),
+                coefficient_type_as_string(2),
+                coefficient_type_as_string(3),
+            ]
 
         orders_search = []
         for i in range(len(subpatterns)):
             tmp_order = self.fit_orders[subpatterns[i]]
             for j in range(len(search_series)):
-
-                if search_peak=="all":
+                if search_peak == "all":
                     peak_search = list(range(len(tmp_order["peak"])))
                 else:
                     peak_search = [search_peak]
 
                 for l in peak_search:
-
                     for k in range(len(search)):
-
                         orders_s = deepcopy(tmp_order)
                         if "background" not in search_parameter:
-                            if search_parameter not in peak_components(full=False, include_profile=True)[1]:
-                                raise ValueError("The search_parameter is not recognised.")
-                            orders_s["peak"][peak_search[l]][search_parameter] = search[k]
-                            orders_s["peak"][peak_search[l]][search_parameter + "_type"] = (
-                                search_series[j]
-                            )
-                        else: # "background" in search_parameter:
+                            if (
+                                search_parameter
+                                not in peak_components(
+                                    full=False, include_profile=True
+                                )[1]
+                            ):
+                                raise ValueError(
+                                    "The search_parameter is not recognised."
+                                )
+                            orders_s["peak"][peak_search[l]][search_parameter] = search[
+                                k
+                            ]
+                            orders_s["peak"][peak_search[l]][
+                                search_parameter + "_type"
+                            ] = search_series[j]
+                        else:  # "background" in search_parameter:
                             if search_parameter == "background":
                                 bg_pos = 0
                             else:
-                                bg_pos = int(re.sub("background","",search_parameter))
+                                bg_pos = int(re.sub("background", "", search_parameter))
                             orders_s["background"][bg_pos] = search[k]
-                            orders_s["background" + "_type"] = (
-                                search_series[j]
-                            )
+                            orders_s["background" + "_type"] = search_series[j]
                         if len(tmp_order) > 1:
                             intro_string = "peak=" + str(peak_search[l]) + "_"
                         else:
@@ -1625,9 +1660,7 @@ class Settings:
         else:
             return False
 
-    def save_settings(
-        self, filename: str = "settings.py", filepath: Path = Path(".")
-    ):
+    def save_settings(self, filename: str = "settings.py", filepath: Path = Path(".")):
         """
         Saves the settings class or dictionary to file.
 
@@ -1644,13 +1677,11 @@ class Settings:
 
         """
 
-
         # with open(filename, 'r') as tp_file:
         #      tp_file.write(json.dumps(self.__dict__))
 
         #      # print(values_write)
         # stop
-
 
         import re
 
@@ -1658,28 +1689,29 @@ class Settings:
         template_loc = os.path.join(os.path.dirname(__file__), template_file)
 
         # get template file.
-        with open(template_loc, 'r') as tp_file:
+        with open(template_loc, "r") as tp_file:
             template = tp_file.read()
-            values_write = re.findall(r'(\$\w+)', template)
+            values_write = re.findall(r"(\$\w+)", template)
 
-        #loop over the values_write and replace with values
+        # loop over the values_write and replace with values
         # Looping also makes easier to add or remove blocks of the setting file.
         for i in range(len(values_write)):
-
             # get value to write.
             d = {}
 
             if values_write[i][1:] in self.__dict__:
                 d[values_write[i][1:]] = self.__dict__[values_write[i][1:]]
             elif values_write[i][1:] in self.settings_from_input.__dict__:
-                d[values_write[i][1:]] = self.settings_from_input.__dict__[values_write[i][1:]]
+                d[values_write[i][1:]] = self.settings_from_input.__dict__[
+                    values_write[i][1:]
+                ]
             # else:
             #     try:
             #         d[values_write[i][1:]] = Settings().__dict__[values_write[i][1:]]
             #     except:
             #         d[values_write[i][1:]] = "Pah"
 
-            #if is not an acceptale type the convert to text.
+            # if is not an acceptale type the convert to text.
             if values_write[i][1:] in d:
                 if isinstance(d[values_write[i][1:]], list):
                     # convert list to json string.
@@ -1693,31 +1725,39 @@ class Settings:
                         pass
 
                 elif isinstance(d[values_write[i][1:]], dict):
-                    #convert dictionary to formatted string.
-                    template = template.replace(values_write[i], json.dumps(d[values_write[i][1:]]))
+                    # convert dictionary to formatted string.
+                    template = template.replace(
+                        values_write[i], json.dumps(d[values_write[i][1:]])
+                    )
 
                 elif isinstance(d[values_write[i][1:]], Path):
-
-                    template = template.replace(values_write[i], f"'{str(d[values_write[i][1:]])}'")
+                    template = template.replace(
+                        values_write[i], f"'{str(d[values_write[i][1:]])}'"
+                    )
 
                 elif isinstance(d[values_write[i][1:]], str):
-                    template = template.replace(values_write[i], f"'{d[values_write[i][1:]]}'")
+                    template = template.replace(
+                        values_write[i], f"'{d[values_write[i][1:]]}'"
+                    )
                 else:
-                    template = template.replace(values_write[i], f"{d[values_write[i][1:]]}")
+                    template = template.replace(
+                        values_write[i], f"{d[values_write[i][1:]]}"
+                    )
 
-
-        #remove lines that still have $ in them.
+        # remove lines that still have $ in them.
         template = template.splitlines(True)
         # remove deadlines
         for i in range(len(template)):
-            if re.findall(r'(\$\w+)', template[i]):
+            if re.findall(r"(\$\w+)", template[i]):
                 template[i] = ""
-        #recombine
-        template = ''.join(template)
+        # recombine
+        template = "".join(template)
 
-        #write settings file
+        # write settings file
         if self.settings_file:
-            filename = make_outfile_name(self.settings_file, extension="py", overwrite=False)
+            filename = make_outfile_name(
+                self.settings_file, extension="py", overwrite=False
+            )
         fnam = filepath / filename
         with open(fnam, "w") as TempFile:
             # Write to a text or py file.
@@ -1758,7 +1798,10 @@ def detector_factory(settings_class: Settings):
         detector_class = getattr(detector, def_def)
         return detector_class(settings_class=settings_class)
     else:
-        raise ValueError(f"Unrecognized calibration type, {settings_class.calibration_type}")
+        raise ValueError(
+            f"Unrecognized calibration type, {settings_class.calibration_type}"
+        )
+
 
 def is_settings(settings):
     """
@@ -1777,6 +1820,7 @@ def is_settings(settings):
     """
     import cpf
     import cpf.settings as sttng
+
     # the different ways of importing settings seems to give differnet answers.
     # therefore have to test all of them.
     if isinstance(settings, type(Settings())) == True:
@@ -1819,7 +1863,8 @@ def is_settings(settings):
 
 def get_settings(
     settings: [str | Path | dict | Settings()],
-    **kwargs,):
+    **kwargs,
+):
     """
 
 
@@ -1844,10 +1889,12 @@ def get_settings(
 
     """
     if settings is None:
-        err_str = "Either the settings file or the parameter dictionary need to be specified."
+        err_str = (
+            "Either the settings file or the parameter dictionary need to be specified."
+        )
         logger.error(err_str)
         raise ValueError(err_str)
-    elif is_settings(settings):#isinstance(settings, type(Settings())):
+    elif is_settings(settings):  # isinstance(settings, type(Settings())):
         # the settings input are already a setttings class.
         # validate the class.
         if settings.is_empty():
@@ -1858,7 +1905,7 @@ def get_settings(
             # only validate the setttings if changed.
             settings.validate_settings_file()
             settings_class = settings
-        else: #must be populated and valid.
+        else:  # must be populated and valid.
             settings_class = settings
     else:
         # initiate a settings class.
@@ -1874,7 +1921,6 @@ def get_settings(
         settings_class.populate(settings=settings, **kwargs)
 
     return settings_class
-
 
 
 if __name__ == "__main__":

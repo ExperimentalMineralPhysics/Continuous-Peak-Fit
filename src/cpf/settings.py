@@ -26,7 +26,7 @@ from cpf.series_functions import (
     coefficient_types,
     get_number_coeff,
 )
-from cpf.util.io import image_list, json_numpy_serializer, make_outfile_name
+from cpf.util.io import image_list, make_outfile_name, numpy_to_json
 
 # , get_output_options, detector_factory, register_default_formats
 from cpf.util.logging import get_logger

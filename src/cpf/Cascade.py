@@ -57,8 +57,8 @@ from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
 from cpf.settings import Settings
 from cpf.util.io import (
     has_value,
-    json_numpy_serializer,
     make_outfile_name,
+    numpy_to_json,
     peak_string,
     title_file_names,
 )
@@ -440,7 +440,7 @@ def execute(
                     TempFile,
                     sort_keys=True,
                     indent=2,
-                    default=json_numpy_serializer,
+                    default=numpy_to_json,
                 )
 
             # if propagating the fits write them to a temporary file
@@ -453,7 +453,7 @@ def execute(
                         TempFile,
                         sort_keys=True,
                         indent=2,
-                        default=json_numpy_serializer,
+                        default=numpy_to_json,
                     )
 
     if parallel is True:

@@ -25,7 +25,7 @@ logger = get_logger("cpf.IO_functions")
 # Needed for JSON to save fitted parameters.
 # Copied from https://stackoverflow.com/questions/3488934/simplejson-and-numpy-array#24375113
 # on 13th November 2018
-def json_numpy_serializer(o):
+def numpy_to_json(o):
     """
     Serialize numpy types for json
     Parameters:
@@ -33,7 +33,7 @@ def json_numpy_serializer(o):
     Example:
         >>> import json
         >>> a = np.array([1, 2, 3])
-        >>> json.dumps(a, default=json_numpy_serializer)
+        >>> json.dumps(a, default=numpy_to_json)
     """
     numpy_types = (
         np.bool_,

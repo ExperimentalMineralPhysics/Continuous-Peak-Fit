@@ -20,8 +20,8 @@ from cpf.output_formatters.convert_fit_to_crystallographic import (
 from cpf.series_functions import series_properties
 from cpf.settings import get_settings
 from cpf.util.io import (
-    json_numpy_serializer,
     make_outfile_name,
+    numpy_to_json,
     peak_hkl,
     peak_phase,
     replace_null_terms,
@@ -97,7 +97,7 @@ def WriteFits(
             TempFile,
             sort_keys=True,
             indent=2,
-            default=json_numpy_serializer,
+            default=numpy_to_json,
         )
 
 

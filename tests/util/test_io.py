@@ -3,7 +3,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import pytest
-from cpf.util.io import has_value, json_numpy_serializer
+from cpf.util.io import has_value, numpy_to_json
 
 
 @pytest.mark.parametrize(
@@ -102,12 +102,12 @@ from cpf.util.io import has_value, json_numpy_serializer
         ),
     ),
 )
-def test_json_numpy_serializer(
+def test_numpy_to_json(
     test_params,
 ):
     # Unpack test params
     input, expected_value, expected_type = test_params
-    output = json_numpy_serializer(input)
+    output = numpy_to_json(input)
     assert output == expected_value
     assert isinstance(output, expected_type)
 

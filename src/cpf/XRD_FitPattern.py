@@ -27,8 +27,8 @@ from cpf.series_functions import get_series_mean
 from cpf.settings import Settings, get_settings, is_settings
 from cpf.util.io import (
     has_value,
-    json_numpy_serializer,
     make_outfile_name,
+    numpy_to_json,
     peak_string,
     title_file_names,
 )

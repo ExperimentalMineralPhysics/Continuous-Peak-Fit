@@ -23,8 +23,8 @@ from cpf.fitsubpattern_chunks import fit_chunks, fit_series
 from cpf.util.io import (
     any_errors_huge,
     has_value,
-    json_numpy_serializer,
     make_outfile_name,
+    numpy_to_json,
     peak_string,
 )
 from cpf.util.logging import get_logger
@@ -444,7 +444,7 @@ def fit_sub_pattern(
                             TempFile,
                             sort_keys=True,
                             indent=2,
-                            default=json_numpy_serializer,
+                            default=numpy_to_json,
                         )
 
                 # check if peak intensity is above threshold

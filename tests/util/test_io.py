@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from cpf.IO_functions import json_numpy_serializer
+from cpf.util.io import json_numpy_serializer
 
 
 @pytest.mark.parametrize(
@@ -107,3 +107,63 @@ def test_json_numpy_serializer(
     output = json_numpy_serializer(input)
     assert output == expected_value
     assert isinstance(output, expected_type)
+
+
+def test_file_list():
+    pass
+
+
+def test_image_list():
+    pass
+
+
+def test_start_stop_files_to_list():
+    pass
+
+
+def test_any_terms_null():
+    pass
+
+
+def test_replace_null_terms():
+    pass
+
+
+def test_any_errors_huge():
+    pass
+
+
+def test_peak_string():
+    pass
+
+
+def test_peak_hkl():
+    pass
+
+
+def test_peak_phase():
+    pass
+
+
+def test_title_file_names():
+    pass
+
+
+def test_make_outfile_name():
+    pass
+
+
+def test_lmfit_fix_int_data_type():
+    pass
+
+
+def test_number_to_string():
+    pass
+
+
+def test_licit_filename():
+    pass
+
+
+def test_figure_suptitle_space():
+    pass

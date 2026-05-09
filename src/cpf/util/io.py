@@ -12,7 +12,7 @@ import os
 import re
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar, overload
 
 import numpy as np
 import pandas as pd
@@ -20,6 +20,8 @@ import pandas as pd
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.IO_functions")
+
+T = TypeVar("T")
 
 
 # Needed for JSON to save fitted parameters.
@@ -517,67 +519,75 @@ def has_value(
     return is_present
 
 
-def replace_value(obj_to_inspect, val_to_find=None, index_path="", replace_with=0):
+@overload
+def replace_value(
+    obj: dict,
+    old: Any = None,
+    new: Any = 0,
+    path: str = "",
+) -> dict: ...
+
+
+@overload
+def replace_value(
+    obj: list,
+    old: Any = None,
+    new: Any = 0,
+    path: str = "",
+) -> list: ...
+
+
+@overload
+def replace_value(
+    obj: pd.DataFrame,
+    old: Any = None,
+    new: Any = 0,
+    path: str = "",
+) -> pd.DataFrame: ...
+
+
+def replace_value(
+    obj: T,
+    old: Any = None,
+    new: Any = 0,
+    path: str = "",
+) -> T:
     """
-    This function accepts a nested dictionary and list as argument
-    and iterates over all values of nested dictionaries and lists.
-    If any of the values are "Null" (or 'val_to_find') it replaces it with
-    the value in 'replace_with'
+    Recursively replaces the specified old value in a dictionary, list, or Pandas
+    DataFrame with the desired new value, and returns the updated object.
 
     Parameters
     ----------
-    obj_to_inspect : dict, list
-        Nested dictionary or list of parameters to inspect.
-    val_to_find : str, float
+    obj : dict, list, pd.DataFrame
+        Nested dictionary/list or Pandas DataFrame to inspect.
+    old : str, int, float, None
         Value or string to find in the dictionary. The default is None.
-    index_path : str
-        Index to look at in dictionary. The default is "".
-    replace_with : str, float
+    new : str, int, float, None
         Value or string to use as replacement in the dictionary.
         The default is 0.
+    path : str
+        Path taken through the dictionary/list. The default is "".
 
     Returns
     -------
-    obj_to_inspect :  dict, list
+    obj :  dict, list, pd.DataFrame
         Nested dictionary or list of parameters.
 
     """
     # copied from https://python-forum.io/thread-24856.html
     # on 26th June 2021
 
-    if isinstance(obj_to_inspect, dict):
-        for key, value in obj_to_inspect.items():
-            obj_to_inspect[key] = replace_value(
-                deepcopy(value),
-                val_to_find,
-                index_path + f"['{key}']",
-                replace_with=replace_with,
-            )
-
-    elif isinstance(obj_to_inspect, list):
-        for key, value in enumerate(obj_to_inspect):
-            obj_to_inspect[key] = replace_value(
-                deepcopy(value),
-                val_to_find,
-                index_path + f"[{key}]",
-                replace_with=replace_with,
-            )
-
-    elif isinstance(obj_to_inspect, pd.DataFrame):
+    if isinstance(obj, (dict, list)):
+        for key, value in obj.items() if isinstance(obj, dict) else enumerate(obj):
+            obj[key] = replace_value(deepcopy(value), old, new, path + f"['{key}']")
+    elif isinstance(obj, pd.DataFrame):
         # replace contents of panda data frame
-        if val_to_find is not None:
-            obj_to_inspect = obj_to_inspect.replace(val_to_find, replace_with)
-
-    elif obj_to_inspect == val_to_find:  # and val_to_find is not None:
-        obj_to_inspect = replace_with
-        logger.moreinfo(
-            " ".join(map(str, [(f"Value {val_to_find} found at {index_path}")]))
-        )
-
-    else:
-        pass  # everything is in order
-
-    return obj_to_inspect
+        old = np.nan if old is None else old
+        obj = obj.replace(old, new)
+    elif obj == old:  # and old is not None:
+        obj = new
+        logger.moreinfo(" ".join(map(str, [(f"Value {old} found at {path}")])))
+    return obj
 
 
 def any_errors_huge(obj_to_inspect, large_errors=3, any_huge=False):

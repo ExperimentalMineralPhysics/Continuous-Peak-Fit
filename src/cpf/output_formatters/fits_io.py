@@ -191,7 +191,7 @@ def ReadFits_to_list(settings, replace=True, *args, **kwargs):
     if replace:
         # keep the null terms if we want/need.
         # used for keeting errors in the previous fits
-        fits = replace_value(fits, val_to_find=None, replace_with=0)
+        fits = replace_value(fits, old=None, new=0)
     return fits, metadata
 
 

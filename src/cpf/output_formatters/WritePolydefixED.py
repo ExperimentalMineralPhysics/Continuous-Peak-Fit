@@ -422,7 +422,7 @@ def WriteOutput(
                 az = settings_class.data_class.calibration["azimuths"]
                 coef_type = sf.get_params_type(fit[x], "d", peak=y)
 
-                d_coef = replace_value(fit[x]["peak"][y]["d-space"])
+                d_coef = replace_value(fit[x]["peak"][y]["d-space"], old=None, new=0)
                 if differential_only is True:
                     d_coef[1] = 0  #
                     d_coef[2] = 0
@@ -436,7 +436,7 @@ def WriteOutput(
                 coef_type = sf.get_params_type(fit[x], "h", peak=y)
                 peak_i = sf.coefficient_expand(
                     np.array(az_used) * sym,
-                    replace_value(fit[x]["peak"][y]["height"]),
+                    replace_value(fit[x]["peak"][y]["height"], old=None, new=0),
                     coeff_type=coef_type,
                 )
                 n = -1

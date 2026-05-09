@@ -300,7 +300,7 @@ def fit_sub_pattern(
         # N.B. null values in json file are read in as None
         any_bad_vals = has_value(previous_params, val=None)
         any_bad_vals = has_huge_errors(
-            previous_params, large_errors=large_errors, any_huge=any_bad_vals
+            previous_params, min_ratio=large_errors, is_huge=any_bad_vals
         )
         if any_bad_vals == True:
             # the previous fit has problems so discard it
@@ -753,7 +753,7 @@ def fit_sub_pattern(
                     lmm.params_to_new_params(
                         master_params, orders=settings_as_class.subfit_orders
                     ),
-                    large_errors=large_errors,
+                    min_ratio=large_errors,
                 )
                 == True
             ):

@@ -17,9 +17,10 @@ from typing import Any, TypeVar, overload
 import numpy as np
 import pandas as pd
 
+import cpf.peak_functions as pf
 from cpf.util.logging import get_logger
 
-logger = get_logger("cpf.IO_functions")
+logger = get_logger("cpf.util.io")
 
 T = TypeVar("T")
 
@@ -612,109 +613,81 @@ def replace_value(
     return obj
 
 
-def has_huge_errors(obj_to_inspect, large_errors=3, any_huge=False):
+def has_huge_errors(obj: dict, min_ratio: int | float = 3, is_huge: bool = False):
     """
-    This function accepts a nested dictionary and list as argument
-    and iterates over all values of nested dictionaries and lists.
-    If any of the error values are more than scale times the fitted value it
-    flags the errors as huge
+    This function accepts a nested dictionary and list as argument and iterates over
+    all values of nested dictionaries and lists.
 
     Huge errors are flagged if:
-        1. value_err/value >= large_errors
+        1. value_err/value >= min_ratio
         2. abs(value)-value_err >= 0  (i.e. not within error of 0)
 
     Parameters
     ----------
-    obj_to_inspect : dict, list
-        Nested dictionary or list of parameters to inspect.
-    large_errors : float, optional
-        Scale factor for how big large errors are before being flagged. The default is 3.
-    any_huge : bool, optional
-        Boolian for if large errors are found. Used for iterating through nested structures.
+    obj : dict
+        Nested dictionary of parameters to inspect.
+    min_ratio : float
+        Minimum ratio for how big large errors are before being flagged. The default is 3.
+    is_huge : bool
+        Boolean for if large errors are found. Used for iterating through nested structures.
         The default is False.
 
     Returns
     -------
-    any_huge : bool
+    is_huge : bool
         True - if large errors have been found in the dicionary
         False - if no large errors are present.
 
     """
-
-    # Local import to avoid circular import errors
-    import cpf.peak_functions as pf
-
-    for k in range(len(obj_to_inspect["background"])):
-        for j in range(len(obj_to_inspect["background"][k])):
+    for k in range(len(obj["background"])):
+        for j in range(len(obj["background"][k])):
             if (
-                obj_to_inspect["background"][k][j] != 0
-                and obj_to_inspect["background"][k][j] != None
-                and obj_to_inspect["background_err"][k][j] != 0
-                and obj_to_inspect["background_err"][k][j] != None
-                and obj_to_inspect["background_err"][k][j]
-                / obj_to_inspect["background"][k][j]
-                >= large_errors
+                obj["background"][k][j] != 0
+                and obj["background"][k][j] != None
+                and obj["background_err"][k][j] != 0
+                and obj["background_err"][k][j] != None
+                and obj["background_err"][k][j] / obj["background"][k][j] >= min_ratio
             ):
-                any_huge = True
-                err_rat = (
-                    obj_to_inspect["background_err"][k][j]
-                    / obj_to_inspect["background"][k][j]
-                )
+                is_huge = True
+                err_rat = obj["background_err"][k][j] / obj["background"][k][j]
                 logger.moreinfo(
-                    " ".join(
-                        map(
-                            str,
-                            [
-                                (
-                                    f"Huge errors found in background {k}, {j}: value= {obj_to_inspect['background'][k][j]: 3.2e}; error={obj_to_inspect['background_err'][k][j]: 3.2e}; fractional error = {err_rat: 5.1f}"
-                                )
-                            ],
-                        )
-                    )
+                    f"Huge errors found in background {k}, {j}: "
+                    f"value= {obj['background'][k][j]: 3.2e}; "
+                    f"error={obj['background_err'][k][j]: 3.2e}; "
+                    f"fractional error = {err_rat: 5.1f}"
                 )
-
     comp_list, comp_names = pf.peak_components(include_profile=True)
-    for k in range(len(obj_to_inspect["peak"])):
+    for k in range(len(obj["peak"])):
         for cp in range(len(comp_list)):
             comp = comp_names[cp]
-            for j in range(len(obj_to_inspect["peak"][k][comp])):
+            for j in range(len(obj["peak"][k][comp])):
                 # check if
                 # - there is a value and an error
-                # - the error is less than "large_errors" * error
+                # - the error is less than "min_ratio" * error
                 # - the value is not within error of 0
                 #       [this is a sanity check to the preceeding check -- the ratio of error/value tends to inifinty as the
                 #         value becomes very small.]
                 #       [without this there is lots of discarding the previous fit when the profile values are close to 0]
                 if (
-                    obj_to_inspect["peak"][k][comp][j] != 0
-                    and obj_to_inspect["peak"][k][comp][j] != None
-                    and obj_to_inspect["peak"][k][comp + "_err"][j] != 0
-                    and obj_to_inspect["peak"][k][comp + "_err"][j] != None
-                    and obj_to_inspect["peak"][k][comp + "_err"][j]
-                    / obj_to_inspect["peak"][k][comp][j]
-                    >= large_errors
-                    and np.abs(obj_to_inspect["peak"][k][comp][j])
-                    - obj_to_inspect["peak"][k][comp + "_err"][j]
+                    obj["peak"][k][comp][j] != 0
+                    and obj["peak"][k][comp][j] != None
+                    and obj["peak"][k][comp + "_err"][j] != 0
+                    and obj["peak"][k][comp + "_err"][j] != None
+                    and obj["peak"][k][comp + "_err"][j] / obj["peak"][k][comp][j]
+                    >= min_ratio
+                    and np.abs(obj["peak"][k][comp][j])
+                    - obj["peak"][k][comp + "_err"][j]
                     >= 0
                 ):
-                    any_huge = True
-                    err_rat = (
-                        obj_to_inspect["peak"][k][comp + "_err"][j]
-                        / obj_to_inspect["peak"][k][comp][j]
-                    )
+                    is_huge = True
+                    err_rat = obj["peak"][k][comp + "_err"][j] / obj["peak"][k][comp][j]
                     logger.moreinfo(
-                        " ".join(
-                            map(
-                                str,
-                                [
-                                    (
-                                        f"Huge error found in peak {k}, {comp} {j}: value= {obj_to_inspect['peak'][k][comp][j]: 3.2e}; error={obj_to_inspect['peak'][k][comp+'_err'][j]: 3.2e}; fractional error = {err_rat: 5.1f}"
-                                    )
-                                ],
-                            )
-                        )
+                        f"Huge error found in peak {k}, {comp} {j}: "
+                        f"value= {obj['peak'][k][comp][j]: 3.2e}; "
+                        f"error={obj['peak'][k][comp+'_err'][j]: 3.2e}; "
+                        f"fractional error = {err_rat: 5.1f}"
                     )
-    return any_huge
+    return is_huge
 
 
 def peak_string(orders, fname=False, peak="all"):

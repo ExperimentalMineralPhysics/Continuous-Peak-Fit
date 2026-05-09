@@ -1,6 +1,9 @@
+from typing import Any
+
 import numpy as np
+import pandas as pd
 import pytest
-from cpf.util.io import json_numpy_serializer
+from cpf.util.io import has_value, json_numpy_serializer
 
 
 @pytest.mark.parametrize(
@@ -121,8 +124,215 @@ def test_get_file_keys():
     pass
 
 
-def test_any_terms_null():
-    pass
+@pytest.mark.parametrize(
+    "test_params",
+    (  # Object | Value | Expected result
+        # =============================================================================
+        # True cases (value is present)
+        # =============================================================================
+        # Flat dict
+        (
+            {
+                key: value
+                for key, value in (
+                    (0, None),
+                    (1, 1),
+                    (2, 2),
+                )
+            },
+            None,
+            True,
+        ),
+        # Nested dict
+        (
+            {
+                key: {
+                    key: value
+                    for key, value in (
+                        (0, None),
+                        (1, 1),
+                        (2, 2),
+                    )
+                }
+                for key in (0, 1, 2)
+            },
+            None,
+            True,
+        ),
+        # Very nested dict
+        (
+            {0: {0: {0: {0: None}}}},
+            None,
+            True,
+        ),
+        # Flat list
+        (
+            [i for i in range(5)] + [None],
+            None,
+            True,
+        ),
+        # Nested list
+        (
+            [([i for i in range(5)] + [None]) * 5],
+            None,
+            True,
+        ),
+        # Very nested list
+        (
+            [
+                0,
+                [
+                    0,
+                    [
+                        0,
+                        [
+                            0,
+                            [
+                                0,
+                                None,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            None,
+            True,
+        ),
+        # Pandas dataframe (None)
+        (
+            pd.DataFrame(
+                {
+                    "alpha": [1.2, np.nan, 3.4, 4.5, None],
+                    "beta": [5.1, 6.2, None, np.nan, 9.5],
+                    "gamma": [np.nan, 2.3, 3.3, None, 5.5],
+                    "delta": [7.7, 8.8, np.nan, 1.1, None],
+                    "epsilon": [None, 0.5, 1.5, np.nan, 4.4],
+                }
+            ),
+            None,
+            True,
+        ),
+        # Pandas dataframe (Nan)
+        (
+            pd.DataFrame(
+                {
+                    "alpha": [1.2, np.nan, 3.4, 4.5, None],
+                    "beta": [5.1, 6.2, None, np.nan, 9.5],
+                    "gamma": [np.nan, 2.3, 3.3, None, 5.5],
+                    "delta": [7.7, 8.8, np.nan, 1.1, None],
+                    "epsilon": [None, 0.5, 1.5, np.nan, 4.4],
+                }
+            ),
+            np.nan,
+            True,
+        ),
+        # =============================================================================
+        # False cases (value is not present)
+        # =============================================================================
+        # Flat dict
+        (
+            {
+                key: value
+                for key, value in (
+                    (0, 0),
+                    (1, 1),
+                    (2, 2),
+                )
+            },
+            None,
+            False,
+        ),
+        # Nested dict
+        (
+            {
+                key: {
+                    key: value
+                    for key, value in (
+                        (0, 0),
+                        (1, 1),
+                        (2, 2),
+                    )
+                }
+                for key in (0, 1, 2)
+            },
+            None,
+            False,
+        ),
+        # Very nested dict
+        (
+            {0: {0: {0: {0: 0}}}},
+            None,
+            False,
+        ),
+        # Flat list
+        (
+            [i for i in range(5)],
+            None,
+            False,
+        ),
+        # Nested list
+        (
+            [[i for i in range(5)] * 5],
+            None,
+            False,
+        ),
+        # Very nested list
+        (
+            [
+                0,
+                [
+                    0,
+                    [
+                        0,
+                        [
+                            0,
+                            [
+                                0,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            None,
+            False,
+        ),
+        # Pandas dataframe (None)
+        (
+            pd.DataFrame(
+                {
+                    "alpha": [i for i in range(5)],
+                    "beta": [i for i in range(5)],
+                    "gamma": [i for i in range(5)],
+                    "delta": [i for i in range(5)],
+                    "epsilon": [i for i in range(5)],
+                }
+            ),
+            None,
+            False,
+        ),
+        # Pandas dataframe (Nan)
+        (
+            pd.DataFrame(
+                {
+                    "alpha": [i for i in range(5)],
+                    "beta": [i for i in range(5)],
+                    "gamma": [i for i in range(5)],
+                    "delta": [i for i in range(5)],
+                    "epsilon": [i for i in range(5)],
+                }
+            ),
+            np.nan,
+            False,
+        ),
+    ),
+)
+def test_has_value(
+    test_params: tuple[Any, Any, bool],
+):
+    # Unpack test params
+    obj, val, result = test_params
+    # Check that the result is as expected
+    assert has_value(obj, val) == result
 
 
 def test_replace_null_terms():

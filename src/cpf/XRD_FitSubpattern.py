@@ -22,7 +22,7 @@ import cpf.series_functions as sf
 from cpf.fitsubpattern_chunks import fit_chunks, fit_series
 from cpf.util.io import (
     any_errors_huge,
-    any_terms_null,
+    has_value,
     json_numpy_serializer,
     make_outfile_name,
     peak_string,
@@ -298,7 +298,7 @@ def fit_sub_pattern(
     if previous_params:
         # check if the previous fit was 'good' i.e. constrains no 'null' values.
         # N.B. null values in json file are read in as None
-        any_bad_vals = any_terms_null(previous_params, val_to_find=None)
+        any_bad_vals = has_value(previous_params, val=None)
         any_bad_vals = any_errors_huge(
             previous_params, large_errors=large_errors, any_huge=any_bad_vals
         )
@@ -766,7 +766,7 @@ def fit_sub_pattern(
             elif (
                 fout.success is True
                 and previous_params != None
-                and any_terms_null(master_params, val_to_find=None) == True
+                and has_value(master_params, val=None) == True
             ):
                 logger.moreinfo(
                     "The fitting worked, but propagated params could have lead to rubbish fits (null values). Try again."

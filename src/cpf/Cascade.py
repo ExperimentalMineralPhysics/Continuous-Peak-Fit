@@ -56,7 +56,7 @@ from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
 from cpf.settings import Settings
 from cpf.util.io import (
-    any_terms_null,
+    has_value,
     json_numpy_serializer,
     make_outfile_name,
     peak_string,
@@ -277,7 +277,7 @@ def execute(
             # But does it need to?
             tth_range = settings_for_fit.subfit_orders["range"]
             if settings_for_fit.cascade_track is True and "previous_fit" in locals():
-                null_terms = any_terms_null(params, val_to_find=None)
+                null_terms = has_value(params, val=None)
                 if null_terms == True:
                     # the previous fit has problems so discard it
                     logger.info(

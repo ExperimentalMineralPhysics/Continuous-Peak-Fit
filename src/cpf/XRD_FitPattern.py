@@ -26,7 +26,7 @@ from cpf.output_formatters.fits_io import ReadFits_to_list, WriteFits
 from cpf.series_functions import get_series_mean
 from cpf.settings import Settings, get_settings, is_settings
 from cpf.util.io import (
-    any_terms_null,
+    has_value,
     json_numpy_serializer,
     make_outfile_name,
     peak_string,
@@ -891,7 +891,7 @@ def execute(
             # But does it need to?
             tth_range = np.array(settings_class.subfit_orders["range"])
             if settings_class.fit_track is True and "previous_fit" in locals():
-                null_terms = any_terms_null(params, val_to_find=None)
+                null_terms = has_value(params, val=None)
                 if null_terms == True:
                     # the previous fit has problems so discard it
                     logger.moreinfo(  # type: ignore

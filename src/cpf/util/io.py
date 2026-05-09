@@ -12,6 +12,7 @@ import os
 import re
 from copy import deepcopy
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -463,61 +464,57 @@ def get_file_keys(
     return file_key_list, len(file_key_list)
 
 
-def any_terms_null(obj_to_inspect, val_to_find=None, index_path="", any_null=False):
+def has_value(
+    obj: dict | list | pd.DataFrame | str | int | float,
+    val: str | int | float | None = None,
+    path: str = "",
+    is_present: bool = False,
+):
     """
-    This function accepts a nested dictionary and list as argument
-    and iterates over all values of nested dictionaries and lists.
-    If any of the values are "Null" (or 'val_to_find') it returns True
+    This function recursively searches through lists, dictionaries, and
+    Pandas DataFrames for the specified value ("None" by default) and
+    returns True if any are detected.
 
     Parameters
     ----------
-    obj_to_inspect : dict, list
+    obj : dict, list, pd.DataFrame, str, int, float
         Nested dictionary or list of parameters to inspect.
-    val_to_find : str, float
+    val : str, int, float, optional
         Value or string to find in the dictionary. The default is None.
-    index_path : str
-        Index to look at in dictionary. The default is "".
-    any_null : bool, optional
-        Boolian for if 'val_to_find' are in dictionary. Used for iterating through nested structures.
+    path : str
+        Path taken through the dictionary/list. The default is "".
+    is_present : bool
+        Boolian for if 'val' are in dictionary. Used for iterating through nested structures.
         The default is False.
-
 
     Returns
     -------
-    any_null : bool
-        True - if any instances of 'val_to_find' have been found in the dicionary
-        False - if 'val_to_find' is not in dictionary.
+    is_present : bool
+        True - if any instances of 'val' have been found in the dicionary
+        False - if 'val' is not in dictionary.
 
     """
     # copied from https://python-forum.io/thread-24856.html
     # on 26th June 2021
-    if isinstance(obj_to_inspect, dict):
-        for key, value in obj_to_inspect.items():
-            any_null = any_terms_null(
-                value, val_to_find, index_path + f"['{key}']", any_null=any_null
-            )
-
-    elif isinstance(obj_to_inspect, list):
-        for key, value in enumerate(obj_to_inspect):
-            any_null = any_terms_null(
-                value, val_to_find, index_path + f"[{key}]", any_null=any_null
-            )
-
-    elif isinstance(obj_to_inspect, pd.DataFrame):
-        # look indata frame for values
-        tf = (obj_to_inspect.values == val_to_find).any()
-        any_null = tf or any_null
-
-    elif obj_to_inspect == val_to_find:
-        any_null = True
-        logger.moreinfo(
-            " ".join(map(str, [(f"Value {val_to_find} found at {index_path}")]))
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if is_present := has_value(value, val, path + f"['{key}']", is_present):
+                break  # Stop once one is found
+    elif isinstance(obj, list):
+        for key, value in enumerate(obj):
+            if is_present := has_value(value, val, path + f"[{key}]", is_present):
+                break  # Stop once one is found
+    elif isinstance(obj, pd.DataFrame):
+        # Look in DataFrame for values
+        is_present = (
+            bool((obj.isna() if pd.isna(val) else obj.eq(val)).any().any())
+            or is_present
         )
+    elif obj == val:
+        is_present = True
+        logger.moreinfo(" ".join(map(str, [(f"Value {val} found at {path}")])))
         # could be verbose if verbose logger.
-    else:
-        pass  # all seems in order
-
-    return any_null
+    return is_present
 
 
 def replace_null_terms(obj_to_inspect, val_to_find=None, index_path="", replace_with=0):

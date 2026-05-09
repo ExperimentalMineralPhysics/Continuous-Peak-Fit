@@ -466,9 +466,36 @@ def get_file_keys(
     return file_key_list, len(file_key_list)
 
 
+@overload
 def has_value(
-    obj: dict | list | pd.DataFrame | str | int | float,
+    obj: dict,
     val: str | int | float | None = None,
+    path: str = "",
+    is_present: bool = False,
+) -> bool: ...
+
+
+@overload
+def has_value(
+    obj: list,
+    val: str | int | float | None = None,
+    path: str = "",
+    is_present: bool = False,
+) -> bool: ...
+
+
+@overload
+def has_value(
+    obj: pd.DataFrame,
+    val: str | int | float | None = None,
+    path: str = "",
+    is_present: bool = False,
+) -> bool: ...
+
+
+def has_value(
+    obj: Any,
+    val: Any = None,
     path: str = "",
     is_present: bool = False,
 ):
@@ -479,14 +506,14 @@ def has_value(
 
     Parameters
     ----------
-    obj : dict, list, pd.DataFrame, str, int, float
-        Nested dictionary or list of parameters to inspect.
-    val : str, int, float, optional
+    obj : dict, list, pd.DataFrame
+        Nested dictionary/list of parameters or Pandas DataFrame to inspect.
+    val : str, int, float, None
         Value or string to find in the dictionary. The default is None.
     path : str
         Path taken through the dictionary/list. The default is "".
     is_present : bool
-        Boolian for if 'val' are in dictionary. Used for iterating through nested structures.
+        Boolean for if 'val' are in dictionary. Used for iterating through nested structures.
         The default is False.
 
     Returns
@@ -522,8 +549,8 @@ def has_value(
 @overload
 def replace_value(
     obj: dict,
-    old: Any = None,
-    new: Any = 0,
+    old: str | int | float | None = None,
+    new: str | int | float | None = 0,
     path: str = "",
 ) -> dict: ...
 
@@ -531,8 +558,8 @@ def replace_value(
 @overload
 def replace_value(
     obj: list,
-    old: Any = None,
-    new: Any = 0,
+    old: str | int | float | None = None,
+    new: str | int | float | None = 0,
     path: str = "",
 ) -> list: ...
 
@@ -540,8 +567,8 @@ def replace_value(
 @overload
 def replace_value(
     obj: pd.DataFrame,
-    old: Any = None,
-    new: Any = 0,
+    old: str | int | float | None = None,
+    new: str | int | float | None = 0,
     path: str = "",
 ) -> pd.DataFrame: ...
 

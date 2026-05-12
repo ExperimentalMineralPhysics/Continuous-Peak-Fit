@@ -357,8 +357,8 @@ def ReadFits_to_dataframe(
     headers.append("phase")
     headers.append("peak")
     # add metadata to list
-    if settings.metadata:
-        for i in settings.metadata:
+    if settings_class.metadata:
+        for i in settings_class.metadata:
             headers.append(i)
     headers.append("range_start")
     headers.append("range_end")

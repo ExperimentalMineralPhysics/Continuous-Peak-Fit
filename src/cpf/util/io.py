@@ -874,33 +874,45 @@ def peak_hkl(
 
 def peak_phase(orders, peak="all"):
     """
-    :param orders: list of peak orders which should include peak names/hkls
-    :param string: switch indicting if the output is a string or numeric list of hkl.
-    :param peak: switch to add restricted peaks to the output string
-    :return: string or list of peak hkl.
+    Parameters
+    ----------
+    orders: dict[str, list[dict[str, int | str]]]
+        A nested dictionary containing information about the peaks to be fitted and
+        how to go about fitting them.
+        The "peak" key contains a list of dictionaries of the individual peaks to be
+        fitted. The dictionaries in turn should contain the 'phase' key, which holds
+        the name of the phase/material this peak belongs to.
+    peak: int | list[int] | str | Literal['all']
+        The peaks extract the hkl peaks from. Takes an integer, a list of integers,
+        a string of comma-separated numbers, or 'all'. The default is 'all'.
+
+    Returns
+    -------
+    out: list[str]
+       The list of phase names for the selected peaks.
     """
-    # possible hkl input formats:
-    #   string -- hkls as a string, generally used for hkls with leading 0 or negative hkl indicy
-    #   int -- hkls all positive and no leading 0
-    #   list -- e.g. [h,k,l]. New format.
-    # desired outputs:
-    #   string -- hkls as a string using String==True
-    #   list -- e.g. [h,k,l]. New format. using String==False
-
+    # Convert input into a list of integers
     if peak == "all":
-        peek = list(range(len(orders["peak"])))
-    elif not isinstance(peak, list):
-        peek = [int(x) for x in str(peak)]
+        peaks = list(range(len(orders["peak"])))
+    elif isinstance(peak, str) and re.fullmatch(r"[0-9,\s]+", peak):
+        peaks = [int(x_strip) for x in peak.split(",") if (x_strip := x.strip())]
+    elif isinstance(peak, int):
+        peaks = [peak]
+    elif isinstance(peak, list) and all(isinstance(x, int) for x in peak):
+        peaks = peak
     else:
-        peek = peak
-
-    out = []
-    for x in peek:
+        raise TypeError(
+            f"'peak' received an unsupported value: {peak} "
+            "It must be 'all', a string of comma-separated numbers, "
+            "or a list of integers"
+        )
+    # Load names of specified phases, with a fallback to 'Unknown'
+    out: list[str] = []
+    for x in peaks:
         if "phase" in orders["peak"][x]:
             out.append(orders["peak"][x]["phase"])
         else:
             out.append("Unknown")
-
     return out
 
 

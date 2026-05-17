@@ -3,7 +3,7 @@ from typing import Any, TypeVar
 import numpy as np
 import pandas as pd
 import pytest
-from cpf.util.io import has_value, numpy_to_json, replace_value
+from cpf.util.io import has_value, numpy_to_json, peak_string, replace_value
 
 T = TypeVar("T", dict, list, pd.DataFrame)
 
@@ -504,8 +504,156 @@ def test_has_huge_errors():
     pass
 
 
-def test_peak_string():
-    pass
+@pytest.mark.parametrize(
+    "test_params",
+    (  # Fit order | Use file name? | Peak | Expected output
+        (
+            {
+                "peak": [
+                    {
+                        "phase": "Other",
+                        "hkl": "000",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                        "hkl": 110,
+                    },
+                ],
+            },
+            False,
+            "all",
+            "Other (000) & Fe-BCC (110)",
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "phase": "Fe-BCC",
+                        "hkl": "110",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                        "hkl": "220",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                        "hkl": "330",
+                    },
+                ]
+            },
+            True,
+            "all",
+            "Fe-BCC-110_Fe-BCC-220_Fe-BCC-330",
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "phase": "Fe-BCC",
+                        "hkl": "110",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                        "hkl": "220",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                        "hkl": "330",
+                    },
+                ]
+            },
+            False,
+            0,
+            "Fe-BCC (110)",
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "phase": "Fe-BCC",
+                        "hkl": "110",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                        "hkl": "220",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                        "hkl": "330",
+                    },
+                ]
+            },
+            True,
+            [0, 1],
+            "Fe-BCC-110_Fe-BCC-220",
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "phase": "Fe-BCC",
+                        "hkl": "110",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                        "hkl": "220",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                        "hkl": "330",
+                    },
+                ]
+            },
+            False,
+            "1,2,",
+            "Fe-BCC (220) & Fe-BCC (330)",
+        ),
+        # If 'phase' key is absent
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": "110",
+                    },
+                    {
+                        "hkl": "220",
+                    },
+                    {
+                        "hkl": "330",
+                    },
+                ]
+            },
+            False,
+            "1,2",
+            "Peak (220) & Peak (330)",
+        ),
+        # If 'hkl' key is absent
+        (
+            {
+                "peak": [
+                    {
+                        "phase": "Fe-BCC",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                    },
+                ]
+            },
+            False,
+            "1,2",
+            "Fe-BCC (2) & Fe-BCC (3)",
+        ),
+    ),
+)
+def test_peak_string(
+    test_params: tuple[dict[str, Any], bool, str | int | list[int], str],
+):
+    # Unpack the test params
+    fit_order, as_filename, peak, output = test_params
+    assert peak_string(fit_order, peak=peak, fname=as_filename) == output
 
 
 def test_peak_hkl():

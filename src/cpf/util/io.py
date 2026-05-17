@@ -698,13 +698,13 @@ def peak_string(orders, fname=False, peak="all"):
     :return: string listing peak names
     """
     if peak == "all":
-        peek = list(range(len(orders["peak"])))
+        peaks = list(range(len(orders["peak"])))
     elif not isinstance(peak, list):
-        peek = [int(x) for x in str(peak)]
+        peaks = [int(x) for x in str(peak)]
     else:
-        peek = peak
+        peaks = peak
     p_str = ""
-    for x in peek:
+    for x in peaks:
         if "phase" in orders["peak"][x]:
             # p_str = p_str + orders["peak"][x]["phase"]
             p_str = p_str + peak_phase(orders, peak=x)[0]

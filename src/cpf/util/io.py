@@ -700,8 +700,12 @@ def peak_string(
     ----------
     orders: dict[str, list[dict[str, int | str]]]
         A nested dictionary containing information about the peaks to be fitted and
-        how to go about fitting them. The "peak" key contains a list of dictionaries
-        of the individual peaks to be fitted.
+        how to go about fitting them.
+        The "peak" key contains a list of dictionaries of the individual peaks to be
+        fitted. The dictionaries in turn should contain the 'hkl' key, which holds
+        the Miller indices in the form of a string or an integer array, as well as
+        the 'phase' key, which contains information about which material this peak
+        belongs to.
     peak: int | list[int] | str | Literal['all']
         The peaks to use to generate the peak string with. Takes an integer, a list of
         integers, a string of comma-separated numbers, or 'all'. The default is 'all'.
@@ -733,7 +737,7 @@ def peak_string(
     # Raise a TypeError otherwise
     else:
         raise TypeError(
-            f"'peak' received and unsupported value: {peak} "
+            f"'peak' received an unsupported value: {peak} "
             "It must be 'all', a string of comma-separated numbers, "
             "or a list of integers"
         )
@@ -743,7 +747,7 @@ def peak_string(
     for n, x in enumerate(peaks):
         # Determine name of peak from 'phase' key; fall back to using 'Peak'
         if "phase" in orders["peak"][x]:
-            p_str = p_str + peak_phase(orders, peak=x)[0]
+            p_str = p_str + str(peak_phase(orders, peak=x)[0])
         else:
             p_str = p_str + "Peak"
         # Encase indices in brackets if it's human-readable
@@ -753,7 +757,7 @@ def peak_string(
             p_str = p_str + "-"
         # Use Miller indices if 'hkl' key is present; fall back to auto-incrementing
         if "hkl" in orders["peak"][x]:
-            p_str = p_str + peak_hkl(orders, peak=x, string=True)[0]
+            p_str = p_str + str(peak_hkl(orders, peak=x, string=True)[0])
         else:
             p_str = p_str + str(x + 1)
         # Close the bracket if it's human-readable
@@ -768,46 +772,68 @@ def peak_string(
     return p_str
 
 
-def peak_hkl(orders, peak="all", string=True):
+def peak_hkl(
+    orders: dict[str, Any],
+    peak: int | list[int] | str | Literal["all"] = "all",
+    string: bool = True,
+) -> list[str | list[int]]:
     """
-    :param orders: list of peak orders which should include peak names/hkls
-    :param string: switch indicting if the output is a string or numeric list of hkl.
-    :param peak: switch to add restricted peaks to the output string
-    :return: string or list of peak hkl.
-    """
-    # possible hkl input formats:
-    #   string -- hkls as a string, generally used for hkls with leading 0 or negative hkl indicy
-    #   int -- hkls all positive and no leading 0
-    #   list -- e.g. [h,k,l]. New format.
-    # desired outputs:
-    #   string -- hkls as a string using String==True
-    #   list -- e.g. [h,k,l]. New format. using String==False
+    Parameters
+    ----------
+    orders: dict[str, list[dict[str, int | str]]]
+        A nested dictionary containing information about the peaks to be fitted and
+        how to go about fitting them.
+        The "peak" key contains a list of dictionaries of the individual peaks to be
+        fitted. The dictionaries in turn should contain the 'hkl' key, which holds
+        the Miller indices in the form of a string or an integer array.
+    peak: int | list[int] | str | Literal['all']
+        The peaks extract the hkl peaks from. Takes an integer, a list of integers,
+        a string of comma-separated numbers, or 'all'. The default is 'all'.
+    string: bool
+        Toggle whether to return the the Miller indices as a string or an array.
 
+    Returns
+    -------
+    out: list[str | list[int]]
+       The list of peaks selected, stored as either a list of strings or a list of
+       integer arrays.
+    """
+    # Construct list of peaks to parse
     if peak == "all":
-        peek = list(range(len(orders["peak"])))
-    elif not isinstance(peak, list):
-        peek = [int(x) for x in str(peak)]
+        peaks = list(range(len(orders["peak"])))
+    elif isinstance(peak, str) and re.fullmatch(r"[0-9,\s]+", peak):
+        peaks = [int(x_strip) for x in peak.split(",") if (x_strip := x.strip())]
+    elif isinstance(peak, int):
+        peaks = [peak]
+    elif isinstance(peak, list) and all(isinstance(x, int) for x in peak):
+        peaks = peak
     else:
-        peek = peak
+        raise TypeError(
+            f"'peak' received an unsupported value: {peak} "
+            "It must be 'all', a string of comma-separated numbers, "
+            "or a list of integers"
+        )
 
-    out = []
-    for x in peek:
+    out: list[str | list[int]] = []
+    for x in peaks:
+        # Handle 0 and if no 'hkl' key is found
         if "hkl" in orders["peak"][x]:
             hkl = orders["peak"][x]["hkl"]
             if hkl == "0" or hkl == 0:
                 hkl = "000"
         else:
             hkl = "000"
-
+        # Convert peaks into strings
         if not isinstance(hkl, list) and string == True:
             # string in, string out
             out.append(str(hkl))
         elif isinstance(hkl, list) and string == True:
             # convert numbers to string
-            out_tmp = ""
+            hkl_string = ""
             for y in range(len(hkl)):
-                out_tmp = out_tmp + str(hkl[y])
-            out.append(out_tmp)
+                hkl_string = hkl_string + str(hkl[y])
+            out.append(hkl_string)
+        # Convert peaks into list of integers
         elif isinstance(hkl, list) and string == False:
             # list in, list out
             out.append(hkl)
@@ -833,7 +859,7 @@ def peak_hkl(orders, peak="all", string=True):
             else:
                 l = hkl[pos : pos + 1]
                 pos = pos + 1
-            out_tmp = [int(h), int(k), int(l)]
+            hkl_list = [int(h), int(k), int(l)]
             if len(hkl) > pos:
                 if hkl[pos] == "-":
                     m = hkl[pos : pos + 2]
@@ -841,9 +867,8 @@ def peak_hkl(orders, peak="all", string=True):
                 else:
                     m = hkl[pos : pos + 1]
                     pos = pos + 1
-                out_tmp.append(int(m))
-            out.append(out_tmp)
-
+                hkl_list.append(int(m))
+            out.append(hkl_list)
     return out
 
 

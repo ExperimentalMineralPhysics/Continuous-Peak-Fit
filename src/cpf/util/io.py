@@ -12,7 +12,7 @@ import os
 import re
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, TypeVar, overload
+from typing import Any, Literal, TypeVar, overload
 
 import numpy as np
 import pandas as pd
@@ -690,39 +690,77 @@ def has_huge_errors(obj: dict, min_ratio: int | float = 3, is_huge: bool = False
     return is_huge
 
 
-def peak_string(orders, fname=False, peak="all"):
+def peak_string(
+    orders: dict[str, Any],
+    peak: int | list[int] | str | Literal["all"] = "all",
+    fname=False,
+):
     """
-    :param orders: list of peak orders which should include peak names/hkls
-    :param fname: switch indicting if the string is to be a file name or not.
-    :param peak: switch to add restricted peaks to the output string
-    :return: string listing peak names
+    Parameters
+    ----------
+    orders: dict[str, list[dict[str, int | str]]]
+        A nested dictionary containing information about the peaks to be fitted and
+        how to go about fitting them. The "peak" key contains a list of dictionaries
+        of the individual peaks to be fitted.
+    peak: int | list[int] | str | Literal['all']
+        The peaks to use to generate the peak string with. Takes an integer, a list of
+        integers, a string of comma-separated numbers, or 'all'. The default is 'all'.
+    fname: bool
+        Toggle whether to construct a file name-compatible or human-readable string.
+        If true, peak indices will be placed in parentheses (e.g. Peak (110)), whereas
+        they will be written as 'Peak-110_' if it's set to False).
+        The default is False.
+
+    Returns
+    -------
+    p_str: str
+        A string listing the peaks processed by the function. They take the format
+        "Peak (110) & Peak (220) & ..." if 'fname' is set to False, and are returned
+        as "Peak-110_Peak-220_..." if 'fname' is True.
     """
+    # Construct list of indices to parse
     if peak == "all":
         peaks = list(range(len(orders["peak"])))
-    elif not isinstance(peak, list):
-        peaks = [int(x) for x in str(peak)]
-    else:
+    # If a string of comma-separated integers is provided
+    elif isinstance(peak, str) and re.fullmatch(r"[0-9,\s]+", peak):
+        peaks = [int(x_strip) for x in peak.split(",") if (x_strip := x.strip())]
+    # If an int was provided
+    elif isinstance(peak, int):
+        peaks = [peak]
+    # If a list of ints is provided
+    elif isinstance(peak, list) and all(isinstance(x, int) for x in peak):
         peaks = peak
+    # Raise a TypeError otherwise
+    else:
+        raise TypeError(
+            f"'peak' received and unsupported value: {peak} "
+            "It must be 'all', a string of comma-separated numbers, "
+            "or a list of integers"
+        )
+
+    # Construct peak string
     p_str = ""
-    for x in peaks:
+    for n, x in enumerate(peaks):
+        # Determine name of peak from 'phase' key; fall back to using 'Peak'
         if "phase" in orders["peak"][x]:
-            # p_str = p_str + orders["peak"][x]["phase"]
             p_str = p_str + peak_phase(orders, peak=x)[0]
         else:
             p_str = p_str + "Peak"
+        # Encase indices in brackets if it's human-readable
         if fname is False:
             p_str = p_str + " ("
         else:
             p_str = p_str + "-"
+        # Use Miller indices if 'hkl' key is present; fall back to auto-incrementing
         if "hkl" in orders["peak"][x]:
-            # p_str = p_str + str(orders["peak"][x]["hkl"])
             p_str = p_str + peak_hkl(orders, peak=x, string=True)[0]
         else:
             p_str = p_str + str(x + 1)
+        # Close the bracket if it's human-readable
         if fname is False:
             p_str = p_str + ")"
-
-        if peak == "all" and x < len(orders["peak"]) - 1 and len(orders["peak"]) > 1:
+        # Separate peaks using either '&' if human-readable or '_'
+        if len(peaks) > 1 and n < len(peaks) - 1:
             if fname is False:
                 p_str = p_str + " & "
             else:

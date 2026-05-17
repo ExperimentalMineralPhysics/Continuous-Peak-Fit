@@ -3,7 +3,7 @@ from typing import Any, TypeVar
 import numpy as np
 import pandas as pd
 import pytest
-from cpf.util.io import has_value, numpy_to_json, peak_string, replace_value
+from cpf.util.io import has_value, numpy_to_json, peak_hkl, peak_string, replace_value
 
 T = TypeVar("T", dict, list, pd.DataFrame)
 
@@ -656,8 +656,218 @@ def test_peak_string(
     assert peak_string(fit_order, peak=peak, fname=as_filename) == output
 
 
-def test_peak_hkl():
-    pass
+@pytest.mark.parametrize(
+    "test_params",
+    (  # Fit order | Peak | As a string? | Expected output
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": "110",
+                    },
+                    {
+                        "hkl": "220",
+                    },
+                    {
+                        "hkl": "330",
+                    },
+                ]
+            },
+            "all",
+            True,
+            ["110", "220", "330"],
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": "110",
+                    },
+                    {
+                        "hkl": "220",
+                    },
+                    {
+                        "hkl": "330",
+                    },
+                ]
+            },
+            "all",
+            False,
+            [[1, 1, 0], [2, 2, 0], [3, 3, 0]],
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": "-1-10",
+                    },
+                    {
+                        "hkl": "220",
+                    },
+                    {
+                        "hkl": "-3-30",
+                    },
+                ]
+            },
+            "all",
+            True,
+            ["-1-10", "220", "-3-30"],
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": [1, 1, 0],
+                    },
+                    {
+                        "hkl": [2, 2, 0],
+                    },
+                    {
+                        "hkl": [3, 3, 0],
+                    },
+                ]
+            },
+            "all",
+            False,
+            [[1, 1, 0], [2, 2, 0], [3, 3, 0]],
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": [-1, -1, 0],
+                    },
+                    {
+                        "hkl": [2, 2, 0],
+                    },
+                    {
+                        "hkl": [-3, -3, 0],
+                    },
+                ]
+            },
+            "all",
+            True,
+            ["-1-10", "220", "-3-30"],
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": "-1-10",
+                    },
+                    {
+                        "hkl": "220",
+                    },
+                    {
+                        "hkl": "-3-30",
+                    },
+                ]
+            },
+            "all",
+            False,
+            [[-1, -1, 0], [2, 2, 0], [-3, -3, 0]],
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": "110",
+                    },
+                    {
+                        "hkl": "220",
+                    },
+                    {
+                        "hkl": "330",
+                    },
+                ]
+            },
+            "0,1",
+            True,
+            ["110", "220"],
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": "110",
+                    },
+                    {
+                        "hkl": "220",
+                    },
+                    {
+                        "hkl": "330",
+                    },
+                ]
+            },
+            [1, 2],
+            False,
+            [[2, 2, 0], [3, 3, 0]],
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": "-1-10",
+                    },
+                    {
+                        "hkl": "220",
+                    },
+                    {
+                        "hkl": "-3-30",
+                    },
+                ]
+            },
+            0,
+            False,
+            [[-1, -1, 0]],
+        ),
+        # If no 'hkl' key is provided
+        (
+            {
+                "peak": [
+                    {
+                        "phase": "Fe-BCC",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                    },
+                ]
+            },
+            [1, 2],
+            False,
+            [[0, 0, 0], [0, 0, 0]],
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "phase": "Fe-BCC",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                    },
+                    {
+                        "phase": "Fe-BCC",
+                    },
+                ]
+            },
+            [1, 2],
+            True,
+            ["000", "000"],
+        ),
+    ),
+)
+def test_peak_hkl(
+    test_params: tuple[
+        dict[str, Any], str | int | list[int], bool, list[str | list[int]]
+    ],
+):
+    # Unpack test params
+    orders, peak, as_string, output = test_params
+    assert output == peak_hkl(orders, peak=peak, string=as_string)
 
 
 def test_peak_phase():

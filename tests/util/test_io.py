@@ -3,7 +3,14 @@ from typing import Any, TypeVar
 import numpy as np
 import pandas as pd
 import pytest
-from cpf.util.io import has_value, numpy_to_json, peak_hkl, peak_string, replace_value
+from cpf.util.io import (
+    has_value,
+    numpy_to_json,
+    peak_hkl,
+    peak_phase,
+    peak_string,
+    replace_value,
+)
 
 T = TypeVar("T", dict, list, pd.DataFrame)
 
@@ -870,8 +877,72 @@ def test_peak_hkl(
     assert output == peak_hkl(orders, peak=peak, string=as_string)
 
 
-def test_peak_phase():
-    pass
+@pytest.mark.parametrize(
+    "test_params",
+    (  # Orders | Peak to analyse | Expected output
+        (
+            {
+                "peak": [
+                    {"phase": "Fe-BCC"},
+                    {"phase": "CaO-FCC"},
+                    {"phase": "Cr-BCC"},
+                ],
+            },
+            "all",
+            ["Fe-BCC", "CaO-FCC", "Cr-BCC"],
+        ),
+        (
+            {
+                "peak": [
+                    {"phase": "Fe-BCC"},
+                    {"phase": "CaO-FCC"},
+                    {"phase": "Cr-BCC"},
+                ],
+            },
+            0,
+            ["Fe-BCC"],
+        ),
+        (
+            {
+                "peak": [
+                    {"phase": "Fe-BCC"},
+                    {"phase": "CaO-FCC"},
+                    {"phase": "Cr-BCC"},
+                ],
+            },
+            [0, 1],
+            ["Fe-BCC", "CaO-FCC"],
+        ),
+        (
+            {
+                "peak": [
+                    {"phase": "Fe-BCC"},
+                    {"phase": "CaO-FCC"},
+                    {"phase": "Cr-BCC"},
+                ],
+            },
+            "0,1,2",
+            ["Fe-BCC", "CaO-FCC", "Cr-BCC"],
+        ),
+        (
+            {
+                "peak": [
+                    {"hkl": "110"},
+                    {"hkl": "220"},
+                    {"hkl": "330"},
+                ],
+            },
+            "all",
+            ["Unknown", "Unknown", "Unknown"],
+        ),
+    ),
+)
+def test_peak_phase(
+    test_params: tuple[dict[str, Any], str | int | list[int], list[str]],
+):
+    # Unpack test params
+    orders, peak, output = test_params
+    assert peak_phase(orders, peak) == output
 
 
 def test_title_file_names():

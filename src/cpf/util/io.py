@@ -692,7 +692,7 @@ def has_huge_errors(obj: dict, min_ratio: int | float = 3, is_huge: bool = False
 
 def peak_string(
     orders: dict[str, Any],
-    peak: int | list[int] | str | Literal["all"] = "all",
+    peak: int | list[int] | Literal["all"] = "all",
     fname=False,
 ):
     """
@@ -707,8 +707,8 @@ def peak_string(
         the 'phase' key, which contains information about which material this peak
         belongs to.
     peak: int | list[int] | str | Literal['all']
-        The peaks to use to generate the peak string with. Takes an integer, a list of
-        integers, a string of comma-separated numbers, or 'all'. The default is 'all'.
+        Indices of the peak descriptors to use to generate the peak string with.
+        Takes an integer, a list of integers, or 'all'. The default is 'all'.
     fname: bool
         Toggle whether to construct a file name-compatible or human-readable string.
         If true, peak indices will be placed in parentheses (e.g. Peak (110)), whereas
@@ -725,9 +725,6 @@ def peak_string(
     # Construct list of indices to parse
     if peak == "all":
         peaks = list(range(len(orders["peak"])))
-    # If a string of comma-separated integers is provided
-    elif isinstance(peak, str) and re.fullmatch(r"[0-9,\s]+", peak):
-        peaks = [int(x_strip) for x in peak.split(",") if (x_strip := x.strip())]
     # If an int was provided
     elif isinstance(peak, int):
         peaks = [peak]
@@ -738,8 +735,7 @@ def peak_string(
     else:
         raise TypeError(
             f"'peak' received an unsupported value: {peak} "
-            "It must be 'all', a string of comma-separated numbers, "
-            "or a list of integers"
+            "It must be 'all', an integer, or a list of integers. "
         )
 
     # Construct peak string
@@ -757,7 +753,7 @@ def peak_string(
             p_str = p_str + "-"
         # Use Miller indices if 'hkl' key is present; fall back to auto-incrementing
         if "hkl" in orders["peak"][x]:
-            p_str = p_str + str(peak_hkl(orders, peak=x, string=True)[0])
+            p_str = p_str + str(peak_hkl(orders, peak=x, as_string=True)[0])
         else:
             p_str = p_str + str(x + 1)
         # Close the bracket if it's human-readable
@@ -774,10 +770,25 @@ def peak_string(
 
 def peak_hkl(
     orders: dict[str, Any],
-    peak: int | list[int] | str | Literal["all"] = "all",
-    string: bool = True,
+    peak: int | list[int] | Literal["all"] = "all",
+    as_string: bool = True,
 ) -> list[str | list[int]]:
     """
+    Takes the values stored under the 'hkl' keys in the desired peak descriptors (which
+    are stored as a list of dictionaries under the 'peak' key in 'fit_orders') and
+    returns them as a list of Miller indices. If 'as_string' is True, the indices are
+    returned as filename-friendly strings. Otherwise, they are integer arrays.
+
+    Possible data types stored in 'hkl':
+    * string -- hkls are stored as a string. Generally used for indices with a leading
+    0 or with negative indices. E.g. "-110", "001"
+    * int --  hkls are all positive, with no leading 0. E.g. 100, 200
+    * list -- hkls are stored as a list of ints. E.g. [-1, 1, 0]
+
+    Possible outputs:
+    * string -- Contents of the returned list are strings. E.g. ["-110", "220"]
+    * list -- Contents of the list are integer arrays. E.g. [[1, 1, 0], ...]
+
     Parameters
     ----------
     orders: dict[str, list[dict[str, int | str]]]
@@ -786,11 +797,11 @@ def peak_hkl(
         The "peak" key contains a list of dictionaries of the individual peaks to be
         fitted. The dictionaries in turn should contain the 'hkl' key, which holds
         the Miller indices in the form of a string or an integer array.
-    peak: int | list[int] | str | Literal['all']
-        The peaks extract the hkl peaks from. Takes an integer, a list of integers,
-        a string of comma-separated numbers, or 'all'. The default is 'all'.
-    string: bool
-        Toggle whether to return the the Miller indices as a string or an array.
+    peak: int | list[int] | Literal['all']
+        Indices of the peak descriptors to extract the hkl peaks from. Takes an
+        integer, a list of integers, or 'all'. The default is 'all'.
+    as_string: bool
+        Toggle whether to return the Miller indices as a string or a list of integers.
 
     Returns
     -------
@@ -801,8 +812,6 @@ def peak_hkl(
     # Construct list of peaks to parse
     if peak == "all":
         peaks = list(range(len(orders["peak"])))
-    elif isinstance(peak, str) and re.fullmatch(r"[0-9,\s]+", peak):
-        peaks = [int(x_strip) for x in peak.split(",") if (x_strip := x.strip())]
     elif isinstance(peak, int):
         peaks = [peak]
     elif isinstance(peak, list) and all(isinstance(x, int) for x in peak):
@@ -810,8 +819,7 @@ def peak_hkl(
     else:
         raise TypeError(
             f"'peak' received an unsupported value: {peak} "
-            "It must be 'all', a string of comma-separated numbers, "
-            "or a list of integers"
+            "It must be 'all', an integer, or a list of integers. "
         )
 
     out: list[str | list[int]] = []
@@ -823,22 +831,22 @@ def peak_hkl(
                 hkl = "000"
         else:
             hkl = "000"
-        # Convert peaks into strings
-        if not isinstance(hkl, list) and string == True:
-            # string in, string out
+        # Store peaks as strings
+        if not isinstance(hkl, list) and as_string == True:
+            # String in, string out
             out.append(str(hkl))
-        elif isinstance(hkl, list) and string == True:
-            # convert numbers to string
+        elif isinstance(hkl, list) and as_string == True:
+            # List in, string out
             hkl_string = ""
             for y in range(len(hkl)):
                 hkl_string = hkl_string + str(hkl[y])
             out.append(hkl_string)
-        # Convert peaks into list of integers
-        elif isinstance(hkl, list) and string == False:
-            # list in, list out
+        # Store peaks as lists of integers
+        elif isinstance(hkl, list) and as_string == False:
+            # List in, list out
             out.append(hkl)
-        elif not isinstance(hkl, list) and string == False:
-            # convert string to array
+        elif not isinstance(hkl, list) and as_string == False:
+            # String in, list out
             pos = 0
             hkl = str(hkl)
             if hkl[0] == "-":
@@ -872,8 +880,16 @@ def peak_hkl(
     return out
 
 
-def peak_phase(orders, peak="all"):
+def peak_phase(
+    orders: dict[str, Any],
+    peak: int | list[int] | Literal["all"] = "all",
+):
     """
+    Extracts and returns the values stored under the 'phase' keys in the desired peak
+    descriptors (which are stored as a list of dictionaries under the 'peak' key in
+    'fit_orders') and returns them as a list of strings. If the 'phase' key is not
+    present, returns 'Unknown' as the phase name instead.
+
     Parameters
     ----------
     orders: dict[str, list[dict[str, int | str]]]
@@ -882,9 +898,9 @@ def peak_phase(orders, peak="all"):
         The "peak" key contains a list of dictionaries of the individual peaks to be
         fitted. The dictionaries in turn should contain the 'phase' key, which holds
         the name of the phase/material this peak belongs to.
-    peak: int | list[int] | str | Literal['all']
-        The peaks extract the hkl peaks from. Takes an integer, a list of integers,
-        a string of comma-separated numbers, or 'all'. The default is 'all'.
+    peak: int | list[int] | Literal['all']
+        The indices of the peak descriptors to extract the phase name from. Takes an
+        integer, a list of integers, or 'all'. The default is 'all'.
 
     Returns
     -------
@@ -894,8 +910,6 @@ def peak_phase(orders, peak="all"):
     # Convert input into a list of integers
     if peak == "all":
         peaks = list(range(len(orders["peak"])))
-    elif isinstance(peak, str) and re.fullmatch(r"[0-9,\s]+", peak):
-        peaks = [int(x_strip) for x in peak.split(",") if (x_strip := x.strip())]
     elif isinstance(peak, int):
         peaks = [peak]
     elif isinstance(peak, list) and all(isinstance(x, int) for x in peak):
@@ -903,8 +917,7 @@ def peak_phase(orders, peak="all"):
     else:
         raise TypeError(
             f"'peak' received an unsupported value: {peak} "
-            "It must be 'all', a string of comma-separated numbers, "
-            "or a list of integers"
+            "It must be 'all', an integer, or a list of integers. "
         )
     # Load names of specified phases, with a fallback to 'Unknown'
     out: list[str] = []

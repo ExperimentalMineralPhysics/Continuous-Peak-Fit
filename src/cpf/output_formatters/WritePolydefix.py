@@ -241,7 +241,7 @@ def WriteOutput(
                     hkl = "000"
                     use = 0
 
-                hkl = peak_hkl(settings_class.fit_orders[x], peak=y, string=False)[0]
+                hkl = peak_hkl(settings_class.fit_orders[x], peak=y, as_string=False)[0]
                 h, k, l = hkl
 
                 text_file.write(" %5i    %s    %s    %s\n" % (use, h, k, l))

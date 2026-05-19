@@ -534,7 +534,7 @@ def fourier_to_unitcellvolume(
         j = 0  # always the first peak in flattened structure.
         # for j in range(len(flat_coef[1]["peak"])):
         if flat_coef[i]["peak"][j]["phase"] == phase:
-            hkl = peak_hkl(flat_coef[i], j, string=False)[0]
+            hkl = peak_hkl(flat_coef[i], j, as_string=False)[0]
             if len(hkl) == 4:
                 # convert to 3 value Miller indicies
                 hkl = plane_indices_4_to_3(hkl)
@@ -551,7 +551,7 @@ def fourier_to_unitcellvolume(
                     "orientation_err"
                 ],
             )
-            hkls.append(peak_hkl(flat_coef[i], j, string=True)[0])
+            hkls.append(peak_hkl(flat_coef[i], j, as_string=True)[0])
 
     jcpds_obj.compute_d0()  # compute lattice parameters for unit cell from jcpds, otherwise initiation not complete.
 

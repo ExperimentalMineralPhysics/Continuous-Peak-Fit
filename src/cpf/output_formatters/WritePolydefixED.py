@@ -204,7 +204,7 @@ def WriteOutput(
             else:
                 use = 1
 
-            hkl = peak_hkl(settings_class.fit_orders[x], peak=y, string=False)[0]
+            hkl = peak_hkl(settings_class.fit_orders[x], peak=y, as_string=False)[0]
             h, k, l = hkl
 
             text_file.write(" %5i %5i    %s    %s    %s\n" % (peak, use, h, k, l))
@@ -406,7 +406,9 @@ def WriteOutput(
                 # [peak number     H     K     L     d-spacing     Intensity     detector number     step number   ]  in data set.
 
                 if "hkl" in settings_class.fit_orders[x]["peak"][y]:
-                    hkl = peak_hkl(settings_class.fit_orders[x], peak=y, string=False)
+                    hkl = peak_hkl(
+                        settings_class.fit_orders[x], peak=y, as_string=False
+                    )
                     h = hkl[0][0]
                     k = hkl[0][1]
                     l = hkl[0][2]

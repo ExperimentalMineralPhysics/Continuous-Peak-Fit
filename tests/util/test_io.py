@@ -594,27 +594,6 @@ def test_has_huge_errors():
             [0, 1],
             "Fe-BCC-110_Fe-BCC-220",
         ),
-        (
-            {
-                "peak": [
-                    {
-                        "phase": "Fe-BCC",
-                        "hkl": "110",
-                    },
-                    {
-                        "phase": "Fe-BCC",
-                        "hkl": "220",
-                    },
-                    {
-                        "phase": "Fe-BCC",
-                        "hkl": "330",
-                    },
-                ]
-            },
-            False,
-            "1,2,",
-            "Fe-BCC (220) & Fe-BCC (330)",
-        ),
         # If 'phase' key is absent
         (
             {
@@ -631,8 +610,8 @@ def test_has_huge_errors():
                 ]
             },
             False,
-            "1,2",
-            "Peak (220) & Peak (330)",
+            "all",
+            "Peak (110) & Peak (220) & Peak (330)",
         ),
         # If 'hkl' key is absent
         (
@@ -650,8 +629,8 @@ def test_has_huge_errors():
                 ]
             },
             False,
-            "1,2",
-            "Fe-BCC (2) & Fe-BCC (3)",
+            "all",
+            "Fe-BCC (1) & Fe-BCC (2) & Fe-BCC (3)",
         ),
     ),
 )
@@ -788,24 +767,6 @@ def test_peak_string(
                     },
                 ]
             },
-            "0,1",
-            True,
-            ["110", "220"],
-        ),
-        (
-            {
-                "peak": [
-                    {
-                        "hkl": "110",
-                    },
-                    {
-                        "hkl": "220",
-                    },
-                    {
-                        "hkl": "330",
-                    },
-                ]
-            },
             [1, 2],
             False,
             [[2, 2, 0], [3, 3, 0]],
@@ -874,7 +835,7 @@ def test_peak_hkl(
 ):
     # Unpack test params
     orders, peak, as_string, output = test_params
-    assert output == peak_hkl(orders, peak=peak, string=as_string)
+    assert output == peak_hkl(orders, peak=peak, as_string=as_string)
 
 
 @pytest.mark.parametrize(
@@ -912,17 +873,6 @@ def test_peak_hkl(
             },
             [0, 1],
             ["Fe-BCC", "CaO-FCC"],
-        ),
-        (
-            {
-                "peak": [
-                    {"phase": "Fe-BCC"},
-                    {"phase": "CaO-FCC"},
-                    {"phase": "Cr-BCC"},
-                ],
-            },
-            "0,1,2",
-            ["Fe-BCC", "CaO-FCC", "Cr-BCC"],
         ),
         (
             {

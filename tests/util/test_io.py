@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from cpf.util.io import (
+    get_file_indices,
     has_value,
     numpy_to_json,
     peak_hkl,
@@ -129,8 +130,84 @@ def test_image_list():
     pass
 
 
-def test_get_file_indices():
-    pass
+@pytest.mark.parametrize(
+    "test_params",
+    (  # Use param dict | Start | End | Step | Files | Keys | Expected list
+        # When passing in a param dict
+        (True, 1, 10, 1, None, None, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        (True, 1, 10, 4, None, None, [1, 5, 9]),
+        (True, 1, 10, -4, None, None, [9, 5, 1]),
+        (True, 10, 1, 4, None, None, [10, 6, 2]),
+        (True, 10, 1, -4, None, None, [2, 6, 10]),
+        # Passing in numbers directly
+        (False, 1, 10, 1, None, None, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        (False, 1, 10, 4, None, None, [1, 5, 9]),
+        (False, 1, 10, -4, None, None, [9, 5, 1]),
+        (False, 10, 1, 4, None, None, [10, 6, 2]),
+        (False, 10, 1, -4, None, None, [2, 6, 10]),
+        # Passing in files / keys
+        # With 'steps' only
+        (False, None, None, 1, [1, 2, 3, 4, 5, 6], None, [1, 2, 3, 4, 5, 6]),
+        (False, None, None, 2, None, [1, 2, 3, 4, 5, 6], [1, 3, 5]),
+        (False, None, None, -1, None, [1, 2, 3, 4, 5, 6], [6, 5, 4, 3, 2, 1]),
+        (False, None, None, -2, [1, 2, 3, 4, 5, 6], None, [6, 4, 2]),
+        # With 'start_num' and 'end_num'
+        # 'start_num' < 'end_num', 'step' > 0
+        (False, 1, 11, 1, None, [1, 3, 5, 7, 9, 11], [1, 3, 5, 7, 9, 11]),
+        (False, 1, 11, 2, [1, 3, 5, 7, 9, 11], None, [1, 5, 9]),
+        (False, 5, 11, 1, [1, 3, 5, 7, 9, 11], None, [5, 7, 9, 11]),
+        (False, 5, 9, 2, None, [1, 3, 5, 7, 9, 11], [5, 9]),
+        # 'start_num' > 'end_num', 'step' > 0
+        (False, 11, 1, 1, None, [1, 3, 5, 7, 9, 11], [11, 9, 7, 5, 3, 1]),
+        (False, 11, 1, 2, None, [1, 3, 5, 7, 9, 11], [11, 7, 3]),
+        (False, 9, 3, 1, [1, 3, 5, 7, 9, 11], None, [9, 7, 5, 3]),
+        (False, 9, 3, 2, [1, 3, 5, 7, 9, 11], None, [9, 5]),
+        # 'start_num' < 'end_num', 'step' < 0
+        (False, 1, 11, -1, [1, 3, 5, 7, 9, 11], None, [11, 9, 7, 5, 3, 1]),
+        (False, 1, 11, -2, [1, 3, 5, 7, 9, 11], None, [9, 5, 1]),
+        (False, 3, 9, -1, None, [1, 3, 5, 7, 9, 11], [9, 7, 5, 3]),
+        (False, 3, 9, -2, None, [1, 3, 5, 7, 9, 11], [7, 3]),
+        # 'start_num' > 'end_num', 'step' < 0
+        (False, 11, 1, -1, None, [1, 3, 5, 7, 9, 11], [1, 3, 5, 7, 9, 11]),
+        (False, 11, 1, -2, [1, 3, 5, 7, 9, 11], None, [3, 7, 11]),
+        (False, 9, 3, -1, None, [1, 3, 5, 7, 9, 11], [3, 5, 7, 9]),
+        (False, 9, 3, -2, [1, 3, 5, 7, 9, 11], None, [5, 9]),
+        # Nearest 'start_num' and 'end_num'
+        (False, 2, 10, 1, [1, 3, 4, 6, 8, 9, 11], None, [3, 4, 6, 8, 9]),
+        (False, 2, 10, -1, None, [1, 3, 4, 6, 8, 9, 11], [9, 8, 6, 4, 3]),
+        (False, 2, 10, 2, [1, 3, 4, 6, 8, 9, 11], None, [3, 6, 9]),
+        (False, 2, 10, -2, None, [1, 3, 4, 6, 8, 9, 11], [9, 6, 3]),
+        (False, 10, 2, 1, None, [1, 3, 4, 6, 8, 9, 11], [9, 8, 6, 4, 3]),
+        (False, 10, 2, -1, [1, 3, 4, 6, 8, 9, 11], None, [3, 4, 6, 8, 9]),
+        (False, 10, 2, 2, None, [1, 3, 4, 6, 8, 9, 11], [9, 6, 3]),
+        (False, 10, 2, -2, [1, 3, 4, 6, 8, 9, 11], None, [3, 6, 9]),
+    ),
+)
+def test_get_file_indices(
+    test_params: tuple[
+        bool, int | None, int | None, int, list[int] | None, list[int] | None, list[int]
+    ],
+):
+    # Unpack test params
+    use_param, start, end, step, files, keys, expected = test_params
+
+    param_dict: dict[str, int | None] | None = None
+    if use_param:
+        param_dict = {
+            "from": start,
+            "to": end,
+            "step": step,
+        }
+    result, length = get_file_indices(
+        param_dict=param_dict,
+        start_num=None if use_param else start,
+        end_num=None if use_param else end,
+        step=step,
+        files=files,
+        keys=keys,
+    )
+    assert result == expected
+    assert length == len(expected)
 
 
 @pytest.mark.parametrize(

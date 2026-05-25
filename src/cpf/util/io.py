@@ -289,12 +289,28 @@ def get_file_indices(
     keys: list[int] | None = None,
 ):
     """
-    Convert parameters into a list of numerical. Takes with a settings class, a
-    dictionary or start, stop, step and files directly.
+    Converts parameters into a list of numbers corresponding to the file numbers
+    or HDF5 keys of the data to be processed.
 
-    It works on either file names or keys for h5 files.
+    The parameters can come from a Settings class, a dictionary, or the 'start',
+    'stop', 'step', 'files', and 'keys' parameters directly.
 
-    The function cannot accept both keys and files in the same call.
+    If 'param_dict' is populated, the 'start', 'stop' and 'step' values should be
+    derived entirely from it. All other parameters will be ignored.
+
+    Other supported combinations of parameters include:
+    - 'files'
+    - 'files', 'step'
+    - 'files', 'start_num', 'end_num'
+    - 'files', 'start_num', 'end_num', 'step'
+    - 'keys'
+    - 'keys', 'step'
+    - 'keys', 'start_num', 'end_num'
+    - 'keys', 'start_num', 'end_num', 'step'
+    - 'start_num', 'end_num'
+    - 'start_num', 'end_num', 'step'
+
+    'keys' and 'files' cannot both be provided simultaneously.
 
     The hierarchy works as follow:
     1. If files (or keys) is given and start_num, end_num, step are not given
@@ -307,7 +323,8 @@ def get_file_indices(
     - start_num is present in the file list if step > 0
     - end_num is present in the list if step < 0
 
-    e.g.
+    Examples
+    --------
     A.  files = [1,3,4,6,7,9,10]
         gives: [1,3,4,6,7,9,10]
 
@@ -350,116 +367,157 @@ def get_file_indices(
 
     Parameters
     ----------
-    param_dict : TYPE, optional
-        DESCRIPTION. The default is None.
-    start_num : int, optional
+    param_dict : dict[str, int | None] | None
+        The dictionary containing parameters on the start and end numbers of the files
+        or HDF5 keys to be analysed, along with the step interval to use.
+        The default value is None.
+    start_num : int | None
         Starting value for the file index/number. The default is None.
-    end_num : int, optional
+    end_num : int | None
         End value for the file index/number. The default is None.
-    step : int, optional
+    step : int
         step value for the indices. The default is 1.
-    files : list, optional
+    files : list[int] | None
         List of file indices. The default is None.
-    keys : list, optional
+    keys : list[int] | None
         List of key indices for hdf5 file. The default is None.
 
     Returns
     -------
-    file_indices : list
-        List of file or key numbers.
-    numFKlist : list
-        Number of entries in file_indices.
-
+    indices_list : list
+        List of numbers in the file names or the HDF5 keys to process.
+    num_indices : int
+        Number of entries in indices_list.
     """
-    # Check once for existence of variables, then reuse
-    has_files = files is not None
-    has_keys = keys is not None
 
-    file_indices: list[int] = []
-    if param_dict is not None:
-        if isinstance(param_dict, dict):
-            # if is a dictionary assume from hdf5 files.
-            # dictionary from hdf5 functions
-            if "from" in param_dict:
-                start_num = param_dict["from"]
-            if "to" in param_dict:
-                end_num = param_dict["to"]
-            if "step" in param_dict:
-                step = param_dict["step"]
-        else:
-            if "start_num" in param_dict:
-                start_num = param_dict["datafile_StartNum"]
-            if "end_num" in param_dict:
-                end_num = param_dict["datafile_EndNum"]
-            if "step" in param_dict:
-                step = param_dict["datafile_Step"]
-    elif has_files and not has_keys:
-        file_indices = files
-    elif has_keys and not has_files:
-        file_indices = keys
-    elif not has_files and not has_keys and start_num is not None:
-        pass
-    elif start_num is not None:
-        if end_num == None:
-            raise ValueError("end_num is not defined")
-    else:
-        raise ValueError("Neither files, keys or start_num are defined")
+    indices_list: list[int] = []
+    match (
+        param_dict is not None,
+        files is not None,
+        keys is not None,
+    ):
+        case (True, True, True) | (True, True, False) | (True, False, True):
+            # 'param_dict' and 'files'/'keys' cannot be provided together
+            raise ValueError(
+                "'param_dict' cannot be provided together with 'files' and/or 'keys'."
+            )
+        case (False, True, True):
+            # Raise error if 'files' and 'keys' are both present,
+            raise ValueError("'files' and 'keys' cannot both be provided.")
+        case (False, True, False):
+            if files is None:
+                raise ValueError("'files'' was not provided")
+            indices_list = files
+        case (False, False, True):
+            if keys is None:
+                raise ValueError("'keys' was not provided")
+            indices_list = keys
+        case (True, False, False):
+            if param_dict is None:
+                raise ValueError("'param_dict' was not provided")
+            # Get 'start', 'stop', and 'step' from 'param_dict'
+            if isinstance(param_dict, dict):
+                # if is a dictionary assume from hdf5 files.
+                # dictionary from hdf5 functions
+                start_num = param_dict.get("from", None)
+                end_num = param_dict.get("to", None)
+                step = param_dict.get("step", 1)
+            else:
+                start_num = param_dict.get("datafile_StartNum", None)
+                end_num = param_dict.get("datafile_EndNum", None)
+                step = param_dict.get("datafile_Step", 1)
+            # Error if 'start_num' and 'end_num' could not be determined
+            if not (start_num is not None and end_num is not None):
+                raise ValueError("Could not construct indices list from 'param_dict'.")
+            start_num, end_num, step = map(int, (start_num, end_num, step))
 
-    # exclude negative numbers from start num and end_num.
-    # this just makes life simpler.
-    if start_num is not None and start_num < 0:
-        raise ValueError("start_num must be greater than 0")
-    if end_num is not None and end_num < 0:
-        raise ValueError("end_num must be greater than 0")
+    # Process differently depending on the absence/presence of 'start_num',
+    # 'end_num', 'indices_list'
+    match (start_num is not None, end_num is not None, len(indices_list) > 0):
+        case (True, False, False) | (False, True, False) | (False, False, False):
+            # Raise error if 'start_num' and/or 'end_num' are missing when 'indices_list'
+            # has been provided
+            raise ValueError(
+                "Both 'start_num' and 'end_num' must be set if neither 'files' or "
+                "'keys' were provided."
+            )
+        case (False, _, True):
+            # Reverse the list if step is negative
+            if step < 0:
+                indices_list = list(reversed(indices_list))
+            step = abs(step)
+            # Use 'step' to return every nth item in the list
+            indices_subset = [
+                index for i, index in enumerate(indices_list) if i % step == 0
+            ]
+            return indices_subset, len(indices_subset)
+        case (True, _, True) | (True, True, False):
+            # Assure type checker that 'start_num' is an int by this point
+            if start_num is None:
+                raise ValueError("'start_num' was not set")
 
-    if not file_indices:
-        # make Lst from start, stop and step.
-        if start_num > end_num:
-            start_num, end_num = end_num, start_num
-            end_num -= 1
-        else:
-            end_num += 1
+            # Do not allow negative values for 'start_num' and 'end_num'
+            if start_num < 0 or (end_num is not None and end_num < 0):
+                raise ValueError("'start_num' and 'end_num' cannot be negative values")
 
-        file_indices = np.arange(start_num, end_num, np.abs(step))
-        if step < 0:
-            # reverse list
-            file_indices = file_indices[::-1]
+            # If 'step' is negative, reverse the indices list after creation
+            reverse_list = step < 0
 
-    # make maximal list
-    # based on values in the list
-    if start_num is None:
-        s = np.min(file_indices)
-    elif start_num == -1:
-        s = np.max(file_indices)
-    else:
-        s = start_num
-    if end_num is None:
-        e = np.max(file_indices) + 1
-    elif start_num == -1:
-        s = np.min(file_indices)
-    else:
-        e = end_num + 1
+            if indices_list:
+                # Create a default 'end_num' if none was provided
+                end_num = end_num if end_num is not None else indices_list[-1]
 
-    if s > e:
-        s, e = e, s
-    #     e -= 1
-    else:
-        e += 1
-    list_all = np.arange(s, e + 1, np.abs(step))
-    if step < 0:
-        # reverse list
-        list_all = list_all[::-1]
-    # cut Lst to allowed values
-    if has_files and isinstance(files[0], str):
-        # files is a list of strings
-        file_indices = file_indices[list_all]
-    else:
-        # get list of matching values
-        file_indices = [x for x in list_all if x in file_indices]
-        # collapse incase it is a list of np arrays
-        file_indices = np.array(file_indices)
+                # Find the indices nearest to the specified 'start_num' and 'end_num'
+                idx_start: int | None = None
+                idx_end: int | None = None
+                if start_num > end_num:
+                    indices_list = list(reversed(indices_list))
+                    for i, num in enumerate(indices_list):
+                        if num <= start_num and idx_start is None:
+                            idx_start = i
+                        if num == end_num and idx_end is None:
+                            idx_end = i
+                        elif num < end_num and idx_end is None:
+                            idx_end = i - 1
+                else:
+                    for i, num in enumerate(indices_list):
+                        if num >= start_num and idx_start is None:
+                            idx_start = i
+                        if num == end_num and idx_end is None:
+                            idx_end = i
+                        elif num > end_num and idx_end is None:
+                            idx_end = i - 1
+                if not (idx_start is not None and idx_end is not None):
+                    raise ValueError(
+                        "Could not determine start and end indices using the start "
+                        "and end numbers provided"
+                    )
+                positions = range(idx_start, idx_end + 1, abs(step))
+                indices_list = [indices_list[i] for i in positions]
+                if reverse_list:
+                    indices_list = list(reversed(indices_list))
+                return indices_list, len(indices_list)
+            else:
+                # 'end_num' will be set at this point
+                if end_num is None:
+                    raise ValueError("'end_num' was not set")
 
-    return file_indices, len(file_indices)
+                # Generate number list that includes 'end_num' itself
+                if start_num < end_num:
+                    end_num += 1
+                    step = abs(step)
+                else:
+                    end_num -= 1
+                    step = -abs(step)
+                indices_list = list(range(start_num, end_num, step))
+                if reverse_list:
+                    indices_list = list(reversed(indices_list))
+                return indices_list, len(indices_list)
+    # This should never trigger, but is here to ensure a list is always returned
+    logger.warning(
+        "Unexpected combination of parameters detected, returning empty list"
+    )
+    return [], 0
 
 
 @overload

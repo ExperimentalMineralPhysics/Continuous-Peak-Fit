@@ -255,11 +255,11 @@ class ESRFlvpDetector:
 
         self.reduce_by = None
         
-        self._default_metadata_labels_hdf5  = {"time_label": '/*.1/measurement/epoch_trig/', # time stamps in ESRF edf file.
-                                      "exposure_label": '/*.1/measurement/timer_period/', # exposure times
+        self._default_metadata_labels_hdf5  = {"time": '/*.1/measurement/epoch_trig/', # time stamps in ESRF edf file.
+                                      "exposure": '/*.1/measurement/timer_period/', # exposure times
                                       }        
-        self._default_metadata_labels_edf = {"time_label": "time_of_day", # time stamps in ESRF edf file.
-                                      "exposure_label": "acq_expo_time", # exposure times
+        self._default_metadata_labels_edf = {"time": "time_of_day", # time stamps in ESRF edf file.
+                                      "exposure": "acq_expo_time", # exposure times
                                       }
 
         self.calibration = None

@@ -159,7 +159,7 @@ class XYDetector:
             
         self.reduce_by = None
 
-        self._default_metadata_labels = {"time_label": "FILE_CREATION", # file creation time.
+        self._default_metadata_labels = {"time": "FILE_CREATION", # file creation time.
                                   # 'exposure_label': None # no exposure - cant have empty value
                                   }
         

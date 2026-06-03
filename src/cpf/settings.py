@@ -463,9 +463,7 @@ class Settings:
         # If the file type is h5/nxs and there is no h5 related settings in the input then read defaults from the detector class.
         # These settings are then used by the detector class.
         # When the h5 settings are in the settings class we need to re-initiate the image list.
-        if (len(self.datafile_list) == 1
-                and (self.datafile_list[0].suffix == ".h5"
-                or self.datafile_list[0].suffix == ".nxs")):
+        if "h5_datakey" in list(self.settings_from_input):
             #both "h5_datakey" and "h5_iterate" are required for the h5 file reading to work
             if "h5_datakey" not in list(self.settings_from_input):
 

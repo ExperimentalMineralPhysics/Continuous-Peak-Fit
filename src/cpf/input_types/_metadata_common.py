@@ -184,9 +184,8 @@ class _metadata_common:
             metadata_values = [metadata_values]
         
         no_exposure_message = None#"no exposure"
-        # options for times
-        time_opts = ["frames start", "frames mid", "frames mean", "frames end", "frames exposure"]
-        # time_opts = ["time_mid" ,"time_start" ,"time_end", "time_exposure"]
+        # options for times from metadata_combine
+        time_opts = list(metadata_combine(None).keys())
         
         # make output dictionary
         metadata_out = {}
@@ -281,7 +280,7 @@ class _metadata_common:
             # check metadata requirements exist and add entries to output dictionary
             headers = list(self.metadata)
             for j in metadata_values:
-                if j in ["FILE_CREATION", "FILE_MODIFIED"] or j==None:
+                if j in list(_metadata_common._get_file_created_modified([],image=None).keys()) or j==None:
                     pass
                 elif j in headers:
                     try:
@@ -303,22 +302,18 @@ class _metadata_common:
                     raise ValueError(err_str)
             
         if replaced != None:
-            # if "time" in replaced:
-            #     if exposure_location is not None:
-            #         metadata_out["time"] = times_combine(metadata_out[time_location], metadata_out[exposure_location])
-            #     else:
-            #         metadata_out["time"] = times_combine(metadata_out[time_location])
+            meta_temp = metadata_combine(metadata_out, time_location, exposure_location, as_str=False)
             if "frames start" in replaced:
-                metadata_out["frames start"] = metadata_combine(metadata_out, time_location, exposure_location, get="start", as_str=False)
+                metadata_out["frames start"] = meta_temp["frames start"]
             if "frames mid" in replaced:
-                metadata_out["frames mid"] = metadata_combine(metadata_out, time_location, exposure_location, get="mid", as_str=False)
+                metadata_out["frames mid"] = meta_temp["frames mid"]
             if "frames mean" in replaced:
-                metadata_out["frames mean"] = metadata_combine(metadata_out, time_location, exposure_location, get="mean", as_str=False)
+                metadata_out["frames mean"] = meta_temp["frames mean"]
             if "frames end" in replaced:
-                metadata_out["frames end"] = metadata_combine(metadata_out, time_location, exposure_location, get="end", as_str=False)
+                metadata_out["frames end"] = meta_temp["frames end"]
             if "frames exposure" in replaced:
-                metadata_out["frames exposure"] = metadata_combine(metadata_out, time_location, exposure_location, get="exposure", as_str=False)
-                # metadata_out["frames exposure"] = metadata_out.get(exposure_location, no_exposure_message)
+                metadata_out["frames exposure"] = meta_temp["frames exposure"]
+                
             for k in discard:
                 metadata_out.pop(k, None)
             
@@ -339,9 +334,12 @@ class _metadata_common:
         return metadata_out
 
 
-    def _get_file_created_modified(self, image):
+    def _get_file_created_modified(self, image=None):
         """
-        Adds file creation and modification times to the metadata dictionary.
+        Gets file creation and modification time.
+        
+        If there is more than 1 file, it returns the median time. 
+        If there is no file it returns an empty dictionary
 
         Parameters
         ----------
@@ -351,65 +349,54 @@ class _metadata_common:
         Returns
         -------
         medtadata_dict : dict
-            dictionary of matadata.
+            dictionary with keys 'FILE_CREATION' and  'FILE_MODIFIED'
 
         """
+        
         if not isinstance(image, list):
             image = [image]
             
         metadata_dict={}
         tmp_creations = []
         tmp_modified = []
-        for i in image:
-            # loop over all images to get data 
-            
-            # check image input
-            if (isinstance(i, str) is False) and (isinstance(i, Path) is False):
-                #then image is image object.
-                try:
-                    i = i.filename
-                except:
-                    i = i.get_name()
-            tmp_creations.append(os.path.getctime(i))
-            tmp_modified.append(os.path.getmtime(i))
-        
-            # # append times to dictionary incase of multiple files. 
-            # if "FILE_CREATION" not in metadata_dict:
-            #     metadata_dict["FILE_CREATION"] = os.path.getctime(i)
-            # else:
-            #     if not isinstance(metadata_dict["FILE_CREATION"], list):
-            #         metadata_dict["FILE_CREATION"] = [metadata_dict["FILE_CREATION"]]
-            #     metadata_dict["FILE_CREATION"].append(os.path.getctime(i))
-    
-            # if "FILE_MODIFIED" not in metadata_dict:
-            #     metadata_dict["FILE_MODIFIED"] = os.path.getmtime(i)
-            # else:
-            #     if not isinstance(metadata_dict["FILE_MODIFIED"], list):
-            #         metadata_dict["FILE_MODIFIED"] = [metadata_dict["FILE_MODIFIED"]]
-            #     metadata_dict["FILE_MODIFIED"].append(os.path.getmtime(i))
+        if image != [None]:
+            for i in image:
+                # loop over all images to get data 
+                
+                # check image input
+                if (isinstance(i, str) is False) and (isinstance(i, Path) is False):
+                    #then image is image object.
+                    try:
+                        i = i.filename
+                    except:
+                        i = i.get_name()
+                tmp_creations.append(os.path.getctime(i))
+                tmp_modified.append(os.path.getmtime(i))
 
         metadata_dict["FILE_CREATION"] = np.median(tmp_creations)
         metadata_dict["FILE_MODIFIED"] = np.median(tmp_modified)
         
         return metadata_dict
-        
 
-def metadata_combine(metadata, time_location, exposure_location=None, get="mean", as_str=False):
+
+def metadata_combine(metadata, time_location=None, exposure_location=None, as_str=False):
     """
     Combine multiple time stamps and return value in the same format (string or time) as first_time
     
     The values for get are:
-        - "start"    -- start time of data collection
+        - "frames start"    -- start time of data collection
                                     min(timestamps)
-        - "mid"      -- median time of data collection, accounting for the exposre time
+        - "frames mid"      -- median time of data collection, accounting for the exposre time
                                     np.median(timestamps+exposures)
-        - "mean"     -- mean time of data collection, accounting for the exposre time  
+        - "frames mean"     -- mean time of data collection, accounting for the exposre time  
                                     (timestamps+exposures) / len(timestamps)
-        - "end"      -- end time of data collection, accounting for the exposre time
+        - "frames end"      -- end time of data collection, accounting for the exposre time
                                     max(timestamps+exposures)
-        - "exposure" -- total exposure time of data collection, accounting for the frame time
+        - "frames exposure" -- total exposure time of data collection, accounting for the frame time
                                     max(timestamps+exposures) - min(timestamps) 
-                                    
+           
+    If no exposues are specified then all values apart from "frames start" are returned as nan
+    
     Parameters
     ----------
     metadata : TYPE
@@ -437,16 +424,21 @@ def metadata_combine(metadata, time_location, exposure_location=None, get="mean"
     """
     
     # parse inputs
-    timestamps = metadata[time_location], 
-    if exposure_location:
-        exposures = metadata[exposure_location]
+    if metadata is None:
+        # if there are no inputs still make an output
+        timestamps = [0]
+        exposures = np.nan
     else:
-        exposures = None
+        timestamps = metadata[time_location], 
+        if exposure_location:
+            exposures = metadata[exposure_location]
+        else:
+            exposures = np.nan
     
     if isinstance(timestamps, str):
         timestamps = [timestamps]
     if exposures == None:
-        exposures = 0
+        exposures = np.nan
     
     #get input format
     if isinstance(timestamps[0], str):
@@ -455,26 +447,54 @@ def metadata_combine(metadata, time_location, exposure_location=None, get="mean"
     # force all values to be numbers
     for i in range(len(timestamps)):
         timestamps = [parse(v).timestamp() if isinstance(v, str) else v for v in timestamps]
-        
-    match get:
-        case "start":
-             out_time = np.min(np.array(timestamps))
-        case "mid":
-             out_time = np.median(np.array(timestamps)+np.array(exposures))
-        case "mean":
-             out_time = np.sum(np.array(timestamps)+np.array(exposures)) / len(timestamps)
-        case "end":
-             out_time = np.max(np.array(timestamps)+np.array(exposures))
-        case "exposure":
-             out_time = np.max(np.array(timestamps)+np.array(exposures)) - np.min(np.array(timestamps))
-        case _:
-            raise ValueError("Unrecognised combination type")
-        
-    if as_str and get != "exposure":
-        out_time = f"{datetime.fromtimestamp(out_time):%Y-%d-%b %H:%M:%S.%f}"
     
-    if exposure_location is None:
-        return None
+    out_time = {}
+    out_time["frames start"] = np.min(np.array(timestamps))
+    out_time["frames mid"]   = np.median(np.array(timestamps)+np.array(exposures))
+    out_time["frames mean"]  = np.sum(np.array(timestamps)+np.array(exposures)) / len(timestamps)
+    out_time["frames end"]   = np.max(np.array(timestamps)+np.array(exposures))
+    out_time["frames exposure"] = np.max(np.array(timestamps)+np.array(exposures)) - np.min(np.array(timestamps))  
+
+    if as_str:
+        for x in out_time.keys():
+            if "exposure" not in x:
+                out_time[x] =  f"{datetime.fromtimestamp(out_time[x]):%Y-%d-%b %H:%M:%S.%f}"
+                
+    return out_time
+    
+
+def added_metadata_names(flat=True, lower=False):
+    """
+    Lists the names of the metadata keys created by _metadata_common
+    
+    if flat == False returns the values in dictionary, with keys for the function that creates them
+    
+    otherwise, returns a flat list
+    
+    The values are used by _metadata_common.get_metadata() and allows other methods 
+    to test for the values. 
+
+    Parameters
+    ----------
+    flat : bool, optional
+        retrun flat list instead of dictionary. The default is True.
+
+    Returns
+    -------
+    list or dict
+        if flat == False returns the values in dictionary, with keys for the function that creates them
+        otherwise, returns a flat list
+
+    """
+
+    val_dict =  {"_get_file_created_modified": list(_metadata_common._get_file_created_modified([],image=None).keys()),
+            "metadata_combine": list(metadata_combine(None).keys())
+            }
+
+    if lower:
+        val_dict = {k: [s.lower() for s in v] for k, v in val_dict.items()}
+        
+    if flat == True:
+        return sum(val_dict.values(),[])
     else:
-        return out_time
-    
+        return val_dict

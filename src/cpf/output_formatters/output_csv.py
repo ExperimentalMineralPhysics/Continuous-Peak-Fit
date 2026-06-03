@@ -3,7 +3,9 @@ __all__ = ["outfile_version", "make_header", "write_csv", "csv_align_columns", "
 
 import numpy as np
 from pandas.api.types import is_string_dtype, is_numeric_dtype, is_object_dtype
+from cpf.input_types._metadata_common import added_metadata_names
 from cpf.util.logging import get_logger
+
 logger = get_logger("cpf.output_formatters.output_csv")
 
 
@@ -144,12 +146,12 @@ def write_csv(out_file, df, column_headers, file_header=None, col_width=15, dp=5
             col_rename.update({col: col.split("/")[-1]})
         df = df.rename(columns=col_rename)
 
-    # make sure diferent columns are saved as desired.
+    # make sure different columns are saved as desired.
     for i in df.columns:
         if (("date" in i.lower() or 
             "time" in i.lower() or 
-            i.lower() == "FILE_CREATION".lower() or 
-            i.lower() == "FILE_MODIFIED".lower() )
+            i.lower() in added_metadata_names(flat=True, lower=True)
+            )
             and 
             is_numeric_dtype(df[i])
             ): 

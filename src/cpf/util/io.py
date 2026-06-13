@@ -872,7 +872,7 @@ def peak_hkl(
         peaks = list(range(len(orders["peak"])))
     elif isinstance(peak, int):
         peaks = [peak]
-    elif isinstance(peak, list) and all(isinstance(x, int) for x in peak):
+    elif isinstance(peak, list) and all(np.issubdtype(x, np.integer) for x in peak):
         peaks = peak
     else:
         raise TypeError(
@@ -970,7 +970,7 @@ def peak_phase(
         peaks = list(range(len(orders["peak"])))
     elif isinstance(peak, int):
         peaks = [peak]
-    elif isinstance(peak, list) and all(isinstance(x, int) for x in peak):
+    elif isinstance(peak, list) and all(np.issubdtype(x, np.integer) for x in peak):
         peaks = peak
     else:
         raise TypeError(

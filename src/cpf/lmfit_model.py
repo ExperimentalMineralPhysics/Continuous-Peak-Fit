@@ -602,7 +602,7 @@ def initiate_params(
             expr = None
         if comp != "s":
             vary = po[1]
-        if t == 0 or coeff_type != sf.coefficient_types()["fourier"]:
+        if t == 0 or limits == "no negative" or coeff_type != sf.coefficient_types()["fourier"]:
             inp_param.add(
                 param_str + "_" + comp + str(t),
                 v,
@@ -966,7 +966,7 @@ def coefficient_fit(
         inp_param,
         azimuth=azimuth[idx] * symmetry,
         # coeff_type=coeff_type,
-        # start_end=start_end,
+        start_end=start_end,
         method=fit_method,
         weights=1 / new_errs,
         # comp_str=param_str,

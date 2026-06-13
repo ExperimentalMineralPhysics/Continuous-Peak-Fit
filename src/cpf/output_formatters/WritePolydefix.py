@@ -104,8 +104,8 @@ def WriteOutput(
     )
 
     # get the fits
-    fits, _ = ReadFits_to_list(settings=settings_class)
-    fitsDF = ReadFits_to_dataframe(settings=settings_class)
+    fits, _ = ReadFits_to_list(settings=settings_class, **kwargs)
+    fitsDF = ReadFits_to_dataframe(settings=settings_class, **kwargs)
     
     #parse Phase and ElasticProperties
     if Phase is True:

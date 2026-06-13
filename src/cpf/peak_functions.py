@@ -21,6 +21,7 @@ __doc__ = "Functions for Pseudo-Voigt peak shape. "
 
 
 import numpy as np
+import uncertainties.unumpy as unp
 
 from cpf.util.logging import get_logger
 
@@ -28,7 +29,7 @@ logger = get_logger("cpf.peak_functions")
 
 
 
-def peak_components(full=False, include_profile=True):
+def peak_components(full=False, include_profile=True, include_combined=False):
     """
     Lists the parameters needed for the peak shape function.
     If 'full' is True returns all the parameters needed for the fit (including background and symmetry)
@@ -61,6 +62,9 @@ def peak_components(full=False, include_profile=True):
         comp_names.append("background")
         comp_list.append("s")
         comp_names.append("symmetry")
+    if include_combined:
+        comp_list.append("a")
+        comp_names.append("area")
 
     return comp_list, comp_names
 
@@ -88,7 +92,7 @@ def expand_component_string(comp):
         Full name for peak shape component in input.
 
     """
-    comp_list, comp_names = peak_components(full=True)
+    comp_list, comp_names = peak_components(full=True,include_combined=True)
     if comp in comp_names:
         out = comp
     elif comp in comp_list:
@@ -96,6 +100,40 @@ def expand_component_string(comp):
     else:
         raise ValueError("Unrecognised peak property type")
     return out
+
+
+def compress_component_string(comp):
+    """
+    Compress the compnent name from its long name to its short representation.
+    e.g.  "d-space" --> "d"
+    
+    Conversion is performed using lookup of outputs from peak_functions.peak_components()
+
+    Parameters
+    ----------
+    comp : str
+        Single letter peak shape component.
+
+    Raises
+    ------
+    ValueError
+        Unrecognised peak property type.
+
+    Returns
+    -------
+    out : str
+        Full name for peak shape component in input.
+
+    """
+    comp_list, comp_names = peak_components(full=True,include_combined=True)
+    if comp in comp_list:
+        out = comp
+    elif comp in comp_names:
+        out = comp_list[comp_names.index(comp)]
+    else:
+        raise ValueError("Unrecognised peak property type")
+    return out
+
 
 
 # Gaussian shape
@@ -182,9 +220,9 @@ def pseudo_voigt_peak(two_theta, two_theta_0, w_all, h_all, l_g_ratio):
 
 
 
-def integrated(w_all, h_all, l_g_ratio):
+def area(w_all, h_all, l_g_ratio):
     """
-    Calculates integrated intensiities for Pseudo-Voigt peak shape
+    Calculates area intensiities for Pseudo-Voigt peak shape
 
     Parameters
     ----------
@@ -200,14 +238,14 @@ def integrated(w_all, h_all, l_g_ratio):
     Returns
     -------
     PesudoVoigt_peak : np.array
-        Integrated intensity of the Pesudo-Voigt peak at each two theta value.
+        Area of the Pesudo-Voigt peak at each two theta value.
 
     """
-    # Gauss Sum
-    sumG = h_all *np.sqrt(np.pi*(2 * (w_all/np.sqrt(np.log(4)))**2))
+    # Gauss sum
+    sumG = h_all * unp.sqrt(np.pi*(2 * (w_all/unp.sqrt(unp.log(4)))**2))
     
     # lotentz sum
-    sumL = h_all * np.pi /np.sqrt(1/w_all**2)
+    sumL = h_all * np.pi /unp.sqrt(1/w_all**2)
     # lorentz sum for h_all=1 and w_all = i converges on pi at infinity.
     # we just assume this here as it is simplest but should perhaps have a cut off     
     
@@ -218,7 +256,7 @@ def plot_sum():
     """
     Plot shape functions for the peak profiles. 
     
-    Calculates some sums to show self.integrated is correct.
+    Calculates some sums to show self.area is correct.
     
     Returns
     -------
@@ -254,24 +292,24 @@ def plot_sum():
     G_sum = np.sum(y_g)*(a[1]-a[0])
     mix_sum = np.sum(y_mix)*(a[1]-a[0])
     
-    G_sum2 = integrated(w, h, 1)
-    L_sum2 = integrated(w, h, 0)
-    mix_sum2 = integrated(w, h, 0.5)
+    G_sum2 = area(w, h, 1)
+    L_sum2 = area(w, h, 0)
+    mix_sum2 = area(w, h, 0.5)
     
     print("Gaussian")
-    print(f"Numerical integration: {G_sum}")
-    print(f"arithmetic integration: {G_sum2}")
+    print(f"Numerical area: {G_sum}")
+    print(f"arithmetic area: {G_sum2}")
     print(f"difference = {G_sum2-G_sum}")
     
     print("Lorentz")
-    print(f"Numerical integration: {L_sum}")
-    print(f"arithmetic integration: {L_sum2}")
+    print(f"Numerical area: {L_sum}")
+    print(f"arithmetic area: {L_sum2}")
     print(f"difference = {L_sum2-L_sum}")
     
     
     print("mixed")
-    print(f"Numerical integration: {mix_sum}")
-    print(f"arithmetic integration: {mix_sum2}")
+    print(f"Numerical area: {mix_sum}")
+    print(f"arithmetic area: {mix_sum2}")
     print(f"difference = {mix_sum2-mix_sum}")
     
     

@@ -198,7 +198,7 @@ def fits_to_unitcell(
         # get label for temperature. Should work for wild cards
         if "temperature" in settings_class.metadata_labels:
             templbl_without_wildcards = re.sub(r"\*", ".*", settings_class.metadata_labels["temperature"])
-        elif "temperature" in settings_class.data_class._default_metadata_labels:
+        elif "_default_metadata_labels" in settings_class.data_class.__dict__ and "temperature" in settings_class.data_class._default_metadata_labels:
             templbl_without_wildcards = re.sub(r"\*", ".*", settings_class.data_class._default_metadata_labels["temperature"])
         else:
             templbl_without_wildcards = "None"

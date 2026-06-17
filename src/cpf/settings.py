@@ -1361,7 +1361,8 @@ class Settings:
         # get metadata_read_func if it exists
         if "metadata_read_func" in self.settings_from_input:
             self.metadata_read_func = self.settings_from_input["metadata_read_func"]
-            # pass settings as 'self'
+            # pass settings as 'self'; set first pattern incase function needs a file
+            self.set_subpattern(0,0)
             self.metadata.extend(self.metadata_read_func(self,).keys())
 
         #replace all the wildcards in the metadata.        

@@ -1447,31 +1447,43 @@ class Settings:
 
     def set_data_files(
         self,
-        start=0,
-        end=None,
-        keep=None,
+        keep="all",
     ):
         """
-        Cut the number of data files.
+        Cut the number of data files in Settings()
+        
+        If keep is a single number then it keeps this frame from Settings().image_list
+        
+        If keep is a list then in keeps the values in the list.
+        
+        keep = -1, keeps the last frame.
+        keep = "all", keeps all the values
+        keep = "mid", keeps only the middle frame
 
         Parameters
         ----------
-        keep : TYPE, optional
-            DESCRIPTION. The default is False.
-
-        Returns
-        -------
-        None.
+        keep : list | int, optional
+            position of frames in list to keep. The default is "all"
 
         """
-        if keep is not None:
-            start = keep
-            end = keep + 1
-        elif end is None:
-            end = len(self.datafile_list)
-
-        # self.datafile_list = self.datafile_list[start:end]
-        # self.datafile_number = len(self.datafile_list)
+        
+        if keep.lower() == "all":
+            return
+        
+        if isinstance(keep, list):
+            self.image_list = self.image_list[keep]
+            self.image_number = len(self.image_list)
+            return
+        
+        if isinstance(keep, str):
+            if keep == "mid":
+                start = np.int32(self.image_number/2)
+            else:
+                raise ValueError("Unrecognised image_list filter type")
+        if keep == -1:
+            start = self.image_number
+        end = keep + 1
+        
         self.image_list = self.image_list[start:end]
         self.image_number = len(self.image_list)
 

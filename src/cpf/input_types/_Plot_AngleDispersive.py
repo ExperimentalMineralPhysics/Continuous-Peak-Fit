@@ -149,7 +149,7 @@ class _Plot_AngleDispersive:
         axis_plot.set_title("Integrated Data")
 
 
-    def plot_masked(self, fig_plot=None):
+    def plot_masked(self, fig_plot=None, **kwargs):
         """
         Plot all the information needed to mask the data well.
         :param fig:

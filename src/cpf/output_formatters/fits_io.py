@@ -188,12 +188,13 @@ def ReadFits_to_list(
                     else:
                         azimuths = None
                     for i in range(len(fits[-1])):
+                        strt_nd = fits[z][i]["range"][0]
                         settings_class.set_subpattern(z, i)
                         for j in range(len(fits[-1][i]["peak"])):
                             comb_series = get_combined_series(
                                                         fits[-1][i]["peak"][j], 
                                                         azimuth = azimuths,
-                                                        start_end=[settings_class.data_class.azm_start, settings_class.data_class.azm_end],
+                                                        start_end=strt_nd,
                                                         **kwargs)
                             fits[-1][i]["peak"][j].update(comb_series)
             

@@ -245,7 +245,10 @@ def area(w_all, h_all, l_g_ratio):
     sumG = h_all * unp.sqrt(np.pi*(2 * (w_all/unp.sqrt(unp.log(4)))**2))
     
     # lotentz sum
-    sumL = h_all * np.pi /unp.sqrt(1/w_all**2)
+    if not np.all(w_all):
+        sumL = np.zeros(w_all.shape)
+    else:
+        sumL = h_all * np.pi /unp.sqrt(1/w_all**2)
     # lorentz sum for h_all=1 and w_all = i converges on pi at infinity.
     # we just assume this here as it is simplest but should perhaps have a cut off     
     

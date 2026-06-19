@@ -114,8 +114,8 @@ def WriteOutput(
             else:
                 searchdata = possible[0]
 
-    #restrict to just the required image
-    settings_class.set_data_files(keep=searchdata)
+        #restrict to just the required image
+        settings_class.set_data_files(keep=searchdata)
     
     # read the data.
     df = ReadFits_to_dataframe(settings=settings_class, includeStats=True, includeSeriesValues=True, includePosition=True)

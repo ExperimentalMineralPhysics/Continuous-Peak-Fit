@@ -860,19 +860,19 @@ def combine_series(
         azimuth = np.linspace(start_end[0], start_end[1], num_azimuths)
         
     # expand series around the azimuth values
-    h = unp.uarray(param_dict["height"], param_dict["height_err"])
+    h = unp.uarray(replace_null_terms(param_dict["height"]), replace_null_terms(param_dict["height_err"]))
     height = coefficient_expand(azimuth, 
                               param=h, 
                               coeff_type=param_dict["height_type"],
                               comp_str="height",
                               start_end=start_end)
-    w = unp.uarray(param_dict["width"], param_dict["width_err"])
+    w = unp.uarray(replace_null_terms(param_dict["width"]), replace_null_terms(param_dict["width_err"]))
     width = coefficient_expand(azimuth, 
                               param=w, 
                               coeff_type=param_dict["width_type"],
                               comp_str="width",
                               start_end=start_end)
-    p = unp.uarray(param_dict["profile"], param_dict["profile_err"])
+    p = unp.uarray(replace_null_terms(param_dict["profile"]), replace_null_terms(param_dict["profile_err"]))
     profile = coefficient_expand(azimuth, 
                               param=p,
                               coeff_type=param_dict["profile_type"],

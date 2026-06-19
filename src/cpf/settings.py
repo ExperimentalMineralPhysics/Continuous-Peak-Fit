@@ -1467,7 +1467,7 @@ class Settings:
 
         """
         
-        if keep.lower() == "all":
+        if isinstance(keep, str) and keep.lower() == "all":
             return
         
         if isinstance(keep, list):
@@ -1480,9 +1480,11 @@ class Settings:
                 start = np.int32(self.image_number/2)
             else:
                 raise ValueError("Unrecognised image_list filter type")
+        else:
+            start = keep
         if keep == -1:
             start = self.image_number
-        end = keep + 1
+        end = start + 1
         
         self.image_list = self.image_list[start:end]
         self.image_number = len(self.image_list)

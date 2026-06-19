@@ -150,8 +150,8 @@ def WriteOutput(
             else:
                 searchdata = possible[0]
     
-    #restrict to just the required image
-    settings_class.set_data_files(keep=searchdata)
+            #restrict to just the required image
+            settings_class.set_data_files(keep=searchdata)
     
     # make the data class.
     data_to_fill = settings_class.image_list[0]

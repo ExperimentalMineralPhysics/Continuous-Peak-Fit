@@ -432,6 +432,7 @@ def order_search(
     refine: bool = True,
     save_all: bool = False,
     parallel: bool = False,
+    search_image: [int | list | str] = 0,
     search_parameter: str = "height",
     search_over: list[int] = [0, 20],
     subpattern: str = "all",
@@ -471,6 +472,9 @@ def order_search(
     parallel : bool, optional
         Process the data in parallel? Set to false because parallel fills the memory with data.
         USE WITH CAUTION. The default is False.
+    search_image : str, int, optional
+        Which image to use in the order search. Can be integer image in list, "mid" or -1 for last image.
+        The default is 0.
     search_parameter : str, optional
         DESCRIPTION. The default is "height".
     search_over : list[int], optional
@@ -502,7 +506,7 @@ def order_search(
         logger.info("")
 
     # search over the first file only
-    settings_class.set_data_files(keep=0)
+    settings_class.set_data_files(keep=search_image)
     settings_class.fit_propagate = False
     
     # loop over the peaks in turn unless forced

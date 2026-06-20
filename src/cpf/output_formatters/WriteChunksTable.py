@@ -6,8 +6,8 @@ import os
 # from cpf.Cascade import read_saved_chunks
 import pandas as pd
 
-from  cpf.settings import get_settings
-from cpf.IO_functions import make_outfile_name, peak_string
+from cpf.settings import get_settings
+from cpf.util.io import make_outfile_name, peak_string
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_types.WriteChunksTable")
@@ -39,8 +39,8 @@ def WriteOutput(settings, debug=False, *args, **kwargs):
     Parameters
     ----------
     settings : [str | Path | dict | Settings()]
-        Class containing all variables and options needed for the fitting, or 
-        dictionary of all the settings or 
+        Class containing all variables and options needed for the fitting, or
+        dictionary of all the settings or
         string or path to a file with the settings in.
     debug : TYPE, optional
         DESCRIPTION. The default is False.
@@ -62,7 +62,6 @@ def WriteOutput(settings, debug=False, *args, **kwargs):
 
     # make sure settings is a class
     settings_class = get_settings(settings)
-
 
     file_list = setting_class.image_list
     file_number = len(file_list)

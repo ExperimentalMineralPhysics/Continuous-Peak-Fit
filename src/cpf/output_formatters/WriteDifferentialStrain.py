@@ -3,21 +3,20 @@ __all__ = ["Requirements", "WriteOutput"]
 
 import json
 import os
-from itertools import product
 import re
+from itertools import product
 
 import numpy as np
 import pandas as pd
 
 import cpf.peak_functions as pf
-from cpf.settings import get_settings
 from cpf.output_formatters.fits_io import ReadFits_to_dataframe
-from cpf.output_formatters.output_csv import write_csv, make_header
-from cpf.IO_functions import make_outfile_name
+from cpf.output_formatters.output_csv import make_header, write_csv
+from cpf.settings import get_settings
+from cpf.util.io import make_outfile_name
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.WriteCoefficientTable")
-
 
 
 def Requirements():
@@ -28,11 +27,11 @@ def Requirements():
     ]
     OptionalParams = {
         ##"Output_directory"  # if no direcrtory is specified write to current directory.
-        "SampleGeometry": "3d", # -- geometry of the sample for determining the cnetres from. 2D or 3D.
+        "SampleGeometry": "3d",  # -- geometry of the sample for determining the cnetres from. 2D or 3D.
         "SampleDeformation": "compression",  # changes calculation between 'compression' and 'extension'.
         "dp": 5,  # how many decimal points to write out
         "col_width": 15,  # default column width for csv file.
-        "ordering_of_output": False # Just leave as read -- otherwise list of dataframe headers to order by
+        "ordering_of_output": False,  # Just leave as read -- otherwise list of dataframe headers to order by
     }
     # OptionalParams = [
     #     "SampleGeometry"  # changes the strain tensor calucaltion from 2d to 3d. This determines how the cetroid and differnetial strain of the dpsaice are extracted from the fourier series.
@@ -51,12 +50,12 @@ def WriteOutput(
     **kwargs,
 ):
     """
-    Write coefficents from fits to table/csv file. 
-    
-    
+    Write coefficents from fits to table/csv file.
+
+
     settings : [str | Path | dict | Settings()]
-        Class containing all variables and options needed for the fitting, or 
-        dictionary of all the settings or 
+        Class containing all variables and options needed for the fitting, or
+        dictionary of all the settings or
         string or path to a file with the settings in.
     :param fitStats: DESCRIPTION, defaults to True
     :type fitStats: TYPE, optional
@@ -73,35 +72,48 @@ def WriteOutput(
     # make sure settings is a class
     settings_class = get_settings(settings)
 
-    # Parse optional parameters 
-    SampleGeometry     = settings_class.output_settings.get("SampleGeometry", Requirements()[1]["SampleGeometry"])
-    SampleDeformation  = settings_class.output_settings.get("SampleDeformation", Requirements()[1]["SampleDeformation"])
-    dp                 = settings_class.output_settings.get("dp", Requirements()[1]["dp"])
-    col_width          = settings_class.output_settings.get("col_width", Requirements()[1]["col_width"])
-    ordering_of_output = settings_class.output_settings.get("ordering_of_output", Requirements()[1]["ordering_of_output"])
-    #override with kwargs
-    SampleGeometry     = kwargs.get("SampleGeometry", SampleGeometry)
-    SampleDeformation  = kwargs.get("SampleDeformation", SampleDeformation)
-    dp                 = kwargs.get("dp", dp)
-    col_width          = kwargs.get("col_width", col_width)
+    # Parse optional parameters
+    SampleGeometry = settings_class.output_settings.get(
+        "SampleGeometry", Requirements()[1]["SampleGeometry"]
+    )
+    SampleDeformation = settings_class.output_settings.get(
+        "SampleDeformation", Requirements()[1]["SampleDeformation"]
+    )
+    dp = settings_class.output_settings.get("dp", Requirements()[1]["dp"])
+    col_width = settings_class.output_settings.get(
+        "col_width", Requirements()[1]["col_width"]
+    )
+    ordering_of_output = settings_class.output_settings.get(
+        "ordering_of_output", Requirements()[1]["ordering_of_output"]
+    )
+    # override with kwargs
+    SampleGeometry = kwargs.get("SampleGeometry", SampleGeometry)
+    SampleDeformation = kwargs.get("SampleDeformation", SampleDeformation)
+    dp = kwargs.get("dp", dp)
+    col_width = kwargs.get("col_width", col_width)
     ordering_of_output = kwargs.get("ordering_of_output", ordering_of_output)
     # force all the kwargs that might be needed
-    set_params = {"SampleGeometry": SampleGeometry,
-                "SampleDeformation": SampleDeformation,
-                }
+    set_params = {
+        "SampleGeometry": SampleGeometry,
+        "SampleDeformation": SampleDeformation,
+    }
     kwargs.update(set_params)
-    
-    # read the data.
-    df = ReadFits_to_dataframe(settings=settings_class, includeSeriesValues = True, includeStats=fitStats,
-        IncludeIntegrated=True,
-        SampleGeometry = SampleGeometry,
-        SampleDeformation = SampleDeformation)
-    headers = list(df.columns.values)
-    #order the rows
-    if ordering_of_output:
-        df = df.sort_values(by=ordering_of_output) 
 
-    # limit dataframe to what we want to write. 
+    # read the data.
+    df = ReadFits_to_dataframe(
+        settings=settings_class,
+        includeSeriesValues=True,
+        includeStats=fitStats,
+        IncludeIntegrated=True,
+        SampleGeometry=SampleGeometry,
+        SampleDeformation=SampleDeformation,
+    )
+    headers = list(df.columns.values)
+    # order the rows
+    if ordering_of_output:
+        df = df.sort_values(by=ordering_of_output)
+
+    # limit dataframe to what we want to write.
     # order columns to be correct also
     headers_use =  ["num",
                    "DataFile",
@@ -151,19 +163,19 @@ def WriteOutput(
                    'bic'
                    ]
         headers_use += extra_headers
-        
+
     # check that all wanted values are present
     missing_headers = list(set(headers_use) - set(list(df)))
     # if missing headers likely means no differential strains. Add list dataframe as zeros
     for i in missing_headers:
         df[i] = 0
-    df = df.loc[:, headers_use] 
-        
+    df = df.loc[:, headers_use]
+
     # cut data frame
     df = df[headers_use]
     # rename the columns
     df.rename(columns=headers_rename, inplace=True)
-    
+
     # make filename for output
     base = settings_class.datafile_basename
     if base is None:
@@ -183,15 +195,16 @@ def WriteOutput(
         overwrite=True,
         additional_text=add_text,
     )
-    
+
     ## outfile header
     calc_options = {}
     calc_options["Sample Geometry"] = SampleGeometry
     calc_options["Sample Deformation"] = SampleDeformation
-    file_header = make_header(settings_class,
-                            derived="Differnetial strains", 
-                            calc_options=calc_options,
-                            )
+    file_header = make_header(
+        settings_class,
+        derived="Differnetial strains",
+        calc_options=calc_options,
+    )
 
     # write file using panda dataframe
     write_csv(out_file, df, headers, file_header, col_width=col_width, dp=dp)

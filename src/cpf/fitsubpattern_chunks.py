@@ -16,14 +16,15 @@ import cpf.histograms as hist
 import cpf.lmfit_model as lmm
 import cpf.series_constraints as sc
 import cpf.series_functions as sf
-from cpf.IO_functions import make_outfile_name, peak_string
+from cpf.util.io import make_outfile_name, peak_string
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.fitsubpattern_chunks")
 
 
-
-def get_manual_guesses(settings_as_class, data_as_class, return_converted=False, debug=False):
+def get_manual_guesses(
+    settings_as_class, data_as_class, return_converted=False, debug=False
+):
     """
     Calculate series for set of 'manual guesses' i.e. pre-defined peak centers.
 
@@ -34,7 +35,7 @@ def get_manual_guesses(settings_as_class, data_as_class, return_converted=False,
     data_as_class : cpf data class
         DESCRIPTION.
     return_converted : bool
-        Return series in d-spacing [if = True] or 
+        Return series in d-spacing [if = True] or
         collection dimension (e.g. two theta, energy) [if = False]
         The default is False
     debug : TYPE, optional
@@ -45,34 +46,39 @@ def get_manual_guesses(settings_as_class, data_as_class, return_converted=False,
     dfour : list
         List of series coefficients for each peak.
     """
-    
-    # get guesses and limits in the correct parameter 
-    peak_pos_guesses = np.array(settings_as_class.subfit_orders["PeakPositionSelection"])
+
+    # get guesses and limits in the correct parameter
+    peak_pos_guesses = np.array(
+        settings_as_class.subfit_orders["PeakPositionSelection"]
+    )
     lims = lmm.parse_bounds(
         settings_as_class.fit_bounds, data_as_class, 0, 0, param=["d-space"]
-    ) #limits alwasys in converted unit.
-    limits_range = lims['d-space']
+    )  # limits alwasys in converted unit.
+    limits_range = lims["d-space"]
     if return_converted == True:
-        #limits alwasys in converted unit no need to chamge.
-        if (np.max(peak_pos_guesses[:, 2]) > np.max(limits_range) or
-            np.min(peak_pos_guesses[:, 2]) < np.min(limits_range)):
+        # limits alwasys in converted unit no need to chamge.
+        if np.max(peak_pos_guesses[:, 2]) > np.max(limits_range) or np.min(
+            peak_pos_guesses[:, 2]
+        ) < np.min(limits_range):
             # then the peak_pos_guesses are not in d-spacing
             # therefore change
             peak_pos_guesses[:, 2] = data_as_class.conversion(
-                peak_pos_guesses[:, 2], azm=None, reverse=False)
-            
-    else: # return_converted == False:
+                peak_pos_guesses[:, 2], azm=None, reverse=False
+            )
+
+    else:  # return_converted == False:
         # limits neeed to be converted
-        limits_range = data_as_class.conversion(
-            limits_range, azm=None, reverse=True)
+        limits_range = data_as_class.conversion(limits_range, azm=None, reverse=True)
         # then check guesses
-        if (np.max(peak_pos_guesses[:, 2]) > np.max(limits_range) or
-            np.min(peak_pos_guesses[:, 2]) < np.min(limits_range)):
+        if np.max(peak_pos_guesses[:, 2]) > np.max(limits_range) or np.min(
+            peak_pos_guesses[:, 2]
+        ) < np.min(limits_range):
             # then the peak_pos_guesses are not in collected units
             # therefore change
             peak_pos_guesses[:, 2] = data_as_class.conversion(
-                peak_pos_guesses[:, 2], azm=None, reverse=True)
-     
+                peak_pos_guesses[:, 2], azm=None, reverse=True
+            )
+
     settings_as_class.validate_position_selection(
         peak_set=settings_as_class.subfit_order_position, report=False
     )
@@ -132,10 +138,10 @@ def get_chunk_background_guess(settings_as_class, data_chunk, n=1, debug=False):
 
     FIXME: background_type has been removed/depreciated. It is no longer needed. It should be replaced by background_fixed
     """
-    
+
     cnk_i = data_chunk[0]
     cnk_tth = data_chunk[1]
-    
+
     # Get indices of sorted two theta values excluding the masked values
     # tth_ord = ma.argsort(data_chunk_class.tth.compressed())
     tth_ord = np.argsort(cnk_tth)
@@ -163,12 +169,11 @@ def get_chunk_background_guess(settings_as_class, data_chunk, n=1, debug=False):
         else:  # len(orders['background']) > 1:
             # first value (offset) is mean of left-hand values
             background_guess[0][0] = np.mean(cnk_i[tth_ord[:n]])
-                # data_chunk_class.intensity.compressed()[tth_ord[:n]]
+            # data_chunk_class.intensity.compressed()[tth_ord[:n]]
             # )
             # if there are more, then calculate a gradient guess.
             background_guess[1][0] = (
-                np.mean(cnk_i[tth_ord[-n:]])
-                - np.mean(cnk_i[tth_ord[:n]])
+                np.mean(cnk_i[tth_ord[-n:]]) - np.mean(cnk_i[tth_ord[:n]])
                 # np.mean(data_chunk_class.intensity.compressed()[tth_ord[-n:]])
                 # - np.mean(data_chunk_class.intensity.compressed()[tth_ord[:n]])
             ) / (
@@ -180,6 +185,7 @@ def get_chunk_background_guess(settings_as_class, data_chunk, n=1, debug=False):
 
     return background_guess
 
+
 def get_chunk_peak_guesses_new(
     settings_as_class,
     data_chunk,
@@ -190,7 +196,7 @@ def get_chunk_peak_guesses_new(
     debug=False,
 ):
     """
-    
+
 
     Parameters
     ----------
@@ -235,11 +241,11 @@ def get_chunk_peak_guesses_new(
     :param debug:
     :return peaks, limits, p_fixed:
     """
-    
+
     cnk_i = data_chunk[0]
     cnk_tth = data_chunk[1]
     cnk_azm = data_chunk[2]
-    
+
     guess_cent = []
     guess_h = []
     guess_w = []
@@ -272,8 +278,7 @@ def get_chunk_peak_guesses_new(
             if len(background_guess) > 1:
                 h_guess = h_guess - (
                     background_guess[0][0]
-                    + background_guess[1][0]
-                    * (cnk_tth[idx] - cnk_tth.min())
+                    + background_guess[1][0] * (cnk_tth[idx] - cnk_tth.min())
                 )
             elif len(background_guess) == 1:
                 h_guess = h_guess - background_guess[0][0]
@@ -328,7 +333,7 @@ def get_chunk_peak_guesses_new(
             )
         else:
             p_guess = np.mean(settings_as_class.fit_bounds["profile"])
-        
+
         guess_cent.append(pos_guess)
         guess_h.append(h_guess)
         guess_w.append(w_guess)
@@ -389,11 +394,15 @@ def fit_chunks(
         # FIXME: Need to check that the num. of peaks for which we have parameters is the same as the
         # number of peaks guessed at.
         # dfour = get_manual_guesses(peeks, orders, bounds, twotheta, debug=None)
-        dfour = get_manual_guesses(settings_as_class, data_as_class, return_converted=False, debug=debug)
+        dfour = get_manual_guesses(
+            settings_as_class, data_as_class, return_converted=False, debug=debug
+        )
 
     # Get chunks according to detector type.
     if mode != "fit":  # cascade
-        chunks, chunk_bounds, azichunks = data_as_class.bins(settings_as_class, cascade=True)
+        chunks, chunk_bounds, azichunks = data_as_class.bins(
+            settings_as_class, cascade=True
+        )
     else:
         chunks, chunk_bounds, azichunks = data_as_class.bins(settings_as_class)
     # Final output list of azimuths with corresponding twotheta_0,h,w
@@ -431,10 +440,12 @@ def fit_chunks(
     for j in range(len(chunks)):
         # logger.info(" ".join(map(str, [('\nFitting to data chunk ' + str(j + 1) + ' of ' + str(len(chunks)) + '\n')])))
         logger.debug(f"Fitting to data chunk {j + 1} of {len(chunks)}")
-        
+
         # make data class for chunks.
         # reduce data to a subset using azi_bounds
-        chunk_data = data_as_class.duplicate(azi_bounds=chunk_bounds[j], as_masked=False)
+        chunk_data = data_as_class.duplicate(
+            azi_bounds=chunk_bounds[j], as_masked=False
+        )
         chunk_intensity = chunk_data.intensity
         chunk_tth = chunk_data.tth
         chunk_azm = chunk_data.azm
@@ -448,9 +459,7 @@ def fit_chunks(
 
         elif mode == "range":
             # get maximum from each chunk
-            out_vals["h"][0].append(
-                np.max(chunk_intensity) - np.min(chunk_intensity)
-            )
+            out_vals["h"][0].append(np.max(chunk_intensity) - np.min(chunk_intensity))
             out_vals["chunks"].append(azichunks[j])
             new_azi_chunks.append(azichunks[j])
 
@@ -467,15 +476,13 @@ def fit_chunks(
             if len(chunk_intensity) >= min_dat:
                 # integrate (smooth) the chunks
                 if histogram_type != None:
-                    chunk_tth, chunk_intensity, chunk_azm = (
-                        hist.histogram1d(
-                            chunk_tth,
-                            chunk_intensity,
-                            azi=chunk_azm,
-                            histogram_type=histogram_type,
-                            bin_n=histogram_bins,
-                            debug=debug,
-                        )
+                    chunk_tth, chunk_intensity, chunk_azm = hist.histogram1d(
+                        chunk_tth,
+                        chunk_intensity,
+                        azi=chunk_azm,
+                        histogram_type=histogram_type,
+                        bin_n=histogram_bins,
+                        debug=debug,
                     )
 
                 # append azimuth to output
@@ -497,27 +504,37 @@ def fit_chunks(
                 )
                 # cent_guess is in collected units. needs converting.
                 lims = lmm.parse_bounds(
-                    settings_as_class.fit_bounds, data_as_class, 0, len(cent_guess), param=["d-space"]
-                ) #limits alwasys in converted unit.
-                limits_range = lims['d-space']
-                
-                if (np.max(cent_guess) > np.max(limits_range) or
-                    np.min(cent_guess) < np.min(limits_range)):
+                    settings_as_class.fit_bounds,
+                    data_as_class,
+                    0,
+                    len(cent_guess),
+                    param=["d-space"],
+                )  # limits alwasys in converted unit.
+                limits_range = lims["d-space"]
+
+                if np.max(cent_guess) > np.max(limits_range) or np.min(
+                    cent_guess
+                ) < np.min(limits_range):
                     # then the peak_pos_guesses are not in d-spacing
                     # therefore change
-                    cent_guess = list(np.atleast_1d(data_as_class.conversion(
-                        cent_guess, azm=None, reverse=False)))
+                    cent_guess = list(
+                        np.atleast_1d(
+                            data_as_class.conversion(
+                                cent_guess, azm=None, reverse=False
+                            )
+                        )
+                    )
                 # convert to dictionary
                 peaks = []
-                for a,b,c,d in zip(cent_guess, h_guess, w_guess, p_guess):
+                for a, b, c, d in zip(cent_guess, h_guess, w_guess, p_guess):
                     peaks.append(
-                                {
-                                    "d-space": [a],
-                                    "height": [b],
-                                    "width": [c],
-                                    "profile": [d],
-                                }
-                            )
+                        {
+                            "d-space": [a],
+                            "height": [b],
+                            "width": [c],
+                            "profile": [d],
+                        }
+                    )
 
                 comp_list = ["h", "d", "w", "p"]
                 comp_names = ["height", "d-space", "width", "profile"]
@@ -780,7 +797,7 @@ def fit_series(
                 fixed = 0
                 data_vals = data[0][comp][j]
                 data_val_errors = data[0][comp + "_err"][j]
-                data_val_errors = clean_errs(data_val_errors, outliers=2)     
+                data_val_errors = clean_errs(data_val_errors, outliers=2)
 
             #     # FIX ME: this was not checked properly.the values it feeds are not necessarily correct
             #     # and the fixed parameters might be fit for.
@@ -861,16 +878,13 @@ def fit_series(
                     param=temp[0],
                     coeff_type=temp_tp,
                 )
-                ax[i].plot(
-                    az_plt,
-                    gmod_plot
-                )
+                ax[i].plot(az_plt, gmod_plot)
                 ax[i].scatter(data[1], data[0][comp][j], s=10)
-                
+
             # set y limits ignoring the error bars
             y_lms = ax[i].get_ylim()
             ax[i].set_ylim(y_lms)
-            
+
             for j in range(len(orders["peak"])):
                 # add error bars to data points, over the top of the points
                 ax[i].errorbar(
@@ -880,7 +894,7 @@ def fit_series(
                     fmt="none",
                     elinewidth=0.5,
                 )
-            
+
             # set x-ticks by data type.
             # if notthing in the data class then continue
             try:

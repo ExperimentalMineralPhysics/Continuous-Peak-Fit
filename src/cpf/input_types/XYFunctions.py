@@ -52,8 +52,8 @@ import os
 import pickle
 import re
 import sys
-from pathlib import Path
 from copy import copy, deepcopy
+from pathlib import Path
 
 import fabio
 import matplotlib.pyplot as plt
@@ -66,11 +66,11 @@ from matplotlib import image
 from PIL import Image
 
 import cpf.h5_functions as h5_functions
-from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
-from cpf.input_types._metadata_common import _metadata_common
 from cpf.input_types._Masks import _masks
+from cpf.input_types._metadata_common import _metadata_common
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+from cpf.util import io
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.input_types.XYFunctions")
@@ -142,11 +142,11 @@ class XYDetector:
         self.azm_end = -np.inf
         self.tth_start = None
         self.tth_end = None
-        
+
         # Image data so contonuous.
         self.Dispersion = "Angle"
         self.continuous_azm = True
-        
+
         self.Dispersionlabel = r"Pixels"
         self.DispersionUnits = r"num"
         self.Azimuthlabel = r"Pixels"
@@ -154,15 +154,16 @@ class XYDetector:
         self.Observationslabel = r"Intensity"
         self.ObservationsUnits = r"a.u."
 
-        #set defualt value, do not asume is diffraction data
+        # set defualt value, do not asume is diffraction data
         self.azm_blocks = 100
-            
+
         self.reduce_by = None
 
-        self._default_metadata_labels = {"time": "FILE_CREATION", # file creation time.
-                                  # 'exposure_label': None # no exposure - cant have empty value
-                                  }
-        
+        self._default_metadata_labels = {
+            "time_label": "FILE_CREATION",  # file creation time.
+            # 'exposure_label': None # no exposure - cant have empty value
+        }
+
         self.calibration = None
         self.conversion_constant = None
         self.detector = None
@@ -177,7 +178,13 @@ class XYDetector:
             if self.calibration:
                 self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True, as_masked=False):
+    def duplicate(
+        self,
+        range_bounds=[-np.inf, np.inf],
+        azi_bounds=[-np.inf, np.inf],
+        with_detector=True,
+        as_masked=False,
+    ):
         """
         Makes an independent copy of a XYDetector Instance.
 
@@ -201,20 +208,20 @@ class XYDetector:
 
         """
 
-        #validate the ranges
+        # validate the ranges
         range_bounds, azi_bounds = self.check_bounds(range_bounds, azi_bounds)
-        
+
         if with_detector:
             new = copy(self)
         else:
-            # copy and then delete the detector and calibration, 
-            # so that anyother non-default values are propagated.             
+            # copy and then delete the detector and calibration,
+            # so that anyother non-default values are propagated.
             new = deepcopy(self)
             new.detector = None
             new.calibration = None
-            
+
             # new = XYDetector()
-            # # must define conversion constants here beacuce this is the only other 
+            # # must define conversion constants here beacuce this is the only other
             # # variable that is REQUIRED.
             # new.conversion_constant = self.conversion_constant
 
@@ -326,7 +333,8 @@ class XYDetector:
 
         if self.calibration == None:
             self.get_calibration(
-                settings=settings, file_name=calibration_file, #, debug=debug
+                settings=settings,
+                file_name=calibration_file,  # , debug=debug
             )
 
         if diffraction_data is None and settings is not None:
@@ -341,8 +349,13 @@ class XYDetector:
 
     # @staticmethod
     def import_image(
-        self, image_name=None, settings=None, mask=None, dtype=None, 
-        reduce_by = None, debug=False
+        self,
+        image_name=None,
+        settings=None,
+        mask=None,
+        dtype=None,
+        reduce_by=None,
+        debug=False,
     ):
         """
         Import the data image into the intensity array.
@@ -412,7 +425,7 @@ class XYDetector:
 
         if self.calibration["x_dim"] != 0:
             im = im.T
-            
+
         # reduce the size of the data (if called for)
         if reduce_by is not None or self.reduce_by is not None:
             if reduce_by is False:
@@ -429,7 +442,7 @@ class XYDetector:
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
             ax.imshow(im)
-            plt.title(IO_functions.title_file_names(image_name=image_name))
+            plt.title(io.title_file_names(image_name=image_name))
             plt.show()
             plt.close()
 
@@ -449,23 +462,25 @@ class XYDetector:
         im = filters.gaussian(im, sigma)
         """
 
-        #add metadata to instance.
-        #done here so only need to open file once.
+        # add metadata to instance.
+        # done here so only need to open file once.
         self._set_metadata(image_name, settings=settings)
-        
+
         # apply mask to the intensity array
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im)
             return ma.array(im)
-        elif ma.is_masked(self.intensity) == True and self.intensity.mask.shape == im.shape:
+        elif (
+            ma.is_masked(self.intensity) == True
+            and self.intensity.mask.shape == im.shape
+        ):
             # apply mask from previous intensities and all are same size
             self.intensity = ma.array(im, mask=self.intensity.mask)
             return ma.array(im)
-        else:#if mask is not None:
+        else:  # if mask is not None:
             # apply given mask
             self.intensity = ma.array(im, mask=self.get_mask(mask, im))
             return ma.array(im, mask=mask)
-
 
     def fill_data(
         self, diff_file=None, settings=None, mask=None, make_zyx=False, debug=False
@@ -522,12 +537,12 @@ class XYDetector:
 
         if settings.reduce_by is not None:
             self.reduce_by = settings.reduce_by
-        
+
         if settings.metadata_labels is not None:
             self.metadata_labels = settings.metadata_labels
         else:
             self.metadata_labels = self._default_metadata_labels
-            
+
         if self.detector == None:
             self.get_detector(settings=settings)
 
@@ -544,16 +559,16 @@ class XYDetector:
         if self.reduce_by is not None:
             self.intensity = self._reduce_array(self.intensity)
             self.tth = self._reduce_array(self.tth)
-            
+
             if "original_mask" in dir(self):
-                self.original_mask= self._reduce_array(self.original_mask)
-            
-            if (re.findall("azimuth", self.calibration["y_label"].lower())
-                or 
-                re.findall("theta", self.calibration["x_label"].lower())
-                or
-                self.azm_end == self.azm_start + 360):
-                # the data would appear to be diffraction data. 
+                self.original_mask = self._reduce_array(self.original_mask)
+
+            if (
+                re.findall("azimuth", self.calibration["y_label"].lower())
+                or re.findall("theta", self.calibration["x_label"].lower())
+                or self.azm_end == self.azm_start + 360
+            ):
+                # the data would appear to be diffraction data.
                 self.azm = self._reduce_array(self.azm, polar=True)
             else:
                 # data is some other sort of data.
@@ -561,45 +576,48 @@ class XYDetector:
 
         # get new azm_blocks from detector.
         self.azm_blocks = self.detector.azm_blocks
-        
-        self.azm_start = np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
-        self.azm_end   =  np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+
+        self.azm_start = (
+            np.floor(np.min(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        )
+        self.azm_end = (
+            np.ceil(np.max(self.azm.flatten()) / self.azm_blocks) * self.azm_blocks
+        )
         self.tth_start = np.min(self.tth.flatten())
-        self.tth_end   = np.max(self.tth.flatten())
-        
+        self.tth_end = np.max(self.tth.flatten())
+
         self.Dispersionlabel = self.detector.calibration["x_label"]
         self.DispersionUnits = self.detector.calibration["x_unit"]
         self.Azimuthlabel = self.detector.calibration["y_label"]
         self.AzimuthUnits = self.detector.calibration["y_unit"]
-     
 
     def _set_metadata(self, image_obj, settings=None):
         """
         Adds all possible metadata values as dictionary within the in the data_class.
-        
-        The values that are in settings.metadata (a list) are extracted subsequently using data_class.get_metadata 
-        
-        If the cpf settings class is provided and has the method 'metadata_read_func'
-        then this method is used to override the internal default methods and is 
-        used to create 'metadata_dictionary' which is parsed.
-        In this case the settings class attribute 'metadata_labels' is still needed 
-        to get required parts of the metadata. 
 
-        For XY functions the default is a PIL.Image.open(image_obj).tag_v2.names() dictionary 
-        
+        The values that are in settings.metadata (a list) are extracted subsequently using data_class.get_metadata
+
+        If the cpf settings class is provided and has the method 'metadata_read_func'
+        then this method is used to override the internal default methods and is
+        used to create 'metadata_dictionary' which is parsed.
+        In this case the settings class attribute 'metadata_labels' is still needed
+        to get required parts of the metadata.
+
+        For XY functions the default is a PIL.Image.open(image_obj).tag_v2.names() dictionary
+
         Parameters
         ----------
         image_obj : Path, string
             file path for the image to be opened.
         settings : cpf settings class, optional
-            If the settings class has method 'metadata_read' this overrides the 
-            internal methods and is used to get the metadata. 
+            If the settings class has method 'metadata_read' this overrides the
+            internal methods and is used to get the metadata.
             The default is None.
 
         Returns
         -------
         metadata_dictionary
-            dictionary of image metadata. 
+            dictionary of image metadata.
         """
         # Defined as function to allow get_metadata to call universal image method
         # Defined as function to allow get_metadata to call universal image method
@@ -614,14 +632,16 @@ class XYDetector:
             raise ValueError("This is the wrong method to get h5 type metadata.")
         else:
             try:
-                #try using PIL but who knows.
+                # try using PIL but who knows.
                 metadata_dictionary = Image.open(image_obj).tag_v2.names()
             except:
                 # no idea what non-image metadata will look like so pass.
                 metadata_dictionary = {}
 
         if settings and "metadata_read_func" in settings.__dict__:
-            metadata_dictionary.update(settings.metadata_read_func(settings, image_obj=image_obj))            
+            metadata_dictionary.update(
+                settings.metadata_read_func(settings, image_obj=image_obj)
+            )
         # add the file creation and modifications time
         metadata_dictionary.update(self._get_file_created_modified(image_obj))
         self.metadata = metadata_dictionary
@@ -701,11 +721,11 @@ class XYDetector:
     get_metadata = _metadata_common.get_metadata
     _get_file_created_modified = _metadata_common._get_file_created_modified
     """
-    FIXME: add more flxibility to conversion    
+    FIXME: add more flxibility to conversion
     XYFunctions does not have to be X-ray diffraction but it could be. To pass a
     empty conversion throgh the function set DataClass.conversion_factor=False.
-    But other conversions might be necessary in fiture and so the function may 
-    need further generalisationby by accepting a lambda function. 
+    But other conversions might be necessary in fiture and so the function may
+    need further generalisationby by accepting a lambda function.
     """
 
     # add masking functions to detetor class.
@@ -723,7 +743,7 @@ class XYDetector:
     plot_calibrated = _Plot_AngleDispersive.plot_calibrated
     plot_integrated = _Plot_AngleDispersive.plot_integrated
     what_plot_type = _Plot_AngleDispersive.what_plot_type
-    
+
     # this function is added because it requires access to self:
     dispersion_ticks = _Plot_AngleDispersive._dispersion_ticks
 
@@ -740,15 +760,15 @@ class OrthogonalDetector:
         self.calib = calibration
         self.max_shape = max_shape
 
-        # initiate a bunch of defaults. 
+        # initiate a bunch of defaults.
         self.calibration = {}
 
         self.calibration["x_dim"] = 0
-        self.calibration["x"] = [0,1]
+        self.calibration["x"] = [0, 1]
         self.calibration["x_start"] = np.nan
         self.calibration["x_end"] = np.nan
         self.calibration["x_scale"] = "linear"
-        self.calibration["y"] = [0,1]
+        self.calibration["y"] = [0, 1]
         self.calibration["y_start"] = np.nan
         self.calibration["y_end"] = np.nan
         self.calibration["y_scale"] = "linear"
@@ -759,9 +779,8 @@ class OrthogonalDetector:
         self.calibration["y_unit"] = "num"
         self.calibration["y_label"] = "pixels"
 
-        #set a default spacing
+        # set a default spacing
         self.azm_blocks = 100
-        
 
         self.calibration["conversion_constant"] = 1
 
@@ -836,12 +855,15 @@ class OrthogonalDetector:
             y_dim = 1
         else:
             y_dim = 0
-        
+
         if "y" in calibration:
             self.calibration["y"] = calibration["y"]
         elif "y_start" in calibration:
             self.calibration["y"][0] = self.calibration["y_start"]
-            self.calibration["y"][1] = (self.calibration["y_end"] - self.calibration["y_start"]) / (self.max_shape[y_dim] - 1),
+            self.calibration["y"][1] = (
+                (self.calibration["y_end"] - self.calibration["y_start"])
+                / (self.max_shape[y_dim] - 1),
+            )
 
         # print(self.calibration["y_label"].lower(), "azimuth", self.calibration["y_label"].lower() == "azimuth")
         if self.calibration["y_label"].lower() == "azimuth":
@@ -851,12 +873,18 @@ class OrthogonalDetector:
 
         if "theta" in self.calibration["x_label"].lower():
             if "$" not in self.calibration["x_label"].lower():
-                self.calibration["x_label"] = re.sub(r'\$\\theta\$|\\theta|theta', "$\theta$", self.calibration["x_label"].lower())
-                # force string to be a raw string. 
-                self.calibration["x_label"] = self.calibration["x_label"].encode('unicode_escape').decode()
+                self.calibration["x_label"] = re.sub(
+                    r"\$\\theta\$|\\theta|theta",
+                    "$\theta$",
+                    self.calibration["x_label"].lower(),
+                )
+                # force string to be a raw string.
+                self.calibration["x_label"] = (
+                    self.calibration["x_label"].encode("unicode_escape").decode()
+                )
             if "x_unit" not in calibration:
                 self.calibration["x_unit"] = "deg"
-            
+
         self.calibration_check
 
     def calibration_check(self):

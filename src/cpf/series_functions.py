@@ -21,9 +21,10 @@ __all__ = [
     "background_expansion",
 ]
 
+import re
+
 import numpy as np
 import numpy.ma as ma
-import re
 from scipy.interpolate import CubicSpline, make_interp_spline
 
 import uncertainties.unumpy as unp
@@ -34,19 +35,18 @@ from lmfit import Parameters
     
 import cpf.peak_functions as pf
 import cpf.series_constraints as sc
-from cpf.IO_functions import replace_null_terms
-from cpf.lmfit_model import coefficient_fit, initiate_all_params_for_fit, initiate_params, gather_param_errs_to_list
+# from cpf.lmfit_model import coefficient_fit, initiate_all_params_for_fit, initiate_params, gather_param_errs_to_list
+from cpf.util.io import replace_value
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.series_functions")
-
 
 
 def coefficient_types(full=False):
     """
     Defines the coefficient types possible and the numbers associated with them.
 
-    The series types and their associated numbers are: 
+    The series types and their associated numbers are:
          0: 'fourier'
          1: 'spline_linear', 'linear'
          2: 'spline_quadratic', 'quadratic'
@@ -55,13 +55,13 @@ def coefficient_types(full=False):
          5: 'spline_quadratic_open', 'quadratic_open'
          6: 'spline_cubic_open', 'cubic_open', 'spline_open'
          7: 'independent'
-    When cycled through the code the first value in each of these options is the one that 
+    When cycled through the code the first value in each of these options is the one that
     will be added to the json files. So 'linear' will be written as 'spline_linear'
 
     Parameters
     ----------
     full : bool, optional
-        Return dirctionary with just series numbers (False) or with all ancillary 
+        Return dirctionary with just series numbers (False) or with all ancillary
         information for fitting (True). The default is False.
 
     Returns
@@ -72,79 +72,113 @@ def coefficient_types(full=False):
     """
     coeff_types = {}
     # add fourier series type
-    coeff_types = {"fourier": {"num": 0,  "expansion_function": "fourier_expand" },}   
+    coeff_types = {
+        "fourier": {"num": 0, "expansion_function": "fourier_expand"},
+    }
     # add spline, linear, periodic series type
-    coeff_types |= {"spline_linear": {
+    coeff_types |= {
+        "spline_linear": {
             "num": 1,
             "expansion_function": "spline_expand",
             "boundary_conditions": "periodic",
             "spline_type": "linear",
-            },}
-    coeff_types |= {"linear": coeff_types["spline_linear"],}
+        },
+    }
+    coeff_types |= {
+        "linear": coeff_types["spline_linear"],
+    }
     # add spline, quadratic, periodic series type
-    coeff_types |= {"spline_quadratic": {
+    coeff_types |= {
+        "spline_quadratic": {
             "num": 2,
             "expansion_function": "spline_expand",
             "boundary_conditions": "periodic",
             "spline_type": "quadratic",
-            },}
-    coeff_types |= {"quadratic": coeff_types["spline_quadratic"],}
-    # add spline, cubic, periodic series type    
-    coeff_types |= {"spline_cubic": {
+        },
+    }
+    coeff_types |= {
+        "quadratic": coeff_types["spline_quadratic"],
+    }
+    # add spline, cubic, periodic series type
+    coeff_types |= {
+        "spline_cubic": {
             "num": 3,
             "expansion_function": "spline_expand",
             "boundary_conditions": "periodic",
             "spline_type": "cubic",
-            },}
-    coeff_types |= {"cubic": coeff_types["spline_cubic"],}
-    coeff_types |= {"spline": coeff_types["spline_cubic"],}
-    coeff_types |= {"spline-cubic": coeff_types["spline_cubic"],}
-    
-    # add spline, linear, open series type    
-    coeff_types |= {"spline_linear_open": {
+        },
+    }
+    coeff_types |= {
+        "cubic": coeff_types["spline_cubic"],
+    }
+    coeff_types |= {
+        "spline": coeff_types["spline_cubic"],
+    }
+    coeff_types |= {
+        "spline-cubic": coeff_types["spline_cubic"],
+    }
+
+    # add spline, linear, open series type
+    coeff_types |= {
+        "spline_linear_open": {
             "num": 4,
             "expansion_function": "spline_expand",
             "boundary_conditions": "not-a-knot",
             "spline_type": "linear",
-            },}
-    coeff_types |= {"linear_open": coeff_types["spline_linear_open"],}
-    # add spline, quardartic, open series type    
-    coeff_types |= {"spline_quadratic_open": {
+        },
+    }
+    coeff_types |= {
+        "linear_open": coeff_types["spline_linear_open"],
+    }
+    # add spline, quardartic, open series type
+    coeff_types |= {
+        "spline_quadratic_open": {
             "num": 5,
             "expansion_function": "spline_expand",
             "boundary_conditions": "not-a-knot",
             "spline_type": "quadratic",
-            },}
-    coeff_types |= {"quadratic_open": coeff_types["spline_quadratic_open"],}
-    # add spline, cubic, open series type    
-    coeff_types |= {"spline_cubic_open": {
+        },
+    }
+    coeff_types |= {
+        "quadratic_open": coeff_types["spline_quadratic_open"],
+    }
+    # add spline, cubic, open series type
+    coeff_types |= {
+        "spline_cubic_open": {
             "num": 6,
             "expansion_function": "spline_expand",
             "boundary_conditions": "not-a-knot",
             "spline_type": "cubic",
-            },}
-    coeff_types |= {"cubic_open": coeff_types["spline_cubic_open"],}
-    coeff_types |= {"spline_open": coeff_types["spline_cubic_open"],}    
-    
-    # add independent coefficients. 
-    coeff_types |= {"independent": {
+        },
+    }
+    coeff_types |= {
+        "cubic_open": coeff_types["spline_cubic_open"],
+    }
+    coeff_types |= {
+        "spline_open": coeff_types["spline_cubic_open"],
+    }
+
+    # add independent coefficients.
+    coeff_types |= {
+        "independent": {
             "num": 7,
             "expansion_function": "spline_expand",
             "boundary_conditions": "natural",
             "spline_type": "independent",
-            },}
-        
-    if full!=True:
+        },
+    }
+
+    if full != True:
         for i in range(len(coeff_types)):
             ky = list(coeff_types.keys())[i]
             coeff_types[ky] = coeff_types[ky]["num"]
-    
+
     return coeff_types
 
 
 def coefficient_type_as_number(series_type, return_error=1):
     """
-    Returns series type as a number from given string. 
+    Returns series type as a number from given string.
     The key,value pairs are defined in series_functions.coefficient_types()
 
     Parameters
@@ -152,7 +186,7 @@ def coefficient_type_as_number(series_type, return_error=1):
     series_type : str
         series type name string.
     return_error : bool, optional
-        return an error string, rather than raising an error. 
+        return an error string, rather than raising an error.
 
     Raises
     ------
@@ -169,27 +203,28 @@ def coefficient_type_as_number(series_type, return_error=1):
     if series_type in types.keys():
         out = types[series_type]
     elif series_type in types.values():
-        #if input is a recognised number then return a number. 
+        # if input is a recognised number then return a number.
         out = series_type
     else:
-        error_str = ("Unrecognised string index for series type. The valid options are "
+        error_str = (
+            "Unrecognised string index for series type. The valid options are "
             "defined in cpf.series_functions.coefficient_types()"
-            )
+        )
         if return_error == 0:
             raise ValueError(error_str)
         else:
             out = error_str
     return out
-    
+
 
 def coefficient_type_as_string(series_type):
     """
-    Returns series type as a string from given number. 
+    Returns series type as a string from given number.
     The key,value pairs are defined in series_functions.coefficient_types()
 
     Parameters
     ----------
-    series_type : float, int, 
+    series_type : float, int,
         series type name string.
 
     Raises
@@ -205,7 +240,7 @@ def coefficient_type_as_string(series_type):
     """
     types = coefficient_types()
     if series_type in list(types.keys()):
-        #if input is a recognised strong then return a strong.
+        # if input is a recognised strong then return a strong.
         out = series_type
     elif series_type in list(types.values()):
         out = list(types.keys())[list(types.values()).index(series_type)]
@@ -253,7 +288,7 @@ def get_series_type(param, param_str, comp=None):
 def get_params_type(orders, comp, peak=0):
     """
     Get series type from input orders.
-    
+
     Parameters
     ----------
     orders : dict
@@ -283,12 +318,12 @@ def get_params_type(orders, comp, peak=0):
 def get_number_coeff(orders, comp, peak=0, azimuths=None):
     """
     Returns the expected number of coefficients from order value
-    
+
     For a fourier series the number of coefficients is 2n+1.
-    The same convention is adopted for spline series. 
-    For 'independent' series, the number of unique azimuths is needed to determine 
-    the number of coefficients. 
-    
+    The same convention is adopted for spline series.
+    For 'independent' series, the number of unique azimuths is needed to determine
+    the number of coefficients.
+
     Parameters
     ----------
     orders : dict
@@ -337,18 +372,18 @@ def get_number_coeff(orders, comp, peak=0, azimuths=None):
 def get_order_from_coeff(n_coeff, parm_num=0, azimuths=None):
     """
     Returns the order of a series from the number of coefficients it contains
-    
+
     For a fourier series the order is (n-1)/2.
-    The same convention is adopted for spline series. 
-    For 'independent' series, the number of unique azimuths is needed to determine 
-    the number of coefficients. 
-    
+    The same convention is adopted for spline series.
+    For 'independent' series, the number of unique azimuths is needed to determine
+    the number of coefficients.
+
     Parameters
     ----------
     n_coeff : num
         Number of cofficents in the series.
     parm_num : int or str, optional
-        Label for series type - either a string or a numeric value, as defined in 
+        Label for series type - either a string or a numeric value, as defined in
         series_functions.coefficient_types(). The default is 0.
     azimuths : np.array, optional
         array of unique azimuths. The default is None.
@@ -390,7 +425,7 @@ def get_order_from_params(params, comp=None, peak=0):
     Calculate the order of the series from a list of coefficients
 
     The order of the series is: (len(coefficients)-1) / 2
-    
+
     Parameters
     ----------
     params : list
@@ -409,7 +444,7 @@ def get_order_from_params(params, comp=None, peak=0):
     -------
     order : int
         Order fo the series.
-        
+
     """
     # Given list of Fourier coefficients return order (n)
     if isinstance(params, (list,)):
@@ -431,7 +466,7 @@ def get_order_from_params(params, comp=None, peak=0):
         logger.critical(" ".join(map(str, [(err_str)])))
         raise ValueError(err_str)
 
-    #convert from lenth to an order.
+    # convert from lenth to an order.
     order = get_order_from_coeff(l)
 
     return order
@@ -439,7 +474,7 @@ def get_order_from_params(params, comp=None, peak=0):
 
 def get_series_mean(param, param_str, comp=None):
     """
-    Calcualte the mean of the parameter series from lmfit parameter dictionary or 
+    Calcualte the mean of the parameter series from lmfit parameter dictionary or
     settings coefficient dictionary.
 
     Parameters
@@ -461,18 +496,21 @@ def get_series_mean(param, param_str, comp=None):
     # We should use the medaian and the mean deviation from the median...
     if param_str in param:
         # then this is not a lmfit parameter dictionary but a coefficient dictionary.
-        if param_str+"_type" in param:# 
-            series_type = param[param_str+"_type"]
+        if param_str + "_type" in param:  #
+            series_type = param[param_str + "_type"]
         else:
-            series_type = 'fourier'
-        if series_type == 'fourier':
+            series_type = "fourier"
+        if series_type == "fourier":
             mean = param[param_str][0]
         else:
             # get a mean of all the coefficients
             mean = np.nanmean(param[param_str])
-    
+
     else:
-        if get_series_type(param, param_str, comp=comp) == coefficient_types()["fourier"]:
+        if (
+            get_series_type(param, param_str, comp=comp)
+            == coefficient_types()["fourier"]
+        ):
             # if it is a Fourier series just get the first value.
             mean = param[param_str + "_" + comp + "0"].value
         else:
@@ -501,7 +539,7 @@ def coefficient_expand(
     **params,
 ):
     """
-    Calcuate the value of a series at each azimuth. 
+    Calcuate the value of a series at each azimuth.
 
     Parameters
     ----------
@@ -531,12 +569,12 @@ def coefficient_expand(
     """
     series_name = coefficient_type_as_string(coeff_type)
     all_series = coefficient_types(full=True)
-    
+
     # FIXME: this could be changed so that all_series[series_name]["expansion_function"]
-    # is used with getattr -- allowing easier future expansion of the series types. 
+    # is used with getattr -- allowing easier future expansion of the series types.
     if all_series[series_name]["expansion_function"] == "fourier_expand":
         out = fourier_expand(azimuth, inp_param=param, comp_str=comp_str, **params)
-        
+
     elif all_series[series_name]["expansion_function"] == "spline_expand":
         out = spline_expand(
             azimuth,
@@ -547,13 +585,13 @@ def coefficient_expand(
             kind=all_series[series_name]["spline_type"],
             **params,
         )
-    
+
     else:
         raise ValueError(
             "Unrecognised number index for series type. The valid options are "
             "defined in cpf.series_functions.coefficient_types()"
         )
-        
+
     return out
 
 
@@ -580,7 +618,7 @@ def spline_expand(
     start_end : list, optional
         Minimum and maximum azimuth. The default is [0, 360].
     bc_type : str, optional
-        Bounding conditions type: Options are "indepeddnt", "periodic", and "natural". 
+        Bounding conditions type: Options are "indepeddnt", "periodic", and "natural".
         The default is "periodic".
     kind : str, optional
         Type of spline or independent series. The default is "cubic".
@@ -610,7 +648,7 @@ def spline_expand(
         inp_param = []
         for j in range(len(str_keys)):
             inp_param.append(params[comp_str + str(j)])
-    
+
     if kind == "independent":
         if ma.isMaskedArray(azimuth):
             points = ma.unique(azimuth).compressed()
@@ -630,7 +668,7 @@ def spline_expand(
         k = 2
     elif kind == "linear" or kind == "independent":
         k = 1
-        bc_type = None # catch error feeding into make_interp_spline
+        bc_type = None  # catch error feeding into make_interp_spline
     else:
         raise ValueError("Unknown spline type.")
 
@@ -655,11 +693,10 @@ def spline_expand(
         # else:
         if k >= len(points):
             # catch if the spline is underconstrained
-            k = len(points)-1
+            k = len(points) - 1
             if k < 0:
                 k=0
         spl = make_interp_spline(points, unp.nominal_values(inp_param), k=k, bc_type=bc_type )
-        # spl = make_interp_spline(points, inp_param, k=k, bc_type=bc_type )
 
         fout = spl(azimuth)
 
@@ -761,7 +798,7 @@ def fourier_expand(
 
 def background_expansion(azimuth_two_theta, orders, params):
     """
-    Calculate background value at each azimuth / two theta pair for given series 
+    Calculate background value at each azimuth / two theta pair for given series
     coefficients.
 
     Parameters
@@ -1092,8 +1129,8 @@ def series_properties(
     **kwargs,
 ):
     """
-    Calcualte series properties from the coefficients. 
-    
+    Calcualte series properties from the coefficients.
+
     Parameters
     ----------
     coefficients : dict
@@ -1108,7 +1145,7 @@ def series_properties(
         Peak profile parameter to calculate properties for
     azm_spacing : float or list or np.array, optional
         either:
-            Precision to calulate the properties for (if required). 
+            Precision to calulate the properties for (if required).
         or:
             list of azimuths to calculate the properties at
     **kwargs : TYPE
@@ -1122,8 +1159,8 @@ def series_properties(
     Returns
     -------
     differential_coefficients : dict
-        Dictionary of the calculated properties and their errors. The propertues calculated from the 
-        series coefficients are: 
+        Dictionary of the calculated properties and their errors. The propertues calculated from the
+        series coefficients are:
             "series_mean" -- mean d-spacing of diffraction ring, assuming 2d or 3d 'SampleGeometry'
             "series_max" -- maximum values of series
             "orientation max" -- maximum values of series
@@ -1138,17 +1175,18 @@ def series_properties(
 
     if not isinstance(coefficients, list):
         raise ValueError("The coefficients need to be a list of dictionaries.")
-            
+
     # catch 'null' terms in fits
-    coefficients = replace_null_terms(coefficients, replace_with=np.nan)
+    coefficients = replace_value(coefficients, old=None, new=np.nan)
 
     properties = {}
 
-
     # height mean
-    if coefficients[subpattern]["peak"][peak][param+"_type"] == "fourier":
+    if coefficients[subpattern]["peak"][peak][param + "_type"] == "fourier":
         properties["series mean"] = coefficients[subpattern]["peak"][peak][param][0]
-        properties["series mean err"] = coefficients[subpattern]["peak"][peak][param+"_err"][0]
+        properties["series mean err"] = coefficients[subpattern]["peak"][peak][
+            param + "_err"
+        ][0]
     else:
         # the 'mean' of the spline series is actually a weighted sum, divided by the 
         # number of entries. 
@@ -1156,7 +1194,9 @@ def series_properties(
         # will reflect any LPO in the diffraction peak.
         tot = np.sum(coefficients[subpattern]["peak"][peak][param])
         errsum = np.sqrt(
-            np.sum(np.array(coefficients[subpattern]["peak"][peak][param+"_err"]) ** 2)
+            np.sum(
+                np.array(coefficients[subpattern]["peak"][peak][param + "_err"]) ** 2
+            )
         )
         num = len(coefficients[subpattern]["peak"][peak][param])
         properties["series mean"] = tot / num
@@ -1171,13 +1211,15 @@ def series_properties(
         # then need to use uniquie azimuths that were fed in
         orientations = ma.unique(azm_spacing).compressed()
     else:
-        n = 360/azm_spacing + 1
+        n = 360 / azm_spacing + 1
         orientations = np.linspace(0, 360, int(n))
 
-    vals = coefficient_expand(orientations, 
-                              param=coefficients[subpattern]["peak"][peak][param], 
-                              coeff_type=coefficients[subpattern]["peak"][peak][param+"_type"],
-                              comp_str=param)
+    vals = coefficient_expand(
+        orientations,
+        param=coefficients[subpattern]["peak"][peak][param],
+        coeff_type=coefficients[subpattern]["peak"][peak][param + "_type"],
+        comp_str=param,
+    )
     maximum = np.argmax(vals)
     minimum = np.argmin(vals)
     properties["series max"] = vals[maximum]

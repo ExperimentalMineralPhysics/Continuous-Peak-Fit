@@ -3,38 +3,37 @@
 
 __all__ = ["DioptasDetector"]
 
-import sys
-from copy import copy, deepcopy
-from importlib.metadata import version
 import os
 import re
-from pathlib import Path
+import sys
 import types
+from copy import copy, deepcopy
+from importlib.metadata import version
+from pathlib import Path
+
 import fabio
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import pyFAI
-from pyFAI.detectors.orientation import Orientation
 from packaging.version import Version
+from pyFAI.detectors.orientation import Orientation
 
 # Logic to support multiple PyFAI versions
 if Version(version("pyFAI")).major >= 2025:
     from pyFAI.integrator.azimuthal import AzimuthalIntegrator
 else:
     from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
-from pyFAI.io import ponifile
+from pyFAI.io import DefaultAiWriter, ponifile
 
+import cpf  # need to import whole package to avoind trying to import part of incompletely iniated method (cpf.settings.issettings for _get_metadata)
 import cpf.h5_functions as h5_functions
-import cpf # need to import whole package to avoind trying to import part of incompletely iniated method (cpf.settings.issettings for _get_metadata)
-from cpf import IO_functions
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
-from cpf.input_types._metadata_common import _metadata_common
 from cpf.input_types._Masks import _masks
+from cpf.input_types._metadata_common import _metadata_common
 from cpf.input_types._Plot_AngleDispersive import _Plot_AngleDispersive
+from cpf.util import io
 from cpf.util.logging import get_logger
-
-from pyFAI.io import DefaultAiWriter
 
 logger = get_logger("cpf.input_types.DioptasFunctions")
 
@@ -82,23 +81,28 @@ class DioptasDetector:
         self.reduce_by = None
 
         self.metadata = None
-        self._default_metadata_labels_tiff  = {"time": "FILE_MODIFIED", # file creation time.
-                                  }
+        self._default_metadata_labels_tiff = {
+            "time": "FILE_MODIFIED",  # file creation time.
+        }
         self._default_metadata_labels_hdf5 = {}
         # self._default_metadata_labels = {"time": "FILE_MODIFIED", # file creation time.
         #                           }
-        
-        self._default_h5_datakey = '/*.1/measurement/p3/'
-        self._default_h5_iterate = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
-                           {"do":"combine", 
-                 "from": 0, 
-                 "to": -1, 
-                 "step": 1, 
-                 "using":"position",
-                 "label": ['pos'],
-                 # "pos": '/*.1/measurement/azim/',
-                 "dim": 0}]
-        
+
+        self._default_h5_datakey = "/*.1/measurement/p3/"
+        self._default_h5_iterate = [
+            {"from": 0, "to": 0, "step": 1, "label": ["pos"], "do": "iterate"},
+            {
+                "do": "combine",
+                "from": 0,
+                "to": -1,
+                "step": 1,
+                "using": "position",
+                "label": ["pos"],
+                # "pos": '/*.1/measurement/azim/',
+                "dim": 0,
+            },
+        ]
+
         self.calibration = None
         self.conversion_constant = None
         self.detector = None
@@ -109,7 +113,13 @@ class DioptasDetector:
             if self.calibration:
                 self.detector = self.get_detector(settings=settings_class)
 
-    def duplicate(self, range_bounds=[-np.inf, np.inf], azi_bounds=[-np.inf, np.inf], with_detector=True, as_masked=True):
+    def duplicate(
+        self,
+        range_bounds=[-np.inf, np.inf],
+        azi_bounds=[-np.inf, np.inf],
+        with_detector=True,
+        as_masked=True,
+    ):
         """
         Makes an independent copy of a DioptasDetector Instance.
 
@@ -136,27 +146,33 @@ class DioptasDetector:
             Copy of DioptasDetector with independedent data values
 
         """
-        #FIXME: should merge the data reduction funtions here with set_limits. or call set_limits.
-        #FIXME: should be able to copy the class and reduce data at the same time. rather than copying and then reducing
-        # this is not memory efficient. 
-        
-        
+        # FIXME: should merge the data reduction funtions here with set_limits. or call set_limits.
+        # FIXME: should be able to copy the class and reduce data at the same time. rather than copying and then reducing
+        # this is not memory efficient.
+
         # list variables that are not just straight copied
-        copy_separately = ["intensity", "tth", "azm",
-                           "x", "y", "z",
-                           "dspace",
-                           "tth_start", "tth_end"]
+        copy_separately = [
+            "intensity",
+            "tth",
+            "azm",
+            "x",
+            "y",
+            "z",
+            "dspace",
+            "tth_start",
+            "tth_end",
+        ]
         dont_copy = ["detector", "calibration"]
-        
-        #validate the ranges
+
+        # validate the ranges
         range_bounds, azi_bounds = self.check_bounds(range_bounds, azi_bounds)
-        
+
         if with_detector:
             new = copy(self)
             # do not return here because likely need to cut the data down
         elif 0:
-            # copy and then delete the detector and calibration, 
-            # so that all other non-default values are propagated.    
+            # copy and then delete the detector and calibration,
+            # so that all other non-default values are propagated.
             new = deepcopy(self)
             for i in dont_copy:
                 setattr(new, i, None)
@@ -164,36 +180,35 @@ class DioptasDetector:
             # new.calibration = None
         else:
             # make new detector instance.
-            # assume the methods are not altered and 
+            # assume the methods are not altered and
             # add the common variables to ensure consistent behaviour
             new = DioptasDetector()
-            
+
             # copy all the settings ignoring any methods
             for i in dir(new):
-                if (type(getattr(new, i)) == types.MethodType or 
-                    i[:2] == "__"):
+                if type(getattr(new, i)) == types.MethodType or i[:2] == "__":
                     # skip method copying or default object
                     continue
                 elif i in dont_copy:
                     # set dont copy parameters to 0
                     setattr(new, i, None)
                 elif i not in copy_separately:
-                    # copy common parameters 
+                    # copy common parameters
                     setattr(new, i, getattr(self, i))
                 elif i in copy_separately:
                     # skip adding the variables in 'copy_separately'
                     # these are added below.
-                    # *may* be more memory efficient than copying huge arrays and 
+                    # *may* be more memory efficient than copying huge arrays and
                     # then making them smaller.
                     continue
                 else:
                     raise ValueError("Should not be possible to get here")
-            
+
         # set new range.
         new.tth_start = range_bounds[0]
         new.tth_end = range_bounds[1]
-        
-        # restrict the data. 
+
+        # restrict the data.
         local_mask = np.where(
             (self.tth >= new.tth_start)
             & (self.tth <= new.tth_end)
@@ -205,7 +220,7 @@ class DioptasDetector:
         new.azm = self.azm[local_mask]
         if "dspace" in dir(self):
             new.dspace = self.dspace[local_mask]
-       
+
         if "x" in dir(new):
             if self.x is not None:
                 new.x = self.x[local_mask]
@@ -258,7 +273,7 @@ class DioptasDetector:
             parms_file = settings.calibration_parameters
         else:
             parms_file = file_name
-            
+
         if 0:
             """
             FIXME: If there is no specific detector type set in the calibration
@@ -266,19 +281,19 @@ class DioptasDetector:
               "No sensor configuration provided; using default behaviour."
             This is just unfortunate but does not cause a problem.
             the way round this is to read the poni file as a dictionary and then
-            pipe it back to the ponifile object. 
-            
+            pipe it back to the ponifile object.
+
             if not warnings are raised everytime the object is copied/duplicated
-            
-            The code below also raises warnings on other detectors that are specified. 
-            
+
+            The code below also raises warnings on other detectors that are specified.
+
             Instead change how the duplication of the detector works.
             """
             import json
-            
-            # read a poni file into 
+
+            # read a poni file into
             pf_data = {}
-            with open(parms_file, 'r') as f:
+            with open(parms_file, "r") as f:
                 for line in f:
                     line = line.strip()
                     if not line or line.startswith("#"):
@@ -294,44 +309,49 @@ class DioptasDetector:
                     pf_data[key] = parsed_value
             if pf_data["detector"].lower() == "detector":
                 # it is a generic detector without sensor specification.
-                # add this to supress warnings. 
-                pf_data["detector_config"].update({'sensor': {'material': 'CdTe', 'thickness': 0.001}})
-                pf_data["detector_config"].update({'sensor': pyFAI.detectors.sensors.SensorConfig.parse("CdTe, 1mm")})
-            
+                # add this to supress warnings.
+                pf_data["detector_config"].update(
+                    {"sensor": {"material": "CdTe", "thickness": 0.001}}
+                )
+                pf_data["detector_config"].update(
+                    {"sensor": pyFAI.detectors.sensors.SensorConfig.parse("CdTe, 1mm")}
+                )
+
             pf = ponifile.PoniFile()
             # pf.read_from_file(parms_file)
             pf.read_from_dict(pf_data)
         else:
             pf = ponifile.PoniFile()
             pf.read_from_file(parms_file)
-            
-        if pf.API_VERSION <2:
+
+        if pf.API_VERSION < 2:
             # then there is no orientation information in the poni file
             error_str = "Support for poni v1 files has been depreciated. To proceed update your poni file to version>=2"
             logger.error(error_str)
             import sys
+
             sys.exit(error_str)
-            
+
             # then there is no orientation information in the poni file
             # assume an orientation, add and update pf
             config = pf.detector.get_config()
             config["orientation"] = 2
             pf.detector.set_config(config)
-            #set the orientation which means AP_VERIOSN >= 2
+            # set the orientation which means AP_VERIOSN >= 2
             pf.API_VERSION = 2.1
         if (
-            not isinstance(settings.image_list[0], list) and 
-            pf.as_dict().get("poni_version", 1) >= 2 and 
-            "orientation" in pf.detector.get_config()
+            not isinstance(settings.image_list[0], list)
+            and pf.as_dict().get("poni_version", 1) >= 2
+            and "orientation" in pf.detector.get_config()
         ):
-            # FIXME: this doesnt make sense to me.  
-            # can't flip if using hdf5 type images (if image_list[0] is list) because 
-            # the images are then upsude down relative to dioptas. 
-            
+            # FIXME: this doesnt make sense to me.
+            # can't flip if using hdf5 type images (if image_list[0] is list) because
+            # the images are then upsude down relative to dioptas.
+
             # Check orientation and patch it since pyFAI and Dioptas use different conventions:
             # - Dioptas convention: origin at the top right when looking from the sample
-            # - Default pyFAI convention: origin at the bottom right when looking from the sample   
-            
+            # - Default pyFAI convention: origin at the bottom right when looking from the sample
+
             """Flips the detector up-down orientation in a poni configuration dictionary. Changes the dictionary object
             in place.
             """
@@ -388,7 +408,8 @@ class DioptasDetector:
         """
         if self.calibration == None:
             self.get_calibration(
-                settings=settings, file_name=calibration_file,
+                settings=settings,
+                file_name=calibration_file,
             )
 
         if self.calibration:
@@ -402,14 +423,18 @@ class DioptasDetector:
                 rot2=self.calibration.rot2,
                 rot3=self.calibration.rot3,
                 wavelength=self.calibration.wavelength,
-                orientation=self.calibration.detector.get_config()["orientation"]
+                orientation=self.calibration.detector.get_config()["orientation"],
             )
 
-            
     # @staticmethod
     def import_image(
-        self, image_name=None, settings=None, mask=None, dtype=None, 
-        reduce_by = None, debug=False
+        self,
+        image_name=None,
+        settings=None,
+        mask=None,
+        dtype=None,
+        reduce_by=None,
+        debug=False,
     ):
         """
         Import the data image into the intensity array.
@@ -457,16 +482,18 @@ class DioptasDetector:
         if isinstance(image_name, list):
             # then it is a h5 type file (including *.nxs)
             im = h5_functions.get_images(image_name, settings_class=settings)
-            
-            #add metadata to instance.
-            #done here so only need to open file once.
+
+            # add metadata to instance.
+            # done here so only need to open file once.
             self._set_metadata(None, settings=settings)
 
         else:
             # presume it is an image file.
             try:
                 im_all = fabio.open(image_name)
-                logger.moreinfo(f"This file contains {im_all.nframes} frame(s) with a combined shape of {im_all.shape}")
+                logger.moreinfo(
+                    f"This file contains {im_all.nframes} frame(s) with a combined shape of {im_all.shape}"
+                )
             except:
                 err_str = "".join(
                     [
@@ -476,10 +503,10 @@ class DioptasDetector:
                     ]
                 )
                 raise ValueError(err_str)
-                
+
             if im_all.nframes == 1:
                 # squeeze to make sure 1st dimension is not 1.
-                im = im_all.data.squeeze()  
+                im = im_all.data.squeeze()
             else:
                 err_str = "".join(
                     [
@@ -488,11 +515,11 @@ class DioptasDetector:
                     ]
                 )
                 raise NotImplementedError(err_str)
-                
-            #add metadata to instance.
-            #done here so only need to open file once.
+
+            # add metadata to instance.
+            # done here so only need to open file once.
             self._set_metadata(im_all, settings=settings)
-        
+
         # Convert the input data from integer to float because the lmfit model values
         # inherits integer properties from the data.
         #
@@ -507,10 +534,10 @@ class DioptasDetector:
 
         # Dioptas flips the images to match the orientations in Fit2D
         # Therefore implemented here to be consistent with Dioptas.
-        # flip both the image and the calibration separately to allow subsequent 
+        # flip both the image and the calibration separately to allow subsequent
         # loading of more images.
         im = np.array(im)[::-1]
-        
+
         # reduce the size of the data (if called for)
         if reduce_by is not None or self.reduce_by is not None:
             if reduce_by is False:
@@ -526,23 +553,25 @@ class DioptasDetector:
         if logger.is_below_level(level="DEBUG"):
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
-            asdf = ax.imshow(np.log10(im+1E4))
+            asdf = ax.imshow(np.log10(im + 1e4))
             # print(np.log10(im))
-            plt.title(IO_functions.title_file_names(image_name=image_name))
+            plt.title(io.title_file_names(image_name=image_name))
             plt.colorbar(asdf)
             plt.show()
             plt.close()
 
-        
         # apply mask to the intensity array
         if mask == None and ma.is_masked(self.intensity) == False:
             self.intensity = ma.array(im)
             return ma.array(im)
-        elif ma.is_masked(self.intensity) == True and self.intensity.mask.shape == im.shape:
+        elif (
+            ma.is_masked(self.intensity) == True
+            and self.intensity.mask.shape == im.shape
+        ):
             # apply mask from previous intensities and all are same size
             self.intensity = ma.array(im, mask=self.intensity.mask)
             return ma.array(im)
-        else:#if mask is not None:
+        else:  # if mask is not None:
             # apply given mask
             self.intensity = ma.array(im, mask=self.get_mask(mask, im))
             return ma.array(im, mask=mask)
@@ -550,7 +579,6 @@ class DioptasDetector:
         #     # apply new mask
         #     self.intensity = ma.array(im, mask=self.fill_mask(mask, im))
         #     return ma.array(im, mask=mask)
-
 
     def fill_data(
         self, diff_file=None, settings=None, mask=None, make_zyx=False, debug=False
@@ -606,25 +634,29 @@ class DioptasDetector:
 
         if settings.reduce_by is not None:
             self.reduce_by = settings.reduce_by
-            
+
         if settings.metadata_labels is not None:
             self.metadata_labels = settings.metadata_labels
-        if (isinstance(diff_file, list) or 
-              os.path.splitext(os.path.basename(diff_file))[1] == ".h5" or 
-              os.path.splitext(os.path.basename(diff_file))[1] == ".nxs"):
+        if (
+            isinstance(diff_file, list)
+            or os.path.splitext(os.path.basename(diff_file))[1] == ".h5"
+            or os.path.splitext(os.path.basename(diff_file))[1] == ".nxs"
+        ):
             self._default_metadata_labels = self._default_metadata_labels_hdf5
             self.metadata_labels = self._default_metadata_labels_hdf5
         else:
             self._default_metadata_labels = self._default_metadata_labels_tiff
             self.metadata_labels = self._default_metadata_labels_tiff
-            
+
         if self.detector == None:
             self.get_detector(settings=settings)
 
         # get the intensities (without mask) and without reduction.
         # No reduction because if reduced then the calibration is nonsence.
-        self.intensity = self.import_image(diff_file, settings=settings, reduce_by=False)
-        
+        self.intensity = self.import_image(
+            diff_file, settings=settings, reduce_by=False
+        )
+
         # FIXME: (June 2024) because of how self.detector is instanciated the
         # shape might not be correct (or recognised). Hence the check here and
         # inclusion of the shape in the array getting.
@@ -635,12 +667,8 @@ class DioptasDetector:
                 "The pixel size of the data and the detector are not the same"
             )
 
-        self.tth = ma.array(
-            self.detector.center_array(unit='2th_deg')
-        )
-        self.azm = ma.array(
-            self.detector.center_array(unit='chi_deg')
-        )
+        self.tth = ma.array(self.detector.center_array(unit="2th_deg"))
+        self.azm = ma.array(self.detector.center_array(unit="chi_deg"))
         # self.dspace = self._get_d_space()
         if make_zyx:
             zyx = self.detector.calc_pos_zyx()
@@ -656,10 +684,10 @@ class DioptasDetector:
             self.intensity = self._reduce_array(self.intensity)
             self.tth = self._reduce_array(self.tth)
             self.azm = self._reduce_array(self.azm, polar=True)
-            
+
             if "original_mask" in dir(self):
-                self.original_mask= self._reduce_array(self.original_mask)
-                
+                self.original_mask = self._reduce_array(self.original_mask)
+
             if make_zyx:
                 self.z = self._reduce_array(self.z)
                 self.y = self._reduce_array(self.y)
@@ -674,34 +702,33 @@ class DioptasDetector:
         self.tth_start = np.min(self.tth.flatten())
         self.tth_end = np.max(self.tth.flatten())
 
-
     def _set_metadata(self, image_obj, settings=None):
         """
         Adds all possible metadata values as dictionary within the in the data_class.
-        
-        The values that are in settings.metadata (a list) are extracted subsequently using data_class.get_metadata 
-               
-        If the cpf settings class is provided and has the method 'metadata_read_func'
-        then this method is used to override the internal default methods and is 
-        used to create 'metadata_dictionary' which is parsed.
-        In this case the settings class attribute 'metadata_labels' is still needed 
-        to get required parts of the metadata. 
 
-        For Dioptas functions the default is a fabio.open(file).header dictionary 
-        
+        The values that are in settings.metadata (a list) are extracted subsequently using data_class.get_metadata
+
+        If the cpf settings class is provided and has the method 'metadata_read_func'
+        then this method is used to override the internal default methods and is
+        used to create 'metadata_dictionary' which is parsed.
+        In this case the settings class attribute 'metadata_labels' is still needed
+        to get required parts of the metadata.
+
+        For Dioptas functions the default is a fabio.open(file).header dictionary
+
         Parameters
         ----------
         image_obj : fabio object
             image object to be parsed.
         settings : cpf settings class, optional
-            If the settings class has method 'metadata_read' this overrides the 
-            internal methods and is used to get the metadata. 
+            If the settings class has method 'metadata_read' this overrides the
+            internal methods and is used to get the metadata.
             The default is None.
 
         Returns
         -------
         metadata_dictionary
-            dictionary of image metadata. 
+            dictionary of image metadata.
         """
         # Defined as function to allow get_metadata to call universal image method
         metadata_dictionary = {}
@@ -710,38 +737,46 @@ class DioptasDetector:
             # expected behaviour in some circumstances.
             self.metadata = None
             return
-        elif isinstance(image_obj, list) or (not image_obj and settings) or cpf.settings.is_settings(image_obj):
-             # when calling hdf5 file there is no image_obj to send (= None) and settings is
-             # provided instead. 
-             # 
-             # (any(False if x is None else "*" in x for x in self.metadata_labels.values()) or 
-             #  any(False if x is None else "/" in x for x in self.metadata_labels.values()) or 
-             #  (settings and any("*" in x for x in settings.metadata)) or 
-             #  (settings and any("/" in x for x in settings.metadata))
-             #  ):
+        elif (
+            isinstance(image_obj, list)
+            or (not image_obj and settings)
+            or cpf.settings.is_settings(image_obj)
+        ):
+            # when calling hdf5 file there is no image_obj to send (= None) and settings is
+            # provided instead.
+            #
+            # (any(False if x is None else "*" in x for x in self.metadata_labels.values()) or
+            #  any(False if x is None else "/" in x for x in self.metadata_labels.values()) or
+            #  (settings and any("*" in x for x in settings.metadata)) or
+            #  (settings and any("/" in x for x in settings.metadata))
+            #  ):
             # here we set pointers to the things needed when the metadata is read.
             # assuming that it is not wise (or possible) to list all the possible hdf5
-            # keys which could be read as metadata. 
-            
+            # keys which could be read as metadata.
+
             metadata_dictionary = {}
             if settings.subfit_filename is not None:
                 metadata_dictionary["image"] = settings.subfit_filename
             else:
                 metadata_dictionary["image"] = settings.image_list[0][0]
-            metadata_dictionary["note"] = "It is not reasonable to load all hdf5 keys into a dictionary as metadata. Instead carry file name and use keys"
-            metadata_dictionary["h5_datakey"] = settings.h5_datakey       
+            metadata_dictionary["note"] = (
+                "It is not reasonable to load all hdf5 keys into a dictionary as metadata. Instead carry file name and use keys"
+            )
+            metadata_dictionary["h5_datakey"] = settings.h5_datakey
             # add the file creation and modifications time
             # metadata_dictionary.update(self._get_file_created_modified(image_obj[0]))
         else:
             if isinstance(image_obj, str) or isinstance(image_obj, Path):
                 metadata_dictionary.update(fabio.open(image_obj).header)
             else:
-                metadata_dictionary.update(image_obj.header)       
+                metadata_dictionary.update(image_obj.header)
             # add the file creation and modifications time
             metadata_dictionary.update(self._get_file_created_modified(image_obj))
 
         if settings and "metadata_read_func" in settings.__dict__:
-            metadata_dictionary.update(settings.metadata_read_func(settings, image_obj=image_obj))     
+            metadata_dictionary.update(
+                settings.metadata_read_func(settings, image_obj=image_obj)
+            )
         self.metadata = metadata_dictionary
 
     @staticmethod
@@ -813,7 +848,9 @@ class DioptasDetector:
                 if par in required_list:
                     logger.info(" ".join(map(str, [("Got: ", par)])))
                 else:
-                    logger.info(f"The settings file requires a parameter called '{par}'")
+                    logger.info(
+                        f"The settings file requires a parameter called '{par}'"
+                    )
                     all_present = 0
             if all_present == 0:
                 sys.exit(
@@ -821,12 +858,12 @@ class DioptasDetector:
                     "are all present."
                 )
         return required_list
-    
+
     def detector_description(self):
         """
-        Returns a text description of the detector. 
-        
-        For Dioptas detectors this is called from PyFAI.  
+        Returns a text description of the detector.
+
+        For Dioptas detectors this is called from PyFAI.
 
         Returns
         -------
@@ -834,7 +871,7 @@ class DioptasDetector:
             Text description of the detector and the calibration.
         """
         description = DefaultAiWriter(None, self.detector).make_headers()
-        description = description.replace('\r\n', '\n')
+        description = description.replace("\r\n", "\n")
         return description
 
     # add common function.
@@ -849,7 +886,6 @@ class DioptasDetector:
     _reduce_array = _AngleDispersive_common._reduce_array
     get_metadata = _metadata_common.get_metadata
     _get_file_created_modified = _metadata_common._get_file_created_modified
-
 
     # add masking functions to detetor class.
     get_mask = _masks.get_mask

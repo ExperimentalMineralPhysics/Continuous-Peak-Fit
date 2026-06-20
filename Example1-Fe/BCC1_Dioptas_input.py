@@ -23,9 +23,9 @@ Calib_mask     = "DiffractionMask_Dioptas.mask"
 Output_directory   = 'results'
 Output_type        = ['Polydefix', 'DifferentialStrain', 'FitMovie', 'CoefficientTable', 'CollectionMovie']
 
-metadata_labels = {#"time": "time_start",
-                   "exposure": "Exposure_time"}
-metadata = ['Exposure_time', 'Exposure_period']
+# metadata_labels = {#"time": "time_start",
+#                    "exposure": "Exposure_time"}
+# metadata = ['Exposure_time', 'Exposure_period']
 
 # define ranges and peaks
 fit_orders = [
@@ -106,4 +106,3 @@ def metadata_read_func(settings=None, image_obj=None, filename=None, **kwargs):
         out['daft'] = "Needless"
         
     return out
-    

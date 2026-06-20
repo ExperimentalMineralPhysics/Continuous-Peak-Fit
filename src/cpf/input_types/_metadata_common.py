@@ -372,9 +372,12 @@ class _metadata_common:
                         i = i.get_name()
                 tmp_creations.append(os.path.getctime(i))
                 tmp_modified.append(os.path.getmtime(i))
-
-        metadata_dict["FILE_CREATION"] = np.median(tmp_creations)
-        metadata_dict["FILE_MODIFIED"] = np.median(tmp_modified)
+                
+        if len(tmp_creations) > 1:
+            tmp_creations = np.median(tmp_creations)
+            tmp_modified = np.median(tmp_modified)
+        metadata_dict["FILE_CREATION"] = tmp_creations
+        metadata_dict["FILE_MODIFIED"] = tmp_modified
         
         return metadata_dict
 

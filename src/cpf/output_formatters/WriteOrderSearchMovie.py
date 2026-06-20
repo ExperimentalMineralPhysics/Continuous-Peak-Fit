@@ -5,11 +5,11 @@ import json
 import os
 from typing import Literal, Optional
 
-# import matplotlib.pyplot as plt
-# import numpy as np
+import matplotlib.pyplot as plt
+import numpy as np
 
 # # from moviepy import concatenate
-# from moviepy import ImageClip, VideoFileClip, concatenate_videoclips
+from moviepy import ImageClip, VideoFileClip, concatenate_videoclips
 
 from cpf.BrightSpots import SpotProcess
 from cpf.output_formatters.fits_io import ReadFits_to_dataframe, ReadFits_to_list

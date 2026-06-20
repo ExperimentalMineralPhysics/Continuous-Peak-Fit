@@ -128,7 +128,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
 
     # loop for background orders/size
     if (
-        sf.get_params_type(previous_params, "background")
+        sf.coefficient_type_as_number(sf.get_params_type(previous_params, "background"))
         != sf.coefficient_types()["independent"]
     ):  # if parameters are not independent
         for y in range(

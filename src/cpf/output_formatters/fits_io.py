@@ -268,7 +268,7 @@ def ReadFits_to_dataframe(
     if isinstance(includeParameters, str):
         includeParameters = [includeParameters]
     if includeParameters == ["all"]:
-        peak_properties = pf.peak_components(full=True, include_combined=IncludeIntegrated)
+        peak_properties = pf.peak_components(full=True, include_combined=includeIntegrated)
         includeParameters = peak_properties[1]
 
     if includeSeriesValues is not False or includeUnitCells is not False:
@@ -286,7 +286,7 @@ def ReadFits_to_dataframe(
             "SampleDeformation": SampleDeformation,
         }
         kwargs.update(set_params)
-    kwargs.update({"add_integrated": IncludeIntegrated})
+    kwargs.update({"add_integrated": includeIntegrated})
     
     if includeIntensityRanges is not False: 
 
@@ -359,10 +359,10 @@ def ReadFits_to_dataframe(
                         | profile_properties
                     )
 
-                    if IncludeIntegrated:
-                        extras = set(
+                    if includeIntegrated:
+                        extras = (set(
                             pf.peak_components(full=True, include_profile=True, include_combined=True)[1]) - 
-                            set(pf.peak_components(full=True, include_profile=True, include_combined=False)[1]
+                            set(pf.peak_components(full=True, include_profile=True, include_combined=False)[1])
                         )
                         for k in extras:
                             extra_properties = series_properties(

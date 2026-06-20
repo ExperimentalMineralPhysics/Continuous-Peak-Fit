@@ -16,6 +16,7 @@ from typing import Any, Literal, TypeVar, overload
 
 import numpy as np
 import pandas as pd
+pd.set_option('future.no_silent_downcasting', True)
 
 import cpf.peak_functions as pf
 from cpf.util.logging import get_logger
@@ -664,7 +665,7 @@ def replace_value(
     elif isinstance(obj, pd.DataFrame):
         # replace contents of panda data frame
         old = np.nan if old is None else old
-        obj = obj.replace(old, new)
+        obj = obj.replace(old, new).infer_objects(copy=False)
     elif obj == old:  # and old is not None:
         obj = new
         logger.moreinfo(" ".join(map(str, [(f"Value {old} found at {path}")])))
@@ -783,12 +784,12 @@ def peak_string(
     # Construct list of indices to parse
     if peak == "all":
         peaks = list(range(len(orders["peak"])))
-    # If an int was provided
-    elif isinstance(peak, int):
-        peaks = [peak]
     # If a list of ints is provided
     elif isinstance(peak, list) and all(isinstance(x, int) for x in peak):
         peaks = peak
+    # If an int was provided
+    elif isinstance(peak, int) or np.issubdtype(peak, np.integer):
+        peaks = [peak]
     # Raise a TypeError otherwise
     else:
         raise TypeError(
@@ -870,10 +871,10 @@ def peak_hkl(
     # Construct list of peaks to parse
     if peak == "all":
         peaks = list(range(len(orders["peak"])))
-    elif isinstance(peak, int):
-        peaks = [peak]
     elif isinstance(peak, list) and all(np.issubdtype(x, np.integer) for x in peak):
         peaks = peak
+    elif isinstance(peak, int) or np.issubdtype(peak, np.integer):
+        peaks = [peak]
     else:
         raise TypeError(
             f"'peak' received an unsupported value: {peak} "
@@ -968,10 +969,10 @@ def peak_phase(
     # Convert input into a list of integers
     if peak == "all":
         peaks = list(range(len(orders["peak"])))
-    elif isinstance(peak, int):
-        peaks = [peak]
     elif isinstance(peak, list) and all(np.issubdtype(x, np.integer) for x in peak):
         peaks = peak
+    elif isinstance(peak, int) or np.issubdtype(peak, np.integer):
+        peaks = [peak]
     else:
         raise TypeError(
             f"'peak' received an unsupported value: {peak} "

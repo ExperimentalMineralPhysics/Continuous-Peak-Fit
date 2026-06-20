@@ -118,7 +118,7 @@ def WriteOutput(
         settings_class.set_data_files(keep=searchdata)
     
     # read the data.
-    df = ReadFits_to_dataframe(settings=settings_class, includeStats=True, includeSeriesValues=True, includePosition=True)
+    df = ReadFits_to_dataframe(settings=settings_class, includeStats=True, includeSeriesValues=True, includePosition=True, IncludeIntegrated=False)
     headers = list(df.columns.values)
     
     # split the notes column into columns and calculate some new values

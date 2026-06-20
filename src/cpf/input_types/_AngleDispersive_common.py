@@ -140,9 +140,9 @@ class _AngleDispersive_common:
         if bt == 0:
             # split the data into bins with an approximately constant number of data.
             # uses b_num to determine bin size
-            num_bins = int(np.round(len(self.azm[self.azm.mask == False]) / b_num))
+            num_bins = int(np.round(ma.compressed(self.azm).shape[0] / b_num))
             bin_boundaries = equalObs(
-                np.sort(self.azm[self.azm.mask == False]), num_bins
+                np.sort(ma.compressed(self.azm)), num_bins
             )
         elif bt == 1:
             # split the data into a fixed number of bins
@@ -236,17 +236,14 @@ class _AngleDispersive_common:
         self.intensity = self.intensity[local_mask]
         self.tth = self.tth[local_mask]
         self.azm = self.azm[local_mask]
-        if "dspace" in dir(self):
+        if "dspace" in dir(self) and self.dspace is not None:
             self.dspace = self.dspace[local_mask]
 
-        if "x" in dir(self):
-            if self.x is not None:
+        if "x" in dir(self) and self.x is not None:
                 self.x = self.x[local_mask]
-        if "y" in dir(self):
-            if self.y is not None:
+        if "y" in dir(self) and self.y is not None:
                 self.y = self.y[local_mask]
-        if "z" in dir(self):
-            if self.z is not None:
+        if "z" in dir(self) and self.z is not None:
                 self.z = self.z[local_mask]
 
         # self.azm_end = np.max(self.azm)

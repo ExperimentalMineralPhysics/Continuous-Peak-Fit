@@ -940,8 +940,6 @@ def get_combined_series(
     if azimuth is None:
         azimuth = np.linspace(start_end[0], start_end[1], num_azimuths)
     
-    combined = combine_series(param_dict, azimuth=azimuth, start_end=start_end, **kwargs)
-
     # type of new series.
     # use maximum of series types as numbers
     i_types = [coefficient_type_as_number(param_dict["width_type"]),
@@ -962,6 +960,9 @@ def get_combined_series(
                         len(param_dict["height"]),
                         len(param_dict["profile"])
                         ])
+        
+        # make sure only have unique azimuths
+        azimuth = np.unique(azimuth)
     else:
         # for Fourier series, order of combined series is sum of orders -- 
         # i.e. sin(x) * sin(x) has order sin^2(x).
@@ -980,29 +981,20 @@ def get_combined_series(
     else:
         symmetry = 1
     
+    combined = combine_series(param_dict, azimuth=azimuth, start_end=start_end, **kwargs)
+
     # fit combined series with new series; use series fitting code used in 
     # data fitting. 
     master_params = Parameters()  
     param_str = "peak_0"
     component = pf.compress_component_string(combined_series_name)
     if i_type == coefficient_types()["independent"]:
-        n_coeff = get_number_coeff(
-            {"peak": [{combined_series_name: i_order, 
-                       f"{combined_series_name}_type": i_type}]},
-            component,
-            peak=0,
-            azimuths=azimuth,
-        )
-        master_params = initiate_params(
-            master_params,
-            param_str,
-            component,
-            coeff_type=i_type,
-            num_coeff=n_coeff,
-            limits=None,
-            value=None,
-            types=True,
-        )
+        # independent so have values from combined series. 
+        # parse into fit-like dictionary.
+        combined_series = {}
+        combined_series[combined_series_name] = list(unp.nominal_values(combined))
+        combined_series[combined_series_name+"_err"] = list(unp.std_devs(combined))
+        combined_series[combined_series_name+"_type"] = coefficient_type_as_string(i_type)
     else:
         master_params = initiate_params(
             master_params,
@@ -1014,41 +1006,27 @@ def get_combined_series(
             value=None,
             types=True,
         )
-    fout = coefficient_fit(
-        azimuth=azimuth,
-        ydata=unp.nominal_values(combined),
-        inp_param=master_params,
-        param_str=param_str + "_" + component,
-        symmetry=symmetry,
-        errs=unp.std_devs(combined),
-        fit_method="leastsq",
-        start_end = start_end
-    )
-    
-    if logger.is_below_level(level="DEBUG"):
-        fout.plot(show_init=True)
-        fout.params.pretty_print()
-
-    """
-    get erroros on progagated series.
-    --------------------------------
-    
-    Fitting the combined values with a series reproduces the centroid values. 
-    But the errors are too small so fit the errors with a series to get the expected coefficient errors.
-    """
-    master_params = Parameters()  
-    if i_type == coefficient_types()["independent"]:
-        master_params = initiate_params(
-            master_params,
-            param_str,
-            component,
-            coeff_type=i_type,
-            num_coeff=n_coeff,
-            limits=[0, np.max(unp.std_devs(combined))],
-            value=None,
-            types=True,
-        )
-    else:
+        fout = coefficient_fit(
+            azimuth=azimuth,
+            ydata=unp.nominal_values(combined),
+            inp_param=master_params,
+            param_str=param_str + "_" + component,
+            symmetry=symmetry,
+            errs=unp.std_devs(combined),
+            fit_method="leastsq",
+            start_end = start_end
+            )
+        
+        if logger.is_below_level(level="DEBUG"):
+            fout.plot(show_init=True)
+            fout.params.pretty_print()
+        """
+        get erroros on progagated series.
+        --------------------------------
+        Fitting the combined values with a series reproduces the centroid values. 
+        But the errors are too small so fit the errors with a series to get the expected coefficient errors.
+        """
+        master_params = Parameters()  
         master_params = initiate_params(
             master_params,
             param_str,
@@ -1059,49 +1037,47 @@ def get_combined_series(
             value=None,
             types=True,
         )
-    ferrs_out = coefficient_fit(
-        azimuth=azimuth,
-        ydata=unp.std_devs(combined),
-        inp_param=master_params,
-        param_str=param_str + "_" + component,
-        symmetry=symmetry,
-        errs=None,#unp.std_devs(combined)*0 + 1E-6, # np.array(data_val_errors),
-        fit_method="leastsq",
-        start_end = start_end
-    )
-    if logger.is_below_level(level="DEBUG"):
-        ferrs_out.plot(show_init=False)
-        ferrs_out.params.pretty_print()
-        plt.plot(azimuth, unp.std_devs(combined), '.',azimuth, ferrs_out.eval(), '-')
-    
-    # get combined series from the fits above; make fit-like dictionary for it.
-    combined_series = {}
-    combined_series[combined_series_name] = gather_param_errs_to_list(
-                                            fout.params, "peak_0", comp=component
-                                        )[0]
-    combined_series[combined_series_name+"_err"] = gather_param_errs_to_list(
-                                            ferrs_out.params, "peak_0", comp=component
-                                        )[0]
-    combined_series[combined_series_name+"_type"] = coefficient_type_as_string(i_type)
-
-    if logger.is_below_level(level="DEBUG"):
-        """
-        test the new series can reproduce the errors in the original data.
-        """
-        i = unp.uarray(combined_series[combined_series_name], combined_series[combined_series_name+"_err"])
-        reconstructed_series = coefficient_expand(azimuth, 
-                                  param=i,
-                                  coeff_type=i_type,
-                                  comp_str=component,
-                                  start_end=start_end)
-        plt.figure()
-        plt.plot(azimuth, unp.nominal_values(combined), '.',azimuth, unp.nominal_values(reconstructed_series), '-')
-        plt.title(f"series: {combined_series_name}")
-        
-        plt.figure()
-        plt.plot(azimuth, unp.std_devs(combined), '.',azimuth, unp.std_devs(reconstructed_series), '-')
-        plt.title(f"errors in {combined_series_name}")
-        
+        ferrs_out = coefficient_fit(
+            azimuth=azimuth,
+            ydata=unp.std_devs(combined),
+            inp_param=master_params,
+            param_str=param_str + "_" + component,
+            symmetry=symmetry,
+            errs=None,#unp.std_devs(combined)*0 + 1E-6, # np.array(data_val_errors),
+            fit_method="leastsq",
+            start_end = start_end
+        )
+        if logger.is_below_level(level="DEBUG"):
+            ferrs_out.plot(show_init=False)
+            ferrs_out.params.pretty_print()
+            plt.plot(azimuth, unp.std_devs(combined), '.',azimuth, ferrs_out.eval(), '-')
+        # get combined series from the fits above; make fit-like dictionary for it.
+        combined_series = {}
+        combined_series[combined_series_name] = gather_param_errs_to_list(
+                                                fout.params, "peak_0", comp=component
+                                            )[0]
+        combined_series[combined_series_name+"_err"] = gather_param_errs_to_list(
+                                                ferrs_out.params, "peak_0", comp=component
+                                            )[0]
+        combined_series[combined_series_name+"_type"] = coefficient_type_as_string(i_type)
+        if logger.is_below_level(level="DEBUG"):
+            """
+            test the new series can reproduce the errors in the original data.
+            """
+            i = unp.uarray(combined_series[combined_series_name], combined_series[combined_series_name+"_err"])
+            reconstructed_series = coefficient_expand(azimuth, 
+                                      param=i,
+                                      coeff_type=i_type,
+                                      comp_str=component,
+                                      start_end=start_end)
+            plt.figure()
+            plt.plot(azimuth, unp.nominal_values(combined), '.',azimuth, unp.nominal_values(reconstructed_series), '-')
+            plt.title(f"series: {combined_series_name}")
+            
+            plt.figure()
+            plt.plot(azimuth, unp.std_devs(combined), '.',azimuth, unp.std_devs(reconstructed_series), '-')
+            plt.title(f"errors in {combined_series_name}")
+            
     return combined_series
 
 

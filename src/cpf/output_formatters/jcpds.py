@@ -799,9 +799,9 @@ class jcpds(object):
             
         cmodel = lmfit.Model(self._lattice_params_model)
         if weighted is True:
-            out = cmodel.fit(obs, params, jcpds=None, weights=weights, nan_policy='omit')   
+            out = cmodel.fit(obs, params, weights=weights, nan_policy='omit')   
         else:
-            out = cmodel.fit(obs, params, jcpds=None, nan_policy='omit')    
+            out = cmodel.fit(obs, params, nan_policy='omit')    
             
         # copy parameters back into self.
         for ind in self.get_unique_unitcell_params():

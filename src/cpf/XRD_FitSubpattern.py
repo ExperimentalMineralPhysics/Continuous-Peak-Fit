@@ -126,7 +126,7 @@ def update_previous_params_from_orders(peeks, previous_params, orders):
 
     # loop for background orders/size
     if (
-        sf.get_params_type(previous_params, "background") != sf.coefficient_types()["independent"]
+        sf.coefficient_type_as_number(sf.get_params_type(previous_params, "background")) != sf.coefficient_types()["independent"]
     ):  # if parameters are not independent
         for y in range(
             np.max([len(orders["background"]), len(previous_params["background"])])
@@ -391,8 +391,7 @@ def fit_sub_pattern(
                     debug=debug,
                     fit_method=fit_method,
                 )
-
-                if mode != "fit":  # cascade==True:
+                if mode.lower() == "cascade":
                     # some cascade option. so exit returning values.
                     return chunk_fits, chunk_positions
 

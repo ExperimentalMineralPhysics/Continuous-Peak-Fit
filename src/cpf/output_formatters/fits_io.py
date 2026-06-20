@@ -96,7 +96,6 @@ def WriteFits(settings_class, fitted_param, filename_to_write=None, data_class=N
 def ReadFits_to_list(
     settings,
     replace=True,
-    *args,
     **kwargs
 ):
     """
@@ -124,7 +123,7 @@ def ReadFits_to_list(
     """
     
     # get kwargs that might be present 
-    add_integrated = kwargs.get("add_integrated", True)
+    add_integrated = kwargs.get("add_integrated", False)
     
     if isinstance(settings, str) and "PreviousFit" in settings:
         #read previous fit
@@ -269,7 +268,7 @@ def ReadFits_to_dataframe(
     if isinstance(includeParameters, str):
         includeParameters = [includeParameters]
     if includeParameters == ["all"]:
-        peak_properties = pf.peak_components(full=True, include_combined=True)
+        peak_properties = pf.peak_components(full=True, include_combined=IncludeIntegrated)
         includeParameters = peak_properties[1]
 
     if includeSeriesValues is not False or includeUnitCells is not False:
@@ -293,7 +292,7 @@ def ReadFits_to_dataframe(
         IntensityValues = []
         
     # read all the data.
-    fits, metadata = ReadFits_to_list(settings_class, args, kwargs)
+    fits, metadata = ReadFits_to_list(settings_class, **kwargs)
     
     num_fits = 0
     max_peaks = 0

@@ -56,7 +56,7 @@ class MedDetector:
         self.tth = None
         self.azm = None
 
-        self.dspace = None
+        # self.dspace = None
         self.x = None
         self.y = None
         self.azm_start = None
@@ -508,7 +508,7 @@ class MedDetector:
 
         self.tth = self._get_two_theta()
         self.azm = self._get_azimuth()
-        self.dspace = self._get_d_space()
+        # self.dspace = self._get_d_space()
         if make_zyx:
             raise ValueError("'make_zyx' is not implemented for MedDetector. ")
             #  FIXME: (SAH 19th June 2024) implement this.

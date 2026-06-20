@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
 from  cpf.settings import get_settings
-from cpf.output_formatters.fits_io import ReadFits_to_dataframe
+from cpf.output_formatters.fits_io import ReadFits_to_dataframe, ReadFits_to_list
 from cpf.IO_functions import make_outfile_name, peak_string
 from cpf.util.logging import get_logger
 
@@ -79,15 +79,14 @@ def WriteOutput(
     # make sure settings is a class
     settings_class = get_settings(settings)
     
-    settings_class.set_data_files(start=0, end=1)
-    
     if file_label is not None:
         settings_class.file_label = file_label
     
     #this is search data so there is a postscript in the json file label.
+    #this is search data so there is a postscript in the json file label.
     # determine the label
     if "file_label" not in dir(settings_class) or settings_class.file_label is None:
-        fls = glob.glob("./results/*search*.json")
+        fls = glob.glob(f"./{settings_class.output_directory}/*search*.json")
         if len(fls) == 0:
             raise ValueError("There is no identified search file to plot.")
         else:
@@ -96,9 +95,30 @@ def WriteOutput(
                 tm.append(os.path.getmtime(fls[i]))
             latest = np.argsort(tm)[-1]
             settings_class.file_label = os.path.splitext(os.path.basename(fls[latest]))[0].split("__")[1]
+            
+            # make sure that we have the right file number for this set.
+            possible = []
+            for i, subval in enumerate(settings_class.image_list):
+                if isinstance(subval, list):
+                    #subval = subval[0]
+                    settings_class.set_subpattern(i, 0)
+                    subval = make_outfile_name(
+                        settings_class.subfit_filename,
+                        directory=None,
+                        overwrite=True,
+                    )
+                if os.path.splitext(os.path.basename(fls[latest]))[0].split("__")[0] in subval:
+                    possible.append(i)
+            if len(possible) != 1:
+                raise ValueError("There is no identified search file to plot.")
+            else:
+                searchdata = possible[0]
+
+        #restrict to just the required image
+        settings_class.set_data_files(keep=searchdata)
     
     # read the data.
-    df = ReadFits_to_dataframe(settings=settings_class, includeStats=True, includeSeriesValues=True, includePosition=True)
+    df = ReadFits_to_dataframe(settings=settings_class, includeStats=True, includeSeriesValues=True, includePosition=True, IncludeIntegrated=False)
     headers = list(df.columns.values)
     
     # split the notes column into columns and calculate some new values
@@ -121,6 +141,7 @@ def WriteOutput(
     param_plot = [statistic, "Fit_time_without_chunks"] + key_parameter
     cols=int(2)
     fig_scale = 1.5
+
     for i in range(len(peaks)):
         fig, ax = plt.subplots(int(np.ceil(len(param_plot))/cols), cols, sharex=True, figsize=[8*fig_scale,6*fig_scale])
         ax = ax.flat

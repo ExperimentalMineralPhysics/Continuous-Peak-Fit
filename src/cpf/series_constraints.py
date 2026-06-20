@@ -199,7 +199,7 @@ def SeriesValues(input_list):
     else:  # assume integer
         tmp_arr = input_list
 
-    if not isinstance(tmp_arr, int) and len(tmp_arr) == 1:
+    if not isinstance(tmp_arr, int) and isinstance(tmp_arr, list) and len(tmp_arr) == 1:
         tmp_arr = tmp_arr[0]
     return tmp_arr
 

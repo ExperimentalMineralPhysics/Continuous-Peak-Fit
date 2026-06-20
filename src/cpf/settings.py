@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-__all__ = ["settings", "get_output_options", "detector_factory"]
+__all__ = ["settings", "detector_factory"]
 
 import importlib.util
 import json
@@ -44,9 +44,13 @@ logger = get_logger("cpf.settings")
 
 class Settings:
     """
-    Settings class definitions.
-    The settings class is contains all the variables/informtion needed to execute
-    continuous peak fit.
+    Settings class.
+    The settings class is contains all the variables/informtion needed to fit data 
+    in continuous peak fit.
+    
+    The methods of the class are: 
+        
+        
     """
 
     """
@@ -463,9 +467,7 @@ class Settings:
         # If the file type is h5/nxs and there is no h5 related settings in the input then read defaults from the detector class.
         # These settings are then used by the detector class.
         # When the h5 settings are in the settings class we need to re-initiate the image list.
-        if (len(self.datafile_list) == 1
-                and (self.datafile_list[0].suffix == ".h5"
-                or self.datafile_list[0].suffix == ".nxs")):
+        if "h5_datakey" in list(self.settings_from_input):
             #both "h5_datakey" and "h5_iterate" are required for the h5 file reading to work
             if "h5_datakey" not in list(self.settings_from_input):
 
@@ -1226,7 +1228,7 @@ class Settings:
 
     def set_output_types(
         self,
-        out_type_list: list[str] = [],
+        out_type_list: [list[str], str] = [],
         report: Literal[
             "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
         ] = "INFO",
@@ -1234,14 +1236,36 @@ class Settings:
         """
         set output types in settings class given a list of output types
         """
+                
+        def outputs_as_list(output_type: [list[str], str]) -> list:
+            """
+            Parse output options into list 
+        
+            Parameters
+            ----------
+            output_type : [list[str], str]
+                Output types. Either a string or list of strings.
+        
+            Returns
+            -------
+            output_mod_type : list
+                List of output types.
+            """
+            
+            if isinstance(output_type, str):
+                output_type = [output_type]
+            else:
+                pass
+            return output_type
+
         if out_type_list:
-            self.output_types = get_output_options(out_type_list)
+            self.output_types = outputs_as_list(out_type_list)
         elif "Output_type" in self.settings_from_input:
-            self.output_types = get_output_options(self.settings_from_input["Output_type"])
+            self.output_types = outputs_as_list(self.settings_from_input["Output_type"])
         else:
             self.output_types = []
             
-        # get the lists of required an optional values. 
+        # get the lists of required and optional values from output types. 
         # store in the settings. 
         disagree = []
         required = []
@@ -1287,13 +1311,6 @@ class Settings:
                 if key in required and key in list(self.settings_from_input["output_options"]):
                     required.remove(key)
             
-            # for j in len(self.settings_from_input["output_options"]):
-            #     output_settings[j] = self.settings_from_input.output_options[j]
-            #     if j in disagree and j in list(self.settings_from_input.output_options):
-            #         disagree.remove(j)
-            #     if j in required and j in list(self.settings_from_input.output_options):
-            #         required.remove(j)
-                    
         self.output_settings = output_settings
         if disagree:
             logger.warning("There are conflicts between outputs for the following parameters:")
@@ -1336,15 +1353,16 @@ class Settings:
 
         # add metadata from h5_iterate if it exists. 
         if "h5_iterate" in self.settings_from_input:
-            if self.h5_iterate[-1]["do"] != "sum":
-                for i in self.h5_iterate[-1]["label"]:
+            if self.settings_from_input["h5_iterate"][-1]["do"] != "sum":
+                for i in self.settings_from_input["h5_iterate"][-1]["label"]:
                     if "/" in i:
                         self.metadata.append(i)
         
         # get metadata_read_func if it exists
         if "metadata_read_func" in self.settings_from_input:
             self.metadata_read_func = self.settings_from_input["metadata_read_func"]
-            # pass settings as 'self'
+            # pass settings as 'self'; set first pattern incase function needs a file
+            self.set_subpattern(0,0)
             self.metadata.extend(self.metadata_read_func(self,).keys())
 
         #replace all the wildcards in the metadata.        
@@ -1429,31 +1447,45 @@ class Settings:
 
     def set_data_files(
         self,
-        start=0,
-        end=None,
-        keep=None,
+        keep="all",
     ):
         """
-        Cut the number of data files.
+        Cut the number of data files in Settings()
+        
+        If keep is a single number then it keeps this frame from Settings().image_list
+        
+        If keep is a list then in keeps the values in the list.
+        
+        keep = -1, keeps the last frame.
+        keep = "all", keeps all the values
+        keep = "mid", keeps only the middle frame
 
         Parameters
         ----------
-        keep : TYPE, optional
-            DESCRIPTION. The default is False.
-
-        Returns
-        -------
-        None.
+        keep : list | int, optional
+            position of frames in list to keep. The default is "all"
 
         """
-        if keep is not None:
+        
+        if isinstance(keep, str) and keep.lower() == "all":
+            return
+        
+        if isinstance(keep, list):
+            self.image_list = self.image_list[keep]
+            self.image_number = len(self.image_list)
+            return
+        
+        if isinstance(keep, str):
+            if keep == "mid":
+                start = np.int32(self.image_number/2)
+            else:
+                raise ValueError("Unrecognised image_list filter type")
+        else:
             start = keep
-            end = keep + 1
-        elif end is None:
-            end = len(self.datafile_list)
-
-        # self.datafile_list = self.datafile_list[start:end]
-        # self.datafile_number = len(self.datafile_list)
+        if keep == -1:
+            start = self.image_number
+        end = start + 1
+        
         self.image_list = self.image_list[start:end]
         self.image_number = len(self.image_list)
 
@@ -1725,29 +1757,54 @@ class Settings:
         logger.info(" ".join(map(str, [("Finished writing settings to ", filename)])))
 
 
-def get_output_options(output_type: list[str]):
-    """
-    Check if input is string or list of strings
-    :param output_type: string or list of strings
-    :return: list of strings
-    """
-    output_mod_type = []
-    if isinstance(output_type, str):
-        output_mod_type.append(output_type)
-    else:
-        output_mod_type = output_type
-    return output_mod_type
+# def get_output_options(output_type: list[str]):
+#     """
+#     Check if input is string or list of strings
+
+#     Parameters
+#     ----------
+#     output_type : list[str]
+#         DESCRIPTION.
+
+#     Returns
+#     -------
+#     output_mod_type : TYPE
+#         DESCRIPTION.
+
+#     """
+#     """
+#     Check if input is string or list of strings
+#     :param output_type: string or list of strings
+#     :return: list of strings
+#     """
+#     output_mod_type = []
+#     if isinstance(output_type, str):
+#         output_mod_type.append(output_type)
+#     else:
+#         output_mod_type = output_type
+#     return output_mod_type
 
 
 def detector_factory(settings_class: Settings):
     """
     Factory function to provide appropriate class for data dependent on type.
-    *should* support any option that is named *Functions and contains *Detector as class.
-    :rtype: object
-    :param fit_settings:
-    :param calibration_type:
-    :param calibration_param:
-    :return:
+    *should* support any option that is in input_types/{type}Functions that 
+    initiates a {type}Detector class.
+
+    Parameters
+    ----------
+    settings_class : Settings()
+         cpf Settings class 
+
+    Raises
+    ------
+    ValueError
+        DESCRIPTION.
+
+    Returns
+    -------
+    detector_class 
+        Detector {type} class.
     """
 
     def_func = settings_class.calibration_type + "Functions"
@@ -1762,11 +1819,12 @@ def detector_factory(settings_class: Settings):
 
 def is_settings(settings):
     """
-    Test if the class is a cpf settings class.
+    Test if the class is a cpf Settings class instance, of if the object has all the 
+    same properties as a Settings instance
 
     Parameters
     ----------
-    settings : cpf settings class
+    settings : possible cpf Settings class. 
         Any variable or class for testing.
 
     Returns
@@ -1819,16 +1877,26 @@ def is_settings(settings):
 
 def get_settings(
     settings: [str | Path | dict | Settings()],
-    **kwargs,):
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
+    **kwargs) -> Settings() :
     """
-
-
+    Takes input and returns cpf Settings class. 
+    
     Parameters
     ----------
-    settings : [str | Path | dict | Settings()]
-        DESCRIPTION.
-    **kwargs : TYPE
-        DESCRIPTION.
+    settings : Optional[str | Path | dict | Settings()], optional
+        Pointer to information needed for settings class. Can be of the form:        
+        string -- filename of python formatted file 
+        Path -- path for python formatted file  
+        dict -- dictionary of settings
+        Settings() -- cpf Settings class
+    report : Literal[ "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"    ], optional
+        Logger level for how much information to write to the log files.
+        The default is "INFO".
+    **kwargs : key, value pairs
+        key, value arguments arguments. Passed though the method but not used here. 
 
     Raises
     ------
@@ -1840,14 +1908,15 @@ def get_settings(
     Returns
     -------
     settings_class : cpf.settings.Settings() instance
-        Class holding all settings for Continuous Peak Fit.
+        Class holding all data fitting related settings for Continuous Peak Fit.
 
     """
+    
     if settings is None:
         err_str = "Either the settings file or the parameter dictionary need to be specified."
         logger.error(err_str)
         raise ValueError(err_str)
-    elif is_settings(settings):#isinstance(settings, type(Settings())):
+    elif is_settings(settings):
         # the settings input are already a setttings class.
         # validate the class.
         if settings.is_empty():
@@ -1862,9 +1931,8 @@ def get_settings(
             settings_class = settings
     else:
         # initiate a settings class.
-
-        # Convert to Path object
         if isinstance(settings, str):
+            # Convert str to Path object
             try:
                 settings = Path(settings)
             except Exception as error:

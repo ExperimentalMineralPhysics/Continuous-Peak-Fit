@@ -66,7 +66,7 @@ def WriteOutput(
     NumAziWrite             = kwargs.get("NumAziWrite", NumAziWrite)
     
     # get the fits
-    fits, _ = ReadFits_to_list(settings=settings_class)
+    fits, _ = ReadFits_to_list(settings=settings_class, **kwargs)
     
     for z in range(settings_class.image_number):
         settings_class.set_subpattern(z, 0)

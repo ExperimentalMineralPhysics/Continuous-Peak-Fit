@@ -602,7 +602,7 @@ def initiate_params(
             expr = None
         if comp != "s":
             vary = po[1]
-        if t == 0 or coeff_type != sf.coefficient_types()["fourier"]:
+        if t == 0 or limits == "no negative" or coeff_type != sf.coefficient_types()["fourier"]:
             inp_param.add(
                 param_str + "_" + comp + str(t),
                 v,
@@ -854,7 +854,7 @@ def fit_model(
     """
 
     # FIX ME: DMF does the above statement need addressing?
-    gmodel = Model(peaks_model, independent_vars=["two_theta", "azimuth"])
+    gmodel = Model(peaks_model, independent_vars=["two_theta", "azimuth", "start_end", "data_class", "orders"])
 
     if 1:
         with warnings.catch_warnings():
@@ -870,8 +870,9 @@ def fit_model(
                 start_end=start_end,  # start and end of azimuths if needed
                 nan_policy="propagate",
                 max_nfev=max_n_fev,
-                xtol=1e-5,
+                # xtol=1e-5,
             )
+            # stop
     else:
         out = gmodel.fit(
             data_as_class.intensity,  # this is what we are fitting to
@@ -883,7 +884,7 @@ def fit_model(
             start_end=start_end,  # start and end of azimuths if needed
             nan_policy="propagate",
             max_nfev=max_n_fev,
-            xtol=1e-5,
+            # xtol=1e-5,
         )
     return out
 
@@ -937,7 +938,7 @@ def coefficient_fit(
     coeff_type = inp_param.eval(param_str + "_tp")
     f_model = Model(
         sf.coefficient_expand,
-        independent_vars=["azimuth"],
+        independent_vars=["azimuth", "start_end"],
         start_end=start_end,
         comp_str=param_str,
         coeff_type=coeff_type,
@@ -959,14 +960,14 @@ def coefficient_fit(
 
     # replace any Nans in the errors with a large value.
     # this is instead of setting the nan_policy to "omit" which generates its own set of errors.
-    new_errs[np.isnan(new_errs)] = 1000 * np.nanmax(new_errs)
+    new_errs[np.isnan(new_errs)] = 1000 * np.nanmax(np.append(new_errs,0))
 
     out = f_model.fit(
         ydata[idx],
         inp_param,
         azimuth=azimuth[idx] * symmetry,
         # coeff_type=coeff_type,
-        # start_end=start_end,
+        start_end=start_end,
         method=fit_method,
         weights=1 / new_errs,
         # comp_str=param_str,

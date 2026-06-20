@@ -92,7 +92,8 @@ def WriteOutput(
     kwargs.update(set_params)
     
     # read the data.
-    df = ReadFits_to_dataframe(settings=settings_class, includeSeriesValues = True, includeStats=fitStats,                               
+    df = ReadFits_to_dataframe(settings=settings_class, includeSeriesValues = True, includeStats=fitStats,
+        IncludeIntegrated=True,
         SampleGeometry = SampleGeometry,
         SampleDeformation = SampleDeformation)
     headers = list(df.columns.values)
@@ -103,40 +104,32 @@ def WriteOutput(
     # limit dataframe to what we want to write. 
     # order columns to be correct also
     headers_use =  ["num",
-                   "DataFile",        # text_file.write(("# {0:<" + str(width_fnam - 2) + "}").format("Data File" + ","))
+                   "DataFile",
                    'phase', 
-                   'peak',   # text_file.write(("{0:<" + str(width_hkl) + "}").format("Peak" + ","))
+                   'peak',   
                    ]
     headers_use += settings.metadata
-    # for i in settings.metadata:
-    #     if "*" in i: # wildcard in metadata name
-    #         # add all wildards to RowLst
-    #         pattern = re.compile(re.sub('[*]', '([0-9a-zA-Z-+_:]*)', i))  
-    #         matches = [word for word in list(df) if pattern.match(word)]
-    #         for k in matches:
-    #             headers_use.append(k)
-    #     else:
-    #         headers_use.append(i)
-    headers_use += ["d_mean",          # text_file.write(("{0:>" + str(width_col) + "}").format("d_mean" + ","))
-                   "d_mean_err",      # text_file.write(("{0:>" + str(width_col) + "}").format("d_mean_err" + ","))
-                   'd-space4',# text_file.write(("{0:>" + str(width_col) + "}").format("d2cos" + ","))
-                   'd-space4_err',# text_file.write(("{0:>" + str(width_col) + "}").format("d2cos_err" + ","))
-                   'd-space3', # text_file.write(("{0:>" + str(width_col) + "}").format("d2sin" + ","))
-                   'd-space3_err',# text_file.write(("{0:>" + str(width_col) + "}").format("d2sin_err" + ","))
-                   # text_file.write(("{0:>" + str(width_col) + "}").format("corr coef" + ","))
+    headers_use += ["d_mean",
+                    "d_mean_err",  
+                    'd-space4',
+                    'd-space4_err',
+                    'd-space3', 
+                    'd-space3_err',
             # differential components
-                   'differential',    # text_file.write(("{0:>" + str(width_col) + "}").format("diff strain" + ","))
-                   'differential_err',# text_file.write(("{0:>" + str(width_col) + "}").format("diff s err" + ","))
-                   'orientation',     # text_file.write(("{0:>" + str(width_col) + "}").format("orientation" + ","))
-                   'orientation_err', # text_file.write(("{0:>" + str(width_col) + "}").format("orient err" + ","))
-                   'd_max',           # text_file.write(("{0:>" + str(width_col) + "}").format("d_max" + ","))
-                   'd_min',           # text_file.write(("{0:>" + str(width_col) + "}").format("d_min" + ","))
-                   'height mean',     # text_file.write(("{0:>" + str(width_col) + "}").format("mean h" + ","))
-                   'height mean err', # text_file.write(("{0:>" + str(width_col) + "}").format("h_err" + ","))
-                   'width mean',      # text_file.write(("{0:>" + str(width_col) + "}").format("mean w" + ","))
-                   'width mean err',  # text_file.write(("{0:>" + str(width_col) + "}").format("w_err" + ","))
-                   'profile mean',    # text_file.write(("{0:>" + str(width_col) + "}").format("mean p" + ","))
-                   'profile mean err',# text_file.write(("{0:>" + str(width_col) + "}").format("p0_err" + ","))
+                   'differential',
+                   'differential_err',
+                   'orientation',  
+                   'orientation_err', 
+                   'd_max',     
+                   'd_min',      
+                   'height mean',   
+                   'height mean err',
+                   'width mean',   
+                   'width mean err',
+                   'profile mean',  
+                   'profile mean err',
+                   'area mean',    
+                   'area mean err',
                    ]
     headers_rename = {'d-space4':"d2cos",
                 'd-space4_err':"d2cos_err" ,
@@ -144,18 +137,18 @@ def WriteOutput(
                 'd-space3_err':"d2sin_err"}
     if fitStats == True:
         extra_headers = [
-                   'time-elapsed',    # text_file.write(("{0:>" + str(width_col) + "}").format("Time taken" + ","))
-                   'chunks-time',     # text_file.write(("{0:>" + str(width_col) + "}").format("Chunk time" + ","))
-                   'sum-residuals-squared',# text_file.write(("{0:>" + str(width_col) + "}").format("Sum Resid^2" + ","))
-                   'status',          # text_file.write(("{0:>" + str(width_col) + "}").format("Status" + ","))
-                   'function-evaluations', # text_file.write(("{0:>" + str(width_col) + "}").format("Func eval" + ","))
-                   'n-variables',     # text_file.write(("{0:>" + str(width_col) + "}").format("Num vars" + ","))
-                   'n-data',          # text_file.write(("{0:>" + str(width_col) + "}").format("Num data" + ","))
-                   'degree-of-freedom', # text_file.write(("{0:>" + str(width_col) + "}").format("Deg Freedom" + ","))
-                   'ChiSq',           # text_file.write(("{0:>" + str(width_col) + "}").format("ChiSq" + ","))
-                   'RedChiSq',        # text_file.write(("{0:>" + str(width_col) + "}").format("Red. ChiSq" + ","))
+                   'time-elapsed',
+                   'chunks-time',
+                   'sum-residuals-squared',
+                   'status',
+                   'function-evaluations',
+                   'n-variables',
+                   'n-data',
+                   'degree-of-freedom',
+                   'ChiSq',
+                   'RedChiSq',
                    'aic',
-                   'bic'  
+                   'bic'
                    ]
         headers_use += extra_headers
         

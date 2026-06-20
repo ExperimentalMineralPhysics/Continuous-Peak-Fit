@@ -17,7 +17,7 @@ import cpf.peak_functions as pf
 from cpf.settings import get_settings
 from cpf.output_formatters.convert_fit_to_crystallographic import fourier_to_crystallographic
 from cpf.IO_functions import make_outfile_name, peak_phase, peak_hkl, json_numpy_serializer, replace_null_terms
-from cpf.series_functions import series_properties
+from cpf.series_functions import series_properties, get_combined_series
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.output_formatters.fits_io")
@@ -96,7 +96,6 @@ def WriteFits(settings_class, fitted_param, filename_to_write=None, data_class=N
 def ReadFits_to_list(
     settings,
     replace=True,
-    *args,
     **kwargs
 ):
     """
@@ -122,6 +121,9 @@ def ReadFits_to_list(
         List contiaing metadata for each file in settings_class/file.
 
     """
+    
+    # get kwargs that might be present 
+    add_integrated = kwargs.get("add_integrated", False)
     
     if isinstance(settings, str) and "PreviousFit" in settings:
         #read previous fit
@@ -174,6 +176,26 @@ def ReadFits_to_list(
                     sorted(settings_class.metadata) != sorted(list(metadata[-1]))):
                         # then we need to read the metadata from the files
                         metadata[-1] = read_metadata(settings_class)
+
+                if add_integrated:
+                    # create an integrated series and add to the fits
+                    if not settings_class.data_class.continuous_azm:
+                        azimuths = settings_class.data_class.azm
+                        import numpy.ma as ma
+                        if ma.isMaskedArray(azimuths):
+                            azimuths = azimuths.compressed()
+                    else:
+                        azimuths = None
+                    for i in range(len(fits[-1])):
+                        strt_nd = fits[z][i]["range"][0]
+                        settings_class.set_subpattern(z, i)
+                        for j in range(len(fits[-1][i]["peak"])):
+                            comb_series = get_combined_series(
+                                                        fits[-1][i]["peak"][j], 
+                                                        azimuth = azimuths,
+                                                        start_end=strt_nd,
+                                                        **kwargs)
+                            fits[-1][i]["peak"][j].update(comb_series)
             
             # convert correlation coefficients into panda data frame
             for y in range(len(fits[-1])):
@@ -200,6 +222,7 @@ def ReadFits_to_dataframe(
     includeParameters = "all",
     includeStats=False,
     includeSeriesValues = False,
+    IncludeIntegrated=False,
     includeIntensityRanges = False,
     includeUnitCells = False,
     includePosition = False,
@@ -245,7 +268,7 @@ def ReadFits_to_dataframe(
     if isinstance(includeParameters, str):
         includeParameters = [includeParameters]
     if includeParameters == ["all"]:
-        peak_properties = pf.peak_components(full=True)
+        peak_properties = pf.peak_components(full=True, include_combined=IncludeIntegrated)
         includeParameters = peak_properties[1]
 
     if includeSeriesValues is not False or includeUnitCells is not False:
@@ -260,6 +283,7 @@ def ReadFits_to_dataframe(
                     "SampleDeformation": SampleDeformation,
                     }
         kwargs.update(set_params)
+    kwargs.update({"add_integrated": IncludeIntegrated})
     
     if includeIntensityRanges is not False: 
         # get the intensity maximum and minimum of the fit, model and residuals
@@ -268,7 +292,7 @@ def ReadFits_to_dataframe(
         IntensityValues = []
         
     # read all the data.
-    fits, metadata = ReadFits_to_list(settings_class, args, kwargs)
+    fits, metadata = ReadFits_to_list(settings_class, **kwargs)
     
     num_fits = 0
     max_peaks = 0
@@ -307,6 +331,12 @@ def ReadFits_to_dataframe(
                     fits[z][i]["peak"][j]["crystallographic_values"] = fits[z][i]["peak"][j]["crystallographic_values"] | width_properties
                     fits[z][i]["peak"][j]["crystallographic_values"] = fits[z][i]["peak"][j]["crystallographic_values"] | profile_properties
         
+                    if IncludeIntegrated:
+                        extras = set(pf.peak_components(full=True, include_profile=True, include_combined=True)[1]) - set(pf.peak_components(full=True, include_profile=True, include_combined=False)[1])
+                        for k in extras:
+                            extra_properties = series_properties(fits[z], subpattern = i, peak=j, param=k, azm_spacing=azms)
+                            fits[z][i]["peak"][j]["crystallographic_values"] = fits[z][i]["peak"][j]["crystallographic_values"] | extra_properties
+                            
         if includeSeriesValues is not False:
             #list the entries in crystallographic_values dictionary
             DerivedValues = fits[z][0]["peak"][0]["crystallographic_values"].keys()
@@ -357,8 +387,8 @@ def ReadFits_to_dataframe(
     headers.append("phase")
     headers.append("peak")
     # add metadata to list
-    if settings.metadata:
-        for i in settings.metadata:
+    if settings_class.metadata:
+        for i in settings_class.metadata:
             headers.append(i)
     headers.append("range_start")
     headers.append("range_end")

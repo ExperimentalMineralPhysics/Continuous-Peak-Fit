@@ -16,7 +16,7 @@ datafile_Step      = 1
 Calib_type     = "Dioptas"
 Calib_detector = 'Pilatus1M'
 Calib_data     = "CeO2_Pil207_E30_2Nov2016_001.tif"
-Calib_param    = "CeO2_cal_Dioptas.poni"
+Calib_param    = "CeO2_cal_Dioptas_alternative.poni"
 Calib_mask     = "DiffractionMask_Dioptas.mask"
 
 #Output settings
@@ -26,7 +26,6 @@ Output_type        = ['Polydefix', 'DifferentialStrain', 'FitMovie', 'Coefficien
 metadata_labels = {#"time": "time_start",
                    "exposure": "Exposure_time"}
 metadata = ['Exposure_time', 'Exposure_period']
-
 
 # define ranges and peaks
 fit_orders = [
@@ -82,10 +81,29 @@ fit_orders = [
 
 
 # import fabio
-def metadata_read_func(settings, image_obj, **kwargs):
-    out = image_obj.header
-    out["Exposure_time"] = float(out["Exposure_time"][:-2])
-    out["Exposure_period"] = float(out["Exposure_period"][:-2])
-    out['namename'] = image_obj.filename
+def metadata_read_func(settings=None, image_obj=None, filename=None, **kwargs):
+    """
+    Example of metadata_read_func for getting metadata into cpf.
+    The function must:
+        - accept 3 optional arguments (settings, image_obj, filename,) and kwargs
+        - return dictionary of metadata key, value pairs
+        - return a dictionary of the same key, value pairs even if the inputs are absent 
+            or fail. The empty dict is used to determine the metadata to add to the outputs. 
+    
+    """
+    try:
+        hd = image_obj.header
+        out = {}
+        out["Exposure_time"] = hd["Exposure_time"]
+        out["Exposure_period"] = hd["Exposure_period"]
+        # out['namename'] = image_obj.filename
+        out['daft'] = "Needless"
+    except:
+        out = {}
+        out["Exposure_time"] = None
+        out["Exposure_period"] = None
+        # out['namename'] = None
+        out['daft'] = "Needless"
+        
     return out
     

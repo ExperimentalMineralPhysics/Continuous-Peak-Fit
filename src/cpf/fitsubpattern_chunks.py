@@ -400,7 +400,7 @@ def fit_chunks(
 
     # setup arrays
     new_azi_chunks = []
-    if mode == "fit" or mode == "cascade":
+    if mode == "fit" or mode == "cascade" or mode == "search":
         # bunch of settings
         # only compute the fit and save it if there are sufficient data
         min_dat = 21  # minimum data in each chunk
@@ -459,7 +459,7 @@ def fit_chunks(
             # get 98th percentils from each chunk
             raise NotImplementedError
 
-        elif mode == "fit" or mode == "cascade":
+        elif mode == "fit" or mode == "cascade" or mode == "search":
             # Define parameters to pass to fit
             params = Parameters()
 

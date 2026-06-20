@@ -31,7 +31,9 @@ def Requirements():
         "dp": 5,  # how many decimal points to write out
         "col_width": 15,  # default column width for csv file.
         "coefs_vals_write": "all",  # -- pick which set of coefficients to write
-        "ordering_of_output": False # Just leave as read -- otherwise list of dataframe headers to order by
+        "ordering_of_output": False, # Just leave as read -- otherwise list of dataframe headers to order by
+        "fitStats": True,
+        "IncludeIntrgrated": True
     }
 
     return RequiredParams, OptionalParams
@@ -40,8 +42,6 @@ def Requirements():
 # def WriteOutput(FitSettings, parms_dict, **kwargs):
 def WriteOutput(
     settings,
-    fitStats=True,
-    *args,
     **kwargs,
 ):
     """
@@ -53,10 +53,6 @@ def WriteOutput(
         Class containing all variables and options needed for the fitting, or 
         dictionary of all the settings or 
         string or path to a file with the settings in.
-    fitStats : bool, optional
-        switch to include all the fit stats in the output file. The default is True.
-    *args : TYPE
-        DESCRIPTION.
     **kwargs : TYPE
         DESCRIPTION.
 
@@ -70,14 +66,18 @@ def WriteOutput(
     col_width        = settings_class.output_settings.get("col_width", Requirements()[1]["col_width"])
     coefs_vals_write = settings_class.output_settings.get("coefs_vals_write", Requirements()[1]["coefs_vals_write"])
     ordering_of_output = settings_class.output_settings.get("ordering_of_output", Requirements()[1]["ordering_of_output"])
+    fitStats          = settings_class.output_settings.get("fitStats", Requirements()[1]["fitStats"])
+    IncludeIntrgrated = settings_class.output_settings.get("IncludeIntrgrated", Requirements()[1]["IncludeIntrgrated"])
     #override with kwargs
     dp               = kwargs.get("dp", dp)
     col_width        = kwargs.get("col_width", col_width)
     coefs_vals_write = kwargs.get("coefs_vals_write", coefs_vals_write)
     ordering_of_output = kwargs.get("ordering_of_output", ordering_of_output)
+    fitStats          = kwargs.get("fitStats", fitStats)
+    IncludeIntrgrated = kwargs.get("IncludeIntrgrated", IncludeIntrgrated)
 
     # read the data.
-    df = ReadFits_to_dataframe(settings=settings_class, fitStats=fitStats)
+    df = ReadFits_to_dataframe(settings=settings_class, fitStats=fitStats, IncludeIntrgrated=IncludeIntrgrated)
     headers = list(df.columns.values)
     # cut data frame
     if coefs_vals_write != "all":

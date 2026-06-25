@@ -866,6 +866,115 @@ def test_peak_string(
             False,
             [[-1, -1, 0]],
         ),
+        # Check that NumPy integers are also accepted
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": "110",
+                    },
+                    {
+                        "hkl": "220",
+                    },
+                    {
+                        "hkl": "330",
+                    },
+                ]
+            },
+            [np.uint8(1), np.uint16(2)],
+            False,
+            [[2, 2, 0], [3, 3, 0]],
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": "110",
+                    },
+                    {
+                        "hkl": "220",
+                    },
+                    {
+                        "hkl": "330",
+                    },
+                ]
+            },
+            [np.uint32(1), np.uint64(2)],
+            False,
+            [[2, 2, 0], [3, 3, 0]],
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": "-1-10",
+                    },
+                    {
+                        "hkl": "220",
+                    },
+                    {
+                        "hkl": "-3-30",
+                    },
+                ]
+            },
+            np.int8(0),
+            False,
+            [[-1, -1, 0]],
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": "-1-10",
+                    },
+                    {
+                        "hkl": "220",
+                    },
+                    {
+                        "hkl": "-3-30",
+                    },
+                ]
+            },
+            np.int16(0),
+            False,
+            [[-1, -1, 0]],
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": "-1-10",
+                    },
+                    {
+                        "hkl": "220",
+                    },
+                    {
+                        "hkl": "-3-30",
+                    },
+                ]
+            },
+            np.int32(0),
+            False,
+            [[-1, -1, 0]],
+        ),
+        (
+            {
+                "peak": [
+                    {
+                        "hkl": "-1-10",
+                    },
+                    {
+                        "hkl": "220",
+                    },
+                    {
+                        "hkl": "-3-30",
+                    },
+                ]
+            },
+            np.int64(0),
+            False,
+            [[-1, -1, 0]],
+        ),
         # If no 'hkl' key is provided
         (
             {
@@ -950,6 +1059,72 @@ def test_peak_hkl(
             },
             [0, 1],
             ["Fe-BCC", "CaO-FCC"],
+        ),
+        (
+            {
+                "peak": [
+                    {"phase": "Fe-BCC"},
+                    {"phase": "CaO-FCC"},
+                    {"phase": "Cr-BCC"},
+                ],
+            },
+            [np.uint8(0), np.uint16(1)],
+            ["Fe-BCC", "CaO-FCC"],
+        ),
+        (
+            {
+                "peak": [
+                    {"phase": "Fe-BCC"},
+                    {"phase": "CaO-FCC"},
+                    {"phase": "Cr-BCC"},
+                ],
+            },
+            [np.uint32(0), np.uint64(1)],
+            ["Fe-BCC", "CaO-FCC"],
+        ),
+        (
+            {
+                "peak": [
+                    {"phase": "Fe-BCC"},
+                    {"phase": "CaO-FCC"},
+                    {"phase": "Cr-BCC"},
+                ],
+            },
+            [np.int8(2)],
+            ["Cr-BCC"],
+        ),
+        (
+            {
+                "peak": [
+                    {"phase": "Fe-BCC"},
+                    {"phase": "CaO-FCC"},
+                    {"phase": "Cr-BCC"},
+                ],
+            },
+            [np.int16(2)],
+            ["Cr-BCC"],
+        ),
+        (
+            {
+                "peak": [
+                    {"phase": "Fe-BCC"},
+                    {"phase": "CaO-FCC"},
+                    {"phase": "Cr-BCC"},
+                ],
+            },
+            [np.int32(2)],
+            ["Cr-BCC"],
+        ),
+        (
+            {
+                "peak": [
+                    {"phase": "Fe-BCC"},
+                    {"phase": "CaO-FCC"},
+                    {"phase": "Cr-BCC"},
+                ],
+            },
+            [np.int64(2)],
+            ["Cr-BCC"],
         ),
         (
             {

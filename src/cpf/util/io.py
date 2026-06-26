@@ -871,10 +871,11 @@ def peak_hkl(
     # Construct list of peaks to parse
     if peak == "all":
         peaks = list(range(len(orders["peak"])))
-    elif isinstance(peak, list) and all(np.issubdtype(x, np.integer) for x in peak):
-        peaks = peak
-    elif isinstance(peak, int) or np.issubdtype(peak, np.integer):
-        peaks = [peak]
+    # Accept Python and NumPy ints and convert to Python int
+    elif isinstance(peak, (int, np.integer)):
+        peaks = [int(peak)]
+    elif isinstance(peak, list) and all(isinstance(p, (int, np.integer)) for p in peak):
+        peaks = [int(p) for p in peak]
     else:
         raise TypeError(
             f"'peak' received an unsupported value: {peak} "
@@ -969,10 +970,11 @@ def peak_phase(
     # Convert input into a list of integers
     if peak == "all":
         peaks = list(range(len(orders["peak"])))
-    elif isinstance(peak, list) and all(np.issubdtype(x, np.integer) for x in peak):
-        peaks = peak
-    elif isinstance(peak, int) or np.issubdtype(peak, np.integer):
-        peaks = [peak]
+    # Accept NumPy and Python ints and convert to Python ints
+    elif isinstance(peak, (int, np.integer)):
+        peaks = [int(peak)]
+    elif isinstance(peak, list) and all(isinstance(p, (int, np.integer)) for p in peak):
+        peaks = [int(p) for p in peak]
     else:
         raise TypeError(
             f"'peak' received an unsupported value: {peak} "

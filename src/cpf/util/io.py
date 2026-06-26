@@ -239,7 +239,7 @@ def image_list(fit_parameters, files_only=False):
     # make the file list
     diff_files, n_diff_files = file_list(fit_parameters)
 
-    if files_only != True:
+    if files_only != True and "*" not in diff_files[0]:
         # iterate for h5 files.
         image_list = []
         if "h5_datakey" in fit_parameters:

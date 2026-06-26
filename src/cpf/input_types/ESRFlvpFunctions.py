@@ -31,6 +31,7 @@ else:
     from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.detectors._common import Detector
 from pyFAI.goniometer import MultiGeometry
+from pyFAI.io import ponifile
 
 import cpf # need to import whole package to avoind trying to import part of incompletely iniated method (cpf.settings.issettings for _get_metadata)
 from cpf.input_types._AngleDispersive_common import _AngleDispersive_common
@@ -237,7 +238,7 @@ class ESRFlvpDetector:
         
         self._default_h5_datakey  = '/*.1/measurement/p900kw/'
         self._default_h5_azimuths = '/*.1/measurement/azim/'
-        self._default_h5_iterate = [{"from": 0, "to": 0, "step": 1, "label":["pos"], "do":"iterate"},
+        self._default_h5_iterate = [{"from": 0, "to": -1, "step": 1, "label":["pos"], "do":"iterate"},
                            {"do":"combine", 
                  "from": 0, 
                  "to": -1, 
@@ -452,16 +453,26 @@ class ESRFlvpDetector:
         # load the list of files
         # print("file_string", file_string)
         # print(file_string)
-        if isinstance(file_string, list):# and os.path.splitext(os.path.basename(file_string[0]))[1] == ".h5":
+        if isinstance(file_string, list) or ("h5_datakey" in self.__dict__.keys() and self.h5_datakey is not None and not "*" in file_string):
+            # os.path.splitext(os.path.basename(file_string[0]))[1] == ".h5":
             #define where data locations are in the initaition of the class.
             
             #file string is a list of format 
             # [ file name, h5 kiy, list of frames wanteed, label]
             
+            if isinstance(file_string, str):
+                # then has to be h5 file called during class initation
+                file_string = [file_string, self.h5_datakey, None, ""]
+            
+            
             files_list = h5_functions.get_image_keys_new(str(file_string[0]), self.h5_datakey, self.h5_iterate)
             azm_list = h5_functions.get_image_keys_new(str(file_string[0]), self.h5_azimuths, self.h5_iterate)
             # print("for get images", [str(file_string[0])] + azm_list[0])
             positions = h5_functions.get_images([str(file_string[0])] + azm_list[0])
+            
+            if file_string[2] == None:
+                # then has to be h5 file called during class initation
+                file_string[2] = positions
             
             # print("reduce_by", reduce_by, self.reduce_by)
             if reduce_by is not None or self.reduce_by is not None:
@@ -471,15 +482,19 @@ class ESRFlvpDetector:
                 elif reduce_by is not None and reduce_by != 1:
                     if reduce_by < 1:
                         reduce_by = 1/reduce_by
-                    keep = np.int_(np.linspace(0,len(file_string[2]),int(np.floor((len(file_string[2]))/reduce_by)), endpoint=False))
-                    files_list = [file_string[2][i] for i in keep]
+                    # keep = np.int_(np.linspace(0,len(file_string[2]),int(np.floor((len(file_string[2]))/reduce_by)), endpoint=False))
+                    keep = np.int32(np.arange(0, len(positions)/reduce_by)* reduce_by)
+                    # files_list = [file_string[2][i] for i in keep]
+                    files_list = file_string[2][keep]
                     positions = positions[keep]
                     
                 elif self.reduce_by is not None and self.reduce_by != 1:
                     if self.reduce_by < 1:
                         self.reduce_by = 1/self.reduce_by
-                    keep = np.int_(np.linspace(0,len(file_string[2]),int(np.floor((len(file_string[2]))/self.reduce_by)), endpoint=False))
-                    files_list = [file_string[2][i] for i in keep]
+                    # keep = np.int_(np.linspace(0,len(file_string[2]),int(np.floor((len(file_string[2]))/self.reduce_by)), endpoint=False))
+                    keep = np.int32(np.arange(0, len(positions)/self.reduce_by)* self.reduce_by)
+                    # files_list = [file_string[2][i] for i in keep]
+                    files_list = file_string[2][keep]
                     positions = positions[keep]
                 else:
                     # print("ran through here")
@@ -863,9 +878,9 @@ class ESRFlvpDetector:
             
             self._set_metadata(None, settings=settings)
             
-        elif os.path.splitext(os.path.basename(image_name))[1] == ".h5":
+        elif os.path.splitext(os.path.basename(image_name))[1] == ".h5" and not "*" in image_name:
             # then it is a h5 file containing data from a the spin of the detector.
-            image_list = h5_functions.get_image_keys_new(str(image_name), self.h5_data, self.h5_data_return)
+            image_list = h5_functions.get_image_keys_new(str(image_name), self.h5_datakey, self.h5_iterate)
                         
             if self.intensity is None: 
                 # Convert the input data from integer to float because the lmfit model values
@@ -877,13 +892,14 @@ class ESRFlvpDetector:
                         # self.intensity has been set before. Inherit the dtype.
                         dtype = self.intensity.dtype
                     else:
-                        tmp_image = ma.array(h5_functions.get_images([[image_name, [self.h5_data,0]]]))
+                        tmp_image = ma.array(h5_functions.get_images([[image_name, [self.h5_datakey,0]]]))
                         dtype = self.GetDataType(tmp_image[0], minimumPrecision=False)                
             else:
                 # inherit the data type from previosuly.
                 dtype = self.intensity.dtype
             
-            self.intensity.data[:] = self._reduce_array(h5_functions.get_images([[image_name, image_list[0]]]).astype(dtype), keep_FirstDim=True)
+            # self.intensity.data[:] = self._reduce_array(h5_functions.get_images(image_name).astype(dtype), keep_FirstDim=False)
+            self.intensity.data[:] = self._reduce_array(h5_functions.get_images([image_name, image_list[0]]).astype(dtype), keep_FirstDim=True)
             # flip along axis 2 because elements are otherwise upside down.
             for i in range(self.intensity.shape[0]):
                 self.intensity.data[i,:,:] = np.flipud(self.intensity.data[i,:,:])

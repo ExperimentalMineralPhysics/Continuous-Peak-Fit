@@ -9,16 +9,16 @@ import numpy as np
 import pandas as pd
 from moviepy.video.VideoClip import VideoClip
 
-from  cpf.settings import get_settings
 from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
-from cpf.IO_functions import (
+from cpf.output_formatters.fits_io import ReadFits_to_list
+from cpf.settings import get_settings
+from cpf.util.io import (
     figure_suptitle_space,
     make_outfile_name,
     peak_string,
     title_file_names,
 )
-from cpf.output_formatters.fits_io import ReadFits_to_list
 from cpf.util.logging import get_logger
 from cpf.util.output_formatters import mplfig_to_npimage
 from cpf.XRD_FitSubpattern import plot_FitAndModel
@@ -35,8 +35,8 @@ def Requirements():
     OptionalParams = {
         "fps": 10,  # frames per second
         "file_types": ["mp4"],  # movie file type
-        "Irange": ["pt1percentile", "99pt9percentile"], # range of colour scale
-        "plot type": "default", #"surface",
+        "Irange": ["pt1percentile", "99pt9percentile"],  # range of colour scale
+        "plot type": "default",  # "surface",
     }
 
     return RequiredParams, OptionalParams
@@ -51,8 +51,8 @@ def WriteOutput(settings, debug=False, **kwargs):
     Parameters
     ----------
     settings : [str | Path | dict | Settings()]
-        Class containing all variables and options needed for the fitting, or 
-        dictionary of all the settings or 
+        Class containing all variables and options needed for the fitting, or
+        dictionary of all the settings or
         string or path to a file with the settings in.
     debug : TYPE, optional
         DESCRIPTION. The default is True.
@@ -67,24 +67,28 @@ def WriteOutput(settings, debug=False, **kwargs):
 
     # make sure settings is a class
     settings_class = get_settings(settings)
-    
+
     # Parse optional parameters
-    fps        = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
-    file_types = settings_class.output_settings.get("file_types", Requirements()[1]["file_types"])
-    Irange     = settings_class.output_settings.get("Irange", Requirements()[1]["Irange"])
-    plot_type  = settings_class.output_settings.get("plot type", Requirements()[1]["plot type"])
-    #override with kwargs
-    fps        = kwargs.get("fps", fps)
+    fps = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
+    file_types = settings_class.output_settings.get(
+        "file_types", Requirements()[1]["file_types"]
+    )
+    Irange = settings_class.output_settings.get("Irange", Requirements()[1]["Irange"])
+    plot_type = settings_class.output_settings.get(
+        "plot type", Requirements()[1]["plot type"]
+    )
+    # override with kwargs
+    fps = kwargs.get("fps", fps)
     file_types = kwargs.get("file_types", file_types)
-    Irange     = kwargs.get("Irange", Irange)
-    plot_type     = kwargs.get("plot type", plot_type)
+    Irange = kwargs.get("Irange", Irange)
+    plot_type = kwargs.get("plot type", plot_type)
 
     # make sure file_types is a list.
     if isinstance(file_types, str):
         file_types = [file_types]
     if not isinstance(fps, float) and not isinstance(fps, int):
         raise ValueError("The frames per second needs to be a number.")
-        
+
     # make the base file name
     base = settings_class.datafile_basename
     if base is None or len(base) == 0:
@@ -113,9 +117,9 @@ def WriteOutput(settings, debug=False, **kwargs):
     dispersion_range = [[] for i in range(len(settings_class.fit_orders))]
     for z in range(settings_class.image_number):
         settings_class.set_subpattern(z, 0)
-        # get fits 
+        # get fits
         data_fit = all_fits[z]
-        
+
         for y in range(len(data_fit)):
             dispersion_range[y].append(data_fit[y]["range"][0])
             if "data_ranges" in data_fit[y]:
@@ -209,7 +213,6 @@ def WriteOutput(settings, debug=False, **kwargs):
             settings_class.set_subpattern(y[int(t * fps)], z)
             sub_data.set_limits(range_bounds=dispersion_range[z][y[int(t * fps)]])
 
-
             # Mask the subpattern by intensity if called for
             if (
                 "imax" in settings_class.subfit_orders
@@ -227,7 +230,7 @@ def WriteOutput(settings, debug=False, **kwargs):
                 # param_lmfit=None,
                 params_dict=data_fit,
                 figure=fig,
-                plot_type = plot_type,
+                plot_type=plot_type,
                 plot_ColourRange={
                     "max": Imax[z],
                     "min": Imin[z],

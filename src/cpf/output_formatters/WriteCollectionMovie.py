@@ -3,19 +3,20 @@ __all__ = ["Requirements", "WriteOutput"]
 
 import os
 from copy import deepcopy
-import proglog
-import matplotlib.pyplot as plt
-import numpy as np
-from moviepy.video.VideoClip import VideoClip
-# from typing import Literal, Optional
-from moviepy import ImageClip
-# from moviepy import concatenate
-from moviepy import VideoFileClip, concatenate_videoclips
 from textwrap import wrap
 
+import matplotlib.pyplot as plt
+import numpy as np
+import proglog
+
+# from typing import Literal, Optional
+# from moviepy import concatenate
+from moviepy import ImageClip, VideoFileClip, concatenate_videoclips
+from moviepy.video.VideoClip import VideoClip
+
 # import cpf.IO_functions as IO
-from  cpf.settings import get_settings
-from cpf.IO_functions import make_outfile_name, title_file_names
+from cpf.settings import get_settings
+from cpf.util.io import make_outfile_name, title_file_names
 from cpf.util.logging import get_logger
 from cpf.util.output_formatters import mplfig_to_npimage
 
@@ -31,9 +32,9 @@ def Requirements():
     OptionalParams = {
         "fps": 10,  # frames per second
         "file_types": ["mp4"],  # movie file type
-        "Irange": ["pt1percentile", "99pt9percentile"], # range of colour scale
-        "plot data as": "calibrated", 
-        "plot type": "default", #"surface",
+        "Irange": ["pt1percentile", "99pt9percentile"],  # range of colour scale
+        "plot data as": "calibrated",
+        "plot type": "default",  # "surface",
     }
 
     return RequiredParams, OptionalParams
@@ -48,8 +49,8 @@ def WriteOutput(settings, debug=False, **kwargs):
     Parameters
     ----------
     settings : [str | Path | dict | Settings()]
-        Class containing all variables and options needed for the fitting, or 
-        dictionary of all the settings or 
+        Class containing all variables and options needed for the fitting, or
+        dictionary of all the settings or
         string or path to a file with the settings in.
     parms_dict : TYPE
         DESCRIPTION.
@@ -70,17 +71,23 @@ def WriteOutput(settings, debug=False, **kwargs):
     settings_class = get_settings(settings)
 
     # Parse optional parameters
-    fps        = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
-    file_types = settings_class.output_settings.get("file_types", Requirements()[1]["file_types"])
-    Irange     = settings_class.output_settings.get("Irange", Requirements()[1]["Irange"])
-    plot_data_as = settings_class.output_settings.get("plot data as", Requirements()[1]["plot data as"])
-    plot_type  = settings_class.output_settings.get("plot type", Requirements()[1]["plot type"])
-    #override with kwargs
-    fps        = kwargs.get("fps", fps)
+    fps = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
+    file_types = settings_class.output_settings.get(
+        "file_types", Requirements()[1]["file_types"]
+    )
+    Irange = settings_class.output_settings.get("Irange", Requirements()[1]["Irange"])
+    plot_data_as = settings_class.output_settings.get(
+        "plot data as", Requirements()[1]["plot data as"]
+    )
+    plot_type = settings_class.output_settings.get(
+        "plot type", Requirements()[1]["plot type"]
+    )
+    # override with kwargs
+    fps = kwargs.get("fps", fps)
     file_types = kwargs.get("file_types", file_types)
-    Irange     = kwargs.get("Irange", Irange)
+    Irange = kwargs.get("Irange", Irange)
     plot_data_as = kwargs.get("plot_data_as", plot_data_as)
-    plot_type  = kwargs.get("plot_type", plot_type)
+    plot_type = kwargs.get("plot_type", plot_type)
 
     # make sure file_types is a list.
     if isinstance(file_types, str):
@@ -123,14 +130,12 @@ def WriteOutput(settings, debug=False, **kwargs):
     progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
     print("Reading images to get intensity range")
     for z in progress.iter_bar(image=range(settings_class.image_number)):
-    # for z in range(settings_class.image_number):
+        # for z in range(settings_class.image_number):
         # read data file
         settings_class.set_subpattern(z, 0)
         data_class.import_image(settings=settings_class)
         Ipctl.append(
-            np.nanpercentile(
-                np.ma.filled(data_class.intensity, np.nan), prctl
-            )
+            np.nanpercentile(np.ma.filled(data_class.intensity, np.nan), prctl)
         )
         Imin.append(np.min(data_class.intensity))
 
@@ -170,30 +175,40 @@ def WriteOutput(settings, debug=False, **kwargs):
         else:
             # nothing is done here.
             pass
-        if t==0 and isinstance(t, int):
+        if t == 0 and isinstance(t, int):
             # the first time the this function is called by VideoClip t is an integer.
             # everyother time it is a float.
             # use this to determine whether to make the colour bar or not
             cbar = None
         else:
             cbar = False
-            
+
         ax.clear()
         if plot_data_as == "calibrated":
             data_class.plot_calibrated(
-                fig_plot=fig, 
-                axis_plot=ax, 
-                show="intensity", 
+                fig_plot=fig,
+                axis_plot=ax,
+                show="intensity",
                 limits=deepcopy(lims),
-                plot_type = plot_type,
-                cbar_axes=cbar
+                plot_type=plot_type,
+                cbar_axes=cbar,
             )
         else:
             data_class.plot_collected(
-                fig_plot=fig, axis_plot=ax, show="intensity", limits=deepcopy(lims),
-                cbar_axes=cbar
+                fig_plot=fig,
+                axis_plot=ax,
+                show="intensity",
+                limits=deepcopy(lims),
+                cbar_axes=cbar,
             )
-        ax.set_title("\n".join(wrap(title_file_names(settings_for_fit=settings_class, num=int(t * fps)), 60)))
+        ax.set_title(
+            "\n".join(
+                wrap(
+                    title_file_names(settings_for_fit=settings_class, num=int(t * fps)),
+                    60,
+                )
+            )
+        )
 
         # return the figure
         return mplfig_to_npimage(fig)
@@ -210,4 +225,3 @@ def WriteOutput(settings, debug=False, **kwargs):
         logger.info(" ".join(map(str, [("Writing %s" % out_file)])))
         animation.write_videofile(out_file, fps=fps)
     animation.close()
-    

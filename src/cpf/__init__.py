@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from cpf.util import io
+
 __all__ = [
     "BrightSpots",
     "Cascade",
@@ -10,7 +12,7 @@ __all__ = [
     "h5_functions",
     "ImageMetaData",
     "input_types",
-    "IO_functions",
+    "io",
     "lmfit_model",
     "output_formatters",
     "peak_functions",
@@ -26,7 +28,6 @@ from cpf import (
     BrightSpots,
     Cascade,
     Cosmics,
-    IO_functions,
     XRD_FitPattern,
     XRD_FitSubpattern,
     data_preprocess,

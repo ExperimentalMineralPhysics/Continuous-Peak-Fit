@@ -23,9 +23,9 @@ Calib_mask     = "DiffractionMask_Dioptas.mask"
 Output_directory   = 'results'
 Output_type        = ['Polydefix', 'DifferentialStrain', 'FitMovie', 'CoefficientTable', 'CollectionMovie']
 
-metadata_labels = {#"time": "time_start",
-                   "exposure": "Exposure_time"}
-metadata = ['Exposure_time', 'Exposure_period']
+# metadata_labels = {#"time": "time_start",
+#                    "exposure": "Exposure_time"}
+# metadata = ['Exposure_time', 'Exposure_period']
 
 
 # define ranges and peaks
@@ -81,11 +81,11 @@ fit_orders = [
 ]
 
 
-# import fabio
-def metadata_read_func(settings, image_obj, **kwargs):
-    out = image_obj.header
-    out["Exposure_time"] = float(out["Exposure_time"][:-2])
-    out["Exposure_period"] = float(out["Exposure_period"][:-2])
-    out['namename'] = image_obj.filename
-    return out
+# # import fabio
+# def metadata_read_func(settings, image_obj, **kwargs):
+#     out = image_obj.header
+#     out["Exposure_time"] = float(out["Exposure_time"][:-2])
+#     out["Exposure_period"] = float(out["Exposure_period"][:-2])
+#     out['namename'] = image_obj.filename
+#     return out
     

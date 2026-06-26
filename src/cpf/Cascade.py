@@ -54,19 +54,18 @@ from scipy.signal import find_peaks
 import cpf.XRD_FitPattern as XRD_FitPattern
 from cpf.BrightSpots import SpotProcess
 from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
-from cpf.IO_functions import (
-    any_terms_null,
-    json_numpy_serializer,
+from cpf.settings import Settings
+from cpf.util.io import (
+    has_value,
     make_outfile_name,
+    numpy_to_json,
     peak_string,
     title_file_names,
 )
-from cpf.settings import Settings
 from cpf.util.logging import get_logger
 from cpf.XRD_FitSubpattern import fit_sub_pattern
 
 logger = get_logger("cpf.Cascade")
-
 
 
 def initiate(*args, **kwargs):
@@ -119,7 +118,6 @@ def execute(
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
     ] = "INFO",
-
     show_plots: bool = False,
     **kwargs,
 ):
@@ -279,7 +277,7 @@ def execute(
             # But does it need to?
             tth_range = settings_for_fit.subfit_orders["range"]
             if settings_for_fit.cascade_track is True and "previous_fit" in locals():
-                null_terms = any_terms_null(params, val_to_find=None)
+                null_terms = has_value(params, val=None)
                 if null_terms == True:
                     # the previous fit has problems so discard it
                     logger.info(
@@ -442,7 +440,7 @@ def execute(
                     TempFile,
                     sort_keys=True,
                     indent=2,
-                    default=json_numpy_serializer,
+                    default=numpy_to_json,
                 )
 
             # if propagating the fits write them to a temporary file
@@ -455,7 +453,7 @@ def execute(
                         TempFile,
                         sort_keys=True,
                         indent=2,
-                        default=json_numpy_serializer,
+                        default=numpy_to_json,
                     )
 
     if parallel is True:

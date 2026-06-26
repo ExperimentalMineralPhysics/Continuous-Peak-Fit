@@ -153,7 +153,8 @@ class _AngleDispersive_common:
                     ma.max(self.azm + 0.01),
                 ]
             )
-            lims = np.around(lims / self.azm_blocks) * self.azm_blocks
+            lims[0] = np.floor(lims[0] / self.azm_blocks) * self.azm_blocks
+            lims[1] = np.ceil(lims[1] / self.azm_blocks) * self.azm_blocks
             bin_boundaries = np.linspace(lims[0], lims[1], num=b_num + 1)
 
         else:

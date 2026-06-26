@@ -515,7 +515,11 @@ def ReadFits_to_dataframe(
             for w in settings_class.metadata:
                 if "/" in w:
                     # cut to last part of h5key
-                    RowLst[w] = metadata[lists[z, 0]][w.split("/")[-1]]
+                    if w[-1] == "/":
+                        last = -2
+                    else:
+                        last = -1
+                    RowLst[w] = metadata[lists[z, 0]][w.split("/")[last]]
                 else:
                     RowLst[w] = metadata[lists[z, 0]][w]
 

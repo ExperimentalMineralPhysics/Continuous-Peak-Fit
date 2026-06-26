@@ -244,7 +244,7 @@ class ESRFlvpDetector:
                  "to": -1, 
                  "step": 1, 
                  "using":"position",
-                 "label": ['/*.1/measurement/azim/'],
+                 # "label": [""],
                  # "pos": '/*.1/measurement/azim/',
                  "dim": 0}]
         
@@ -644,8 +644,10 @@ class ESRFlvpDetector:
             self.h5_iterate = self._default_h5_iterate
         if "h5_azimuths" in dir(settings):
             self.h5_azimuths = settings.h5_azimuths
-        else:
+        elif settings and "image_list" in settings.__dict__ and isinstance(settings.image_list[0], list):
             self.h5_azimuths = self._default_h5_azimuths
+        else:
+            self.h5_azimuths = None
 
         
         # load the list of files

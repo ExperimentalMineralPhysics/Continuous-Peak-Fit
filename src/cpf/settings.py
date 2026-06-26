@@ -1371,7 +1371,7 @@ class Settings:
 
         # add metadata from h5_iterate if it exists.
         if "h5_iterate" in self.settings_from_input:
-            if self.settings_from_input["h5_iterate"][-1]["do"] != "sum":
+            if self.settings_from_input["h5_iterate"][-1]["do"] == "iterate":
                 for i in self.settings_from_input["h5_iterate"][-1]["label"]:
                     if "/" in i:
                         self.metadata.append(i)

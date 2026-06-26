@@ -14,6 +14,7 @@ datafile_Step      = 30
 
 # the h5 datakey is standard in Fabio so not required (in example data)
 # h5_datakey = '/entry_0000/measurement/data'
+AziBins = 1 # Number of bins for initial fitting.
 
 # Calibration and masking.
 Calib_type     = "Dioptas"
@@ -27,12 +28,12 @@ Output_type        = ['FitMovie', 'CoefficientTable']
 fit_orders = [
     {
         "range": [3.2,3.25],
-        "background": [2, 0],
+        "background": [0],
         "peak": [{
             "phase": "LaB6",
             "hkl": '100',
-            "d-space": 3,
-            "height": 1,
+            "d-space": 0,
+            "height": 0,
             "profile": 0,
             "width": 0,
             "symmetry": 2
@@ -40,12 +41,12 @@ fit_orders = [
     },
     {
         "range": [4.53,4.6],
-        "background": [2, 0],
+        "background": [0],
         "peak": [{
             "phase": "LaB6",
             "hkl": '110',
-            "d-space": 3,
-            "height": 1,
+            "d-space": 0,
+            "height": 0,
             "profile": 0,
             "width": 0,
             "symmetry": 2
@@ -53,12 +54,12 @@ fit_orders = [
     },
     {
         "range": [5.55,5.65],
-        "background": [2, 0],
+        "background": [0],
         "peak": [{
             "phase": "LaB6",
             "hkl": '111',
-            "d-space": 3,
-            "height": 1,
+            "d-space": 0,
+            "height": 0,
             "profile": 0,
             "width": 0,
             "symmetry": 2
@@ -66,12 +67,12 @@ fit_orders = [
     },
     {
         "range": [6.4,6.5],
-        "background": [2, 0],
+        "background": [0],
         "peak": [{
             "phase": "LaB6",
             "hkl": '200',
-            "d-space": 3,
-            "height": 1,
+            "d-space": 0,
+            "height": 0,
             "profile": 0,
             "width": 0,
             "symmetry": 2

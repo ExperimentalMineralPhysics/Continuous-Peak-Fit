@@ -875,7 +875,7 @@ class _Plot_AngleDispersive:
                 vmin=IMin,
                 vmax=IMax,
                 colourmap=colourmap,
-                triangle_cutoff = 0.99
+                triangle_cutoff = 99
             )
         elif plot_type == True or plot_type == "rastered" or plot_type == "rast":
             the_plot = raster_plot(
@@ -1072,7 +1072,7 @@ def surface_plot(
     vmin=0,
     vmax=np.inf,
     colourmap="jet",
-    triangle_cutoff = 0.99
+    triangle_cutoff = 99
 ):
     """
     Plots the data on an irregular tripcolor gird.
@@ -1118,7 +1118,7 @@ def surface_plot(
         mask = np.array(mask, dtype="bool")
         triang.set_mask((triang.mask == True) | (mask == True))
 
-    if triangle_cutoff != 1:
+    if triangle_cutoff != 100:
         areas = []
         x_range = []
         y_range = []

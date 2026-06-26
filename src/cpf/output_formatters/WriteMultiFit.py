@@ -77,19 +77,42 @@ def WriteOutput(
         data_to_write = fits[z]
 
         # create output file name from passed name
-        base = settings_class.subfit_filename
-        if base is None:
-            logger.info("No base filename, using input filename instead.")
-            base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
-        if differential_only is not False:
-            base = base + "_DiffOnly"
+        if ("datafile_StartNum" not in settings_class.settings_from_input 
+                 and "datafile_EndNum" not in settings_class.settings_from_input
+                 ):
+            #then have to renumber the files
+            fname_to_use = "renumbered"
+            base = settings_class.datafile_basename
+            out_file = make_outfile_name(
+                base,
+                directory=settings_class.output_directory,
+                extension=".fit",
+                overwrite=True,
+                additional_text = f"{z:06g}"
+            )
+        elif ("datafile_Step" in settings_class.settings_from_input 
+            and np.abs(settings_class.settings_from_input["datafile_Step"]) != 1
+            ):
+            #then have to renumber the files
+            fname_to_use = "renumbered"
+            base = settings_class.datafile_basename
+            out_file = make_outfile_name(
+                base,
+                directory=settings_class.output_directory,
+                extension=".fit",
+                overwrite=True,
+                additional_text = f"{z:06g}"
+            )
+        else:
+            fname_to_use = "given"
+            base = settings_class.datafile_basename
+            out_file = make_outfile_name(
+                base,
+                directory=settings_class.output_directory,
+                extension=".fit",
+                overwrite=True
+            )
 
-        out_file = make_outfile_name(
-            base,
-            directory=settings_class.output_directory,
-            extension=".fit",
-            overwrite=True,
-        )
         logger.info(" ".join(map(str, [("Writing: %s" % out_file)])))
 
         text_file = open(out_file, "w")

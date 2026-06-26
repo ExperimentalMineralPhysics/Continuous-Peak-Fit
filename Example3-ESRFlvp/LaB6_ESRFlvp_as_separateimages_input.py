@@ -19,6 +19,7 @@ reduce_by = 1
 #Output settings
 Output_directory   = 'results_as_separateimages'
 Output_type        = ['Polydefix', 'FitMovie', 'CoefficientTable']
+output_options    = {'ElasticProperties': None}
 
 # define ranges and peaks
 fit_orders = [

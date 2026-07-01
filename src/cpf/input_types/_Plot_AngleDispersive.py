@@ -19,6 +19,8 @@ class _Plot_AngleDispersive:
     contained within it are created as methods in the angle dispersive diffraction
     classes (e.g. DioptasDetector and SERFlvpDetector).
     """
+    
+    default_colourmap = "magma_r"
 
     def _dispersion_ticks(self, disp_ticks=None, unique=10, disp_lims=None):
         """
@@ -541,7 +543,7 @@ class _Plot_AngleDispersive:
         fig_plot=None,
         axis_plot=None,
         show="intensity",
-        colourmap="jet",
+        colourmap=default_colourmap,
         limits=[0.01, 99.9],
         location="default",
         cbar_axes = None,
@@ -559,7 +561,7 @@ class _Plot_AngleDispersive:
         show : TYPE, optional
             DESCRIPTION. The default is "intensity".
         colourmap : TYPE, optional
-            DESCRIPTION. The default is "jet".
+            DESCRIPTION. The default is the default_colourmap, magma_r.
         limits : TYPE, optional
             DESCRIPTION. The default is [0, 99.9].
         location : TYPE, optional
@@ -708,7 +710,7 @@ class _Plot_AngleDispersive:
         data=None,
         limits=[1, 99.9],
         y_lims=None,
-        colourmap="jet",
+        colourmap= default_colourmap,
         plot_type=False,
         point_scale=2,
         resample_shape=None,
@@ -1010,6 +1012,8 @@ def residuals_colour_scheme(maximum_value, minimum_value, **kwargs):
     return all_colours
 
 
+default_colourmap = _Plot_AngleDispersive.default_colourmap
+
 def raster_plot(
     data_plot,
     x_plot,
@@ -1019,7 +1023,7 @@ def raster_plot(
     resample_shape=None,
     vmin=0,
     vmax=np.inf,
-    colourmap="jet",
+    colourmap=default_colourmap,
     pixels_per_bin=3,
 ):
     """
@@ -1047,7 +1051,7 @@ def raster_plot(
     vmax : float, optional
         minimum of the plotted colour scale. The default is np.inf, in effect the maximum value in data_plot
     colourmap : string, optional
-        Colourmap for the plot. The default is "jet".
+        Colourmap for the plot. The default is the default_colourmap, magma_r.
     pixels_per_bin : float, optional
         Scaler for the number of bins in the histogram  . The default is 3.
 
@@ -1117,7 +1121,7 @@ def surface_plot(
     resample_shape=None,
     vmin=0,
     vmax=np.inf,
-    colourmap="jet",
+    colourmap=default_colourmap,
     triangle_cutoff = 99
 ):
     """
@@ -1140,7 +1144,7 @@ def surface_plot(
     vmax : float, optional
         minimum of the plotted colour scale. The default is np.inf, in effect the maximum value in data_plot
     colourmap : string, optional
-        Colourmap for the plot. The default is "jet".
+        Colourmap for the plot. The default is the default_colourmap, magma_r.
     triangle_cutoff : float, optional
         Perceltile threshold for filtering the triangles. The default is 0.99
 
@@ -1239,7 +1243,7 @@ def image_plot(
     resample_shape=None,
     vmin=0,
     vmax=np.inf,
-    colourmap="jet"
+    colourmap=default_colourmap
 ):
     """
     Plots the data as an image. Requires that the x_plot and y_plot are image coordinates.
@@ -1267,7 +1271,7 @@ def image_plot(
     vmax : float, optional
         minimum of the plotted colour scale. The default is np.inf, in effect the maximum value in data_plot
     colourmap : string, optional
-        Colourmap for the plot. The default is "jet"
+        Colourmap for the plot. The default is the default_colourmap, magma_r.
 
     Returns
     -------

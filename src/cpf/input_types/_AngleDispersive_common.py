@@ -473,7 +473,11 @@ class _AngleDispersive_common:
             return ma.MaskedArray(data_out, mask=mask)
 
 
-        if reduce_by is False or (reduce_by is None and self.reduce_by is None):
+        if (reduce_by is False 
+            or reduce_by == 1
+            or (reduce_by is None and self.reduce_by is None)
+            or (reduce_by is None and self.reduce_by == 1)
+        ):
             # reduce_by = False is used by fill_data to make sure this function is passed
             # if both are none then there is nothing to do.
             return data

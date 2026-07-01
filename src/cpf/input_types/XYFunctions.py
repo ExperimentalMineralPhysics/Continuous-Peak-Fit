@@ -82,7 +82,7 @@ logger = get_logger("cpf.input_types.XYFunctions")
 plot_as_image = True
 
 
-def csv_to_image(image_name):
+def csv_to_image(image_name, nan_policy=-1):
     # then it is a text file, assume there are less than 20 header rows.
     # assume the we do not know the delimiters.
     done = 0
@@ -116,6 +116,7 @@ def csv_to_image(image_name):
                     # issue an error
                     err_str = "There seems to be more than 20 header rows in the data file. Is this correct?"
                     raise ValueError(err_str)
+    im = np.nan_to_num(im, copy=True, nan=nan_policy, posinf=nan_policy, neginf=nan_policy)
     return im
 
 
@@ -407,8 +408,12 @@ class XYDetector:
             # load csvs or txt file as an image.
             im = csv_to_image(image_name)
         else:
-            im = image.imread(image_name)
-            im = im.data
+            try:
+                im = fabio.open(image_name)
+                im = im.data
+            except:
+                im = image.imread(image_name)
+                im = im.data
 
         # Convert the input data from integer to float because the lmfit model values
         # inherits integer properties from the data.
@@ -646,30 +651,30 @@ class XYDetector:
         metadata_dictionary.update(self._get_file_created_modified(image_obj))
         self.metadata = metadata_dictionary
 
-    @staticmethod
-    def detector_check(calibration_data, settings=None):
-        """
-        Get detector information
-        :param settings:
-        :param calibration_data:
-        :return: detector:
-        """
-        # if "Calib_detector" in settings:
-        # detector = pyFAI.detector_factory(settings.Calib_detector)
-        if settings.calibration_detector is not None:
-            detector = pyFAI.detector_factory(settings.calibration_detector)
-        else:
-            # if settings is None or detector == 'unknown' or detector == 'other' or detector == 'blank':
-            im_all = fabio.open(calibration_data)
-            # sz = calibration_data.Calib_pixels  # Pixel_size
-            sz = calibration_data.calibration_pixel_size  # Pixel_size
-            if sz > 1:
-                sz = sz * 1e-6
-            detector = pyFAI.detectors.Detector(
-                pixel1=sz, pixel2=sz, splineFile=None, max_shape=im_all.shape
-            )
-        # FIX ME: check the detector type is valid.
-        return detector
+    # @staticmethod
+    # def detector_check(calibration_data, settings=None):
+    #     """
+    #     Get detector information
+    #     :param settings:
+    #     :param calibration_data:
+    #     :return: detector:
+    #     """
+    #     # if "Calib_detector" in settings:
+    #     # detector = pyFAI.detector_factory(settings.Calib_detector)
+    #     if settings.calibration_detector is not None:
+    #         detector = pyFAI.detector_factory(settings.calibration_detector)
+    #     else:
+    #         # if settings is None or detector == 'unknown' or detector == 'other' or detector == 'blank':
+    #         im_all = fabio.open(calibration_data)
+    #         # sz = calibration_data.Calib_pixels  # Pixel_size
+    #         sz = calibration_data.calibration_pixel_size  # Pixel_size
+    #         if sz > 1:
+    #             sz = sz * 1e-6
+    #         detector = pyFAI.detectors.Detector(
+    #             pixel1=sz, pixel2=sz, splineFile=None, max_shape=im_all.shape
+    #         )
+    #     # FIX ME: check the detector type is valid.
+    #     return detector
 
     def get_requirements(self, parameter_settings=None):
         """
@@ -758,7 +763,7 @@ class OrthogonalDetector:
         debug=False,
     ):
         self.calib = calibration
-        self.max_shape = max_shape
+        # self.max_shape = max_shape
 
         # initiate a bunch of defaults.
         self.calibration = {}
@@ -773,6 +778,8 @@ class OrthogonalDetector:
         self.calibration["y_end"] = np.nan
         self.calibration["y_scale"] = "linear"
         self.calibration["rotation"] = 0  # in degrees
+        
+        self.calibration["max_shape"] = None
 
         self.calibration["x_unit"] = "num"
         self.calibration["x_label"] = "pixels"
@@ -792,13 +799,45 @@ class OrthogonalDetector:
 
     def load_calibration(self, calibration=None, diffraction_data=None):
         """
-        Populates the calibration
-
+        Sets calibration from inputs.
+        
+        The calibration is loaded from a dictionary of parameters. 
+        The keys, value pairs are either:
+            'x' -- list of polynomial coefficients for calibration (usually: [intercept, slope])
+            'y' -- list of polynomial coefficients for calibration (usually: [intercept, slope])
+            If all are provided then 'x' and 'y' are used.
+        Alternatively: 
+            'x_start' -- bin center of 1st pixel in x dicrection
+            'x_end'   -- bin center of lastst pixel in x dicrection
+            'y_start' -- bin center of 1st pixel in y dicrection
+            'y_end'   -- bin center of last pixel in y dicrection
+            'max_shape' -- pixle dimensions of image
+        if max_shape is not provided then 'diffraction_data' must be set. 
+        
+        The orientation of the data is determined from key/value pair:
+            'x_dim' -- 0 or 1. 
+        
+        The scale of the pixel centers is assumed to be linear, but can be set
+        using key/value pair to be logorithmic
+            'x_scale': 'linear' or 'logorithmic'
+            'y_scale': 'linear' or 'logorithmic'
+            
+        The calibration also contains the unit and labels for the axes. Both can take 
+        any string value.
+            "x_unit": "num" (default)
+            "x_label": "pixels" (default)
+            "y_unit": "num" (default)
+            "y_label": "pixels" (default)
+        
+        
         Parameters
         ----------
-        calibration : dictionary, οπτιοναλ
+        calibration : dictionary, optional
             Dictionary containing the calibration parameters for the detector.
             Otherwise returns a blank detector
+            The default is None.
+        diffraction_data : np.array, optional
+            diffraction data array. The default is None.
 
         Raises
         ------
@@ -814,9 +853,7 @@ class OrthogonalDetector:
         # fill in the calibration if it exists.
         if calibration:
             for key, value in calibration.items():
-                if key == "max_shape":
-                    pass
-                elif key in list(self.calibration.keys()):
+                if key in list(self.calibration.keys()):
                     self.calibration[key] = value
                 else:
                     error_str = (
@@ -824,7 +861,9 @@ class OrthogonalDetector:
                     )
                     raise ValueError(error_str)
 
-        if "max_shape" in list(self.calibration.keys()):
+        if ("max_shape" in list(self.calibration.keys()) 
+            and self.calibration["max_shape"]
+            ):
             self.max_shape = self.calibration["max_shape"]
         elif diffraction_data:
             if (
@@ -885,7 +924,7 @@ class OrthogonalDetector:
             if "x_unit" not in calibration:
                 self.calibration["x_unit"] = "deg"
 
-        self.calibration_check
+        self.calibration_check()
 
     def calibration_check(self):
         # FIXME (SAH, June 2024) This should have a validation proess in here.
@@ -904,7 +943,7 @@ class OrthogonalDetector:
         """
 
         if self.calibration["x_dim"] == 1:
-            nx, ny = self.max_shape
+            ny, nx = self.max_shape
         else:
             nx, ny = self.max_shape
 
@@ -916,7 +955,7 @@ class OrthogonalDetector:
             y = np.linspace(0, ny - 1, ny)
         else:
             y = np.logspace(0, ny - 1, ny)
-        x_array, y_array = np.meshgrid(y, x)
+        x_array, y_array = np.meshgrid(x, y)
 
         if self.calibration["rotation"] != 0:
             c, s = (
@@ -925,7 +964,7 @@ class OrthogonalDetector:
             )
             R = np.array(((c, -s), (s, c)))
 
-            tmp = np.vstack((x_array, x_array))
+            tmp = np.vstack((x_array, y_array))
             tmp = R @ tmp
             x_array = np.reshape(tmp[:, 0], x_array.shape)
             y_array = np.reshape(tmp[:, 1], y_array.shape)
@@ -942,7 +981,6 @@ class OrthogonalDetector:
         calibrated_x = np.ones(x_array.shape) * self.calibration["x"][0]
         for i in range(len(self.calibration["x"]) - 1):
             calibrated_x += x_array * self.calibration["x"][i + 1] * (i + 1)
-
         return calibrated_x
 
     def get_vertical(self, mask=None):

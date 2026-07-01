@@ -512,7 +512,7 @@ class _Plot_AngleDispersive:
                     ax[2].set_title(ax[2].get_title(), y=0.9)
                 # fig_plot.rcParams['axes.titley'] = 1.0    # y is in axes-relative coordinates.
                 # fig_plot.rcParams['axes.titlepad'] = -14  # pad is in points...
-                ax[2].set_xlabel("Azimuth ($^\circ$)")
+                ax[2].set_xlabel(f"{self.Azimuthlabel} ({self.AzimuthUnits})")
             else:
                 bottom0, top0 = ax[0].get_ylim()
                 bottom1, top1 = ax[1].get_ylim()

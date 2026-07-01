@@ -11,7 +11,7 @@ import json
 import os
 import re
 from copy import copy, deepcopy
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Any, Literal, Optional
 
 import numpy as np
@@ -1686,7 +1686,12 @@ class Settings:
         else:
             return False
 
-    def save_settings(self, filename: str = "settings.py", filepath: Path = Path(".")):
+
+
+
+        
+            
+    def save_settings(self, filename: str = None, filepath: Path = None):
         """
         Saves the settings class or dictionary to file.
 
@@ -1696,20 +1701,57 @@ class Settings:
             filename to save the file as.
         filepath : string
             Filepath to save the file in.
-
-        Returns
-        -------
-        None.
+            Default is None; which reverts to output_directory
 
         """
+        
+        
+        def iterative_formatting(val, indent = "    ", indents=0):
+            """
+            Format the outout as we want it. 
 
-        # with open(filename, 'r') as tp_file:
-        #      tp_file.write(json.dumps(self.__dict__))
+            Parameters
+            ----------
+            val : TYPE
+                DESCRIPTION.
 
-        #      # print(values_write)
-        # stop
+            Returns
+            -------
+            formatted_string : TYPE
+                DESCRIPTION.
 
-        import re
+            """
+            
+            match val:
+                case list():
+                    out_str = "["
+                    # convert list to json string.
+                    for s_entry in val: 
+                        out_str += iterative_formatting(s_entry, indents=indents)+", "  
+                    out_str = out_str[:-2]    
+                    out_str += "]"  
+                    formatted_string = out_str
+                case dict():
+                    ind=indents+1
+                    val_str = '{'+str(os.linesep)
+                    for dict_key,dict_val in val.items():
+                        val_str += indent*ind +"'"+dict_key+"': "+str(iterative_formatting(dict_val, indent=indent, indents=indents+1)) + r','+str(os.linesep)
+                    val_str = val_str[:-2]+str(os.linesep) 
+                    val_str +=indent*ind+"}"  
+                    formatted_string = val_str
+                case PurePath():
+                    formatted_string = "'"+str(val.name)+"'"
+                case str():
+                    formatted_string = "'"+val+"'"
+                case bool():
+                    formatted_string = f"{str(val)}"
+                case _:
+                    if val and np.abs(val)==np.inf:
+                        formatted_string = "float('inf')"
+                    else:
+                        formatted_string = str(val)
+            return formatted_string
+
 
         template_file = "Template_for_XRDFitPattern_Inputs.txt"
         template_loc = os.path.join(os.path.dirname(__file__), template_file)
@@ -1721,55 +1763,30 @@ class Settings:
 
         # loop over the values_write and replace with values
         # Looping also makes easier to add or remove blocks of the setting file.
-        for i in range(len(values_write)):
-            # get value to write.
-            d = {}
+        replacement_values = {}
+        for i in values_write:
+            # remove leading '$' from key string
+            key = i[1:]
+            if key in self.__dict__ and key != "datafile_list":
+                # FIXME: datafile_list is a varalibe in the settings and a possible parameter in the input file. 
+                # they should not have the same name...
+                replacement_values[key] = self.__dict__[key]
+            elif "settings_from_input" in self.__dict__:
+                if isinstance(self.settings_from_input, dict):
+                    if key in self.settings_from_input:
+                        replacement_values[key] = self.settings_from_input[key]
+                else: 
+                    if key in self.settings_from_input.__dict__:
+                        replacement_values[key] = self.settings_from_input.__dict__[
+                            key
+                        ]
 
-            if values_write[i][1:] in self.__dict__:
-                d[values_write[i][1:]] = self.__dict__[values_write[i][1:]]
-            elif values_write[i][1:] in self.settings_from_input.__dict__:
-                d[values_write[i][1:]] = self.settings_from_input.__dict__[
-                    values_write[i][1:]
-                ]
-            # else:
-            #     try:
-            #         d[values_write[i][1:]] = Settings().__dict__[values_write[i][1:]]
-            #     except:
-            #         d[values_write[i][1:]] = "Pah"
-
-            # if is not an acceptale type the convert to text.
-            if values_write[i][1:] in d:
-                if isinstance(d[values_write[i][1:]], list):
-                    # convert list to json string.
-                    try:
-                        output = json.dumps(d[values_write[i][1:]], indent=2)
-                        output = re.sub(r'": \[\s+', '": [', output)
-                        output = re.sub(r'",\s+', '", ', output)
-                        output = re.sub(r'"\s+\]', '"]', output)
-                        template = template.replace(values_write[i], output)
-                    except:
-                        pass
-
-                elif isinstance(d[values_write[i][1:]], dict):
-                    # convert dictionary to formatted string.
-                    template = template.replace(
-                        values_write[i], json.dumps(d[values_write[i][1:]])
-                    )
-
-                elif isinstance(d[values_write[i][1:]], Path):
-                    template = template.replace(
-                        values_write[i], f"'{str(d[values_write[i][1:]])}'"
-                    )
-
-                elif isinstance(d[values_write[i][1:]], str):
-                    template = template.replace(
-                        values_write[i], f"'{d[values_write[i][1:]]}'"
-                    )
-                else:
-                    template = template.replace(
-                        values_write[i], f"{d[values_write[i][1:]]}"
-                    )
-
+        for key,val in replacement_values.items():
+            val = iterative_formatting(val)
+            template = template.replace(
+                "$"+key, val
+            )
+            
         # remove lines that still have $ in them.
         template = template.splitlines(True)
         # remove deadlines
@@ -1780,15 +1797,25 @@ class Settings:
         template = "".join(template)
 
         # write settings file
-        if self.settings_file:
+        if filename:
+            _, file_extension = os.path.splitext(filename)
+            if not file_extension:
+                filename = filename+".py"
+        elif self.settings_file:
             filename = make_outfile_name(
                 self.settings_file, extension="py", overwrite=False
             )
+        else:
+            filename = make_outfile_name(
+                "settings", extension="py", overwrite=False
+            )   
+        if not filepath: 
+            filepath = Path(self.output_directory)
         fnam = filepath / filename
         with open(fnam, "w") as TempFile:
             # Write to a text or py file.
             TempFile.write(template)
-        logger.info(" ".join(map(str, [("Finished writing settings to ", filename)])))
+        logger.info(f"Written settings to {filename}")
 
 
 # def get_output_options(output_type: list[str]):

@@ -127,7 +127,12 @@ def fits_to_unitcell(settings, *args, **kwargs):
         )
         # add metadata
         for i in settings_class.metadata:
-            cells_tmp[i] = metadata[i]
+            if "/" in i:
+                #then h5 metadata.
+                cells_tmp[i.split("/")[-1]] = metadata[i.split("/")[-1]]
+                #get last index in key as the dictionarry entry label
+            else:
+                cells_tmp[i] = metadata[i]
 
         # get or guess phase
         if not isinstance(phase, str):

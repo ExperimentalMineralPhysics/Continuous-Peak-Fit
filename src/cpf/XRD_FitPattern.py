@@ -1106,6 +1106,9 @@ def execute(
                     )
                     fitted_param.append(tmp)
 
+        # get metadata
+        metadata = sub_data.get_metadata(settings_class=settings_class)
+        
         # write output files
         if mode == "fit" or mode == "search":
             if parallel is True:
@@ -1114,7 +1117,7 @@ def execute(
                     fitted_param.append(tmp[i])
 
             # store the fit parameters' information as a JSON file.
-            WriteFits(settings_class, fitted_param, data_class=new_data, mode=mode)
+            WriteFits(settings_class, fitted_param, metadata=metadata, mode=mode)
 
             # if propagating the fits write them to a temporary file
             if settings_class.fit_propagate:

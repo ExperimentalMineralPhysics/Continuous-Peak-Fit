@@ -32,7 +32,7 @@ logger = get_logger("cpf.output_formatters.fits_io")
 
 
 def WriteFits(
-    settings_class, fitted_param, filename_to_write=None, data_class=None, mode=None
+    settings_class, fitted_param, filename_to_write=None, metadata=None, mode=None
 ):
     """
     Write fits and any metadata to json files.
@@ -51,8 +51,8 @@ def WriteFits(
     filename_to_write : string, optional
         String setting the file to be written.
         If present later optinal parameters are ignored.
-    data_class : cpf data class, optional
-        Data class that contains the image metadata. The default is None.
+    metadata : dict, optional
+        dictionary of metadata. The default is None.
     mode : string, optional
         Switch to add string to file name (if not spedified). The default is None.
 
@@ -70,14 +70,17 @@ def WriteFits(
         else:
             out = fitted_param
         for i in out:
-            i.pop("correlation_coeffs", None)
-    elif data_class:
-        metadata = data_class.get_metadata(settings_class=settings_class)
+            i.pop("correlation_coeffs", None)    
+    elif metadata:
+        # FIXME: could probably collapse these last two options and write an empty metadata dict.
+        # but not sure what happens if I make this change.
         out = {"metadata": metadata, "fits": fitted_param}
     else:
         out = {"fits": fitted_param}
 
     if filename_to_write is None:
+        # FIXME: I dont think that mode is needed in this function. The default for additional_text is None, 
+        # if this is the case every time then the if/else and the input of mode to this function is not needed.
         if mode == "search":
             additional_text = settings_class.file_label
         else:

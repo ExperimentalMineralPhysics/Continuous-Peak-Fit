@@ -771,7 +771,9 @@ def execute(
 
         # Get diffraction pattern to process.
         new_data.import_image(settings=settings_class)#, debug=debug)
-
+        # get metadata
+        metadata = new_data.get_metadata(settings_class=settings_class)
+        
         # get json file name for outputs.
         if mode == "search":
             additional_text = settings_class.file_label
@@ -1105,9 +1107,6 @@ def execute(
                         **kwargs
                     )
                     fitted_param.append(tmp)
-
-        # get metadata
-        metadata = sub_data.get_metadata(settings_class=settings_class)
         
         # write output files
         if mode == "fit" or mode == "search":

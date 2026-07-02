@@ -26,6 +26,7 @@ h5_iterate = [
 Calib_type     = "ESRFlvp"
 Calib_param    = "./lab6_53keV_3900mm.json"
 
+metadata = ["/*.1/instrument/azim/value", "/*.1/instrument/azim/value"]
 # Fitting properties for peaks.
 reduce_by = 1
 

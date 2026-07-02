@@ -226,6 +226,7 @@ class _metadata_common:
             metadata_out["FILE_CREATION"] = self.metadata["FILE_CREATION"]
         if "FILE_MODIFIED" in metadata_values and "FILE_MODIFIED" in self.metadata:
             metadata_out["FILE_MODIFIED"] = self.metadata["FILE_MODIFIED"]
+            
         #get information from inside datafiles
         if "h5_datakey" in self.metadata:
             # only hdf5 files should have a "h5_datakey" as wildcard in the keys.
@@ -240,7 +241,7 @@ class _metadata_common:
             # self.h5_datakey --> to be used to get wildcard values for metadata keys
             # metadata_values
             
-            #get imagename from the meta data
+            #get imagename from the metadata
             imagename = self.metadata['image']           
             if not isinstance(imagename, list):
                 # single file.
@@ -268,10 +269,9 @@ class _metadata_common:
                         metadata_key = j
                         
                     #get last index in key as the dictionarry entry label
-                    ky = metadata_key.split("/")[-1]
-                    metadata_out[ky] = h5_functions.get_images([imagename[0], metadata_key, imagename[2], '0'])
+                    metadata_out[j] = h5_functions.get_images([imagename[0], metadata_key, imagename[2], '0'])
                     try:
-                        metadata_out[ky] = h5_functions.get_images([imagename[0], metadata_key, imagename[2], '0'])
+                        metadata_out[j] = h5_functions.get_images([imagename[0], metadata_key, imagename[2], '0'])
                     except:                    
                         err_str = f"Metadata type {metadata_key} not recognised. Permitted values for this dataset are: any valid h5 key"
                         raise ValueError(err_str)

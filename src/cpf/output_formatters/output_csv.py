@@ -91,7 +91,7 @@ def make_header(settings_class, fits=False, derived=False, calc_options=None, ad
         
 
 
-def write_csv(out_file, df, column_headers, file_header=None, col_width=15, dp=5):
+def write_csv(out_file, df, column_headers, file_header=None, col_width=15, dp=5, metadata_short_hdf5_keys=True):
     """
     Writes a formatted csv file from panda data frame. 
     
@@ -139,13 +139,27 @@ def write_csv(out_file, df, column_headers, file_header=None, col_width=15, dp=5
     for col in list(df):
         df[col] = df[col].replace(',',' ', regex=True)
     
-    #shorten hdf5 key names 
+    #shorten hdf5 key names
+    col_rename = {}
     for col in list(df):
-        col_rename = {}
         if "/" in col:
-            col_rename.update({col: col.split("/")[-1]})
-        df = df.rename(columns=col_rename)
-
+            # cut to last part of h5key, and make sure is not unique
+            if col[-1] == "/":
+                last = -2
+            else:
+                last = -1
+            if col.split("/")[last] == "value" or col.split("/")[last] == "data":
+                last -= 1
+            
+            unique = False
+            while not unique:
+                if "/".join(col.split("/")[last:]) in df:
+                    last -= 1
+                else:
+                    unique = True
+            col_rename.update({col: "/".join(col.split("/")[last:])})
+    df = df.rename(columns=col_rename)
+    
     # make sure different columns are saved as desired.
     for i in df.columns:
         if (("date" in i.lower() or 

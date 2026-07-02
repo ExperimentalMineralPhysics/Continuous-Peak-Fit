@@ -516,15 +516,7 @@ def ReadFits_to_dataframe(
             RowLst["range_end"] = data_to_write["range"][0][1]
 
             for w in settings_class.metadata:
-                if "/" in w:
-                    # cut to last part of h5key
-                    if w[-1] == "/":
-                        last = -2
-                    else:
-                        last = -1
-                    RowLst[w] = metadata[lists[z, 0]][w.split("/")[last]]
-                else:
-                    RowLst[w] = metadata[lists[z, 0]][w]
+                RowLst[w] = metadata[lists[z, 0]][w]
 
             for w in range(len(includeParameters)):
                 ind = includeParameters[w]

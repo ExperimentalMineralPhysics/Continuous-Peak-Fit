@@ -168,7 +168,10 @@ def ReadFits_to_list(settings, replace=True, **kwargs):
                 if isinstance(json_contents, dict):
                     # new style as dictionary with metadata
                     fits.append(json_contents["fits"])
-                    metadata.append(json_contents["metadata"])
+                    if "metadata" in json_contents:
+                        metadata.append(json_contents["metadata"])
+                    else:
+                        metadata.append({})
                 else:
                     # old stype without metadata
                     fits.append(json_contents)

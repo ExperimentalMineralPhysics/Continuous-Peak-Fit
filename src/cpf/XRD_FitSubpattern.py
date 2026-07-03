@@ -228,6 +228,7 @@ def fit_sub_pattern(
     settings_class,
     previous_params=None,
     mode="fit",
+    save_fit = False,
     **kwargs
 ):
     """
@@ -263,19 +264,19 @@ def fit_sub_pattern(
     """
 
     # parse values that affect the fitting from settings (if they are set). 
-    if "fit_options" not in settings_class:
+    if "fit_options" not in settings_class.__dict__:
         settings_class.fit_options = {}
     refine = settings_class.fit_options.get("refine", True)
     iterations = settings_class.fit_options.get("iterations", 3)
     fit_method = settings_class.fit_options.get("fit_method", None)
     histogram_type = settings_class.fit_options.get("histogram_type", None)
     histogram_bins = settings_class.fit_options.get("histogram_bins", None)
-    min_data_intensity = settings_class.get("fit_min_data_intensity", 1) # ***
+    min_data_intensity = settings_class.__dict__.get("fit_min_data_intensity", 1) # ***
     min_data_intensity = settings_class.fit_options.get("min_data_intensity", min_data_intensity)
-    min_peak_intensity = settings_class.get("fit_min_peak_intensity", "std") # ***
+    min_peak_intensity = settings_class.__dict__.get("fit_min_peak_intensity", "std") # ***
     min_peak_intensity = settings_class.fit_options.get("min_peak_intensity", min_peak_intensity)
     large_errors = settings_class.fit_options.get("large_errors", 300)
-    save_fit = settings_class.fit_options.get("save_fit", False)
+    # save_fit = settings_class.fit_options.get("save_fit", False)
     # FIXME: rows with *** are historical and can be removed when settings are updated/standardised. 
     
     # set a limit to the maximum number of function evaluations.

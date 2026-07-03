@@ -529,7 +529,7 @@ def DefaultProcessDictionary(types=False):
         "label": ["", "*"]}
     or it returns a dictionary with the expected formats or values:
         {"do":    {"type": str,
-                   "values": ["sum", "iterate"]},
+                   "values": ["sum", "iterate", "combine", "average"]},
         "from":  {"type": (int, float, np.ndarray)},
         "to":    {"type": (int, float, np.ndarray)},
         "step":  {"type": (int)},
@@ -558,7 +558,7 @@ def DefaultProcessDictionary(types=False):
         }
     else:
         return {
-            "do": {"type": str, "values": ["sum", "iterate", "combine"]},
+            "do": {"type": str, "values": ["sum", "iterate", "combine", "average"]},
             "from": {"type": (int, float, np.ndarray)},
             "to": {"type": (int, float, np.ndarray)},
             "step": {"type": (int)},
@@ -1038,7 +1038,7 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
             out.append([keylist[i], 0, ""])
         else:
             number_data = np.array(df[keylist[i]]).squeeze().shape[itera["dim"]]
-            if itera["do"] == "sum":
+            if itera["do"] == "sum" or itera["do"] == "average":
                 # add all the frames in the data set
                 if "list" in itera:
                     index_values = itera["list"]
@@ -1289,6 +1289,13 @@ def get_images(
                 .squeeze()[data_position_in_key]
                 .sum(axis=dim)
             )
+        elif do == "average":  # multi slice data that needs collapsing
+            data = (
+                np.array(datafile[datakey])
+                .squeeze()[data_position_in_key]
+                .sum(axis=dim)
+            )
+            data = data/data.shape[dim]
         else:
             err_str = f"The h5 process '{do}' is not recognised."
             raise ValueError(err_str)

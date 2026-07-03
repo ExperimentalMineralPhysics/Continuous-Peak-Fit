@@ -28,7 +28,6 @@ from cpf.settings import Settings, get_settings, is_settings
 from cpf.util.io import (
     has_value,
     make_outfile_name,
-    numpy_to_json,
     peak_string,
     title_file_names,
 )
@@ -80,18 +79,18 @@ def initiate(
         
     Parameters
     ----------
-    settings : Optional[str | Path | dict | Settings()], optional
+    settings : Optional[str | Path | dict | Settings()]
         Pointer to information needed for settings class. Can be of the form:        
         string -- filename of python formatted file 
         Path -- path for python formatted file  
         dict -- dictionary of settings
         Settings() -- cpf Settings class 
-        The default is None.
     report : Literal[ "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"    ], optional
         Logger level for how much information to write to the log files.
         The default is "INFO".
     **kwargs : key, value pairs
-        key, value arguments arguments. Passed though the method but not used here. 
+        key, value arguments arguments. Passed though the method to cpf.settings.Settings() but not used here. 
+        See documention of these for kwarg use.
 
     Returns
     -------
@@ -151,7 +150,6 @@ def initiate(
 def view(
     settings: [str | Path | dict | Settings()],
     pattern="all",
-    subpattern="all",
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
     ] = "INFO",
@@ -162,27 +160,24 @@ def view(
     
     Makes a movie file of the data using output "CollectionMovie".  
     
-
     Parameters
     ----------
-    settings : Optional[str | Path | dict | Settings()], optional
+    settings : Optional[str | Path | dict | Settings()]
         Pointer to information needed for settings class. Can be of the form:        
         string -- filename of python formatted file 
         Path -- path for python formatted file  
         dict -- dictionary of settings
         Settings() -- cpf Settings class 
-        The default is None.
-    pattern : TYPE, optional
-        DESCRIPTION. The default is "all".
-    subpattern : TYPE, optional
-        DESCRIPTION. The default is "all".
+    pattern : int, str, optional
+        Which patterns in the series to plot. 
+        Either "all", "mid", or integer list of patterns to keep.
+        The default is "all".
     report : Literal[ "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR" ], optional
         Logger level for how much information to write to the log files.
         The default is "INFO".
-        settings : [str | Path | dict | Settings()]
-        DESCRIPTION.
     **kwargs : key, value pairs
-        key, value arguments arguments. Passed though the method but not used here. 
+        key, value arguments arguments. Passed though the method to to cpf.XRD_Fitpattern.initiate() and 
+        cpf.XRD_Fitpattern.execute(). See documention of these for kwarg use.
 
     Returns
     -------
@@ -206,21 +201,13 @@ def view(
     if pattern != "all":
         # restrict file list to first file
         settings_class.set_data_files(keep=pattern)
-
     write_output(settings_class, out_type="CollectionMovie", **kwargs)
 
-    # write_output(settings_file=settings_file, out_type="RangesMovie")
 
 
 def set_range(
     settings: [str | Path | dict | Settings()],
-    debug: bool = False,
-    refine: bool = True,
-    save_all: bool = False,
-    # propagate: bool = True,
-    iterations: int = 1,
-    # track: bool = False,
-    parallel: bool = True,
+    pattern: [str, int] = 0,
     subpattern: str = "all",
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
@@ -228,17 +215,45 @@ def set_range(
     **kwargs,
 ):
     """
-    :param settings:
-    :param debug:
-    :param refine:
-    :param save_all:
-    :param propagate:
-    :param iterations:
-    :param track:
-    :param parallel:
-    :param subpattern:
-    :param kwargs:
-    :return:
+    Plot data in the elected ranges using the calubration and how the masks are applied to the 
+    data. Subgigues produced:
+        - unmasked data 
+            - azimuth vs two theta, colours scale = intensity
+            - intensity vs two theta, colours scale = azimuth
+        - mask
+        - masked data
+            - azimuth vs two theta, colours scale = intensity
+            - intensity vs two theta, colours scale = azimuth
+        - Cumulative distribution function of unmasked and masked intensities
+    
+    Makes a separate image file for each of the elected ranges.  
+
+    Parameters
+    ----------
+    settings : Optional[str | Path | dict | Settings()]
+        Pointer to information needed for settings class. Can be of the form:        
+        string -- filename of python formatted file 
+        Path -- path for python formatted file  
+        dict -- dictionary of settings
+        Settings() -- cpf Settings class 
+    pattern : int, str, optional
+        Which patterns in the series to plot. 
+        Either "all", "mid", or integer list of patterns to keep.
+        The default is 0.
+    subpattern : int, optional
+        Which subpattern in the series to plot. 
+        The default is "all".
+    report : Literal[ "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR" ], optional
+        Logger level for how much information to write to the log files.
+        The default is "INFO".
+    **kwargs : key, value pairs
+        key, value arguments arguments. Passed though the method to cpf.XRD_Fitpattern.initiate() and 
+        cpf.XRD_Fitpattern.execute(). See documention of these for kwarg use.
+
+    Returns
+    -------
+    None.
+
     """
 
     settings_class = initiate(settings, report=report, **kwargs)
@@ -254,9 +269,9 @@ def set_range(
         )
         logger.info("")
 
-    # search over the first file only
-    # restrict file list to first file
-    settings_class.set_data_files(keep=0)
+    # search over the first file only (default)
+    # restrict file list to set file
+    settings_class.set_data_files(keep=pattern)
     # restrict to sub-patterns listed
     settings_class.set_subpatterns(subpatterns=subpattern)
     # circulment revalidating the settings class
@@ -264,24 +279,14 @@ def set_range(
 
     execute(
         settings_class,
-        refine=refine,
-        save_all=save_all,
-        iterations=iterations,
-        parallel=parallel,
         mode="set-range",
         report=report,
+        **kwargs
     )
 
 
 def initial_peak_position(
     settings: [str | Path | dict | Settings()],
-    debug: bool = False,
-    refine: bool = True,
-    save_all: bool = False,
-    # propagate: bool = True,
-    iterations: int = 1,
-    # track: bool = False,
-    parallel: bool = True,
     subpattern: str = "all",
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
@@ -289,23 +294,34 @@ def initial_peak_position(
     **kwargs,
 ):
     """
-    Calls interactive graph to set the inital peak postion guesses.
+    Calls interactive graph to set the inital peak postion guesses for each subpattern
 
-    The event handler code is copied from:
-    https://matplotlib.org/stable/users/event_handling.html for how to make work
+    Parameters
+    ----------
+    settings : Optional[str | Path | dict | Settings()]
+        Pointer to information needed for settings class. Can be of the form:        
+        string -- filename of python formatted file 
+        Path -- path for python formatted file  
+        dict -- dictionary of settings
+        Settings() -- cpf Settings class 
+    subpattern : int, optional
+        Which subpattern in the series to select position of. 
+        The default is "all".
+    report : Literal[ "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR" ], optional
+        Logger level for how much information to write to the log files.
+        The default is "INFO".
+    **kwargs : key, value pairs
+        key, value arguments arguments. Passed though the method to cpf.XRD_Fitpattern.initiate() but 
+        not used here. See documention of these for kwarg use.
 
-    :param settings:
-    :param debug:
-    :param refine:
-    :param save_all:
-    :param propagate:
-    :param iterations:
-    :param track:
-    :param parallel:
-    :param sub_pattern:
-    :param kwargs:
-    :return:
+    Returns
+    -------
+    None.
+
     """
+    
+    # The event handler code is copied from:
+    # https://matplotlib.org/stable/users/event_handling.html for how to make work
 
     settings_class = initiate(settings, report=report, **kwargs)
     # make a note in the logger.
@@ -336,11 +352,6 @@ def initial_peak_position(
 
     execute(
         settings_class,
-        debug=debug,
-        refine=refine,
-        save_all=save_all,
-        iterations=iterations,
-        parallel=parallel,
         mode="set-guess",
         report=report,
         **kwargs,
@@ -348,6 +359,9 @@ def initial_peak_position(
 
 
 class PointBuilder:
+    """
+    Data class to select positions in data for initial peak position.
+    """
     # copied from https://matplotlib.org/stable/users/event_handling.html on 21 July 2021
     def __init__(self, points, fig):
         self.points = points
@@ -437,14 +451,15 @@ class PointBuilder:
 
 def order_search(
     settings: [str | Path | dict | Settings()],
-    refine: bool = True,
-    save_all: bool = False,
-    parallel: bool = False,
-    search_image: [int | list | str] = 0,
-    search_parameter: str = "height",
-    search_over: list[int] = [0, 20],
+    # refine: bool = True,
+    # save_all: bool = False,
+    # parallel: bool = False,
+    # search_image: [int | list | str] = 0,
+    pattern: [int | list | str] = 0,
     subpattern: str = "all",
     search_peak: int = "all",
+    search_parameter: str = "height",
+    search_over: list[int] = [0, 20],
     search_series: list[str] = ["fourier", "spline"],
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
@@ -469,30 +484,36 @@ def order_search(
 
     Parameters
     ----------
-    settings : *.py file, string, Path or cpf Settings
-        text file containing all the fitting parameters. The default is None.
-    refine : bool, optional
-        DESCRIPTION. The default is True.
-    save_all : bool, optional
-        DESCRIPTION. The default is False.
-    parallel : bool, optional
-        Process the data in parallel? Set to false because parallel fills the memory with data.
-        USE WITH CAUTION. The default is False.
-    search_image : str, int, optional
-        Which image to use in the order search. Can be integer image in list, "mid" or -1 for last image.
+    settings : Optional[str | Path | dict | Settings()]
+        Pointer to information needed for settings class. Can be of the form:        
+        string -- filename of python formatted file 
+        Path -- path for python formatted file  
+        dict -- dictionary of settings
+        Settings() -- cpf Settings class 
+    pattern : int, str, optional
+        Which patterns in the series to plot. 
+        Either "all", "mid", or integer list of patterns to keep.
         The default is 0.
-    search_parameter : str, optional
-        DESCRIPTION. The default is "height".
-    search_over : list[int], optional
-        DESCRIPTION. The default is [0, 20].
-    subpattern : str, optional
-        DESCRIPTION. The default is "all".
+    subpattern : int, optional
+        Which subpattern in the series to plot. 
+        The default is "all".
     search_peak : int, optional
-        DESCRIPTION. The default is "all".
+        Which peak in the range to do the search for. The default is "all".
+    search_parameter : str, optional
+        Which peak peak or background parameter to search over. Acceptable values are the peak parameters
+        The default is "height".
+    search_over : list[int], optional
+        Order range to search over. 
+        The default is [0, 20].
     search_series : list[str], optional
-        DESCRIPTION. The default is ["fourier", "spline"].
+        Series type to search over. Acceptable values are string names of series (see cpf.series)
+        The default is ["fourier", "spline"].
     report : Literal[        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"    ], optional
-        DESCRIPTION. The default is "INFO".
+        Logger level for how much information to write to the log files.
+        The default is "INFO".
+    **kwargs : key, value pairs
+        key, value arguments arguments. Passed though the method to cpf.XRD_Fitpattern.initiate() and 
+        cpf.XRD_Fitpattern.execute(). See documention of these for kwarg use.
 
     Returns
     -------
@@ -514,7 +535,7 @@ def order_search(
         logger.info("")
 
     # search over the first file only
-    settings_class.set_data_files(keep=search_image)
+    settings_class.set_data_files(keep=pattern)
     settings_class.fit_propagate = False
 
     # loop over the peaks in turn unless forced
@@ -550,11 +571,9 @@ def order_search(
 
         execute(
             settings_class,
-            refine=refine,
-            save_all=save_all,
             mode="search",
-            parallel=parallel,
             report=report,
+            **kwargs
         )
 
         # call WriteOrderSearchFigures to make the figures.
@@ -576,31 +595,39 @@ def order_search(
 
 def write_output(
     settings,
-    parms_dict=None,
-    out_type=None,
-    det=None,
-    use_bounds: bool = False,
-    differential_only: bool = False,
-    debug: bool = False,
+    out_type: [str | list] = None,
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
     ] = "INFO",
     **kwargs,
 ):
     """
+    Write output types for either list on out_type or the list in the settings.
+    
+    Parameters
+    ----------
+    settings : Optional[str | Path | dict | Settings()]
+       Pointer to information needed for settings class. Can be of the form:        
+       string -- filename of python formatted file 
+       Path -- path for python formatted file  
+       dict -- dictionary of settings
+       Settings() -- cpf Settings class 
+    out_type : [str, list], optional
+        String or list of outputs to be processed. If absent then outputs from settings are used. 
+        The default is None (and outputs from settings are used).
+    report : Literal[        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"    ], optional
+        Logger level for how much information to write to the log files.
+        The default is "INFO".
+    **kwargs : key, value pairs
+        key, value arguments arguments. Passed though the method to cpf.XRD_Fitpattern.initiate() and 
+        called output methods. See documention of these for kwarg use.
 
-    :param settings : *.py file, string, Path or cpf Settings
-    :param debug:
-    :param fit_parameters:
-    :param use_bounds:
-    :param differential_only:
-    :param fit_settings:
-    :param parms_dict:
-    :param out_type:
-    :param det:
-    :return:
+    Returns
+    -------
+    None.
+
     """
-
+    
     settings_class = initiate(settings, report=report, **kwargs)
     # make a note in the logger.
     # suppress output if called by another module.
@@ -628,22 +655,15 @@ def write_output(
             wr = output_methods_modules[mod]
             wr.WriteOutput(
                 settings_class,
-                differential_only=differential_only,
-                debug=debug,
                 **kwargs,
             )
 
 
 def execute(
     settings: [str | Path | dict | Settings()],
-    # refine: bool = True,
-    save_all: bool = False,
-    # propagate: bool = True, #moved this option to settings file
-    # iterations: int = 1,
-    # track: bool = False,  #moved this option to settings file
     parallel: bool = True,
     resume: bool = False,
-    # mode: str = "fit",
+    mode: str = "fit",
     report: Literal[
         "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
     ] = "INFO",
@@ -651,42 +671,45 @@ def execute(
     **kwargs,
 ):
     """
-    Runs the diffraction peak fitting functions using the settings. 
+    Runs the diffraction peak fitting functions. 
     
     The method acts as an intermediary for other methods of XRD_FitPattern.
     
-    All parameters taht affect the fitting are determined from the settings 
-    and the class that they form. The arguments input directly into here only affect how the code is run here.
-    For example, if the code is run in parallel or not. 
-    
-    key word arguments can be passed through into the outpu
+    All parameters the affect the fitting are determined from the settings class (formed by settings and cpf.XRD.FitPattern.initiate())
+    The arguments input directly into here only affect how the code is run here.
+    For example, if the code is run in parallel or not. Other kwargs are passed though but do not affect the running of the code.    
     
     Parameters
     ----------
-    settings : Optional[str | Path | dict | Settings()], optional
+    settings : Optional[str | Path | dict | Settings()]
         Pointer to information needed for settings class. Can be of the form:        
         string -- filename of python formatted file 
         Path -- path for python formatted file  
         dict -- dictionary of settings
         Settings() -- cpf Settings class 
-        The default is None.
-    save_all : bool, optional
-        DESCRIPTION. The default is False.
     parallel : bool, optional
         Turns parallel processing on (if True) or off (if False). The default is True.
     resume : bool, optional
-        Resme processing the fits from last completed (if True) or 
+        Resume processing the fits from last completed (if True) or 
         from the begining (if False). The default is False.
+    mode : str
+        How to process the provided data, changes path through the method.
+        Options are:
+        - view -- plots data. mode set by XRD_FitPattern.view()
+        - set-range -- plots data for ranges. mode set by XRD_FitPattern.set_range()
+        - set_guess -- used for setting inital position guesses for peaks. mode set by XRD_FitPattern.initial_peak_position()
+        - search -- used for searching over orders and series types. mode set by XRD_FitPattern.order_search()
+        - fit -- fits the data.             
+        The default is "fit".
     report : Literal[ "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"    ], optional
         Logger level for how much information to write to the log files.
         The default is "INFO".
     **kwargs : key, value pairs
-        key, value arguments arguments. Passed though to called methods. Not used here except for:
-            mode: str['fit', 'view', 'set-guess'] -- parameter defining which action to perform.
+        key, value arguments arguments. Passed though to called methods. Not used here.
+
     """
 
     settings_class = initiate(settings, report=report, **kwargs)
-    
     # make note in logger
     # suppress output if called by another module.
     for i in range(len(inspect.stack()) - 1, -1, -1):
@@ -914,16 +937,7 @@ def execute(
                 if null_terms == True:
                     # the previous fit has problems so discard it
                     logger.moreinfo(  # type: ignore
-                        " ".join(
-                            map(
-                                str,
-                                [
-                                    (
-                                        "Tracking peak centre but propagated fit has problems. Not sensible to track the centre of the fit for this step."
-                                    )
-                                ],
-                            )
-                        )
+                        "Tracking peak centre but propagated fit has problems. Not sensible to track the centre of the fit for this step."
                     )
                     params = []
                 else:
@@ -946,17 +960,8 @@ def execute(
                         settings_class.fit_orders[i]["range"] + move_by
                     )
 
-                    logger.moreinfo(  # type: ignore
-                        " ".join(
-                            map(
-                                str,
-                                [
-                                    (
-                                        f"Move range for fitting. \n Initial range: [{tth_range[0]:4.2f},{tth_range[1]:4.2f}]; will be moved by {move_by:4.2f}; the new range is [{tth_range[0]+move_by:4.2f},{tth_range[1]+move_by:4.2f}]"
-                                    )
-                                ],
-                            )
-                        )
+                    logger.moreinfo(
+                        f"Move range for fitting. \n Initial range: [{tth_range[0]:4.2f},{tth_range[1]:4.2f}]; will be moved by {move_by:4.2f}; the new range is [{tth_range[0]+move_by:4.2f},{tth_range[1]+move_by:4.2f}]"
                     )
 
                     # The PeakPositionSelections are only used if the fits are not being propagated
@@ -1061,17 +1066,7 @@ def execute(
                 # report the points selected.
                 # set to critical to ensure that they are printed -- because HAS to be done.
                 logger.critical(
-                    " ".join(
-                        map(
-                            str,
-                            [
-                                (
-                                    "Selected points for %s peak(s): ["
-                                    % peak_string(settings_class.subfit_orders)
-                                )
-                            ],
-                        )
-                    )
+                    f"Selected points for %s peak(s): [{peak_string(settings_class.subfit_orders)}]"
                 )
                 for k in range(len(selection_arr)):
                     logger.critical(
@@ -1084,11 +1079,6 @@ def execute(
                     kwargs = {
                         "previous_params": params,
                         "save_fit": save_figs,
-                        # "debug": debug,
-                        # "refine": refine,
-                        # "iterations": iterations,
-                        "min_data_intensity": settings_class.fit_min_data_intensity,
-                        "min_peak_intensity": settings_class.fit_min_peak_intensity,
                     }
                     arg = (sub_data, settings_class.duplicate_without_dataclass())
                     parallel_pile.append((arg, kwargs))
@@ -1099,11 +1089,6 @@ def execute(
                         settings_class.duplicate_without_dataclass(),  # added
                         params,
                         save_fit=save_figs,
-                        # debug=debug,
-                        # refine=refine,
-                        # iterations=iterations,
-                        min_data_intensity=settings_class.fit_min_data_intensity,
-                        min_peak_intensity=settings_class.fit_min_peak_intensity,
                         **kwargs
                     )
                     fitted_param.append(tmp)
@@ -1148,9 +1133,5 @@ if __name__ == "__main__":
     # sys.exit()
     execute(
         settings,
-        debug=False,
-        refine=True,
-        save_all=False,
-        iterations=1,
         parallel=False,
     )

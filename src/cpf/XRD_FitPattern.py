@@ -250,10 +250,6 @@ def set_range(
         key, value arguments arguments. Passed though the method to cpf.XRD_Fitpattern.initiate() and 
         cpf.XRD_Fitpattern.execute(). See documention of these for kwarg use.
 
-    Returns
-    -------
-    None.
-
     """
 
     settings_class = initiate(settings, report=report, **kwargs)
@@ -661,6 +657,7 @@ def write_output(
 
 def execute(
     settings: [str | Path | dict | Settings()],
+    subpattern: str = "all",
     parallel: bool = True,
     resume: bool = False,
     mode: str = "fit",
@@ -675,7 +672,7 @@ def execute(
     
     The method acts as an intermediary for other methods of XRD_FitPattern.
     
-    All parameters the affect the fitting are determined from the settings class (formed by settings and cpf.XRD.FitPattern.initiate())
+    All parameters the affect the fitting are determined from the settings class (formed by settings and cpf.XRD_FitPattern.initiate())
     The arguments input directly into here only affect how the code is run here.
     For example, if the code is run in parallel or not. Other kwargs are passed though but do not affect the running of the code.    
     
@@ -687,6 +684,9 @@ def execute(
         Path -- path for python formatted file  
         dict -- dictionary of settings
         Settings() -- cpf Settings class 
+    subpattern : int, optional
+        Which subpattern in the series to plot. 
+        The default is "all".
     parallel : bool, optional
         Turns parallel processing on (if True) or off (if False). The default is True.
     resume : bool, optional
@@ -722,9 +722,10 @@ def execute(
         )
         logger.info("")
     
-    # Parse kwargs 
-    as_masked = kwargs.pop('as_masked', False)
-    mode = kwargs.get("mode", "fit")
+    # parse values that affect the fitting from settings (if they are set). 
+    if "fit_options" not in settings_class.__dict__:
+        settings_class.fit_options = {}
+    as_masked = settings_class.fit_options.get('as_masked', False)
     if (mode == "set-range" or mode == "view"):
         as_masked = True
     elif (mode == "fit" or mode == "search"):
@@ -756,10 +757,9 @@ def execute(
         # report=report
     )
 
-    # Get calibration parameter file
-    parms_dict = new_data.calibration
-    # FIXME this should be removable.
-
+    # restrict to sub-patterns listed
+    settings_class.set_subpatterns(subpatterns=subpattern)
+    
     # plot calibration file
     if (
         logger.is_below_level(level="DEBUG")
@@ -781,7 +781,7 @@ def execute(
             pool.restart()
         except AssertionError:
             pass
-
+        
     # Process the diffraction patterns
     # for j in range(settings_class.image_number):
     progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
@@ -790,9 +790,8 @@ def execute(
             f"Processing {title_file_names(image_name=settings_class.image_list[j])}"
         )
 
-        settings_class.set_subpattern(j, 0)
-
         # Get diffraction pattern to process.
+        settings_class.set_subpattern(j, 0)
         new_data.import_image(settings=settings_class)#, debug=debug)
         # get metadata
         metadata = new_data.get_metadata(settings_class=settings_class)
@@ -809,7 +808,6 @@ def execute(
             extension=".json",
             overwrite=True,
         )
-
         # if the output file already exists and resume is true then skip
         # this iteration
         if resume == True and Path(filename).is_file():
@@ -820,9 +818,7 @@ def execute(
         # else do the process.
 
         if (
-            (
-                isinstance(settings_class.datafile_preprocess, dict)
-            )  # settings_class.datafile_preprocess is not None or
+            isinstance(settings_class.datafile_preprocess, dict)
             or (
                 isinstance(settings_class.calibration_mask, dict)
                 and "threshold" in settings_class.calibration_mask

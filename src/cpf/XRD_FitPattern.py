@@ -50,17 +50,23 @@ __doc__ = (
 
 def register_default_formats() -> dict[str, ModuleType]:
     """
-    Load all available output modules
-    :return:
+    Load all available output modules. 
+    These are files in the output_formatters folder that have a name that is 
+    of the form `Write*.pn', where * is the name used to call the output formatter
+
+    Returns
+    -------
+    dict[str, ModuleType]
+        doctionary of possuble output modules.
+
     """
     # FIX ME: We could add extra checks here to make sure the required functions exist in each case.
     output_list = output_formatters.module_list
     new_module = {}
     for output_module in output_list:
         module: ModuleType = import_module(f"cpf.output_formatters.{output_module}")
-        new_module[output_module[5:]] = module
+        new_module[output_module.replace("Write", "")] = module
     return new_module
-
 
 # Load potential output formats
 output_methods_modules = register_default_formats()

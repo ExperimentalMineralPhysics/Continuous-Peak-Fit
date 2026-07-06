@@ -707,6 +707,7 @@ def spline_expand(
         if kind == "independent":
             inp = unp.std_devs(inp_param)
         else:
+            # run to end-1 because have to cut value added by spline_expand.
             inp = unp.std_devs(inp_param)[:-1]
         errs = spline_expand(
             azimuth,
@@ -717,7 +718,9 @@ def spline_expand(
             kind=kind,
             **params,
         )
-        # have to cut inp_param value added by spline_expand 
+        # prevent negative errors
+        errs[errs<0]=np.min(np.array([fout[errs<0], np.abs(errs[errs<0])]), axis=0)
+        
         fout = unp.uarray(fout, errs)
         
     return np.squeeze(fout)

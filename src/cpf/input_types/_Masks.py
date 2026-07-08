@@ -88,7 +88,7 @@ class _masks:
         if "image" in mask:
             # Dioptas mask is compressed Tiff image.
             # Save and load functions within Dioptas are: load_mask and save_mask in dioptas/model/MaskModel.py
-            mask_from_image = np.array(Image.open(mask["image"]))
+            mask_from_image = np.array(Image.open(mask["image"]), dtype="bool")
             # im_ints = ma.array(im_ints, mask=im_mask)
             # im_ints = ma.masked_less(im_ints, 0)
             if mask_from_image.shape == im_ints.shape:
@@ -224,7 +224,7 @@ class _masks:
         #         plt.show()
         #         plt.close()
         """
-
+        
         self.original_mask = im_mask
 
         return im_mask

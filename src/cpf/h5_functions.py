@@ -1266,8 +1266,8 @@ def get_images(
     datafile = h5py.File(image_list[0], "r")
     datakey = image_list[1]
     data_position_in_key = image_list[2]
-    if isinstance(datafile[datakey], str):
-        data = datafile[datakey]
+    if isinstance(datafile[datakey][()], bytes):
+        data = datafile[datakey][()].decode()
     elif datafile[datakey].size == 1:
         data = np.array(datafile[datakey].squeeze()[()])
     elif len(np.array(datafile[datakey]).squeeze().shape) == 2:

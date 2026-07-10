@@ -703,6 +703,8 @@ def un_vary_part_params(inp_param, param_str, comp, order=None):
     :param order: order of the coefficients. parts missing are set to vary=False
     :return: updated lmfit Parameter class
     """
+    if not isinstance(order, list):
+        order = [order]
     if comp:
         new_str = param_str + "_" + comp
     else:
@@ -712,7 +714,7 @@ def un_vary_part_params(inp_param, param_str, comp, order=None):
     ]
     new_order = int((len(str_keys) - 1) / 2)
     if isinstance(order, list):
-        for i in range(new_order):
+        for i in range(new_order+1):
             if not np.isin(i, order):
                 inp_param = un_vary_single_param(inp_param, param_str, comp, 2 * i)
                 if i > 0:

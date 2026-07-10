@@ -468,7 +468,7 @@ def fit_chunks(
             # get 98th percentils from each chunk
             raise NotImplementedError
 
-        elif mode == "fit" or mode == "cascade" or mode == "search":
+        elif mode == "fit" or mode == "cascade" or "search" in mode:
             # Define parameters to pass to fit
             params = Parameters()
 
@@ -758,6 +758,11 @@ def fit_series(
         data_vals = data[0]["bg"][b]
         data_val_errors = data[0]["bg_err"][b]
         data_val_errors = clean_errs(data_val_errors)
+
+        if len(data_vals) < sf.get_number_coeff(orders, 'bg'):
+            master_params = lmm.un_vary_part_params(
+                master_params, param_str, comp, np.arange(0, np.floor(len(data_vals)-1)/2)
+            )
 
         fout = lmm.coefficient_fit(
             azimuth=azimuth,

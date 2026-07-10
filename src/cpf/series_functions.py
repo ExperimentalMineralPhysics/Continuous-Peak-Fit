@@ -35,11 +35,18 @@ from lmfit import Parameters
     
 import cpf.peak_functions as pf
 import cpf.series_constraints as sc
-# from cpf.lmfit_model import coefficient_fit, initiate_all_params_for_fit, initiate_params, gather_param_errs_to_list
+from cpf.lmfit_model import coefficient_fit, initiate_all_params_for_fit, initiate_params, gather_param_errs_to_list
 from cpf.util.io import replace_value
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.series_functions")
+
+
+
+# TO DO: 
+# 1. rename coefficient_expand as series_expand.
+# 2. reorder the coefficient types so that the higher orderones have a greater numerical value.
+#    then I can use the highest value as a check when combining the series. 
 
 
 def coefficient_types(full=False):
@@ -900,19 +907,19 @@ def combine_series(
         azimuth = np.linspace(start_end[0], start_end[1], num_azimuths)
         
     # expand series around the azimuth values
-    h = unp.uarray(replace_null_terms(param_dict["height"]), replace_null_terms(param_dict["height_err"]))
+    h = unp.uarray(replace_value(param_dict["height"]), replace_value(param_dict["height_err"]))
     height = coefficient_expand(azimuth, 
                               param=h, 
                               coeff_type=param_dict["height_type"],
                               comp_str="height",
                               start_end=start_end)
-    w = unp.uarray(replace_null_terms(param_dict["width"]), replace_null_terms(param_dict["width_err"]))
+    w = unp.uarray(replace_value(param_dict["width"]), replace_value(param_dict["width_err"]))
     width = coefficient_expand(azimuth, 
                               param=w, 
                               coeff_type=param_dict["width_type"],
                               comp_str="width",
                               start_end=start_end)
-    p = unp.uarray(replace_null_terms(param_dict["profile"]), replace_null_terms(param_dict["profile_err"]))
+    p = unp.uarray(replace_value(param_dict["profile"]), replace_value(param_dict["profile_err"]))
     profile = coefficient_expand(azimuth, 
                               param=p,
                               coeff_type=param_dict["profile_type"],
@@ -1035,6 +1042,13 @@ def get_combined_series(
         combined_series[combined_series_name] = list(unp.nominal_values(combined))
         combined_series[combined_series_name+"_err"] = list(unp.std_devs(combined))
         combined_series[combined_series_name+"_type"] = coefficient_type_as_string(i_type)
+    elif np.all(unp.nominal_values(combined)==0):
+        # all the values are zeros
+        combined_series = {}
+        combined_series[combined_series_name] = [0] * get_number_coeff({"peak": [{"area": i_order}]},"area")
+        combined_series[combined_series_name+"_err"] = [0] * get_number_coeff({"peak": [{"area": i_order}]},"area")
+        combined_series[combined_series_name+"_type"] = coefficient_type_as_string(i_type)
+    
     else:
         master_params = initiate_params(
             master_params,

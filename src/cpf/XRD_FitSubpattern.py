@@ -194,33 +194,57 @@ def check_num_azimuths(peeks, azimu, orders):
     :return:
     """
     max_coeff = 0
+    total_coeff = 0
     choice_list = ["d-space", "height", "width", "profile"]
     for y in range(peeks):
         # loop over parameters
         for param in choice_list:
-            coeff_type = sf.coefficient_type_as_number(
-                sf.get_params_type(orders, param, peak=y)
+            # coeff_type = sf.coefficient_type_as_number(
+            #     sf.get_params_type(orders, param, peak=y)
+            # )
+            total_coeff += sf.get_number_coeff(orders, param, peak=y, azimuths=azimu)
+            max_coeff = np.max(
+                [max_coeff, sf.get_number_coeff(orders, param, peak=y, azimuths=azimu)]
             )
-            if coeff_type != sf.coefficient_types(full=True)["independent"]["num"]:
-                # if parameters are not independent
-                max_coeff = np.max(
-                    [max_coeff, sf.get_number_coeff(orders, param, peak=y)]
-                )
+            # if coeff_type != sf.coefficient_types(full=True)["independent"]["num"]:
+            #     # if parameters are not independent
+            #     total_coeff += sf.get_number_coeff(orders, param, peak=y)
+            #     max_coeff = np.max(
+            #         [max_coeff, sf.get_number_coeff(orders, param, peak=y)]
+            #     )                
     param = "background"
     for y in range(np.max([len(orders["background"])])):
-        coeff_type = sf.coefficient_type_as_number(
-            sf.get_params_type(orders, param, peak=y)
-        )
-        if coeff_type != sf.coefficient_types(full=True)["independent"]["num"]:
-            # if parameters are not independent
-            max_coeff = np.max([max_coeff, sf.get_number_coeff(orders, "background")])
+        # coeff_type = sf.coefficient_type_as_number(
+        #     sf.get_params_type(orders, param, peak=y)
+        # )
+        # if parameters are not independent
+        total_coeff += sf.get_number_coeff(orders, param, peak=y, azimuths=azimu)
+        max_coeff = np.max([max_coeff, sf.get_number_coeff(orders, "background", azimuths=azimu)])
+        # if coeff_type != sf.coefficient_types(full=True)["independent"]["num"]:
+        #     # if parameters are not independent
+        #     total_coeff += sf.get_number_coeff(orders, param, peak=y)
+        #     max_coeff = np.max([max_coeff, sf.get_number_coeff(orders, "background")])
+    safe_to_fit = True
     if max_coeff > len(np.unique(azimu)):
         err_str = (
             "The maximum order, %i, needs more coefficients than the number of unique azimuths, %i. "
             "It is not possible to fit."
             % (sf.get_order_from_coeff(max_coeff), len(np.unique(azimu)))
         )
-        raise ValueError(err_str)
+        logger.error(err_str)
+        safe_to_fit = False
+        # raise ValueError(err_str)
+    if total_coeff > len(np.unique(azimu)):
+        err_str = (
+            "The number of coefficients, %i, is greater than the number of unique azimuths, %i. "
+            "It is not possible to fit."
+            % (total_coeff, len(np.unique(azimu)))
+        )
+        logger.error(err_str)
+        safe_to_fit = False
+        # raise ValueError(err_str)
+    
+    return safe_to_fit
 
 
 def fit_sub_pattern(
@@ -368,10 +392,32 @@ def fit_sub_pattern(
             peeks, previous_params, settings_class.subfit_orders
         )
 
-    # FIX ME: can we have a situation with no orders or previous_params?
+    #initiate parameter set for fitting
+    master_params = lmm.initiate_all_params_for_fit(
+        settings_class,
+        data_as_class,
+        values=previous_params,
+        # debug=debug,
+    )
 
-    # check the number of unique azimuths is greater than the number of coefficients.
-    check_num_azimuths(peeks, data_as_class.azm, settings_class.subfit_orders)
+    # check if the data intensity is above threshold.
+    if np.max(data_as_class.intensity) <= min_data_intensity:
+        # then there is likely no determinable peak in the data
+        logger.moreinfo(
+            f"Not sufficient intensity in the data to proceed with fitting (I_max < {min_data_intensity})."
+        )
+        # set step to -21 so that it is still negative at the end
+        step.append(-21)  # get to the end and void the fit
+        # void so send empty parameter set to out.     
+    if not check_num_azimuths(peeks, data_as_class.azm, settings_class.subfit_orders):
+        # check the number of unique azimuths is greater than the number of coefficients.
+        # logger messages added in function -- not needed here
+        # set step to -21 so that it is still negative at the end
+        step.append(-21)  # get to the end and void the fit
+    if step[-1] < 0:
+        # voided but still need some numbers for the outputs
+        chunks_start = time.time()
+        chunks_end = time.time()   
 
     # Start fitting loops
     while step[-1] >= 0 and step[-1] <= 100:
@@ -387,30 +433,6 @@ def fit_sub_pattern(
             # Measure the time taken to do the chunks, the elapsed time during fitting.
             # To help decide which is the best peak parameters.
             chunks_start = time.time()
-
-            # check if the data intensity is above threshold.
-            if np.max(data_as_class.intensity) <= min_data_intensity:
-                # then there is likely no determinable peak in the data
-                logger.moreinfo(
-                    f"Not sufficient intensity in the data to proceed with fitting (I_max < {min_data_intensity})."
-                )
-                # set step to -21 so that it is still negative at the end
-                step.append(-21)  # get to the end and void the fit
-                # void so send empty parameter set to out.
-                fout = lmm.initiate_all_params_for_fit(
-                    settings_class,
-                    data_as_class,
-                    # debug=debug,
-                )
-            else:
-                # initiate the model parameter set which is needed for all possible outcomes.
-                # if previous_params = None initiates an empty set.
-                master_params = lmm.initiate_all_params_for_fit(
-                    settings_class,
-                    data_as_class,
-                    values=previous_params,
-                    # debug=debug,
-                )
 
             if step[-1] >= 0 and not previous_params:
                 # There is no previous fit -- Fit data in azimuthal chunks

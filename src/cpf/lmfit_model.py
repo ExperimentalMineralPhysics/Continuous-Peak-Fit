@@ -602,7 +602,7 @@ def initiate_params(
             expr = None
         if comp != "s":
             vary = po[1]
-        if t == 0 or limits == "no negative" or coeff_type != sf.coefficient_types()["fourier"]:
+        if t == 0 or coeff_type != sf.coefficient_types()["fourier"] or (isinstance(limits, str) and limits == "no negative"):
             inp_param.add(
                 param_str + "_" + comp + str(t),
                 v,

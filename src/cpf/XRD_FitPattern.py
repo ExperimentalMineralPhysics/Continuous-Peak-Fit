@@ -453,10 +453,6 @@ class PointBuilder:
 
 def order_search(
     settings: [str | Path | dict | Settings()],
-    # refine: bool = True,
-    # save_all: bool = False,
-    # parallel: bool = False,
-    # search_image: [int | list | str] = 0,
     pattern: [int | list | str] = 0,
     subpattern: str = "all",
     search_peak: int = "all",
@@ -593,6 +589,151 @@ def order_search(
 
         settings_class.unset_order_search()
     logger.info("Order searches are completed.")
+
+
+
+def settings_search(
+    settings: [str | Path | dict | Settings()],
+    pattern: [int | list | str] = 0,
+    subpattern: str = "all",
+    search_peak: int = "all",
+    search_parameter: str = "height",
+    search_over: list[int] = [0, 20],
+    resume: bool = False,
+    report: Literal[
+        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"
+    ] = "INFO",
+    **kwargs,
+):
+    """
+    Searches for the best settings to use for 'search_parameter', where 'search_over'
+    is one of the settings parameters (e.g. 'reduce_by').
+    The data is fit with values in the range defined by 'search_over'.
+    The resultant fits are plotted by cpf.output_formatters.WriteSettingsSearchFigures
+
+    Makes a json file with all the fits that is named:
+        *settings_file*__search=*search_parameter*_*search_value*
+
+
+    Parameters
+    ----------
+    settings : Optional[str | Path | dict | Settings()]
+        Pointer to information needed for settings class. Can be of the form:        
+        string -- filename of python formatted file 
+        Path -- path for python formatted file  
+        dict -- dictionary of settings
+        Settings() -- cpf Settings class 
+    pattern : int, str, optional
+        Which patterns in the series to plot. 
+        Either "all", "mid", or integer list of patterns to keep.
+        The default is 0.
+    subpattern : int, optional
+        Which subpattern in the series to plot. 
+        The default is "all".
+    search_peak : int, optional
+        Which peak in the range to do the search for. The default is "all".
+    search_parameter : str, optional
+        Which peak peak or background parameter to search over. Acceptable values are the peak parameters
+        The default is "height".
+    search_over : list[int], optional
+        Order range to search over. 
+        The default is [0, 20].
+    report : Literal[        "DEBUG", "EFFUSIVE", "MOREINFO", "INFO", "WARNING", "ERROR"    ], optional
+        Logger level for how much information to write to the log files.
+        The default is "INFO".
+    **kwargs : key, value pairs
+        key, value arguments arguments. Passed though the method to cpf.XRD_Fitpattern.initiate() and 
+        cpf.XRD_Fitpattern.execute(). See documention of these for kwarg use.
+
+    Returns
+    -------
+    None.
+
+    """
+
+    settings_class = initiate(settings, report=report, **kwargs)
+    # make a note in the logger.
+    # suppress output if called by another module.
+    for i in range(len(inspect.stack()) - 1, -1, -1):
+        if inspect.stack()[i].function == "<module>":
+            base_call = inspect.stack()[i - 1].function
+    if base_call == "order_search":
+        logger.info("")
+        logger.info(
+            f"Running: XRD_FitPattern.order_search with settings: {settings_class.settings_file}"
+        )
+        logger.info("")
+
+    # search over the first file only
+    settings_class.set_data_files(keep=pattern)
+    settings_class.output_types = []
+    settings_class.fit_propagate = False
+
+    # loop over the peaks in turn unless forced
+    if subpattern == "force all":
+        subpattern = ["all"]
+    elif subpattern == "all":
+        subpattern = list(range(len(settings_class.fit_orders)))
+    elif not isinstance(subpattern, list):
+        subpattern = [subpattern]
+
+    search = np.arange(search_over[0],search_over[1]+1)
+
+    # add search values as metadata so that it can be read later. 
+    settings_class.metadata.append(search_parameter)
+    settings_class.metadata_settings = {}
+    # force bins to corrsespond to number of data
+    settings_class.fit_bin_type = None
+    
+
+    for srch in search:
+        logger.info(f"Performing settings search for {search_parameter}={srch}")
+
+        settings_class_reduce = settings_class.duplicate()
+        if search_parameter in settings_class_reduce.__dict__:
+            setattr(settings_class_reduce, search_parameter, srch) 
+
+        settings_class_reduce.fit_propagate = False
+        settings_class_reduce.file_label = (
+            "scan="
+            + search_parameter
+            + "__"
+            + "value="
+            + str(srch)
+        ) 
+        # add search values as metadata so that it can be read later. 
+        settings_class_reduce.metadata_settings[search_parameter] = srch
+        # circulment revalidating the settings class
+        settings_class_reduce._unmodified_self = settings_class_reduce._validation_copy()  
+
+        execute(
+            settings_class_reduce,
+            mode="settings_search",
+            resume=resume,
+            report=report,
+            **kwargs
+        )
+            
+    kwargs.update({"pattern":pattern, 
+                   "subpattern": subpattern, 
+                   "search_peak": search_peak,
+                   "search_parameter":search_parameter, 
+                   "search_over": search_over})
+    
+    # call WriteOrderSearchFigures to make the figures.
+    write_output(
+        settings_class,
+        out_type="SettingsSearchFigures",
+        **kwargs
+    )
+
+    write_output(
+        settings_class,
+        out_type="SettingsSearchMovie",
+        **kwargs
+    )
+
+    logger.info("Settings searches are completed.")
 
 
 def write_output(
@@ -734,7 +875,7 @@ def execute(
     as_masked = settings_class.fit_options.get('as_masked', False)
     if (mode == "set-range" or mode == "view"):
         as_masked = True
-    elif (mode == "fit" or mode == "search"):
+    elif (mode == "fit" or "search" in mode):
         as_masked = as_masked
         if as_masked == True:
             logger.warning("'as_masked'==True changes the fit for some masked datasts. I dont know why. Check fits with and without this setting")
@@ -760,7 +901,6 @@ def execute(
     new_data.fill_data(
         data_to_fill,
         settings=settings_class,
-        # report=report
     )
 
     # restrict to sub-patterns listed
@@ -803,7 +943,7 @@ def execute(
         metadata = new_data.get_metadata(settings_class=settings_class)
         
         # get json file name for outputs.
-        if mode == "search":
+        if "search" in mode:
             additional_text = settings_class.file_label
         else:
             additional_text = None
@@ -817,6 +957,7 @@ def execute(
         # if the output file already exists and resume is true then skip
         # this iteration
         if resume == True and Path(filename).is_file():
+            
             logger.info(
                 f"  {title_file_names(image_name=settings_class.image_list[j])} has already been processed -- skipping"
             )
@@ -997,7 +1138,7 @@ def execute(
             if mode == "set-range":
                 fig_1 = plt.figure()
                 sub_data.plot_masked(fig_plot=fig_1, **kwargs)
-                plt.suptitle(peak_string(settings_class.subfit_orders) + "; masking")
+                plt.suptitle(f"Extent and mask for {peak_string(settings_class.subfit_orders)}; n = {sub_data.intensity.size}")
 
                 filename = make_outfile_name(
                     settings_class.image_list[j],
@@ -1096,7 +1237,7 @@ def execute(
                     fitted_param.append(tmp)
         
         # write output files
-        if mode == "fit" or mode == "search":
+        if mode == "fit" or "search" in mode:
             if parallel is True:
                 tmp = pool.map(parallel_processing, parallel_pile)
                 for i in range(len(settings_class.fit_orders)):

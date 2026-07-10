@@ -129,12 +129,13 @@ class _AngleDispersive_common:
             bt = orders_class.fit_bin_type
             if bt == None:
                 # force a default
-                bt = 1
-                b_num = 90
+                bt = 0
+                b_num = np.max([25, self.intensity.size/90])
             elif bt == 1:
                 b_num = orders_class.fit_number_bins
             else:
-                b_num = orders_class.fit_per_bin
+                b_num = np.max([25, orders_class.fit_per_bin])
+                print("b_num", b_num)
 
         # make the bins
         if bt == 0:
@@ -474,8 +475,10 @@ class _AngleDispersive_common:
 
 
         if (reduce_by is False 
+            or reduce_by == 0
             or reduce_by == 1
             or (reduce_by is None and self.reduce_by is None)
+            or (reduce_by is None and self.reduce_by == 0)
             or (reduce_by is None and self.reduce_by == 1)
         ):
             # reduce_by = False is used by fill_data to make sure this function is passed

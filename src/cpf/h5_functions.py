@@ -1266,7 +1266,9 @@ def get_images(
     datafile = h5py.File(image_list[0], "r")
     datakey = image_list[1]
     data_position_in_key = image_list[2]
-    if datafile[datakey].size == 1:
+    if isinstance(datafile[datakey], str):
+        data = datafile[datakey]
+    elif datafile[datakey].size == 1:
         data = np.array(datafile[datakey].squeeze()[()])
     elif len(np.array(datafile[datakey]).squeeze().shape) == 2:
         # the data is two dimensional. 

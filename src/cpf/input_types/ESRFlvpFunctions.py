@@ -136,7 +136,7 @@ methods that should be the same as Dioptas
 Methods that are replicated with the Dioptas functions are:
     - duplicate
     - conversion(self, tth_in, azm=None, reverse=False)
-    - bins(self, orders_class, cascade=False)
+    - bins(self, settings_class, cascade=False)
     - equalObs(self, x, nbin)                         --- [should be _equalObs]
     - test_azims(self, steps = 360)                   --- is this used? can it be removed?
     - set_limits(self, range_bounds=[-np.inf, np.inf], azm_bounds=[-np.inf, np.inf])

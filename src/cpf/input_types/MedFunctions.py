@@ -804,7 +804,7 @@ class MedDetector:
 
         return np.squeeze(np.array(dspc_out))
 
-    def bins(self, orders_class, **kwargs):
+    def bins(self, settings_class, **kwargs):
         """
         Determine bins to use in initial fitting.
         Assign each data to a chunk corresponding to its azimuth value

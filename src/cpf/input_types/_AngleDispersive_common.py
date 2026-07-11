@@ -104,37 +104,37 @@ class _AngleDispersive_common:
             dspc_out = list(dspc_out)
         return np.squeeze(np.array(dspc_out))
 
-    def bins(self, orders_class, cascade=False):
+    def bins(self, settings_class, cascade=False):
         """
         Determine bins to use in initial fitting.
         Assign each data to a chunk corresponding to its azimuth value
         Returns array with indices for each bin and array of bin centroids
-        :param orders_class:
+        :param settings_class:
         :return chunks:
         :return bin_mean_azi:
         """
 
         # determine how to divide the data into bins and how many.
         if cascade:
-            bt = orders_class.cascade_bin_type
+            bt = settings_class.cascade_bin_type
             if bt == None:
                 # force a default
                 bt = 0
                 b_num = 50
             elif bt == 1:
-                b_num = orders_class.cascade_number_bins
+                b_num = settings_class.cascade_number_bins
             else:
-                b_num = orders_class.cascade_per_bin
+                b_num = settings_class.cascade_per_bin
         else:
-            bt = orders_class.fit_bin_type
+            bt = settings_class.fit_bin_type
             if bt == None:
                 # force a default
                 bt = 0
                 b_num = np.max([25, self.intensity.size/90])
             elif bt == 1:
-                b_num = orders_class.fit_number_bins
+                b_num = settings_class.fit_number_bins
             else:
-                b_num = np.max([25, orders_class.fit_per_bin])
+                b_num = np.max([25, settings_class.fit_per_bin])
                 print("b_num", b_num)
 
         # make the bins
@@ -174,23 +174,9 @@ class _AngleDispersive_common:
         # display bin boundaries and frequency per bin
         logger.debug(" ".join(map(str, [("bin boundaries:", bin_boundaries)])))
         if bt == 1:
-            logger.debug(
-                " ".join(
-                    map(
-                        str,
-                        [("expected number of chunks", b_num)],
-                    )
-                )
-            )
+            logger.debug(f"expected number of chunks: {b_num}")
         else:
-            logger.debug(
-                " ".join(
-                    map(
-                        str,
-                        [("expected number of data per chunkbin", b_num)],
-                    )
-                )
-            )
+            logger.debug(f"expected number of data per chunkbin: {b_num}")
 
         # fit the data to the bins
         chunks = []

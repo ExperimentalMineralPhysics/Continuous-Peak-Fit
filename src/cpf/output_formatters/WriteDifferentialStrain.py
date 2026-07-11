@@ -104,7 +104,7 @@ def WriteOutput(
         settings=settings_class,
         includeSeriesValues=True,
         includeStats=fitStats,
-        IncludeIntegrated=True,
+        includeIntegrated=True,
         SampleGeometry=SampleGeometry,
         SampleDeformation=SampleDeformation,
     )
@@ -139,10 +139,13 @@ def WriteOutput(
                    'width mean',   
                    'width mean err',
                    'profile mean',  
-                   'profile mean err',
-                   'area mean',    
-                   'area mean err',
+                   'profile mean err'
                    ]
+    additional = list(set(pf.peak_components(include_combined=True)[1]) - set(pf.peak_components(include_combined=False)[1]))
+    for add in additional:
+        headers_use += [add + " mean",
+                        add + " mean err",
+                       ]
     headers_rename = {'d-space4':"d2cos",
                 'd-space4_err':"d2cos_err" ,
                 'd-space3':"d2sin",

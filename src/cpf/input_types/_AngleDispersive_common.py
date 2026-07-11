@@ -138,7 +138,14 @@ class _AngleDispersive_common:
                 print("b_num", b_num)
 
         # make the bins
-        if bt == 0:
+        if ((bt==0  and b_num >= np.unique(ma.compressed(self.azm)).size/b_num)
+            or (bt==1 and b_num >= np.unique(ma.compressed(self.azm)).size)
+            ):
+            # doesn't matter what the bin type is not enough unique values...
+            bounds = np.unique(ma.compressed(self.azm))
+            min_gap = np.min(bounds[1:] - bounds[:-1])
+            bin_boundaries = np.append(bounds-min_gap/2, bounds[-1]+min_gap/2)
+        elif bt == 0:
             # split the data into bins with an approximately constant number of data.
             # uses b_num to determine bin size
             num_bins = int(np.round(ma.compressed(self.azm).shape[0] / b_num))

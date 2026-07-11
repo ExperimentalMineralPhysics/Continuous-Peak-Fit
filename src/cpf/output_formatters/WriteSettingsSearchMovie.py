@@ -167,7 +167,8 @@ def WriteOutput(
             values.append(os.path.splitext(os.path.basename(fls[value]))[0].split("__")[2].split("=")[1])
 
     # add search values as metadata so that it can be read later. 
-    settings_class.metadata.append(search_parameter)
+    if search_parameter not in settings_class.metadata:
+        settings_class.metadata.append(search_parameter)
     settings_class.metadata_settings = {}
 
     # if len(search_over) == 2 and search_over[0] == 0:

@@ -902,6 +902,10 @@ class _Plot_AngleDispersive:
                 vmax=IMax,
             )
         elif plot_type == "surf" or plot_type == "surface":
+            if hasattr(self, 'convert_tth_azm_to_x_y'):
+                tth_azm2x_y = self.convert_tth_azm_to_x_y
+            else:
+                tth_azm2x_y = None
             the_plot = surface_plot(
                 plot_i,
                 plot_x,
@@ -911,7 +915,8 @@ class _Plot_AngleDispersive:
                 vmin=IMin,
                 vmax=IMax,
                 colourmap=colourmap,
-                triangle_cutoff = 99
+                triangle_cutoff = 99,
+                tth_azm2x_y = tth_azm2x_y
             )
         elif plot_type == "image" or plot_type == "im":
             the_plot = image_plot(
@@ -1122,7 +1127,8 @@ def surface_plot(
     vmin=0,
     vmax=np.inf,
     colourmap=default_colourmap,
-    triangle_cutoff = 99
+    triangle_cutoff = 98,
+    tth_azm2x_y = None
 ):
     """
     Plots the data on an irregular tripcolor gird.
@@ -1154,27 +1160,36 @@ def surface_plot(
         filled set of axes.
     """
 
-    triang = tri.Triangulation(x_plot.flatten(), y_plot.flatten())
+    if ma.is_masked(data_plot):
+        data_plot = data_plot.compressed()
+    elif not ma.is_masked(data_plot) and ma.is_masked(x_plot):
+        # if the data is not masked while the axes are if causes promblems when plotting. 
+        # so mask.
+        data_plot = ma.array(data_plot, mask=x_plot.mask).compressed()
+    if ma.is_masked(x_plot):
+        x_plot = x_plot.compressed()
+    if ma.is_masked(y_plot):
+        y_plot = y_plot.compressed()
+    
+    if tth_azm2x_y:
+        x_physical, y_physical = tth_azm2x_y(x_plot, y_plot)
+    else:
+        x_physical, y_physical  = x_plot, y_plot
+        
+    # rad = 1 * np.tan(np.deg2rad(x_plot.compressed()))
+    # x_physical = rad * np.cos(np.deg2rad(ma.array(y_plot).compressed()))
+    # y_physical = rad * np.sin(np.deg2rad(ma.array(y_plot).compressed()))
+    # data_plot = ma.array(data_plot).compressed()
+        
+    triang = tri.Triangulation(x_physical, y_physical)
     corners = triang.triangles
-    # FIXME: i might be better to make the triangles from the x,y, points rather than the tth+azm.
-    # when made like this the plots spread the intensity in a broadway. -- the scatter plot looks better.
-
-    if ma.isMaskedArray(x_plot):   
-        triang.set_mask(tri.TriAnalyzer(triang).get_flat_tri_mask())
-        mask = np.zeros(len(triang.triangles))
-        for i in range(len(corners)):
-            if any(x_plot.flatten()[corners[i, :]].mask == True):
-                mask[i] = True
-        mask = np.array(mask, dtype="bool")
-        triang.set_mask((triang.mask == True) | (mask == True))
-
+    
     if triangle_cutoff != 100:
         areas = []
         x_range = []
         y_range = []
-        rad = []
-        import proglog
 
+        import proglog
         progress_bar = proglog.default_bar_logger(
             "bar"
         )  # shorthand to generate a bar logger
@@ -1185,52 +1200,68 @@ def surface_plot(
         # calculate size of triangles and discard ones taht are too large. 
         for i in range(len(corners)):
             areas.append(
-                PolyArea(x_plot.flatten()[corners][i], y_plot.flatten()[corners][i])
+                PolyArea(x_physical.flatten()[corners][i], y_physical.flatten()[corners][i])
             )
             x_range.append(
-                x_plot.flatten()[triang.triangles][i].max()
-                - x_plot.flatten()[triang.triangles][i].min()
+                x_physical.flatten()[triang.triangles][i].max()
+                - x_physical.flatten()[triang.triangles][i].min()
             )
             y_range.append(
-                y_plot.flatten()[triang.triangles][i].max()
-                - y_plot.flatten()[triang.triangles][i].min()
+                y_physical.flatten()[triang.triangles][i].max()
+                - y_physical.flatten()[triang.triangles][i].min()
             )
-            
-        # Mask off unwanted triangles.
-        # xtri = x_plot.flatten()[corners] - np.roll(x_plot.flatten()[corners], 1, axis=1)
-        # ytri = y_plot.flatten()[corners] - np.roll(y_plot.flatten()[corners], 1, axis=1)
-        # rad = np.max(np.sqrt(xtri**2 + ytri**2), axis=1)
+        
+        areas = ma.array(areas)
+        x_range = ma.array(x_range)
+        y_range = ma.array(y_range)
+        
+        # Define an additional condition to mask elements greater than 80
+        additional_condition1 = areas <= 0
+        additional_condition2 = x_range <= 0
+        additional_condition3 = y_range <= 0
+        # Update the mask to include additional elements
+        areas.mask = areas.mask | additional_condition1 | additional_condition2 | additional_condition3   
+        x_range.mask = x_range.mask | additional_condition1 | additional_condition2 | additional_condition3   
+        y_range.mask = y_range.mask | additional_condition1 | additional_condition2 | additional_condition3    
             
         if 0:
             fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
             # We can set the number of bins with the *bins* keyword argument.
-            axs[0].hist(np.log10(areas), bins=int(len(areas)/100))
-            axs[1].hist(np.log10(x_range), bins= int(len(areas)/100))
-            axs[2].hist(np.log10(y_range), bins= int(len(areas)/100))
+            axs[0].hist(np.log10(ma.array(areas).compressed()), bins=int(len(areas)/100))
+            axs[1].hist(np.log10(ma.array(x_range).compressed()), bins= int(len(areas)/100))
+            axs[2].hist(np.log10(ma.array(y_range).compressed()), bins= int(len(areas)/100))
             plt.show()
-            
-        cutoff_area = np.nanpercentile(areas, triangle_cutoff)
-        cutoff_x = np.nanpercentile(x_range, triangle_cutoff)
-        cutoff_y = np.nanpercentile(y_range, triangle_cutoff)
-        # cutoff_rad = np.nanpercentile(rad, triangle_cutoff)
+        
+        if 0:
+            cutoff_area = np.nanpercentile(ma.array(areas).compressed(), triangle_cutoff)
+            cutoff_x = np.nanpercentile(ma.array(x_range).compressed(), triangle_cutoff)
+            cutoff_y = np.nanpercentile(ma.array(y_range).compressed(), triangle_cutoff)
+        else:
+            multiples_of_median = 3
+            cutoff_area = np.nanmedian(ma.array(areas).compressed())*multiples_of_median
+            cutoff_x = np.nanmedian(ma.array(x_range).compressed())*multiples_of_median
+            cutoff_y = np.nanmedian(ma.array(y_range).compressed())*multiples_of_median
         
         keep = []
         for i in progress_bar.iter_bar(FilterTriangles=range(len(corners))):
-            if not all([areas[i] > cutoff_area,
-                x_range[i] > cutoff_x, 
-                y_range[i] > cutoff_y,
-                # rad[i] > cutoff_rad
-                ]):
-                keep.append(i)
+            # keep well behaved triangles
+            if (np.abs(x_range[i]) <= cutoff_x
+                and np.abs(y_range[i]) <= cutoff_y
+                and np.abs(areas[i]) <= cutoff_area):
+                keep.append(i)    
+
         triang.triangles = triang.triangles[keep]
         corners = corners[keep]
 
+    # replce the coordinates of the triangles with coordinates to plot.
+    triang.x = x_plot
+    triang.y = y_plot
+
     pl = axis_plot.tripcolor(
-        triang, data_plot.flatten(), cmap=colourmap, vmin=vmin, vmax=vmax,
+        triang, data_plot, cmap=colourmap, vmin=vmin, vmax=vmax,
         shading='gouraud'
     )
-
-    return pl
+    return pl   
 
 
 def image_plot(

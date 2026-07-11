@@ -555,8 +555,36 @@ class _AngleDispersive_common:
             azi_bounds = azi_bounds[::-1]
             
         return range_bounds, azi_bounds
-            
     
+    
+    def convert_tth_azm_to_x_y(self, tth, azm):
+        """
+        Convert twh theta and azimuth values to physical x,y values.
+
+        As implemented here, this uses the distance from the calibration but ignores the detector rotations.
+
+        Parameters
+        ----------
+        tth : np.array() | list
+            pixel two theta positions to be converted.
+        azm : np.array() | list
+            pizel azmiuths to be converted.
+
+        Returns
+        -------
+        x_physical : np.array
+            approximated x coordinate for pixels.
+        y_physical : np.array
+            approximated y coordinate for pixels..
+        """
+        
+        distance = self._detector_distance
+        rad = distance * np.tan(np.deg2rad(ma.array(tth).compressed()))
+        x_physical = rad * np.cos(np.deg2rad(ma.array(azm).compressed()))
+        y_physical = rad * np.sin(np.deg2rad(ma.array(azm).compressed()))
+        
+        return x_physical, y_physical
+
 
 def equalObs(x, nbin):
     """

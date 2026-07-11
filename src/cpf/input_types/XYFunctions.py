@@ -713,6 +713,33 @@ class XYDetector:
                 )
         return required_list
 
+    
+    def convert_tth_azm_to_x_y(self, calib_x, calib_y):
+        """
+        Convert tth theta and azimuth values to physical x,y values.
+
+        For orthogonal detector the grid is already orthoginal so just retirn input values
+
+        Parameters
+        ----------
+        tth : np.array() | list
+            pixel two theta positions to be converted.
+        azm : np.array() | list
+            pizel azmiuths to be converted.
+
+        Returns
+        -------
+        x_physical : np.array
+            approximated x coordinate for pixels.
+        y_physical : np.array
+            approximated y coordinate for pixels..
+        """
+        
+        # FIXME: it might be better to undo the calibration and return pixel postions. 
+        
+        return calib_x, calib_y
+
+
     # add common functions
     _get_d_space = _AngleDispersive_common._get_d_space
     conversion = _AngleDispersive_common.conversion
@@ -994,3 +1021,4 @@ class OrthogonalDetector:
         for i in range(len(self.calibration["y"]) - 1):
             calibrated_y += y_array * self.calibration["y"][i + 1] * (i + 1)
         return calibrated_y
+    

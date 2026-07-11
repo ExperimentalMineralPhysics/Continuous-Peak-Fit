@@ -105,6 +105,7 @@ class DioptasDetector:
 
         self.calibration = None
         self.conversion_constant = None
+        self._detector_distance = 1
         self.detector = None
 
         if settings_class:
@@ -377,6 +378,8 @@ class DioptasDetector:
             pf.detector.set_config(config)
         self.calibration = pf
         self.conversion_constant = pf.wavelength * 1e10  # in angstroms
+        self._detector_distance = self.calibration.dist
+        
 
     def get_detector(
         self, settings=None, calibration_file=None, diffraction_data=None, debug=False
@@ -884,6 +887,7 @@ class DioptasDetector:
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     check_bounds = _AngleDispersive_common.check_bounds
     _reduce_array = _AngleDispersive_common._reduce_array
+    convert_tth_azm_to_x_y = _AngleDispersive_common.convert_tth_azm_to_x_y
     get_metadata = _metadata_common.get_metadata
     _get_file_created_modified = _metadata_common._get_file_created_modified
 

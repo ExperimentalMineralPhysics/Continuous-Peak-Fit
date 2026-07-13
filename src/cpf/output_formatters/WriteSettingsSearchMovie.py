@@ -51,6 +51,9 @@ def Requirements():
         #'apparently none!
     ]
     OptionalParams = {
+        "pattern": None, # guess from files in outpuct directory
+        "search_parameter": "", # guess from files in outpuct directory
+        "search_over": None, # guess from files in outpuct directory
         "fps": 10,  # frames per second
         "file_types": ["mp4"],  # movie file type
         "Irange": ["pt1percentile", "99pt9percentile"],  # range of colour scale
@@ -107,25 +110,32 @@ def WriteOutput(
     settings_class = get_settings(settings)
 
     # Parse optional parameters
+    pattern = settings_class.output_settings.get("pattern", Requirements()[1]["pattern"])
+    search_parameter = settings_class.output_settings.get("search_parameter",Requirements()[1]["search_parameter"])
+    search_over = settings_class.output_settings.get("search_over", Requirements()[1]["search_over"])
     fps = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
     file_types = settings_class.output_settings.get(
         "file_types", Requirements()[1]["file_types"]
     )
     Irange = settings_class.output_settings.get("Irange", Requirements()[1]["Irange"])
     # override with kwargs
+    pattern = kwargs.get("pattern", None)
+    search_parameter = kwargs.get("search_parameter","")
+    search_over = kwargs.get("search_over", None)
     fps = kwargs.get("fps", fps)
     file_types = kwargs.get("file_types", file_types)
     Irange = kwargs.get("Irange", Irange)
-
-    # parse required parameters from kwargs
-    pattern = kwargs.get("pattern", None)
-    search_parameter = kwargs.get("search_parameter", "")
-    search_over = kwargs.get("search_over", None)
     
-    if search_parameter == None:
+    # if the kwargs are not set, take a guess
+    if not search_parameter:
         search_parameter = "" 
-    # if the values are not set, take a guess
-    if not pattern:# or not search_parameter or not search_over:
+    if settings_class.image_number == 1:
+        pattern = 0            
+    elif pattern:
+        settings_class.set_data_files(keep=pattern)
+        pattern = 0
+    else: # not pattern
+    # if not pattern:# or not search_parameter or not search_over:
         fls = glob.glob(f"./{settings_class.output_directory}/*scan*{search_parameter}*.json")
         if len(fls) == 0:
             raise ValueError("There is no identified search file to plot.")
@@ -138,33 +148,26 @@ def WriteOutput(
         for f_ind in range(len(settings_class.datafile_list)):
             if split[0] in str(settings_class.datafile_list[f_ind]):
                 pattern = f_ind
-                
         if settings_class.datafile_number > 1:
             # search over the first file only
-            settings_class.set_data_files(keep=pattern)
+            settings_class.set_data_files(keep=pattern) 
                 
     if not search_parameter or search_parameter == "": #or not search_over:
         # get pattern name
-        pattern_name = os.path.splitext(os.path.basename(settings_class.datafile_list[pattern]))[0]
+        pattern_name = os.path.splitext(os.path.basename(settings_class.image_list[pattern]))[0]
         # use filenames for seaech paramter
         fls = glob.glob(f"./{settings_class.output_directory}/*{pattern_name}*scan*{search_parameter}*.json")       
         search_parameter = os.path.splitext(os.path.basename(fls[0]))[0].split("__")[1].split("=")[1]
         
     if not search_over:
         # get pattern name
-        pattern_name = os.path.splitext(os.path.basename(settings_class.datafile_list[pattern]))[0]
+        pattern_name = os.path.splitext(os.path.basename(settings_class.image_list[pattern]))[0]
         # use filenames for seaech paramter
         fls = glob.glob(f"./{settings_class.output_directory}/*{pattern_name}*scan*{search_parameter}*.json")   
         values = []
         for v in fls:
             values.append(int(os.path.splitext(os.path.basename(v))[0].split("__")[2].split("=")[1]))
         search_over = [np.min(values), np.max(values)]
-        # get search parameter
-        search_parameter = split[1].split("=")[1]
-        # get values
-        values = []
-        for value in range(len(fls)):
-            values.append(os.path.splitext(os.path.basename(fls[value]))[0].split("__")[2].split("=")[1])
 
     # add search values as metadata so that it can be read later. 
     if search_parameter not in settings_class.metadata:
@@ -205,7 +208,7 @@ def WriteOutput(
             includeSeriesValues=True,
             includeIntensityRanges=True,
             includePosition=True,
-            includeIntegrated=True
+            includeIntegrated=False
         )
         df = pd.concat([df,df_tmp])    
         

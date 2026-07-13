@@ -1496,6 +1496,9 @@ class Settings:
         if isinstance(keep, list):
             self.image_list = self.image_list[keep]
             self.image_number = len(self.image_list)
+            
+            self.datafile_list = np.unique(self.image_list)
+            self.datafile_number = len(self.datafile_list)
             return
         
         if isinstance(keep, str):

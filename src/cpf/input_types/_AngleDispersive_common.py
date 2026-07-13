@@ -138,9 +138,10 @@ class _AngleDispersive_common:
                 print("b_num", b_num)
 
         # make the bins
-        if ((bt==0  and b_num >= np.unique(ma.compressed(self.azm)).size/b_num)
-            or (bt==1 and b_num >= np.unique(ma.compressed(self.azm)).size)
-            ):
+        if b_num > np.unique(ma.compressed(self.azm)).size:
+		#if ((bt==0  and b_num >= np.unique(ma.compressed(self.azm)).size/b_num)
+        #    or (bt==1 and b_num >= np.unique(ma.compressed(self.azm)).size)
+        #    ):
             # doesn't matter what the bin type is not enough unique values...
             bounds = np.unique(ma.compressed(self.azm))
             min_gap = np.min(bounds[1:] - bounds[:-1])
@@ -173,7 +174,7 @@ class _AngleDispersive_common:
         if 0:
             # create histogram with equal-frequency bins
             n, bins, patches = plt.hist(
-                self.azm[self.azm.mask == False], bin_boundaries, edgecolor="black"
+                ma.array(self.azm).compressed(), bin_boundaries, edgecolor="black"
             )
             plt.show()
             logger.debug(" ".join(map(str, [("bins and occupancy", bins, n)])))

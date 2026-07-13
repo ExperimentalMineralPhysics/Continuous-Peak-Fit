@@ -287,7 +287,7 @@ class _AngleDispersive_common:
             A numpy data type to be applied to the data arrays.
 
         """
-        precision = re.findall("\d+", rawData.dtype.name)[0]
+        precision = int(re.findall("\d+", rawData.dtype.name)[0])
         # force minimum precision
         if minimumPrecision != False:
             if precision < minimumPrecision:
@@ -296,7 +296,7 @@ class _AngleDispersive_common:
             pass
 
         try:
-            DataType = np.dtype(numType + precision)
+            DataType = np.dtype(numType + str(precision))
         except:
             err_str = f"The datatype, {DataType}, is not a recognised data type"
             logger.critical(err_str)

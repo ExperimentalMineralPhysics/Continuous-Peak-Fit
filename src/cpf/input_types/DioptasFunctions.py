@@ -532,7 +532,15 @@ class DioptasDetector:
                 # self.intensity has been set before. Inherit the dtype.
                 dtype = self.intensity.dtype
             else:
-                dtype = self.GetDataType(im[0], minimumPrecision=False)
+                # FIXME: the data minimumPrecision is set to 32 to prevent
+                # numpy.str returning inf when sum is greater than maximum
+                # allowed by 16 bit precision. see:
+                # https://github.com/numpy/numpy/issues/22448
+                # not stetting this can cause inf in XRD_FitPattern when comparing the 
+                # height of the peaks to the standard deviation of the data 
+                # currently line 525. 
+                dtype = self.GetDataType(im[0], minimumPrecision=32)
+                
         im = ma.array(im, dtype=dtype)
 
         # Dioptas flips the images to match the orientations in Fit2D

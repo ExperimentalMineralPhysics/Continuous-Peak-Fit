@@ -536,7 +536,7 @@ class DioptasDetector:
                 # numpy.str returning inf when sum is greater than maximum
                 # allowed by 16 bit precision. see:
                 # https://github.com/numpy/numpy/issues/22448
-                # not stetting this can cause inf in XRD_FitPattern when comparing the 
+                # not setting this can cause inf in XRD_FitPattern when comparing the 
                 # height of the peaks to the standard deviation of the data 
                 # currently line 525. 
                 dtype = self.GetDataType(im[0], minimumPrecision=32)

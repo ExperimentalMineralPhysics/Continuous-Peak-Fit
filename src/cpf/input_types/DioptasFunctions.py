@@ -664,6 +664,9 @@ class DioptasDetector:
         # shape might not be correct (or recognised). Hence the check here and
         # inclusion of the shape in the array getting.
 
+        if not self.detector.detector.max_shape:
+            self.detector.detector.shape = self.intensity.shape
+            self.detector.detector.max_shape = self.intensity.shape
         if tuple(self.intensity.shape) != tuple(self.detector.detector.max_shape):
             # cast both shapes to tuples to prevent list != tuple error.
             raise ValueError(

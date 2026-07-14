@@ -1256,7 +1256,14 @@ def surface_plot(
     # replce the coordinates of the triangles with coordinates to plot.
     triang.x = x_plot
     triang.y = y_plot
-
+    
+    #find the triangles that wrap round the azimuth and discard them.
+    # use 3/4 of total extent as the threshold
+    y_extent = np.max(triang.y[triang.triangles], axis=1) - np.min(triang.y[triang.triangles], axis=1)
+    keep = y_extent < (triang.y.max()-triang.y.min())*.75
+    triang.triangles = triang.triangles[keep]
+    corners = corners[keep]
+    
     pl = axis_plot.tripcolor(
         triang, data_plot, cmap=colourmap, vmin=vmin, vmax=vmax,
         shading='gouraud'

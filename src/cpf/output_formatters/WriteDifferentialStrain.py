@@ -115,7 +115,7 @@ def WriteOutput(
 
     # limit dataframe to what we want to write.
     # order columns to be correct also
-    headers_use =  ["num",
+    headers_use =  ["image_position",
                    "DataFile",
                    'phase', 
                    'peak',   
@@ -179,6 +179,8 @@ def WriteOutput(
     # rename the columns
     df.rename(columns=headers_rename, inplace=True)
 
+    df.rename(columns={"image_position":"num"}, inplace=True)
+    
     # make filename for output
     base = settings_class.datafile_basename
     if base is None:

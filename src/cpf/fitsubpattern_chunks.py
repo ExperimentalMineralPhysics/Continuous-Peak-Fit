@@ -1004,6 +1004,10 @@ def clean_errs(error_values, outliers=5):
 
     error_values = np.array(error_values)
 
+    if np.all(np.isfinite(error_values)==False):
+        # all the values are nan and there is nothing we can really do
+        return error_values
+    
     err_stdev = np.nanmedian(error_values)
     log_err_vals = np.log10(error_values)
 

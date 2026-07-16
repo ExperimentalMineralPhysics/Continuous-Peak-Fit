@@ -750,6 +750,7 @@ def peaks_model(
     azimuth,  # forced to exist as independent values by lmfit
     data_class=None,  # needs to contain conversion factor
     orders=None,  # orders dictionary to get minimum position of the range.
+    no_negatives = True,
     start_end=[0, 360],
     **params,
 ):
@@ -766,8 +767,25 @@ def peaks_model(
     # N.B. params now doesn't persist as a parameter class, merely a dictionary, so e.g. call key/value pairs as
     # normal not with '.value'
 
+    # N.B. notes on no_negatives
+    # although the series values are limited it is possible for the series to go outside of the limits
+    # because of how the coefficients are combined. Therefore posisble to have undesired values or behaviour
+    #
+    # Overall: the background parameters can be negative - especially any slope so force False and allow negatives
+    # height for XRD should not be negative ever, force to be at least 0 (no_negatives=True)
+    # the other peak parameters should never be negative but if they are then it is a problem. But
+    # leave the code to error out if this happens. 
+    #
+    # here default no_negatives=True, default no_negatives to False for background (see above).
+    # other series should defaul to True for consistent behaviour with this function when called from elsewhere
+    
+    # FIXME: the no negatives should be made consistent with the limits applied to the series/parameter
+    # but for now just forcing this will do. The change requires passing the applicable limits into this method and 
+    # applying. 
+    
     # expand the background
-    intensity = sf.background_expansion((azimuth, two_theta), orders, params)
+    intensity = sf.background_expansion((azimuth, two_theta), orders, params,
+                                        no_negatives=False)
 
     peak_keys = [
         key for key, val in params.items() if "peak" in key and "tp" not in key
@@ -793,25 +811,29 @@ def peaks_model(
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
         d_all = sf.coefficient_expand(
-            azimuth, parms, coeff_type=coeff_type, start_end=start_end
+            azimuth, parms, coeff_type=coeff_type, start_end=start_end,
+            no_negatives = no_negatives,
         )
         comp = "h"
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
         h_all = sf.coefficient_expand(
-            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end
+            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end,
+            no_negatives = no_negatives,
         )
         comp = "w"
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
         w_all = sf.coefficient_expand(
-            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end
+            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end,
+            no_negatives = no_negatives,
         )
         comp = "p"
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
         p_all = sf.coefficient_expand(
-            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end
+            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end,
+            no_negatives = no_negatives,
         )
 
         # conversion

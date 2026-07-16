@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 import re
-
+import sys
 import numpy as np
 import numpy.ma as ma
 from scipy.interpolate import CubicSpline, make_interp_spline
@@ -543,6 +543,7 @@ def coefficient_expand(
     coeff_type="fourier",
     comp_str=None,
     start_end=[0, 360],
+    no_negatives = False,
     **params,
 ):
     """
@@ -580,7 +581,11 @@ def coefficient_expand(
     # FIXME: this could be changed so that all_series[series_name]["expansion_function"]
     # is used with getattr -- allowing easier future expansion of the series types.
     if all_series[series_name]["expansion_function"] == "fourier_expand":
-        out = fourier_expand(azimuth, inp_param=param, comp_str=comp_str, **params)
+        out = fourier_expand(azimuth, 
+                             inp_param=param, 
+                             comp_str=comp_str, 
+                             no_negatives=no_negatives,
+                             **params)
 
     elif all_series[series_name]["expansion_function"] == "spline_expand":
         out = spline_expand(
@@ -588,6 +593,7 @@ def coefficient_expand(
             inp_param=param,
             comp_str=comp_str,
             start_end=start_end,
+            no_negatives=no_negatives,
             bc_type=all_series[series_name]["boundary_conditions"],
             kind=all_series[series_name]["spline_type"],
             **params,
@@ -609,6 +615,7 @@ def spline_expand(
     start_end=[0, 360],
     bc_type="periodic",
     kind=None,
+    no_negatives=True,
     **params,
 ):
     """
@@ -707,6 +714,9 @@ def spline_expand(
 
         fout = spl(azimuth)
 
+    if no_negatives:
+        fout[fout<0] = sys.float_info.eps
+        
     if isinstance(inp_param[0], UFloat):
         # then the input is an array of values with errors. 
         # these errors will be greater than the formal errors on any fit.
@@ -716,6 +726,9 @@ def spline_expand(
         else:
             # run to end-1 because have to cut value added by spline_expand.
             inp = unp.std_devs(inp_param)[:-1]
+        if no_negatives:
+            # should prevent negative errors of itself
+            kind = "linear"
         errs = spline_expand(
             azimuth,
             inp_param=inp,
@@ -723,6 +736,7 @@ def spline_expand(
             start_end=start_end,
             bc_type=bc_type,
             kind=kind,
+            no_negatives=True,
             **params,
         )
         # prevent negative errors
@@ -734,7 +748,7 @@ def spline_expand(
 
 
 def fourier_expand(
-    azimuth, inp_param=None, comp_str=None, start_end=[0, 360], **params
+    azimuth, inp_param=None, comp_str=None, start_end=[0, 360], no_negatives=True, **params
 ):
     """
     Calculate series value at each azimuth for given fourier coefficients
@@ -803,10 +817,13 @@ def fourier_expand(
                 + inp_param[(2 * i) - 1] * np.sin((azm_tmp) * i)
                 + inp_param[2 * i] * np.cos((azm_tmp) * i)
             )
+    if no_negatives:
+        fout[fout<0] = sys.float_info.eps
     return np.squeeze(fout)
 
 
-def background_expansion(azimuth_two_theta, orders, params):
+def background_expansion(azimuth_two_theta, orders, params,
+                         no_negatives=False):
     """
     Calculate background value at each azimuth / two theta pair for given series
     coefficients.
@@ -854,7 +871,8 @@ def background_expansion(azimuth_two_theta, orders, params):
 
     bg_all = np.zeros(azimuth.shape)
     for i in range(len(backg)):
-        out = coefficient_expand(azimuth, backg[i], backg_tp[i])
+        out = coefficient_expand(azimuth, backg[i], backg_tp[i], 
+                                 no_negatives = no_negatives)
         bg_all = bg_all + (out * (two_theta_prime ** float(i)))
     return bg_all
 

@@ -21,7 +21,8 @@ __doc__ = "Functions for Pseudo-Voigt peak shape. "
 
 
 import numpy as np
-import uncertainties.unumpy as unp
+# import uncertainties.unumpy as unp
+# import uncertainties.umath as um
 import sys
 from cpf.util.logging import get_logger
 
@@ -244,13 +245,13 @@ def area(w_all, h_all, l_g_ratio):
     """
 
     # Gauss sum
-    sumG = h_all * unp.sqrt(np.pi*(2 * (w_all/unp.sqrt(unp.log(4)))**2))
+    sumG = h_all * (np.pi*(2 * (w_all/np.sqrt(np.log(4)))**2))**(1/2)
     
     # lotentz sum
     if not np.all(w_all):
         sumL = np.zeros(w_all.shape)
     else:
-        sumL = h_all * np.pi /unp.sqrt(1/w_all.clip(sys.float_info.epsilon)**2)
+        sumL = h_all * np.pi / (1/w_all.clip(sys.float_info.epsilon)**2)**(1/2)
 
     # lorentz sum for h_all=1 and w_all = i converges on pi at infinity.
     # we just assume this here as it is simplest but should perhaps have a cut off     

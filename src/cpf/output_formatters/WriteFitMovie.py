@@ -99,7 +99,7 @@ def WriteOutput(settings, debug=False, **kwargs):
         base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
 
     # get the fits
-    all_fits, _ = ReadFits_to_list(settings=settings_class)
+    all_fits, _ = ReadFits_to_list(settings=settings_class, replace=False)
 
     # make the data class.
     data_to_fill = settings_class.image_list[0]

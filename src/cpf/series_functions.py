@@ -715,7 +715,7 @@ def spline_expand(
         fout = spl(azimuth)
 
     if no_negatives:
-        fout[fout<0] = sys.float_info.eps
+        fout[fout<0] = np.finfo(float(fout[0])).eps
         
     if isinstance(inp_param[0], UFloat):
         # then the input is an array of values with errors. 
@@ -818,7 +818,7 @@ def fourier_expand(
                 + inp_param[2 * i] * np.cos((azm_tmp) * i)
             )
     if no_negatives:
-        fout[fout<0] = sys.float_info.eps
+        fout[fout<0] = np.finfo(float(fout[0])).eps
     return np.squeeze(fout)
 
 

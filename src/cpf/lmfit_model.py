@@ -94,9 +94,9 @@ def parse_bounds(bounds, data_as_class, ndat=None, n_peaks=1, param=None):
             b = list(data_as_class.conversion(np.array(b)))
         if b[0]==b[1]:
             #bounds are same. this is bad and likely due to infinties 
-            if b[0]=np.inf:
+            if b[0]==np.inf:
                 b[0] = 0
-            if b[1]=-np.inf:
+            if b[1]==-np.inf:
                 b[1] = 0
         limits[par] = b
 

@@ -72,7 +72,7 @@ class _Plot_AngleDispersive:
         return disp_ticks
 
 
-    def what_plot_type(self, plot_type=None):
+    def what_plot_type(self, plot_type=None, ignore_masked=False):
         """
         Determines from the data which is the best sort of plot for the data. 
         
@@ -134,7 +134,6 @@ class _Plot_AngleDispersive:
         """
         image_fraction_unique_threshold = 1/4
         
-        
         if plot_type not in recognised_plots:
             # then set it
                         
@@ -148,9 +147,13 @@ class _Plot_AngleDispersive:
             ):
                 # the is orthonormal data
                 plot_type = "image"
-            elif ma.MaskedArray(self.intensity).compressed().size < surf_threshold:
+            elif not ignore_masked and ma.MaskedArray(self.intensity).compressed().size < surf_threshold:
                 plot_type = "surface"
-            elif ma.MaskedArray(self.intensity).compressed().size > raster_threshold:
+            elif not ignore_masked and ma.MaskedArray(self.intensity).compressed().size > raster_threshold:
+                plot_type = "rastered"
+            elif ignore_masked and self.intensity.size < surf_threshold:
+                plot_type = "surface"
+            elif ignore_masked and self.intensity.size > raster_threshold:
                 plot_type = "rastered"
             else:
                 plot_type = "scatter"
@@ -192,6 +195,9 @@ class _Plot_AngleDispersive:
         :return:
         """
 
+        #check plot type
+        plot_type = self.what_plot_type(ignore_masked=True)
+        
         x_plots = 3
         y_plots = 2
         spec = gridspec.GridSpec(
@@ -210,6 +216,7 @@ class _Plot_AngleDispersive:
             show="unmasked_intensity",
             x_axis="default",
             limits=[0, 100],
+            plot_type=plot_type,
         )
         ax1.set_title("All Data")
         ax2 = fig_plot.add_subplot(spec[1])
@@ -219,6 +226,7 @@ class _Plot_AngleDispersive:
             show="mask",
             x_axis="default",
             limits=[0, 100],
+            plot_type=plot_type,
         )
         ax2.set_title("Mask")
         ax3 = fig_plot.add_subplot(spec[2])
@@ -228,6 +236,7 @@ class _Plot_AngleDispersive:
             show="intensity",
             x_axis="default",
             limits=[0, 100],
+            plot_type=plot_type,
         )
         ax3.set_title("Masked Data")
 
@@ -239,6 +248,7 @@ class _Plot_AngleDispersive:
             x_axis="default",
             y_axis="intensity",
             limits=[0, 100],
+            plot_type=plot_type,
         )
 
         ax5 = fig_plot.add_subplot(spec[4])
@@ -270,6 +280,7 @@ class _Plot_AngleDispersive:
             x_axis="default",
             y_axis="intensity",
             limits=[0, 100],
+            plot_type=plot_type,
         )
 
     def plot_range(

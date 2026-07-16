@@ -408,12 +408,29 @@ def fit_sub_pattern(
         )
         # set step to -21 so that it is still negative at the end
         step.append(-21)  # get to the end and void the fit
-        # void so send empty parameter set to out.     
+        # void so send empty parameter set to out.
+        prms = master_params.valuesdict()
+        for i in prms.keys():
+            if "_s" in i:
+                pass
+            else:
+                 prms[i] = 0
+        master_params.set(**prms)
+                 
     if not check_num_azimuths(peeks, data_as_class.azm, settings_class.subfit_orders):
         # check the number of unique azimuths is greater than the number of coefficients.
         # logger messages added in function -- not needed here
-        # set step to -21 so that it is still negative at the end
-        step.append(-21)  # get to the end and void the fit
+        # set step to -31 so that it is still negative at the end
+        step.append(-31)  
+        # get to the end and void the fit
+        prms = master_params.valuesdict()
+        for i in prms.keys():
+            if "_s" in i:
+                pass
+            else:
+                 prms[i] = 0
+        master_params.set(**prms)
+        
     if step[-1] < 0:
         # voided but still need some numbers for the outputs
         chunks_start = time.time()
@@ -530,6 +547,13 @@ def fit_sub_pattern(
                         data_as_class,
                         # debug=debug,
                     )
+                    prms = fout.valuesdict()
+                    for i in prms.keys():
+                        if "_s" in i:
+                            pass
+                        else:
+                             prms[i] = 0
+                    fout.set(**prms)
 
             elif step[-1] >= 0 and previous_params:
                 logger.moreinfo(

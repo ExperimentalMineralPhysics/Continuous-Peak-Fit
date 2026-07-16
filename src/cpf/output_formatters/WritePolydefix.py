@@ -25,7 +25,7 @@ def Requirements():
     ]
     OptionalParams = {
         "Phase": True,  # the phase we are interested in -- if True then guesses most common phase
-        "ElasticProperties": True,  # default is to use the phase name of the material. If more than 1 material need wild cards to match phase names.
+        "ElasticProperties": False,  # default is to use the phase name of the material. If more than 1 material need wild cards to match phase names.
         "differential_only": False, # use only the differetial part of the d-spacing series
     }
     # append the requirements from WriteMultiFit to the lists because PolyDefix requires WriteMultiFit.
@@ -86,8 +86,8 @@ def WriteOutput(
     )
 
     # get the fits
-    fits, _ = ReadFits_to_list(settings=settings_class, **kwargs)
-    fitsDF = ReadFits_to_dataframe(settings=settings_class, **kwargs)
+    fits, _ = ReadFits_to_list(settings=settings_class, replace=True, **kwargs)
+    fitsDF = ReadFits_to_dataframe(settings=settings_class, replace=True, **kwargs)
     
     #parse Phase and ElasticProperties
     if Phase is True:
@@ -248,7 +248,7 @@ def WriteOutput(
         text_file.write("# Material properties\n")
 
         if ElasticProperties:
-            if ElasticProperties is True or ElasticProperties == Phase[i]:
+            if ElasticProperties == Phase[i]:
                 # use phase name to get elastic properties
                 fname = glob.glob(f"*{Phase[i]}*")
             elif isinstance(ElasticProperties, str) and "*" in ElasticProperties:

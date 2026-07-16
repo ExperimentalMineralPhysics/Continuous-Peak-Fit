@@ -104,8 +104,7 @@ def WriteOutput(
         )
 
     # get the fits
-    all_fits, metadata = ReadFits_to_list(settings=settings_class)
-
+    all_fits, metadata = ReadFits_to_list(settings=settings_class, **kwargs)
     base = settings_class.datafile_basename
     if base is None:
         logger.info("No base filename, using input filename instead.")

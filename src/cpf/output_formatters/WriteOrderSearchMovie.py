@@ -8,11 +8,11 @@ from typing import Literal, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 
-# from moviepy import concatenate
+# # from moviepy import concatenate
 from moviepy import ImageClip, VideoFileClip, concatenate_videoclips
 
 from cpf.BrightSpots import SpotProcess
-from cpf.output_formatters.fits_io import ReadFits_to_dataframe
+from cpf.output_formatters.fits_io import ReadFits_to_dataframe, ReadFits_to_list
 from cpf.settings import get_settings
 from cpf.util.io import (
     figure_suptitle_space,
@@ -122,21 +122,10 @@ def WriteOutput(
     if file_label is not None:
         settings_class.file_label = file_label
 
-    # make the data class.
-    data_to_fill = settings_class.image_list[0]
-    data_class = settings_class.data_class
-    data_class.fill_data(
-        data_to_fill,
-        settings=settings_class,
-    )
-
-    # restrict to just the first file (as per order search)
-    settings_class.set_data_files(start=0, end=1)
-
-    # this is search data so there is a postscript in the json file label.
+    #this is search data so there is a postscript in the json file label.
     # determine the label
     if "file_label" not in dir(settings_class) or settings_class.file_label is None:
-        fls = glob.glob("./results/*search*.json")
+        fls = glob.glob(f"./{settings_class.output_directory}/*search*.json")
         if len(fls) == 0:
             raise ValueError("There is no identified search file to plot.")
         else:
@@ -144,9 +133,36 @@ def WriteOutput(
             for i in range(len(fls)):
                 tm.append(os.path.getmtime(fls[i]))
             latest = np.argsort(tm)[-1]
-            settings_class.file_label = os.path.splitext(os.path.basename(fls[latest]))[
-                0
-            ].split("__")[1]
+            settings_class.file_label = os.path.splitext(os.path.basename(fls[latest]))[0].split("__")[1]
+            
+            # make sure that we have the right file number for this set.
+            possible = []
+            for i, subval in enumerate(settings_class.image_list):
+                if isinstance(subval, list):
+                    #subval = subval[0]
+                    settings_class.set_subpattern(i, 0)
+                    subval = make_outfile_name(
+                        settings_class.subfit_filename,
+                        directory=None,
+                        overwrite=True,
+                    )
+                if os.path.splitext(os.path.basename(fls[latest]))[0].split("__")[0] in subval:
+                    possible.append(i)
+            if len(possible) != 1:
+                raise ValueError("There is no identified search file to plot.")
+            else:
+                searchdata = possible[0]
+    
+            #restrict to just the required image
+            settings_class.set_data_files(keep=searchdata)
+    
+    # make the data class.
+    data_to_fill = settings_class.image_list[0]
+    data_class = settings_class.data_class
+    data_class.fill_data(
+        data_to_fill,
+        settings=settings_class,
+    )
 
     # read the data.
     df = ReadFits_to_dataframe(
@@ -170,20 +186,20 @@ def WriteOutput(
     peaks = df["peak"].unique()
     searches = df["series_type"].unique()
     search_value = df["search_value"].unique()
-
-    # open data file for plotting information
-    # read fit file
-    json_file = make_outfile_name(
-        settings_class.subfit_filename,
-        directory=settings_class.output_directory,
-        additional_text=settings_class.file_label,
-        extension=".json",
-        overwrite=True,
-    )
-    with open(json_file) as json_data:
-        data_fit = json.load(json_data)
-
-    # make movies
+    
+    # #open data file for plotting information
+    # # read fit file
+    # json_file = make_outfile_name(
+    #     settings_class.subfit_filename,
+    #     directory=settings_class.output_directory,
+    #     additional_text=settings_class.file_label,
+    #     extension=".json",
+    #     overwrite=True,
+    # )
+    # with open(json_file) as json_data:
+    data_fit, metadata = ReadFits_to_list(settings_class)
+       
+    #make movies
     for i in range(len(peaks)):
         # loop over the number of unique peaks
 
@@ -264,7 +280,7 @@ def WriteOutput(
                 settings_class,
                 sub_data,
                 # param_lmfit=None,
-                params_dict=data_fit["fits"][position],
+                params_dict = data_fit[0][position],
                 figure=fig,
                 plot_ColourRange={
                     "max": Intensity_range[0],
@@ -297,7 +313,7 @@ def WriteOutput(
         for f in range(len(file_types)):
             settings_class.file_label = "search=" + df["search_over"][position]
             # make videofile name
-            data_fit_tmp = data_fit["fits"][position]
+            data_fit_tmp = data_fit[0][position]
             if "note" in data_fit_tmp:
                 data_fit_tmp.pop("note")
             out_file = make_outfile_name(

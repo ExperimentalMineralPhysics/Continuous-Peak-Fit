@@ -26,5 +26,10 @@ venv
 
 /Example1-Fe/results
 /Example2-MgO/results
+/Example3-ESRFlvp/results_as_h5
+/Example3-ESRFlvp/results_as_sequence
+/Example3-ESRFlvp/results_as_separateimages
+/Example4-XY/XY_images
+/Example4-XY/results
 
 /docs/build

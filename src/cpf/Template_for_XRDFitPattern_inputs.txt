@@ -1,4 +1,4 @@
-# run_name
+# $run_name
 
 # properties of the data files.
 datafile_directory = $datafile_directory   # required; string
@@ -16,7 +16,6 @@ datafile_Files     = $datafile_list        # optional - required if no StartNum,
 # keys of the h5 files (if needed)
 h5_datakey  = $h5_datakey
 h5_iterate  = $h5_iterate
-
 
 
 # Calibration and masking.

@@ -17,7 +17,7 @@ import cpf.peak_functions as pf
 from cpf.output_formatters.convert_fit_to_crystallographic import (
     fourier_to_crystallographic,
 )
-from cpf.series_functions import series_properties
+from cpf.series_functions import series_properties, get_combined_series
 from cpf.settings import get_settings
 from cpf.util.io import (
     make_outfile_name,
@@ -32,7 +32,7 @@ logger = get_logger("cpf.output_formatters.fits_io")
 
 
 def WriteFits(
-    settings_class, fitted_param, filename_to_write=None, data_class=None, mode=None
+    settings_class, fitted_param, filename_to_write=None, metadata=None, mode=None
 ):
     """
     Write fits and any metadata to json files.
@@ -51,8 +51,8 @@ def WriteFits(
     filename_to_write : string, optional
         String setting the file to be written.
         If present later optinal parameters are ignored.
-    data_class : cpf data class, optional
-        Data class that contains the image metadata. The default is None.
+    metadata : dict, optional
+        dictionary of metadata. The default is None.
     mode : string, optional
         Switch to add string to file name (if not spedified). The default is None.
 
@@ -70,14 +70,17 @@ def WriteFits(
         else:
             out = fitted_param
         for i in out:
-            i.pop("correlation_coeffs", None)
-    elif data_class:
-        metadata = data_class.get_metadata(settings_class=settings_class)
+            i.pop("correlation_coeffs", None)    
+    elif metadata:
+        # FIXME: could probably collapse these last two options and write an empty metadata dict.
+        # but not sure what happens if I make this change.
         out = {"metadata": metadata, "fits": fitted_param}
     else:
         out = {"fits": fitted_param}
 
     if filename_to_write is None:
+        # FIXME: I dont think that mode is needed in this function. The default for additional_text is None, 
+        # if this is the case every time then the if/else and the input of mode to this function is not needed.
         if mode == "search":
             additional_text = settings_class.file_label
         else:
@@ -100,8 +103,7 @@ def WriteFits(
             default=numpy_to_json,
         )
 
-
-def ReadFits_to_list(settings, replace=True, *args, **kwargs):
+def ReadFits_to_list(settings, replace=True, **kwargs):
     """
     Read coefficents from json fits files and return values as list.
 
@@ -125,7 +127,10 @@ def ReadFits_to_list(settings, replace=True, *args, **kwargs):
         List contiaing metadata for each file in settings_class/file.
 
     """
-
+    
+    # get kwargs that might be present 
+    add_integrated = kwargs.get("add_integrated", False)
+    
     if isinstance(settings, str) and "PreviousFit" in settings:
         # read previous fit
         with open(settings) as json_data:
@@ -163,7 +168,10 @@ def ReadFits_to_list(settings, replace=True, *args, **kwargs):
                 if isinstance(json_contents, dict):
                     # new style as dictionary with metadata
                     fits.append(json_contents["fits"])
-                    metadata.append(json_contents["metadata"])
+                    if "metadata" in json_contents:
+                        metadata.append(json_contents["metadata"])
+                    else:
+                        metadata.append({})
                 else:
                     # old stype without metadata
                     fits.append(json_contents)
@@ -172,12 +180,32 @@ def ReadFits_to_list(settings, replace=True, *args, **kwargs):
                     fnam = settings_class.subfit_filename[0]
                 else:
                     fnam = settings_class.subfit_filename
-                if os.path.isfile(fnam) and sorted(settings_class.metadata) != sorted(
-                    list(metadata[-1])
+                if (os.path.isfile(fnam) and
+                    sorted(settings_class.metadata) != sorted(list(metadata[-1]))
                 ):
                     # then we need to read the metadata from the files
                     metadata[-1] = read_metadata(settings_class)
 
+                if add_integrated:
+                    # create an integrated series and add to the fits
+                    if not settings_class.data_class.continuous_azm:
+                        azimuths = settings_class.data_class.azm
+                        import numpy.ma as ma
+                        if ma.isMaskedArray(azimuths):
+                            azimuths = azimuths.compressed()
+                    else:
+                        azimuths = None
+                    for i in range(len(fits[-1])):
+                        strt_nd = fits[z][i]["range"][0]
+                        settings_class.set_subpattern(z, i)
+                        for j in range(len(fits[-1][i]["peak"])):
+                            comb_series = get_combined_series(
+                                                        fits[-1][i]["peak"][j], 
+                                                        azimuth = azimuths,
+                                                        start_end=strt_nd,
+                                                        **kwargs)
+                            fits[-1][i]["peak"][j].update(comb_series)
+            
             # convert correlation coefficients into panda data frame
             for y in range(len(fits[-1])):
                 if "correlation_coeffs" in fits[-1][y]:
@@ -199,10 +227,11 @@ def ReadFits_to_dataframe(
     settings,
     includeParameters="all",
     includeStats=False,
-    includeSeriesValues=False,
-    includeIntensityRanges=False,
-    includeUnitCells=False,
-    includePosition=False,
+    includeSeriesValues = False,
+    includeIntegrated=False,
+    includeIntensityRanges = False,
+    includeUnitCells = False,
+    includePosition = False,
     *args,
     **kwargs,
 ):
@@ -245,7 +274,7 @@ def ReadFits_to_dataframe(
     if isinstance(includeParameters, str):
         includeParameters = [includeParameters]
     if includeParameters == ["all"]:
-        peak_properties = pf.peak_components(full=True)
+        peak_properties = pf.peak_components(full=True, include_combined=includeIntegrated)
         includeParameters = peak_properties[1]
 
     if includeSeriesValues is not False or includeUnitCells is not False:
@@ -263,8 +292,10 @@ def ReadFits_to_dataframe(
             "SampleDeformation": SampleDeformation,
         }
         kwargs.update(set_params)
+    kwargs.update({"add_integrated": includeIntegrated})
+    
+    if includeIntensityRanges is not False: 
 
-    if includeIntensityRanges is not False:
         # get the intensity maximum and minimum of the fit, model and residuals
         IntensityValues = [
             "data_max",
@@ -278,7 +309,7 @@ def ReadFits_to_dataframe(
         IntensityValues = []
 
     # read all the data.
-    fits, metadata = ReadFits_to_list(settings_class, args, kwargs)
+    fits, metadata = ReadFits_to_list(settings_class, **kwargs)
 
     num_fits = 0
     max_peaks = 0
@@ -334,6 +365,20 @@ def ReadFits_to_dataframe(
                         | profile_properties
                     )
 
+                    if includeIntegrated:
+                        extras = (set(
+                            pf.peak_components(full=True, include_profile=True, include_combined=True)[1]) - 
+                            set(pf.peak_components(full=True, include_profile=True, include_combined=False)[1])
+                        )
+                        for k in extras:
+                            extra_properties = series_properties(
+                                fits[z], subpattern = i, peak=j, param=k, azm_spacing=azms
+                            )
+                            fits[z][i]["peak"][j]["crystallographic_values"] = (
+                                fits[z][i]["peak"][j]["crystallographic_values"] 
+                                | extra_properties
+                            )
+
         if includeSeriesValues is not False:
             # list the entries in crystallographic_values dictionary
             DerivedValues = fits[z][0]["peak"][0]["crystallographic_values"].keys()
@@ -388,8 +433,8 @@ def ReadFits_to_dataframe(
     headers.append("phase")
     headers.append("peak")
     # add metadata to list
-    if settings.metadata:
-        for i in settings.metadata:
+    if settings_class.metadata:
+        for i in settings_class.metadata:
             headers.append(i)
     headers.append("range_start")
     headers.append("range_end")
@@ -474,11 +519,7 @@ def ReadFits_to_dataframe(
             RowLst["range_end"] = data_to_write["range"][0][1]
 
             for w in settings_class.metadata:
-                if "/" in w:
-                    # cut to last part of h5key
-                    RowLst[w] = metadata[lists[z, 0]][w.split("/")[-1]]
-                else:
-                    RowLst[w] = metadata[lists[z, 0]][w]
+                RowLst[w] = metadata[lists[z, 0]][w]
 
             for w in range(len(includeParameters)):
                 ind = includeParameters[w]

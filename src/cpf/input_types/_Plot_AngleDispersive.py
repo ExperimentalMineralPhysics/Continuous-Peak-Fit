@@ -5,7 +5,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
-from matplotlib import cm, colors, gridspec, tri
+from matplotlib import cm, colors, gridspec, tri, colormaps
 
 from cpf.histograms import histogram1d, histogram2d
 from cpf.util.logging import get_logger
@@ -19,6 +19,8 @@ class _Plot_AngleDispersive:
     contained within it are created as methods in the angle dispersive diffraction
     classes (e.g. DioptasDetector and SERFlvpDetector).
     """
+    
+    default_colourmap = "magma_r"
 
     def _dispersion_ticks(self, disp_ticks=None, unique=10, disp_lims=None):
         """
@@ -101,18 +103,52 @@ class _Plot_AngleDispersive:
         plot_type : str
             Best type of plot for the current data set.
         """
+        
         recognised_plots = ["surface",
              "surf",
              "scatter",
              "raster",
-             "rast"]
+             "rast",
+             "im",
+             "image"]
         
         surf_threshold = 5e3
         raster_threshold = 5e5
         
-        if plot_type not in recognised_plots: 
+        """ if the azm values are nor rounded then numberical precision can make the number of unique values 
+        greater than the actual number. Round to remove imprecision. Also correctly identifies the right number of 
+        values then. see _plot_angleDispersive.plot_image()
+        FIXME: rounding_precision is a fixed value. should be set from the precision of the data.
+        """
+        rounding_precision = 8
+        
+        """ if the underlying data is on an orthogonal grid, that is aligned with the tth and azm axes, then the data 
+        is best plotted as images (i.e. it is fastest). Howver, cannot just test if:
+           unique(azm).size * unique(tth).size == intensity.size
+        because this is not true if the data has been compressed and masked values discarded.
+        Therefore also test if the number of unique azm and tth is significnatly less than the intensity.size.
+        if the data is on square grid then this is true. otherwise not. 
+        
+        image_fraction_unique_threshold is the arbitrary cutoff value to test for fraction of unique values. 
+        In testing values are either way above or way below this threshold
+        """
+        image_fraction_unique_threshold = 1/4
+        
+        
+        if plot_type not in recognised_plots:
             # then set it
-            if ma.MaskedArray(self.intensity).compressed().size < surf_threshold:
+                        
+            # get unique azm and tth values. 
+            unique_azm = np.unique(ma.MaskedArray(np.round(self.azm, rounding_precision)).data)
+            unique_tth = np.unique(ma.MaskedArray(np.round(self.tth, rounding_precision)).data)
+            
+            if (unique_azm.size*unique_tth.size == ma.MaskedArray(self.intensity).data.size
+                or unique_azm.size / ma.MaskedArray(self.azm).data.size <= image_fraction_unique_threshold
+                or unique_tth.size / ma.MaskedArray(self.tth).data.size <= image_fraction_unique_threshold
+            ):
+                # the is orthonormal data
+                plot_type = "image"
+            elif ma.MaskedArray(self.intensity).compressed().size < surf_threshold:
                 plot_type = "surface"
             elif ma.MaskedArray(self.intensity).compressed().size > raster_threshold:
                 plot_type = "rastered"
@@ -149,7 +185,7 @@ class _Plot_AngleDispersive:
         axis_plot.set_title("Integrated Data")
 
 
-    def plot_masked(self, fig_plot=None):
+    def plot_masked(self, fig_plot=None, **kwargs):
         """
         Plot all the information needed to mask the data well.
         :param fig:
@@ -476,7 +512,7 @@ class _Plot_AngleDispersive:
                     ax[2].set_title(ax[2].get_title(), y=0.9)
                 # fig_plot.rcParams['axes.titley'] = 1.0    # y is in axes-relative coordinates.
                 # fig_plot.rcParams['axes.titlepad'] = -14  # pad is in points...
-                ax[2].set_xlabel("Azimuth ($^\circ$)")
+                ax[2].set_xlabel(f"{self.Azimuthlabel} ({self.AzimuthUnits})")
             else:
                 bottom0, top0 = ax[0].get_ylim()
                 bottom1, top1 = ax[1].get_ylim()
@@ -507,7 +543,7 @@ class _Plot_AngleDispersive:
         fig_plot=None,
         axis_plot=None,
         show="intensity",
-        colourmap="jet",
+        colourmap=default_colourmap,
         limits=[0.01, 99.9],
         location="default",
         cbar_axes = None,
@@ -525,7 +561,7 @@ class _Plot_AngleDispersive:
         show : TYPE, optional
             DESCRIPTION. The default is "intensity".
         colourmap : TYPE, optional
-            DESCRIPTION. The default is "jet".
+            DESCRIPTION. The default is the default_colourmap, magma_r.
         limits : TYPE, optional
             DESCRIPTION. The default is [0, 99.9].
         location : TYPE, optional
@@ -674,7 +710,7 @@ class _Plot_AngleDispersive:
         data=None,
         limits=[1, 99.9],
         y_lims=None,
-        colourmap="jet",
+        colourmap= default_colourmap,
         plot_type=False,
         point_scale=2,
         resample_shape=None,
@@ -875,7 +911,19 @@ class _Plot_AngleDispersive:
                 vmin=IMin,
                 vmax=IMax,
                 colourmap=colourmap,
-                triangle_cutoff = 0.99
+                triangle_cutoff = 99
+            )
+        elif plot_type == "image" or plot_type == "im":
+            the_plot = image_plot(
+                plot_i,
+                plot_x,
+                plot_y,
+                show = show,
+                fig_plot=fig_plot,
+                axis_plot=axis_plot,
+                vmin=IMin,
+                vmax=IMax,
+                colourmap=colourmap,
             )
         elif plot_type == True or plot_type == "rastered" or plot_type == "rast":
             the_plot = raster_plot(
@@ -964,6 +1012,8 @@ def residuals_colour_scheme(maximum_value, minimum_value, **kwargs):
     return all_colours
 
 
+default_colourmap = _Plot_AngleDispersive.default_colourmap
+
 def raster_plot(
     data_plot,
     x_plot,
@@ -973,7 +1023,7 @@ def raster_plot(
     resample_shape=None,
     vmin=0,
     vmax=np.inf,
-    colourmap="jet",
+    colourmap=default_colourmap,
     pixels_per_bin=3,
 ):
     """
@@ -1001,7 +1051,7 @@ def raster_plot(
     vmax : float, optional
         minimum of the plotted colour scale. The default is np.inf, in effect the maximum value in data_plot
     colourmap : string, optional
-        Colourmap for the plot. The default is "jet".
+        Colourmap for the plot. The default is the default_colourmap, magma_r.
     pixels_per_bin : float, optional
         Scaler for the number of bins in the histogram  . The default is 3.
 
@@ -1024,7 +1074,7 @@ def raster_plot(
         x_bins = resample_shape[0]
         y_bins = resample_shape[1]
     else:
-        # base the sixe of the output on the number of pixels in the axes.
+        # base the size of the output on the number of pixels in the axes.
         if axis_plot == None:
             if fig_plot == None:
                 fig = plt.figure()
@@ -1071,8 +1121,8 @@ def surface_plot(
     resample_shape=None,
     vmin=0,
     vmax=np.inf,
-    colourmap="jet",
-    triangle_cutoff = 0.99
+    colourmap=default_colourmap,
+    triangle_cutoff = 99
 ):
     """
     Plots the data on an irregular tripcolor gird.
@@ -1094,7 +1144,7 @@ def surface_plot(
     vmax : float, optional
         minimum of the plotted colour scale. The default is np.inf, in effect the maximum value in data_plot
     colourmap : string, optional
-        Colourmap for the plot. The default is "jet".
+        Colourmap for the plot. The default is the default_colourmap, magma_r.
     triangle_cutoff : float, optional
         Perceltile threshold for filtering the triangles. The default is 0.99
 
@@ -1118,7 +1168,7 @@ def surface_plot(
         mask = np.array(mask, dtype="bool")
         triang.set_mask((triang.mask == True) | (mask == True))
 
-    if triangle_cutoff != 1:
+    if triangle_cutoff != 100:
         areas = []
         x_range = []
         y_range = []
@@ -1147,9 +1197,9 @@ def surface_plot(
             )
             
         # Mask off unwanted triangles.
-        xtri = x_plot.flatten()[corners] - np.roll(x_plot.flatten()[corners], 1, axis=1)
-        ytri = y_plot.flatten()[corners] - np.roll(y_plot.flatten()[corners], 1, axis=1)
-        rad = np.max(np.sqrt(xtri**2 + ytri**2), axis=1)
+        # xtri = x_plot.flatten()[corners] - np.roll(x_plot.flatten()[corners], 1, axis=1)
+        # ytri = y_plot.flatten()[corners] - np.roll(y_plot.flatten()[corners], 1, axis=1)
+        # rad = np.max(np.sqrt(xtri**2 + ytri**2), axis=1)
             
         if 0:
             fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
@@ -1162,14 +1212,14 @@ def surface_plot(
         cutoff_area = np.nanpercentile(areas, triangle_cutoff)
         cutoff_x = np.nanpercentile(x_range, triangle_cutoff)
         cutoff_y = np.nanpercentile(y_range, triangle_cutoff)
-        cutoff_rad = np.nanpercentile(rad, triangle_cutoff)
+        # cutoff_rad = np.nanpercentile(rad, triangle_cutoff)
         
         keep = []
         for i in progress_bar.iter_bar(FilterTriangles=range(len(corners))):
             if not all([areas[i] > cutoff_area,
                 x_range[i] > cutoff_x, 
                 y_range[i] > cutoff_y,
-                rad[i] > cutoff_rad
+                # rad[i] > cutoff_rad
                 ]):
                 keep.append(i)
         triang.triangles = triang.triangles[keep]
@@ -1178,6 +1228,84 @@ def surface_plot(
     pl = axis_plot.tripcolor(
         triang, data_plot.flatten(), cmap=colourmap, vmin=vmin, vmax=vmax,
         shading='gouraud'
+    )
+
+    return pl
+
+
+def image_plot(
+    data_plot,
+    x_plot,
+    y_plot,
+    show = "intensity",
+    fig_plot=None,
+    axis_plot=None,
+    resample_shape=None,
+    vmin=0,
+    vmax=np.inf,
+    colourmap=default_colourmap
+):
+    """
+    Plots the data as an image. Requires that the x_plot and y_plot are image coordinates.
+    
+    This is the fastest way to plot the data but is only representative if the underlying data is 
+    on an orthonormal grid.
+
+    Parameters
+    ----------
+    data_plot : masked array
+        data to convert into the image to plot.
+    x_plot : masked array
+        horizontal position of the data points (usually two theta)
+    y_plot : masked array
+        vertical position of the data points (usually azimuth)
+    show : bool, str 
+        How to plot data_plot. The default is "intensity".
+        If not 'intensity' or 'default' then any 'bad' data is shown as white. 
+    fig_plot : figure, optional
+        Figure to add plot to. The default is None.
+    axis_plot : axes, optional
+        Axes to add plot to. The default is None.
+    vmin : float, optional
+        minimum of the plotted colour scale. The default is 0.
+    vmax : float, optional
+        minimum of the plotted colour scale. The default is np.inf, in effect the maximum value in data_plot
+    colourmap : string, optional
+        Colourmap for the plot. The default is the default_colourmap, magma_r.
+
+    Returns
+    -------
+    pl : axes
+        filled set of axes.
+    """
+
+    # FIXME: should test that the data is convertable/plottable as an image. 
+    # otherwise revert to another plotting type.
+
+    # convert data to an image array.
+    rounding_precision = 8
+    # if the y values are nor rounded then numberical precision can make the number of unique values 
+    # greater than the actual number. Round to remove imprecision. Also correctly identifies the right number of 
+    # values then. 
+    # FIXME: rounding_precision is a fixed value. should be set from the precision of the data.
+    x_unique_vals, x_inverse = np.unique(np.round(x_plot.data,rounding_precision), return_inverse=True)
+    y_unique_vals, y_inverse = np.unique(np.round(y_plot.data,rounding_precision), return_inverse=True)
+
+    data_im = ma.zeros([y_unique_vals.shape[0], x_unique_vals.shape[0]])-1
+    data_im[y_inverse, x_inverse] = data_plot
+    
+    if show == "intensity" or show == "default":
+        data_im[data_im==-1] = np.nan
+        data_im[data_im==-np.inf] = np.nan
+        data_im[data_im==np.inf] = np.nan
+    cmap = colormaps.get_cmap(colourmap)
+    cmap.set_bad(color='white', alpha = 1.0)
+    
+    pl = axis_plot.imshow(
+        data_im, cmap=cmap, vmin=vmin, vmax=vmax,
+        origin='lower',
+        aspect='auto',
+        extent=[np.nanmin(x_unique_vals), np.nanmax(x_unique_vals), np.nanmin(y_unique_vals), np.nanmax(y_unique_vals)]
     )
 
     return pl

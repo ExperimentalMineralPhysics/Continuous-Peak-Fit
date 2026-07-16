@@ -545,13 +545,13 @@ class jcpds(object):
 
         dtor = np.pi / 180.
         self.v0 = (self.a0 * self.b0 * self.c0 *
-                   np.sqrt(1. -
-                           np.cos(self.alpha0 * dtor) ** 2 -
-                           np.cos(self.beta0 * dtor) ** 2 -
-                           np.cos(self.gamma0 * dtor) ** 2 +
-                           2. * (np.cos(self.alpha0 * dtor) *
-                                 np.cos(self.beta0 * dtor) *
-                                 np.cos(self.gamma0 * dtor))))
+                   sqrt(1. -
+                           cos(self.alpha0 * dtor) ** 2 -
+                           cos(self.beta0 * dtor) ** 2 -
+                           cos(self.gamma0 * dtor) ** 2 +
+                           2. * (cos(self.alpha0 * dtor) *
+                                 cos(self.beta0 * dtor) *
+                                 cos(self.gamma0 * dtor))))
 
     def compute_volume(self, pressure=None, temperature=None):
         """
@@ -644,13 +644,13 @@ class jcpds(object):
         self.apply_symmetry()
         dtor = np.pi / 180.
         self.v = (self.a * self.b * self.c *
-                   np.sqrt(1. -
-                           np.cos(self.alpha * dtor) ** 2 -
-                           np.cos(self.beta * dtor) ** 2 -
-                           np.cos(self.gamma * dtor) ** 2 +
-                           2. * (np.cos(self.alpha * dtor) *
-                                 np.cos(self.beta * dtor) *
-                                 np.cos(self.gamma * dtor))))
+                   sqrt(1. -
+                           cos(self.alpha * dtor) ** 2 -
+                           cos(self.beta * dtor) ** 2 -
+                           cos(self.gamma * dtor) ** 2 +
+                           2. * (cos(self.alpha * dtor) *
+                                 cos(self.beta * dtor) *
+                                 cos(self.gamma * dtor))))
 
 
     def apply_symmetry(self):
@@ -799,13 +799,16 @@ class jcpds(object):
             
         cmodel = lmfit.Model(self._lattice_params_model)
         if weighted is True:
-            out = cmodel.fit(obs, params, jcpds=None, weights=weights, nan_policy='omit')   
+            out = cmodel.fit(obs, params, weights=weights, nan_policy='omit')   
         else:
-            out = cmodel.fit(obs, params, jcpds=None, nan_policy='omit')    
+            out = cmodel.fit(obs, params, nan_policy='omit')    
             
         # copy parameters back into self.
         for ind in self.get_unique_unitcell_params():
-            setattr(self, ind, ufloat(out.params[ind].value, out.params[ind].stderr) )
+            if out.params[ind].stderr:
+                setattr(self, ind, ufloat(out.params[ind].value, out.params[ind].stderr) )
+            else:
+                setattr(self, ind, ufloat(out.params[ind].value, 1e-8) )
         
         #update properties
         self.compute_unitcell_volume()

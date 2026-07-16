@@ -197,7 +197,7 @@ def WriteOutput(settings, debug=False, **kwargs):
             # logger.info(" ".join(map(str, [(t, int(t*fps), y[int(t*fps)])])))
 
             # Get diffraction pattern to process.
-            data_class.import_image(settings_class.image_list[y[int(t * fps)]])
+            data_class.import_image(settings_class.image_list[y[int(t * fps)]], settings=settings_class)
 
             if settings_class.datafile_preprocess is not None:
                 # needed because image preprocessing adds to the mask and is different for each image.

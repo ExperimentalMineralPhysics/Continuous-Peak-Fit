@@ -202,7 +202,7 @@ def histogram1d(
     return np.array(position), np.array(intens), np.array(azm)
 
 
-def histogram2d(data, x, y, x_bins=500, y_bins=720):
+def histogram2d(data, x, y, x_bins=500, y_bins=720, azm_bounds=None):
     """
     Reduce the diffraction pixel data into regualar gridded data (in effect an image).
     This is basically pyFAI's integrate2d function without all the bells and whistles.
@@ -249,22 +249,29 @@ def histogram2d(data, x, y, x_bins=500, y_bins=720):
             data = ma.array(data)
             x = ma.array(x)
             y = ma.array(y)
-
+    
+    if azm_bounds:
+        ymin = np.min(azm_bounds)
+        ymax = np.max(azm_bounds)
+    else:
+        ymin = ma.array(y).min()
+        ymax = ma.array(y).max()
+        
     x_edges = np.linspace(
-        x[x.mask == False].min(), x[x.mask == False].max(), int(x_bins) + 1
+        ma.array(x).min(), ma.array(x).max(), int(x_bins) + 1
     )
     y_edges = np.linspace(
-        y[y.mask == False].min(), y[y.mask == False].max(), int(y_bins) + 1
+        ymin, ymax, int(y_bins) + 1
     )
-
+    
     num_pix_per_bin, _, _ = np.histogram2d(
-        x[x.mask == False].flatten(),
-        y[y.mask == False].flatten(),
+        ma.array(x).compressed().flatten(),
+        ma.array(y).compressed().flatten(),
         bins=[x_edges, y_edges],
     )
     nominator, _, _ = np.histogram2d(
-        x[x.mask == False].flatten(),
-        y[y.mask == False].flatten(),
+        ma.array(x).compressed().flatten(),
+        ma.array(y).compressed().flatten(),
         bins=[x_edges, y_edges],
         weights=data[data.mask == False].flatten(),
     )

@@ -127,6 +127,11 @@ def fits_to_unitcell(settings, *args, **kwargs):
         )
         # add metadata
         for i in settings_class.metadata:
+            # if "/" in i:
+            #     #then h5 metadata.
+            #     cells_tmp[i.split("/")[-1]] = metadata[i]
+            #     #get last index in key as the dictionarry entry label
+            # else:
             cells_tmp[i] = metadata[i]
 
         # get or guess phase
@@ -196,11 +201,13 @@ def fits_to_unitcell(settings, *args, **kwargs):
             templbl_without_wildcards = re.sub(
                 r"\*", ".*", settings_class.metadata_labels["temperature"]
             )
-        elif "temperature" in settings_class.data_class._default_metadata_labels:
+        elif ("_default_metadata_labels" in settings_class.data_class.__dict__ and 
+            "temperature" in settings_class.data_class._default_metadata_labels
+            ):
             templbl_without_wildcards = re.sub(
-                r"\*",
-                ".*",
-                settings_class.data_class._default_metadata_labels["temperature"],
+                r"\*", 
+                ".*", 
+                settings_class.data_class._default_metadata_labels["temperature"]
             )
         else:
             templbl_without_wildcards = "None"

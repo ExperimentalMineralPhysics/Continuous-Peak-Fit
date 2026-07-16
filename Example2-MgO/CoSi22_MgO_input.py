@@ -43,7 +43,7 @@ Calib_data = "COSI_021_0001.med"
 Calib_param = "COSI_021_0001.med"
 Calib_mask = [5, 10]
 
-metadata = ['mean_start_time', 'mean_live_time', '6BMB_LVP:LVP_tc1_calcs.I', '6BMB_LVP:LVP_tc2_calcs.I', 'FILE_CREATION', 'time_start']
+metadata = ['mean_start_time', 'mean_live_time', '6BMB_LVP:LVP_tc1_calcs.I', '6BMB_LVP:LVP_tc2_calcs.I', 'FILE_CREATION', 'frames start']
 metadata_labels = {#"time": "mean_live_time", # file creation time.
                           'exposure': 'mean_live_time',
                           "temperature": "*LVP_tc1_calcs.I"}

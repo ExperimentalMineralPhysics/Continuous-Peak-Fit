@@ -529,7 +529,7 @@ def DefaultProcessDictionary(types=False):
         "label": ["", "*"]}
     or it returns a dictionary with the expected formats or values:
         {"do":    {"type": str,
-                   "values": ["sum", "iterate"]},
+                   "values": ["sum", "iterate", "combine", "average"]},
         "from":  {"type": (int, float, np.ndarray)},
         "to":    {"type": (int, float, np.ndarray)},
         "step":  {"type": (int)},
@@ -558,7 +558,7 @@ def DefaultProcessDictionary(types=False):
         }
     else:
         return {
-            "do": {"type": str, "values": ["sum", "iterate", "combine"]},
+            "do": {"type": str, "values": ["sum", "iterate", "combine", "average"]},
             "from": {"type": (int, float, np.ndarray)},
             "to": {"type": (int, float, np.ndarray)},
             "step": {"type": (int)},
@@ -1031,9 +1031,14 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
         if not keylist[i] in df.keys():
             err_str = "The key, '%s' does not exist in '%s'" % (keylist[i], df)
             logger.warning(" ".join(map(str, [(err_str)])))
+        elif len(np.array(df[keylist[i]]).squeeze().shape) == 2:
+            # the data is two dimensional. 
+            # then not line of data and likely an image
+            # Need all of it. 
+            out.append([keylist[i], 0, ""])
         else:
             number_data = np.array(df[keylist[i]]).squeeze().shape[itera["dim"]]
-            if itera["do"] == "sum":
+            if itera["do"] == "sum" or itera["do"] == "average":
                 # add all the frames in the data set
                 if "list" in itera:
                     index_values = itera["list"]
@@ -1236,9 +1241,12 @@ def get_images(
     """
 
     if image_list != None:
-        if len(image_list) == 2 and len(image_list[1]) == 3:
-            # then the list is for a single file and needs to be wrapped in another list
-            image_list = [image_list]
+        if len(image_list) != 4:
+            # then something is goong on.
+            stop
+        # if len(image_list) == 2 and len(image_list[1]) == 3:
+        #     # then the list is for a single file and needs to be wrapped in another list
+        #     image_list = [image_list]
     elif settings_class != None:
         image_list = settings_class.image_list
     elif settings_file != None:
@@ -1260,6 +1268,11 @@ def get_images(
     data_position_in_key = image_list[2]
     if datafile[datakey].size == 1:
         data = np.array(datafile[datakey].squeeze()[()])
+    elif len(np.array(datafile[datakey]).squeeze().shape) == 2:
+        # the data is two dimensional. 
+        # then not line of data and likely an image
+        # Need all of it. 
+        data = np.array(datafile[datakey]).squeeze()
     else:
         # if ((not setttings_class) or
         #     data_position_in_key.size == 1 or
@@ -1276,6 +1289,16 @@ def get_images(
                 .squeeze()[data_position_in_key]
                 .sum(axis=dim)
             )
+        elif do == "average":  # multi slice data that needs collapsing
+            data = (
+                np.array(datafile[datakey])
+                .squeeze()[data_position_in_key]
+                .sum(axis=dim)
+            )
+            data = data/data.shape[dim]
+        else:
+            err_str = f"The h5 process '{do}' is not recognised."
+            raise ValueError(err_str)
             # stop
             # if not settings_class:
             #     # just return everything

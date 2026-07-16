@@ -20,35 +20,14 @@ logger = get_logger("cpf.output_formatters.WritePolydefix")
 
 def Requirements():
     # List non-universally required parameters for writing this output type.
-
     RequiredParams = [
         #'apparently none!
     ]
-    OptionalParams = {  # dictionary
-        # "time": "time_label", # time stamps for the diffraction paterns
-        # "temperature": "*tc1_calcs.I", # which thermocouple to call.
+    OptionalParams = {
         "Phase": True,  # the phase we are interested in -- if True then guesses most common phase
         "ElasticProperties": True,  # default is to use the phase name of the material. If more than 1 material need wild cards to match phase names.
-        "differential_only": False,
-        # "which_thermocouple": 1,  # which thermocoule to include from 6BMB/X17B2 collection system. default to 1. #FIX ME: this needs to be included
-        ###"Output_directory",  # if no direcrtory is specified write to current directory.
-        # "Output_TemperaturePower",
-        # "Output_tc",
-        # "SampleGeometry": "3d",  # changes the strain tensor calucaltion from 2d to 3d. This determines how the cetroid and differnetial strain of the dpsaice are extracted from the fourier series.
-        # "SampleDeformation": "compression",  # changes calculation between 'compression' and 'extension'.
+        "differential_only": False, # use only the differetial part of the d-spacing series
     }
-    # OptionalParams = [
-    #     "Output_ElasticProperties",  # FIX ME: this needs to be included
-    #     "tc",  # which thermocoule to include from 6BMB/X17B2 collection system. default to 1. #FIX ME: this needs to be included
-    #     # "Output_directory",  # if no direcrtory is specified write to current directory. -- not set by default in settings class.
-    #     "phase",  # the phase we are interested in
-    #     "datafile_StartNum",  # start num and end num are needed for Polydefix which assumes continuous data files.
-    #     "datafile_EndNum",
-    #     "datafile_NumDigit",
-    #     # FIXME: we should be able to re-number the data files so that processing them is possible with polydexif.
-    #     # FIXME: these are addressed in the code as .
-    # ]
-
     # append the requirements from WriteMultiFit to the lists because PolyDefix requires WriteMultiFit.
     r, o = WriteMultiFit.Requirements()
     RequiredParams = RequiredParams + r
@@ -57,7 +36,6 @@ def Requirements():
     return RequiredParams, OptionalParams
 
 
-# def WriteOutput(FitSettings, parms_dict, differential_only=False, **kwargs):
 def WriteOutput(
     settings,
     differential_only=False,
@@ -108,10 +86,10 @@ def WriteOutput(
     )
 
     # get the fits
-    fits, _ = ReadFits_to_list(settings=settings_class)
-    fitsDF = ReadFits_to_dataframe(settings=settings_class)
-
-    # parse Phase and ElasticProperties
+    fits, _ = ReadFits_to_list(settings=settings_class, **kwargs)
+    fitsDF = ReadFits_to_dataframe(settings=settings_class, **kwargs)
+    
+    #parse Phase and ElasticProperties
     if Phase is True:
         phases = fitsDF["phase"].unique()
         num_occurences = []
@@ -126,9 +104,7 @@ def WriteOutput(
 
     base = settings_class.datafile_basename
     if base is None:
-        logger.info(
-            " ".join(map(str, [("No base filename, using input filename instead.")]))
-        )
+        logger.info("No base filename, using input filename instead.")
         base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
     if differential_only is not False:
         base = base + "_DiffOnly"
@@ -175,11 +151,33 @@ def WriteOutput(
         text_file.write(
             "     %s\n" % settings_class.datafile_basename.strip("_").strip(".")
         )
-        # if "datafile_startnum" in self.settings_from_input:
-        #     self.datafile_startnum  = self.settings_from_input["datafile_StartNum"]
-        #     self.datafile_endnum    = self.settings_from_input["datafile_EndNum"]
-        #     self.datafile_numdigits = self.settings_from_input[datafile_NumDigit"]
-        if (
+        
+
+        # create output file name from passed name
+        if ("datafile_StartNum" not in settings_class.settings_from_input 
+                 and "datafile_EndNum" not in settings_class.settings_from_input
+                 ):
+            #then have renumbered the multifit the files
+            text_file.write("# Renumbered the multifit files.\n")
+            text_file.write(f"# *000000.fit -- was {settings_class.image_list[0]}.\n")
+            if settings_class.image_number > 1:
+                text_file.write("# through to\n")
+                text_file.write(f"# *{settings_class.image_number}.fit -- was {settings_class.image_list[-1]}.\n")
+            strt = 0
+            eend = settings_class.image_number
+            
+        elif ("datafile_Step" in settings_class.settings_from_input 
+            and np.abs(settings_class.settings_from_input["datafile_Step"]) != 1
+            ):
+           #then have renumbered the multifit the files
+           text_file.write("# Renumbered the multifit files.\n")
+           text_file.write(f"# *000000.fit -- was {settings_class.image_list[0]}.\n")
+           if settings_class.image_number >1:
+               text_file.write(f"# through to\n")
+               text_file.write(f"# *{settings_class.image_number}.fit -- was {settings_class.image_list[-1]}.\n")
+           strt = 0
+           eend = settings_class.image_number
+        elif (
             settings_class.settings_from_input["datafile_StartNum"]
             > settings_class.settings_from_input["datafile_EndNum"]
         ):

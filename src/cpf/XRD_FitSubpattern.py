@@ -392,6 +392,7 @@ def fit_sub_pattern(
             peeks, previous_params, settings_class.subfit_orders
         )
 
+    data_as_class.intensity = np.array([])
     #initiate parameter set for fitting
     master_params = lmm.initiate_all_params_for_fit(
         settings_class,
@@ -399,9 +400,32 @@ def fit_sub_pattern(
         values=previous_params,
         # debug=debug,
     )
-
-    # check if the data intensity is above threshold.
-    if np.max(data_as_class.intensity) <= min_data_intensity:
+    
+    if data_as_class.intensity.size == 0:
+        # then we have no data in the range. 
+        # issue warning and skip fitting. 
+        
+        #initiate parameter set for fitting
+        master_params = lmm.initiate_all_params_for_fit(
+            settings_class,
+            data_as_class,
+            values=previous_params,
+            # debug=debug,
+        )
+    
+        # set step to -5001 so that it is still negative at the end
+        step=[-5001]  # get to the end and void the fit
+        # void so send empty parameter set to out.
+        prms = master_params.valuesdict()
+        for i in prms.keys():
+            if "_s" in i:
+                pass
+            else:
+                 prms[i] = 0
+        master_params.set(**prms)
+    
+    elif np.max(data_as_class.intensity) <= min_data_intensity:
+        # check if the data intensity is above threshold.
         # then there is likely no determinable peak in the data
         logger.moreinfo(
             f"Not sufficient intensity in the data to proceed with fitting (I_max < {min_data_intensity})."
@@ -416,8 +440,8 @@ def fit_sub_pattern(
             else:
                  prms[i] = 0
         master_params.set(**prms)
-                 
-    if not check_num_azimuths(peeks, data_as_class.azm, settings_class.subfit_orders):
+                     
+    elif not check_num_azimuths(peeks, data_as_class.azm, settings_class.subfit_orders):
         # check the number of unique azimuths is greater than the number of coefficients.
         # logger messages added in function -- not needed here
         # set step to -31 so that it is still negative at the end
@@ -1079,8 +1103,8 @@ def fit_sub_pattern(
         new_params.update(
             {
                 "DataProperties": {
-                    "max": np.max(data_as_class.intensity),
-                    "min": np.min(data_as_class.intensity),
+                    "max": np.max(data_as_class.intensity) if data_as_class.intensity.size > 0 else np.nan,
+                    "min": np.min(data_as_class.intensity) if data_as_class.intensity.size > 0 else np.nan,
                 }
             }
         )
@@ -1090,11 +1114,11 @@ def fit_sub_pattern(
             {
                 "data_ranges": {
                     "data": {
-                        "max": np.max(data_as_class.intensity),
-                        "min": np.min(data_as_class.intensity),
-                        "pt1percentile": np.nanpercentile(data_as_class.intensity, 0.1),
-                        "1percentile": np.nanpercentile(data_as_class.intensity, 1),
-                        "99percentile": np.nanpercentile(data_as_class.intensity, 99),
+                        "max": np.max(data_as_class.intensity) if data_as_class.intensity.size > 0 else np.nan,
+                        "min": np.min(data_as_class.intensity) if data_as_class.intensity.size > 0 else np.nan,
+                        "pt1percentile": np.nanpercentile(data_as_class.intensity, 0.1) if data_as_class.intensity.size > 0 else np.nan,
+                        "1percentile": np.nanpercentile(data_as_class.intensity, 1) if data_as_class.intensity.size > 0 else np.nan,
+                        "99percentile": np.nanpercentile(data_as_class.intensity, 99) if data_as_class.intensity.size > 0 else np.nan,
                         "99pt9percentile": np.nanpercentile(
                             data_as_class.intensity, 99.9
                         ),

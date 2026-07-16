@@ -63,6 +63,9 @@ def parse_bounds(bounds, data_as_class, ndat=None, n_peaks=1, param=None):
         }
     if ndat is None:
         ndat = np.size(data_as_class.intensity)
+        if ndat == 0:
+            # catch divide by 0
+            ndat = np.finfo(float(0)).eps
 
     choice_list = ["d-space", "height", "width", "profile", "background"]
     if param is not None:
@@ -75,14 +78,16 @@ def parse_bounds(bounds, data_as_class, ndat=None, n_peaks=1, param=None):
             vals = data_as_class.tth
         else:  # par == "d-space"
             vals = data_as_class.tth
+        if vals.size==0:
+            vals=np.array([-np.inf, np.inf])
 
         b = bounds[par]
-        b = [str(w).replace("inf", "np.inf") for w in b]
         b = [str(w).replace("range", "(max-min)") for w in b]
         b = [w.replace("ndata", str(ndat)) for w in b]
         b = [w.replace("max", str(np.max(vals))) for w in b]
         b = [w.replace("min", str(np.min(vals))) for w in b]
         b = [w.replace("npeaks", str(n_peaks)) for w in b]
+        b = [str(w).replace("inf", "np.inf") for w in b]
         b = [eval(w) for w in b]
         if par == "d-space":
             # use conversion rather than storing d-spacing array

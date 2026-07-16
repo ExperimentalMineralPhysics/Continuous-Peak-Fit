@@ -67,6 +67,10 @@ def WriteOutput(settings, debug=False, **kwargs):
 
     # make sure settings is a class
     settings_class = get_settings(settings)
+    if 'fit_options' in settings_class:
+        as_masked = settings_class.fit_options.get('as_masked', False)
+    else:
+        as_masked = False
 
     # Parse optional parameters
     fps = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
@@ -209,7 +213,7 @@ def WriteOutput(settings, debug=False, **kwargs):
                 pass
 
             # restrict data to the right part.
-            sub_data = data_class.duplicate()
+            sub_data = data_class.duplicate(as_masked=as_masked)
             settings_class.set_subpattern(y[int(t * fps)], z)
             sub_data.set_limits(range_bounds=dispersion_range[z][y[int(t * fps)]])
 

@@ -392,7 +392,6 @@ def fit_sub_pattern(
             peeks, previous_params, settings_class.subfit_orders
         )
 
-    data_as_class.intensity = np.array([])
     #initiate parameter set for fitting
     master_params = lmm.initiate_all_params_for_fit(
         settings_class,

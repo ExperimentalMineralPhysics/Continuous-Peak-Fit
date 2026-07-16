@@ -945,7 +945,7 @@ class Settings:
                             and not "phase" in self.fit_orders[i]["peak"][j]
                         ):
                             self.fit_orders[i]["peak"][j]["phase"] = "Region"
-                            self.fit_orders[i]["peak"][j]["hkl"] = i + 1
+                            self.fit_orders[i]["peak"][j]["hkl"] = f'{i:03}'
 
                 if "PeakPositionSelection" in self.fit_orders[i]:
                     mssng = self.validate_position_selection(peak_set=i, report=report)

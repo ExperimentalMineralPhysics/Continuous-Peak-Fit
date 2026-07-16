@@ -151,7 +151,7 @@ class _masks:
             for lims in mask[lbl_str]:
                 im_mask = (
                     im_mask
-                    | ma.masked_inside(self.tth, lims[0], lims[1]).mask
+                    | ma.masked_inside(self.azm, lims[0], lims[1]).mask
                 )
 
         # FIX ME: Should also add circles and other polygons as per GSAS-II masks

@@ -717,7 +717,7 @@ def spline_expand(
     if no_negatives:
         try:
             eps = np.finfo(fout.dtype).eps
-        else:
+        except:
             eps = np.finfo(float(0)).eps
         fout[fout<0] = eps
         
@@ -824,7 +824,7 @@ def fourier_expand(
     if no_negatives:
         try:
             eps = np.finfo(fout.dtype).eps
-        else:
+        except:
             eps = np.finfo(float(0)).eps
         fout[fout<0] = eps
     return np.squeeze(fout)

@@ -141,7 +141,10 @@ class _Plot_AngleDispersive:
             unique_azm = np.unique(ma.MaskedArray(np.round(self.azm, rounding_precision)).data)
             unique_tth = np.unique(ma.MaskedArray(np.round(self.tth, rounding_precision)).data)
             
-            if (unique_azm.size*unique_tth.size == ma.MaskedArray(self.intensity).data.size
+            if ma.MaskedArray(self.intensity).compressed().size == 0:
+                # all the data is masked or removed.
+                plot_type = "scatter"
+            elif(unique_azm.size*unique_tth.size == ma.MaskedArray(self.intensity).data.size
                 or unique_azm.size / ma.MaskedArray(self.azm).data.size <= image_fraction_unique_threshold
                 or unique_tth.size / ma.MaskedArray(self.tth).data.size <= image_fraction_unique_threshold
             ):
@@ -218,7 +221,7 @@ class _Plot_AngleDispersive:
             limits=[0, 100],
             plot_type=plot_type,
         )
-        ax1.set_title("All Data")
+        ax1.set_title(f"All Data; n={self.intensity.size}")
         ax2 = fig_plot.add_subplot(spec[1])
         self.plot_calibrated(
             fig_plot=fig_plot,
@@ -238,7 +241,7 @@ class _Plot_AngleDispersive:
             limits=[0, 100],
             plot_type=plot_type,
         )
-        ax3.set_title("Masked Data")
+        ax3.set_title(f"Masked Data; n={self.intensity.compressed().size}")
 
         ax4 = fig_plot.add_subplot(spec[3])
         self.plot_calibrated(
@@ -813,7 +816,8 @@ class _Plot_AngleDispersive:
             plot_i = plot_i
 
         # set axis limits
-        x_lims = [plot_x.min(), plot_x.max()]
+        # x_lims = [plot_x.min(), plot_x.max()]
+        x_lims = [self.tth_start, self.tth_end]
 
         # set colour bar and colour maps.
         if colourmap == "Greys":

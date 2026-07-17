@@ -1138,7 +1138,7 @@ def execute(
             if mode == "set-range":
                 fig_1 = plt.figure()
                 sub_data.plot_masked(fig_plot=fig_1, **kwargs)
-                plt.suptitle(f"Extent and mask for {peak_string(settings_class.subfit_orders)}; n = {sub_data.intensity.size}")
+                plt.suptitle(f"Extent and mask for {peak_string(settings_class.subfit_orders)}")
 
                 filename = make_outfile_name(
                     settings_class.image_list[j],

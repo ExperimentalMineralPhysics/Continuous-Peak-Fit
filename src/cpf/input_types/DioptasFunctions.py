@@ -205,14 +205,10 @@ class DioptasDetector:
                 else:
                     raise ValueError("Should not be possible to get here")
 
-        # set new range.
-        new.tth_start = range_bounds[0]
-        new.tth_end = range_bounds[1]
-
         # restrict the data.
         local_mask = np.where(
-            (self.tth >= new.tth_start)
-            & (self.tth <= new.tth_end)
+            (self.tth >= range_bounds[0])
+            & (self.tth <= range_bounds[1])
             & (self.azm >= azi_bounds[0])
             & (self.azm <= azi_bounds[1])
         )
@@ -246,6 +242,10 @@ class DioptasDetector:
             if "z" in dir(new) and new.z is not None:
                 new.z = new.z.compressed()
 
+        # set new range.
+        new.tth_start = np.min([range_bounds[0], self.tth.max()])
+        new.tth_end = np.max([range_bounds[1], self.tth.min()])
+        
         return new
 
     def get_calibration(self, file_name=None, settings=None):

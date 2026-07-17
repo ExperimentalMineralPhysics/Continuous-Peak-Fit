@@ -239,10 +239,6 @@ class XYDetector:
         if "dspace" in dir(self):
             new.dspace = deepcopy(self.dspace[local_mask])
 
-        # set nee range.
-        new.tth_start = range_bounds[0]
-        new.tth_end = range_bounds[1]
-
         if "x" in dir(self):
             if self.x is not None:
                 new.x = deepcopy(self.x[local_mask])
@@ -267,6 +263,10 @@ class XYDetector:
             if "z" in dir(new) and new.z is not None:
                 new.z = new.z.compressed()
 
+        # set new range.
+        new.tth_start = np.min([range_bounds[0], self.tth.max()])
+        new.tth_end = np.max([range_bounds[1], self.tth.min()])
+        
         return new
 
     def get_calibration(self, file_name=None, settings=None):

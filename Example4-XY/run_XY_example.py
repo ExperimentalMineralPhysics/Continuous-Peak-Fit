@@ -1,16 +1,15 @@
 
-
-import cpf
+from copy import deepcopy
 import json
 import numpy as np
 import importlib.util
 from pathlib import Path
-from cpf.settings import Settings
 
+import cpf
+from cpf.settings import Settings
 
 azimuth_bins = 90
 tth_bins = 1500
-
 
 def settings_dict_from_file(file):
     if isinstance(dioptas_settings, str):
@@ -84,13 +83,18 @@ settings_as_dict_XY['run_name'] = settings_as_dict['run_name']
 settings_XY = Settings()
 settings_XY.populate(settings_as_dict_XY)
 
-settings = cpf.XRD_FitPattern.initiate(settings_XY)
+cpf.XRD_FitPattern.initiate(settings_XY)
 
 cpf.XRD_FitPattern.write_output(settings_XY, out_type="CollectionMovie")
 
-settings = cpf.XRD_FitPattern.set_range(settings_XY)
+# copy settings and then set range. Do this because set_range changes settings and discards images. 
+settings_XY2 = deepcopy(settings_XY)
+cpf.XRD_FitPattern.set_range(settings_XY2)
+
+cpf.XRD_FitPattern.execute(settings_XY, parallel=False)
+
+cpf.XRD_FitPattern.write_output(settings_XY, out_type=["FitMovie"])
 
 settings_XY.save_settings("test_save")
+settings_new = cpf.XRD_FitPattern.initiate("./results/test_save")
 
-
-settings = cpf.XRD_FitPattern.initiate("./results/test_save")

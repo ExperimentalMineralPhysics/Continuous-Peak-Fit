@@ -590,23 +590,26 @@ class _AngleDispersive_common:
 def equalObs(x, nbin):
     """
     get equally populated bins for data set.
-    copied from: https://www.statology.org/equal-frequency-binning-python/ on 26th May 2022.
+    efited after: https://www.statology.org/equal-frequency-binning-python/ (26th May 2022).
 
     Parameters
     ----------
-    x : TYPE
+    x : np.array
         data to disperse.
-    nbin : TYPE
+    nbin : int
         number of bins.
 
     Returns
     -------
-    TYPE
-        DESCRIPTION.
+    bounds : np.array
+        Edges of the bins for near equally filled bins.
 
     """
     nlen = len(x)
     x = np.sort(x)
-    return np.interp(np.linspace(0, nlen, nbin + 1), np.arange(nlen), np.sort(x))
+    bounds = np.interp(np.linspace(0, nlen, nbin + 1), np.arange(nlen), np.sort(x))
+    difs = np.append(bounds[1:] - bounds[:-1],np.inf)
+    bounds[difs==0] = bounds[difs==0] - difs[difs!=0].min()/2
+    return bounds
 
 

@@ -458,7 +458,7 @@ def fit_chunks(
             new_azi_chunks.append(azichunks[j])
 
         elif mode == "range":
-            # get maximum from each chunk
+            # get intensity range from each chunk
             out_vals["h"][0].append(np.max(chunk_intensity) - np.min(chunk_intensity))
             out_vals["chunks"].append(azichunks[j])
             new_azi_chunks.append(azichunks[j])

@@ -1295,19 +1295,23 @@ def plot_FitAndModel(
         else:
             pass
             # all the required data are present in the required format.
-
-        gmodel = Model(
-            lmm.peaks_model,
-            independent_vars=["two_theta", "azimuth"],
-            data_class=data_as_class,
-            orders=settings_class.subfit_orders,
-            start_end=[data_as_class.azm_start, data_as_class.azm_end],
-        )
-        full_fit_intens = gmodel.eval(
-            params=param_lmfit,
-            two_theta=data_as_class.tth.flatten(),
-            azimuth=data_as_class.azm.flatten(),
-        )
+            
+        if not np.any(np.isfinite(list(param_lmfit.valuesdict().values())) == False):
+            # if any values are not finite. Can be the case if background has a gradient (which does not have limits) AND the fit fails.
+            gmodel = Model(
+                lmm.peaks_model,
+                independent_vars=["two_theta", "azimuth"],
+                data_class=data_as_class,
+                orders=settings_class.subfit_orders,
+                start_end=[data_as_class.azm_start, data_as_class.azm_end],
+            )
+            full_fit_intens = gmodel.eval(
+                params=param_lmfit,
+                two_theta=data_as_class.tth.flatten(),
+                azimuth=data_as_class.azm.flatten(),
+            )
+        else:
+            full_fit_intens = np.zeros(data_as_class.tth.shape)
 
     azi_plot = np.unique(data_as_class.azm.flatten())
     if data_as_class.continuous_azm:

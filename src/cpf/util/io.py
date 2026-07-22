@@ -1081,7 +1081,7 @@ def make_outfile_name(
         filename = filename + "__" + additional_text
     if orders and "note" in orders:  # add additional text from note in orders.
         filename = (
-            filename + "__" + "".join(i for i in orders["note"] if i not in "\/:;*?<>|")
+            filename + "__" + "".join(i for i in orders["note"] if i not in r"\/:;*?<>|")
         )
     filename = filename.strip("_")
     if directory:

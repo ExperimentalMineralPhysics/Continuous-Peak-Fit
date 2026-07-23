@@ -1251,14 +1251,16 @@ def series_properties(
 
     vals = coefficient_expand(
         orientations,
-        param=coefficients[subpattern]["peak"][peak][param],
+        param=unp.uarray(coefficients[subpattern]["peak"][peak][param], coefficients[subpattern]["peak"][peak][param+"_err"]),
         coeff_type=coefficients[subpattern]["peak"][peak][param + "_type"],
         comp_str=param,
     )
     maximum = np.argmax(vals)
     minimum = np.argmin(vals)
-    properties["series max"] = vals[maximum]
-    properties["series min"] = vals[minimum]
+    properties["series max"] = unp.nominal_values(vals[maximum])
+    properties["series max err"] = unp.std_devs(vals[maximum])
+    properties["series min"] = unp.nominal_values(vals[minimum])
+    properties["series min err"] = unp.std_devs(vals[minimum])
     properties["series orientation max"] = orientations[maximum]
     properties["series orientation min"] = orientations[minimum]
 

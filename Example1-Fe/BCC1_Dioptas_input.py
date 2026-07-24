@@ -23,6 +23,9 @@ Calib_mask     = "DiffractionMask_Dioptas.mask"
 Output_directory   = 'results'
 Output_type        = ['Polydefix', 'DifferentialStrain', 'FitMovie', 'CoefficientTable', 'CollectionMovie']
 
+
+spot_finding_method = "scipy_peakfind",
+    
 # metadata_labels = {#"time": "time_start",
 #                    "exposure": "Exposure_time"}
 # metadata = ['Exposure_time', 'Exposure_period']

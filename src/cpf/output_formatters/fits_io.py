@@ -8,6 +8,7 @@ import json
 import os
 import re
 from itertools import product
+import proglog
 
 # import glob
 import numpy as np
@@ -60,13 +61,25 @@ def WriteFits(
     -------
     None.
     """
-    # try and get the meta data
-    # prepare output dictionary
+    
+    # force fitted_param
+    if isinstance(fitted_param, pd.DataFrame):
+        # the dump the DataFrame into a a set of lists.
+        # not dumpted to csv string because the new lines don't come out in the file.        
+        fitted_param = [fitted_param.columns.values.tolist()] + fitted_param.values.tolist()
+    
+    #set data labels.
+    if mode=="cascade":
+        data_out_label = "spots"
+    else: #mode=="fit" or "search" in mode:
+        data_out_label = "fits"
+        
+    #form outputs
     if filename_to_write and "PreviousFit" in filename_to_write:
         # prevent change in behaviour for now
         # FIXME: cleanup in future push
-        if "fits" in fitted_param:
-            out = fitted_param["fits"]
+        if data_out_label in fitted_param:
+            out = fitted_param[data_out_label]
         else:
             out = fitted_param
         for i in out:
@@ -74,17 +87,17 @@ def WriteFits(
     elif metadata:
         # FIXME: could probably collapse these last two options and write an empty metadata dict.
         # but not sure what happens if I make this change.
-        out = {"metadata": metadata, "fits": fitted_param}
+        out = {"metadata": metadata, data_out_label: fitted_param}
     else:
-        out = {"fits": fitted_param}
+        out = {data_out_label: fitted_param}
 
     if filename_to_write is None:
-        # FIXME: I dont think that mode is needed in this function. The default for additional_text is None, 
-        # if this is the case every time then the if/else and the input of mode to this function is not needed.
-        # if mode == "search":
-        #     additional_text = settings_class.file_label
-        # else:
-        #     additional_text = None
+        if settings_class.file_label:
+            additional_text = settings_class.file_label
+        else:
+            additional_text = ""
+        if mode == "cascade":
+            additional_text += "__spots"
         filename_to_write = make_outfile_name(
             settings_class.subfit_filename,
             directory=settings_class.output_directory,
@@ -98,12 +111,12 @@ def WriteFits(
         json.dump(
             out,
             TempFile,
-            sort_keys=True,
+            sort_keys=False,
             indent=2,
             default=numpy_to_json,
         )
 
-def ReadFits_to_list(settings, replace=True, **kwargs):
+def ReadFits_to_list(settings, replace=True, out="fits", **kwargs):
     """
     Read coefficents from json fits files and return values as list.
 
@@ -146,6 +159,7 @@ def ReadFits_to_list(settings, replace=True, **kwargs):
 
         # read all the data.
         fits = []
+        spots = []
         metadata = []
         for z in range(settings_class.image_number):
             settings_class.set_subpattern(z, 0)
@@ -153,7 +167,9 @@ def ReadFits_to_list(settings, replace=True, **kwargs):
             if settings_class.file_label:
                 additional_text = settings_class.file_label
             else:
-                additional_text = None
+                additional_text = ""
+            if out == "spots":
+                additional_text += "spots"
             filename = make_outfile_name(
                 settings_class.subfit_filename,
                 directory=settings_class.output_directory,
@@ -167,7 +183,10 @@ def ReadFits_to_list(settings, replace=True, **kwargs):
                 json_contents = json.load(json_data)
                 if isinstance(json_contents, dict):
                     # new style as dictionary with metadata
-                    fits.append(json_contents["fits"])
+                    if "fits" in json_contents:
+                        fits.append(json_contents["fits"])
+                    if "spots" in json_contents:
+                        spots.append(json_contents["spots"])
                     if "metadata" in json_contents:
                         metadata.append(json_contents["metadata"])
                     else:
@@ -176,51 +195,65 @@ def ReadFits_to_list(settings, replace=True, **kwargs):
                     # old stype without metadata
                     fits.append(json_contents)
                     metadata.append([])
-                if isinstance(settings_class.subfit_filename, list):
-                    fnam = settings_class.subfit_filename[0]
+                    
+            if isinstance(settings_class.subfit_filename, list):
+                fnam = settings_class.subfit_filename[0]
+            else:
+                fnam = settings_class.subfit_filename
+            if (os.path.isfile(fnam) and
+                sorted(settings_class.metadata) != sorted(list(metadata[-1]))
+            ):
+                # then we need to read the metadata from the files
+                metadata[-1] = read_metadata(settings_class)
+
+            if out != "spots" and add_integrated:
+                # create an integrated series and add to the fits
+                if not settings_class.data_class.continuous_azm:
+                    azimuths = settings_class.data_class.azm
+                    import numpy.ma as ma
+                    if ma.isMaskedArray(azimuths):
+                        azimuths = azimuths.compressed()
                 else:
-                    fnam = settings_class.subfit_filename
-                if (os.path.isfile(fnam) and
-                    sorted(settings_class.metadata) != sorted(list(metadata[-1]))
-                ):
-                    # then we need to read the metadata from the files
-                    metadata[-1] = read_metadata(settings_class)
+                    azimuths = None
+                for i in range(len(fits[-1])):
+                    strt_nd = [settings_class.data_class.azm_start, settings_class.data_class.azm_end]
+                    settings_class.set_subpattern(z, i)
+                    for j in range(len(fits[-1][i]["peak"])):
+                        comb_series = get_combined_series(
+                                                    fits[-1][i]["peak"][j], 
+                                                    azimuth = azimuths,
+                                                    start_end=strt_nd,
+                                                    **kwargs)
+                        fits[-1][i]["peak"][j].update(comb_series)
+        
+                for y in range(len(fits[-1])):
+                    if "correlation_coeffs" in fits[-1][y]:
+                        try:
+                            fits[-1][y]["correlation_coeffs"] = pd.DataFrame.from_dict(
+                                json.loads(fits[-1][y]["correlation_coeffs"])
+                            )
+                        except:
+                            pass
+                # # convert correlation coefficients into panda data frame
+                # for y in range(len(fits[-1])):
+                #     if "correlation_coeffs" in fits[-1][y]:
+                #         try:
+                #             fits[-1][y]["correlation_coeffs"] = pd.DataFrame.from_dict(
+                #                 json.loads(fits[-1][y]["correlation_coeffs"])
+                #             )
+                #         except:
+                #             pass
 
-                if add_integrated:
-                    # create an integrated series and add to the fits
-                    if not settings_class.data_class.continuous_azm:
-                        azimuths = settings_class.data_class.azm
-                        import numpy.ma as ma
-                        if ma.isMaskedArray(azimuths):
-                            azimuths = azimuths.compressed()
-                    else:
-                        azimuths = None
-                    for i in range(len(fits[-1])):
-                        strt_nd = [settings_class.data_class.azm_start, settings_class.data_class.azm_end]
-                        settings_class.set_subpattern(z, i)
-                        for j in range(len(fits[-1][i]["peak"])):
-                            comb_series = get_combined_series(
-                                                        fits[-1][i]["peak"][j], 
-                                                        azimuth = azimuths,
-                                                        start_end=strt_nd,
-                                                        **kwargs)
-                            fits[-1][i]["peak"][j].update(comb_series)
-            
-            # convert correlation coefficients into panda data frame
-            for y in range(len(fits[-1])):
-                if "correlation_coeffs" in fits[-1][y]:
-                    try:
-                        fits[-1][y]["correlation_coeffs"] = pd.DataFrame.from_dict(
-                            json.loads(fits[-1][y]["correlation_coeffs"])
-                        )
-                    except:
-                        pass
-
-    if replace:
-        # keep the null terms if we want/need.
-        # used for keeting errors in the previous fits
-        fits = replace_value(fits, old=None, new=0)
-    return fits, metadata
+    if out=="fits":
+        if replace:
+            # keep the null terms if we want/need.
+            # used for keeting errors in the previous fits
+            fits = replace_value(fits, old=None, new=0)
+        return fits, metadata
+    elif out=="spots":
+        return spots, metadata
+    else:
+        return fits, spots, metadata
 
 
 def ReadFits_to_dataframe(
@@ -313,7 +346,9 @@ def ReadFits_to_dataframe(
 
     num_fits = 0
     max_peaks = 0
-    for z in range(settings_class.image_number):
+    progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
+    for z in progress.iter_bar(FitProperties=range(settings_class.image_number)):
+    # for z in range(settings_class.image_number):
         settings_class.set_subpattern(z, 0)
 
         if includeSeriesValues is not False:
@@ -340,7 +375,7 @@ def ReadFits_to_dataframe(
                         )
                         azms = np.unique(data_class.azm)
                     else:
-                        azms = 0.01  # default spacing
+                        azms = 1  # default spacing
 
                     height_properties = series_properties(
                         fits[z], subpattern=i, peak=j, param="height", azm_spacing=azms
@@ -645,6 +680,109 @@ def ReadFits_to_dataframe(
     df = pd.DataFrame(RowsList, columns=headers)
 
     return df
+
+
+def ReadSpots_to_dataframe(
+    settings,
+    includeParameters="all",
+    identify_spots = True,
+    *args,
+    **kwargs,
+):
+    """
+    Read data from json spots files and return values as panda dataframe.
+
+    Parameters
+    ----------
+    settings : [str | Path | dict | Settings()]
+        Class containing all variables and options needed for the fitting, or
+        dictionary of all the settings or
+        string or path to a file with the settings in.
+    includeParameters : list[str], optional
+        List of which peak parameters to return. The default is "all".
+    includeStats : bool, optional
+        Switch to include all fitting statistics in output data frame. The default is False.
+    includeSeriesValues : bool or list, optional
+        Switch to include values derived from the fit parameters. Either a list of parameters returned by
+        cpf.output_formatters.convert_fit_to_crystallographic or a bool. The default is False.
+
+    Raises
+    ------
+    ValueError
+        Raised if nether settings_class or settings_file is present.
+
+    Returns
+    -------
+    df : Panda data frame
+        Data frame contiaing all the fits made when calling the settings_class/file.
+
+    """
+    # make sure settings is a class
+    settings_class = get_settings(settings)
+
+    # get what to write
+    if includeParameters is False:
+        includeParameters = []
+    elif "includeParameters" in settings_class.output_settings:
+        includeParameters = settings_class.output_settings["includeParameters"]
+    if isinstance(includeParameters, str):
+        includeParameters = [includeParameters]
+    
+    # read all the data.
+    spots, metadata = ReadFits_to_list(settings_class, out="spots", **kwargs)
+
+    # convert all data into DataFrame
+    spots_df = pd.DataFrame()
+    progress = proglog.default_bar_logger("bar")  # shorthand to generate a bar logger
+    for z in progress.iter_bar(FitProperties=range(settings_class.image_number)):
+    # for z in range(settings_class.image_number):
+        settings_class.set_subpattern(z, 0)
+
+        # make spots data frame
+        spots_headers = spots[z].pop(0)
+        spots_df_tmp = pd.DataFrame(spots[z], columns=spots_headers)
+
+        # make into columns DataFRame
+        spots_intro = pd.DataFrame()
+        headers_intro = ["DataFile"] + list(metadata[z]) + ["image_position"]
+        spots_intro['DataFile'] = [os.path.split(settings_class.subfit_filename)[1]] * len(spots_df_tmp)
+        for md in metadata[z]:
+            spots_intro[md] = [metadata[z][md]] * len(spots_df_tmp)
+        spots_intro['image_position'] = [z] * len(spots_df_tmp)
+            
+        # classify spots by range. 
+        identification_df = pd.DataFrame()
+        if identify_spots:
+            identification_headers = ["range", "phase", "peak"]
+    
+            in_range = np.array([np.nan] * len(spots_df_tmp))
+            phases = np.array(["                                                    "] * len(spots_df_tmp))
+            hkls = np.array(["                                                   "] * len(spots_df_tmp))
+            for i in range(len(settings_class.fit_orders)):
+                tth = tth = np.array(spots_df_tmp["2theta"])
+                inside = np.where(np.logical_and(tth >= settings_class.fit_orders[i]["range"][0], tth <= settings_class.fit_orders[i]["range"][1])==True)
+                in_range[inside] = i
+                phases[inside] = peak_phase(settings_class.fit_orders[i])[0]
+                hkls[inside] = peak_hkl(settings_class.fit_orders[i])[0]
+            identification_df['range'] = in_range
+            identification_df['phases'] = phases
+            identification_df['peak'] = hkls
+        else:
+            identification_headers = ["range"]    
+            in_range = np.array([np.nan] * len(spots_df_tmp))
+            for i in range(len(settings_class.fit_orders)):
+                tth = tth = np.array(spots_df_tmp["2theta"])
+                inside = np.where(np.logical_and(tth >= settings_class.fit_orders[i]["range"][0], tth <= settings_class.fit_orders[i]["range"][1])==True)
+                in_range[inside] = i
+            identification_df['range'] = in_range
+        
+        spots_df_tmp = spots_intro.join(identification_df).join(spots_df_tmp)
+        
+        spots_df = pd.concat([spots_df,spots_df_tmp ], ignore_index=True)
+        
+    # spots_df = spots_df.reindex(columns=headers)
+
+    return spots_df
 
 
 def read_metadata(settings_class):

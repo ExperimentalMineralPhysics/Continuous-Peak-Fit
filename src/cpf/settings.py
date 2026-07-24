@@ -19,6 +19,7 @@ import proglog
 
 import cpf.input_types as input_types
 import cpf.output_formatters as output_formatters
+# import cpf.spot_outputs as spot_output_formatters
 from cpf.peak_functions import peak_components
 from cpf.series_functions import (
     coefficient_type_as_number,
@@ -26,7 +27,7 @@ from cpf.series_functions import (
     coefficient_types,
     get_number_coeff,
 )
-from cpf.util.io import image_list, make_outfile_name, numpy_to_json
+from cpf.util.io import image_list, make_outfile_name#, numpy_to_json
 
 # , get_output_options, detector_factory, register_default_formats
 from cpf.util.logging import get_logger
@@ -180,6 +181,7 @@ class Settings:
         self.subfit_filename = None
         self.subfit_order_position = None
         self.subfit_orders = None
+        self.subfit_filename_position = None
 
         self.settings_file = settings_file
 
@@ -207,6 +209,7 @@ class Settings:
         new = copy(self)
         new.subfit_file_position = deepcopy(self.subfit_file_position)
         new.subfit_filename = deepcopy(self.subfit_filename)
+        new.subfit_filename_position = deepcopy(self.subfit_filename_position)
         new.subfit_order_position = deepcopy(self.subfit_order_position)
         new.subfit_orders = deepcopy(self.subfit_orders)
         return new
@@ -1276,8 +1279,13 @@ class Settings:
         disagree = []
         required = []
         output_settings = {}
-        for i in range(len(self.output_types)):
-            wr = getattr(output_formatters, "Write" + self.output_types[i])
+        for outtp in self.output_types:
+            if hasattr(output_formatters, "Write" + outtp):
+                wr = getattr(output_formatters, "Write" + outtp)
+            elif hasattr(spot_output_formatters, "Write" + outtp):
+                wr = getattr(spot_output_formatters, "Write" + outtp)
+            else:
+                raise ValueError(f"Output type {outtp} is not recognised")
             r, o = wr.Requirements()
             # store all the required options to parse next
             required.extend(r)
@@ -1428,7 +1436,8 @@ class Settings:
         """
         # Check output format exists
         for mod in self.output_types:
-            if "Write" + mod not in output_formatters.module_list:
+            if ("Write" + mod not in output_formatters.module_list 
+                and "Write" + mod not in spot_output_formatters.module_list):
                 raise ImportError(
                     "The 'Output_type' "
                     + mod
@@ -1444,8 +1453,13 @@ class Settings:
         # store in the settings.
         required = []
         optional = []
-        for i in range(len(self.output_types)):
-            wr = getattr(output_formatters, "Write" + self.output_types[i])
+        for outtp in self.output_types:
+            if hasattr(output_formatters, "Write" + outtp):
+                wr = getattr(output_formatters, "Write" + outtp)
+            elif hasattr(spot_output_formatters, "Write" + outtp):
+                wr = getattr(spot_output_formatters, "Write" + outtp)
+            else:
+                raise ValueError(f"Output type {outtp} is not recognised")
             r, o = wr.Requirements()
             # store all the required options to parse next
             required.extend(r)

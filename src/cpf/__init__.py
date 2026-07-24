@@ -19,14 +19,11 @@ __all__ = [
     "series_functions",
     "settings",
     "XRD_FitPattern",
-    "XRD_FitPattern",
-    "XRD_FitSubpattern",
     "XRD_FitSubpattern",
 ]
 
 from cpf import (
     BrightSpots,
-    Cascade,
     Cosmics,
     XRD_FitPattern,
     XRD_FitSubpattern,
@@ -40,6 +37,9 @@ from cpf import (
     series_constraints,
     series_functions,
     settings,
+    Cascade,
+    spot_methods,
+    spot_outputs
 )
 
 

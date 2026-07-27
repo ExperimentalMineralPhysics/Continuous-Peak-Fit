@@ -106,8 +106,19 @@ from cpf.util.logging import get_logger
 from types import ModuleType
 from cpf import spot_methods
 from cpf import spot_outputs
+from cpf import output_formatters
 
 logger = get_logger("cpf.Cascade")
+
+
+"""
+# FIXME : arrgh
+# FIXME : For somereason I cant import the cascaed outputs into a different folder. It wont let me 
+do so withot spitting out lots of errors. For the sake of a push that works I 
+have put the cascade outputs into the `output_formatters` folder. This is right but 
+also the wrong place because XRD_FitPattern cannot use them.
+
+"""
 
 
 
@@ -155,6 +166,30 @@ def register_default_spot_output_formats() -> dict[str, ModuleType]:
 
 # # Load potential output formats
 spot_output_methods_modules = register_default_spot_output_formats()
+
+
+def register_default_formats() -> dict[str, ModuleType]:
+    """
+    Load all available output modules. 
+    These are files in the output_formatters folder that have a name that is 
+    of the form `Write*.pn', where * is the name used to call the output formatter
+
+    Returns
+    -------
+    dict[str, ModuleType]
+        doctionary of possuble output modules.
+
+    """
+    # FIX ME: We could add extra checks here to make sure the required functions exist in each case.
+    output_list = output_formatters.module_list
+    new_module = {}
+    for output_module in output_list:
+        module: ModuleType = import_module(f"cpf.output_formatters.{output_module}")
+        new_module[output_module.replace("Write", "")] = module
+    return new_module
+
+# Load potential output formats
+output_methods_modules = register_default_formats()
 
 
 
@@ -333,9 +368,11 @@ def write_output(
         )
     else:
         for mod in settings_class.output_types:
-            if mod in spot_output_methods_modules:
+            # if mod in spot_output_methods_modules:
+            if mod in output_methods_modules:
                 logger.info(" ".join(map(str, [("Writing output file(s) using %s" % mod)])))
-                wr = spot_output_methods_modules[mod]
+                # wr = spot_output_methods_modules[mod]
+                wr = output_methods_modules[mod]
                 wr.WriteOutput(
                     settings_class,
                     **kwargs,

@@ -19,7 +19,7 @@ import proglog
 
 import cpf.input_types as input_types
 import cpf.output_formatters as output_formatters
-# import cpf.spot_outputs as spot_output_formatters
+import cpf.spot_outputs as spot_output_formatters
 from cpf.peak_functions import peak_components
 from cpf.series_functions import (
     coefficient_type_as_number,

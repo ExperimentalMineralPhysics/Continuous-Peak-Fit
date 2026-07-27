@@ -24,7 +24,7 @@ Output_directory   = 'results'
 Output_type        = ['Polydefix', 'DifferentialStrain', 'FitMovie', 'CoefficientTable', 'CollectionMovie']
 
 
-spot_finding_method = "scipy_peakfind",
+spot_finding_method = "scipy_peakfind"
     
 # metadata_labels = {#"time": "time_start",
 #                    "exposure": "Exposure_time"}

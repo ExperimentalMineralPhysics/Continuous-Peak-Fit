@@ -52,14 +52,14 @@
 Asterixs in the key allow for iterations over key names, but the key must point to a dataset in the hdf5 file.</p>
 <p>How to iterate over the key names and the dataset are controlled by ‘h5_iterate’.</p>
 <blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">h5_data</span>    <span class="o">=</span> <span class="s1">&#39;/*.1/measurement/p3&#39;</span>
-<span class="n">h5_iterate</span> <span class="o">=</span> <span class="p">[{</span><span class="n">start</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="mi">42</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span><span class="s2">&quot;*&quot;</span><span class="p">}</span>
-                  <span class="p">{</span><span class="s2">&quot;do&quot;</span><span class="p">:</span><span class="s2">&quot;iterate&quot;</span><span class="p">,</span>
-                   <span class="s2">&quot;from&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-                   <span class="s2">&quot;to&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-                   <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-                   <span class="s2">&quot;using&quot;</span><span class="p">:</span><span class="s2">&quot;position&quot;</span><span class="p">,</span>
-                   <span class="s2">&quot;label&quot;</span><span class="p">:[</span><span class="s1">&#39;*&#39;</span><span class="p">,</span><span class="s1">&#39;/*.1/instrument/positioners/dz1&#39;</span><span class="p">,</span> <span class="s1">&#39;/*.1/instrument/positioners/dy&#39;</span><span class="p">]}]</span>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">h5_data</span>    <span class="o">=</span> <span class="s1">'/*.1/measurement/p3'</span>
+<span class="n">h5_iterate</span> <span class="o">=</span> <span class="p">[{</span><span class="n">start</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="mi">42</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span><span class="s2">"value"</span><span class="p">,</span> <span class="s2">"label"</span><span class="p">:</span><span class="s2">"*"</span><span class="p">}</span>
+                  <span class="p">{</span><span class="s2">"do"</span><span class="p">:</span><span class="s2">"iterate"</span><span class="p">,</span>
+                   <span class="s2">"from"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                   <span class="s2">"to"</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                   <span class="s2">"step"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                   <span class="s2">"using"</span><span class="p">:</span><span class="s2">"position"</span><span class="p">,</span>
+                   <span class="s2">"label"</span><span class="p">:[</span><span class="s1">'*'</span><span class="p">,</span><span class="s1">'/*.1/instrument/positioners/dz1'</span><span class="p">,</span> <span class="s1">'/*.1/instrument/positioners/dy'</span><span class="p">]}]</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -98,13 +98,13 @@ If step is &lt;0 then the processing starts at the end and works backwards.</p>
 <section id="original-way-not-recomended">
 <h2>original way (not recomended).<a class="headerlink" href="#original-way-not-recomended" title="Link to this heading">¶</a></h2>
 <blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">h5_key_list</span>  <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;measurement/p3&#39;</span><span class="p">]</span>
-<span class="n">h5_key_names</span> <span class="o">=</span> <span class="p">[[</span><span class="s2">&quot;/&quot;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s1">&#39;instrument/positioners/dz1&#39;</span><span class="p">,</span><span class="s1">&#39;instrument/positioners/dy&#39;</span><span class="p">]]</span>
-<span class="c1">#h5_key_names = [&quot;&quot;,&quot;&quot;]</span>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">h5_key_list</span>  <span class="o">=</span> <span class="p">[</span><span class="s1">'/'</span><span class="p">,</span> <span class="s1">'measurement/p3'</span><span class="p">]</span>
+<span class="n">h5_key_names</span> <span class="o">=</span> <span class="p">[[</span><span class="s2">"/"</span><span class="p">,</span><span class="s1">''</span><span class="p">],</span> <span class="p">[</span><span class="s2">""</span><span class="p">,</span> <span class="s1">'instrument/positioners/dz1'</span><span class="p">,</span><span class="s1">'instrument/positioners/dy'</span><span class="p">]]</span>
+<span class="c1">#h5_key_names = ["",""]</span>
 <span class="n">h5_key_start</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
 <span class="n">h5_key_end</span>   <span class="o">=</span> <span class="p">[</span><span class="mi">42</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 <span class="n">h5_key_step</span>  <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
-<span class="n">h5_data</span>      <span class="o">=</span> <span class="s1">&#39;iterate&#39;</span> <span class="c1"># the other options would be &quot;sum&quot;. &quot;iterate&quot; only applies to the bottom level.</span>
+<span class="n">h5_data</span>      <span class="o">=</span> <span class="s1">'iterate'</span> <span class="c1"># the other options would be "sum". "iterate" only applies to the bottom level.</span>
 </pre></div>
 </div>
 </div></blockquote>

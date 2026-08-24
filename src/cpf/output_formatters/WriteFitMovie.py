@@ -67,6 +67,10 @@ def WriteOutput(settings, debug=False, **kwargs):
 
     # make sure settings is a class
     settings_class = get_settings(settings)
+    if 'fit_options' in settings_class.__dict__:
+        as_masked = settings_class.fit_options.get('as_masked', False)
+    else:
+        as_masked = False
 
     # Parse optional parameters
     fps = settings_class.output_settings.get("fps", Requirements()[1]["fps"])
@@ -99,7 +103,7 @@ def WriteOutput(settings, debug=False, **kwargs):
         base = os.path.splitext(os.path.split(settings_class.settings_file)[1])[0]
 
     # get the fits
-    all_fits, _ = ReadFits_to_list(settings=settings_class)
+    all_fits, _ = ReadFits_to_list(settings=settings_class, replace=False)
 
     # make the data class.
     data_to_fill = settings_class.image_list[0]
@@ -209,9 +213,8 @@ def WriteOutput(settings, debug=False, **kwargs):
                 pass
 
             # restrict data to the right part.
-            sub_data = data_class.duplicate()
             settings_class.set_subpattern(y[int(t * fps)], z)
-            sub_data.set_limits(range_bounds=dispersion_range[z][y[int(t * fps)]])
+            sub_data = data_class.duplicate(as_masked=as_masked, range_bounds=dispersion_range[z][y[int(t * fps)]])
 
             # Mask the subpattern by intensity if called for
             if (

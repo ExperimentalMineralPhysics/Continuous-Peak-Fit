@@ -458,7 +458,7 @@ def fit_chunks(
             new_azi_chunks.append(azichunks[j])
 
         elif mode == "range":
-            # get maximum from each chunk
+            # get intensity range from each chunk
             out_vals["h"][0].append(np.max(chunk_intensity) - np.min(chunk_intensity))
             out_vals["chunks"].append(azichunks[j])
             new_azi_chunks.append(azichunks[j])
@@ -468,7 +468,7 @@ def fit_chunks(
             # get 98th percentils from each chunk
             raise NotImplementedError
 
-        elif mode == "fit" or mode == "cascade" or mode == "search":
+        elif mode == "fit" or mode == "cascade" or "search" in mode:
             # Define parameters to pass to fit
             params = Parameters()
 
@@ -759,6 +759,11 @@ def fit_series(
         data_val_errors = data[0]["bg_err"][b]
         data_val_errors = clean_errs(data_val_errors)
 
+        if len(data_vals) < sf.get_number_coeff(orders, 'bg'):
+            master_params = lmm.un_vary_part_params(
+                master_params, param_str, comp, np.arange(0, np.floor(len(data_vals)-1)/2)
+            )
+
         fout = lmm.coefficient_fit(
             azimuth=azimuth,
             ydata=data_vals,
@@ -999,6 +1004,10 @@ def clean_errs(error_values, outliers=5):
 
     error_values = np.array(error_values)
 
+    if np.all(np.isfinite(error_values)==False):
+        # all the values are nan and there is nothing we can really do
+        return error_values
+    
     err_stdev = np.nanmedian(error_values)
     log_err_vals = np.log10(error_values)
 

@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 import re
-
+import sys
 import numpy as np
 import numpy.ma as ma
 from scipy.interpolate import CubicSpline, make_interp_spline
@@ -35,11 +35,18 @@ from lmfit import Parameters
     
 import cpf.peak_functions as pf
 import cpf.series_constraints as sc
-# from cpf.lmfit_model import coefficient_fit, initiate_all_params_for_fit, initiate_params, gather_param_errs_to_list
+from cpf.lmfit_model import coefficient_fit, initiate_all_params_for_fit, initiate_params, gather_param_errs_to_list
 from cpf.util.io import replace_value
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.series_functions")
+
+
+
+# TO DO: 
+# 1. rename coefficient_expand as series_expand.
+# 2. reorder the coefficient types so that the higher orderones have a greater numerical value.
+#    then I can use the highest value as a check when combining the series. 
 
 
 def coefficient_types(full=False):
@@ -536,6 +543,7 @@ def coefficient_expand(
     coeff_type="fourier",
     comp_str=None,
     start_end=[0, 360],
+    no_negatives = False,
     **params,
 ):
     """
@@ -573,7 +581,11 @@ def coefficient_expand(
     # FIXME: this could be changed so that all_series[series_name]["expansion_function"]
     # is used with getattr -- allowing easier future expansion of the series types.
     if all_series[series_name]["expansion_function"] == "fourier_expand":
-        out = fourier_expand(azimuth, inp_param=param, comp_str=comp_str, **params)
+        out = fourier_expand(azimuth, 
+                             inp_param=param, 
+                             comp_str=comp_str, 
+                             no_negatives=no_negatives,
+                             **params)
 
     elif all_series[series_name]["expansion_function"] == "spline_expand":
         out = spline_expand(
@@ -581,6 +593,7 @@ def coefficient_expand(
             inp_param=param,
             comp_str=comp_str,
             start_end=start_end,
+            no_negatives=no_negatives,
             bc_type=all_series[series_name]["boundary_conditions"],
             kind=all_series[series_name]["spline_type"],
             **params,
@@ -602,6 +615,7 @@ def spline_expand(
     start_end=[0, 360],
     bc_type="periodic",
     kind=None,
+    no_negatives=True,
     **params,
 ):
     """
@@ -700,6 +714,9 @@ def spline_expand(
 
         fout = spl(azimuth)
 
+    if no_negatives and np.any(fout<0):
+        fout[fout<0] = np.finfo(fout.dtype).eps
+        
     if isinstance(inp_param[0], UFloat):
         # then the input is an array of values with errors. 
         # these errors will be greater than the formal errors on any fit.
@@ -707,7 +724,11 @@ def spline_expand(
         if kind == "independent":
             inp = unp.std_devs(inp_param)
         else:
+            # run to end-1 because have to cut value added by spline_expand.
             inp = unp.std_devs(inp_param)[:-1]
+        if no_negatives:
+            # should prevent negative errors of itself
+            kind = "linear"
         errs = spline_expand(
             azimuth,
             inp_param=inp,
@@ -715,16 +736,19 @@ def spline_expand(
             start_end=start_end,
             bc_type=bc_type,
             kind=kind,
+            no_negatives=True,
             **params,
         )
-        # have to cut inp_param value added by spline_expand 
+        # prevent negative errors
+        errs[errs<0]=np.min(np.array([fout[errs<0], np.abs(errs[errs<0])]), axis=0)
+        
         fout = unp.uarray(fout, errs)
         
     return np.squeeze(fout)
 
 
 def fourier_expand(
-    azimuth, inp_param=None, comp_str=None, start_end=[0, 360], **params
+    azimuth, inp_param=None, comp_str=None, start_end=[0, 360], no_negatives=True, **params
 ):
     """
     Calculate series value at each azimuth for given fourier coefficients
@@ -793,10 +817,13 @@ def fourier_expand(
                 + inp_param[(2 * i) - 1] * np.sin((azm_tmp) * i)
                 + inp_param[2 * i] * np.cos((azm_tmp) * i)
             )
+    if no_negatives and np.any(fout<0):
+        fout[fout<0] = np.finfo(fout.dtype).eps
     return np.squeeze(fout)
 
 
-def background_expansion(azimuth_two_theta, orders, params):
+def background_expansion(azimuth_two_theta, orders, params,
+                         no_negatives=False):
     """
     Calculate background value at each azimuth / two theta pair for given series
     coefficients.
@@ -844,7 +871,8 @@ def background_expansion(azimuth_two_theta, orders, params):
 
     bg_all = np.zeros(azimuth.shape)
     for i in range(len(backg)):
-        out = coefficient_expand(azimuth, backg[i], backg_tp[i])
+        out = coefficient_expand(azimuth, backg[i], backg_tp[i], 
+                                 no_negatives = no_negatives)
         bg_all = bg_all + (out * (two_theta_prime ** float(i)))
     return bg_all
 
@@ -897,19 +925,19 @@ def combine_series(
         azimuth = np.linspace(start_end[0], start_end[1], num_azimuths)
         
     # expand series around the azimuth values
-    h = unp.uarray(replace_null_terms(param_dict["height"]), replace_null_terms(param_dict["height_err"]))
+    h = unp.uarray(replace_value(param_dict["height"]), replace_value(param_dict["height_err"]))
     height = coefficient_expand(azimuth, 
                               param=h, 
                               coeff_type=param_dict["height_type"],
                               comp_str="height",
                               start_end=start_end)
-    w = unp.uarray(replace_null_terms(param_dict["width"]), replace_null_terms(param_dict["width_err"]))
+    w = unp.uarray(replace_value(param_dict["width"]), replace_value(param_dict["width_err"]))
     width = coefficient_expand(azimuth, 
                               param=w, 
                               coeff_type=param_dict["width_type"],
                               comp_str="width",
                               start_end=start_end)
-    p = unp.uarray(replace_null_terms(param_dict["profile"]), replace_null_terms(param_dict["profile_err"]))
+    p = unp.uarray(replace_value(param_dict["profile"]), replace_value(param_dict["profile_err"]))
     profile = coefficient_expand(azimuth, 
                               param=p,
                               coeff_type=param_dict["profile_type"],
@@ -1032,6 +1060,13 @@ def get_combined_series(
         combined_series[combined_series_name] = list(unp.nominal_values(combined))
         combined_series[combined_series_name+"_err"] = list(unp.std_devs(combined))
         combined_series[combined_series_name+"_type"] = coefficient_type_as_string(i_type)
+    elif np.all(unp.nominal_values(combined)==0):
+        # all the values are zeros
+        combined_series = {}
+        combined_series[combined_series_name] = [0] * get_number_coeff({"peak": [{"area": i_order}]},"area")
+        combined_series[combined_series_name+"_err"] = [0] * get_number_coeff({"peak": [{"area": i_order}]},"area")
+        combined_series[combined_series_name+"_type"] = coefficient_type_as_string(i_type)
+    
     else:
         master_params = initiate_params(
             master_params,
@@ -1216,14 +1251,16 @@ def series_properties(
 
     vals = coefficient_expand(
         orientations,
-        param=coefficients[subpattern]["peak"][peak][param],
+        param=unp.uarray(coefficients[subpattern]["peak"][peak][param], coefficients[subpattern]["peak"][peak][param+"_err"]),
         coeff_type=coefficients[subpattern]["peak"][peak][param + "_type"],
         comp_str=param,
     )
     maximum = np.argmax(vals)
     minimum = np.argmin(vals)
-    properties["series max"] = vals[maximum]
-    properties["series min"] = vals[minimum]
+    properties["series max"] = unp.nominal_values(vals[maximum])
+    properties["series max err"] = unp.std_devs(vals[maximum])
+    properties["series min"] = unp.nominal_values(vals[minimum])
+    properties["series min err"] = unp.std_devs(vals[minimum])
     properties["series orientation max"] = orientations[maximum]
     properties["series orientation min"] = orientations[minimum]
 

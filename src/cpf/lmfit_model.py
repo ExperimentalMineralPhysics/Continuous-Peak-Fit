@@ -63,6 +63,9 @@ def parse_bounds(bounds, data_as_class, ndat=None, n_peaks=1, param=None):
         }
     if ndat is None:
         ndat = np.size(data_as_class.intensity)
+        if ndat == 0:
+            # catch divide by 0
+            ndat = np.finfo(float(0)).eps
 
     choice_list = ["d-space", "height", "width", "profile", "background"]
     if param is not None:
@@ -75,18 +78,26 @@ def parse_bounds(bounds, data_as_class, ndat=None, n_peaks=1, param=None):
             vals = data_as_class.tth
         else:  # par == "d-space"
             vals = data_as_class.tth
+        if vals.size==0:
+            vals=np.array([-np.inf, np.inf])
 
         b = bounds[par]
-        b = [str(w).replace("inf", "np.inf") for w in b]
         b = [str(w).replace("range", "(max-min)") for w in b]
         b = [w.replace("ndata", str(ndat)) for w in b]
         b = [w.replace("max", str(np.max(vals))) for w in b]
         b = [w.replace("min", str(np.min(vals))) for w in b]
         b = [w.replace("npeaks", str(n_peaks)) for w in b]
+        b = [str(w).replace("inf", "np.inf") for w in b]
         b = [eval(w) for w in b]
         if par == "d-space":
             # use conversion rather than storing d-spacing array
             b = list(data_as_class.conversion(np.array(b)))
+        if b[0]==b[1]:
+            #bounds are same. this is bad and likely due to infinties 
+            if b[0]==np.inf:
+                b[0] = 0
+            if b[1]==-np.inf:
+                b[1] = 0
         limits[par] = b
 
     return limits
@@ -602,7 +613,7 @@ def initiate_params(
             expr = None
         if comp != "s":
             vary = po[1]
-        if t == 0 or limits == "no negative" or coeff_type != sf.coefficient_types()["fourier"]:
+        if t == 0 or coeff_type != sf.coefficient_types()["fourier"] or (isinstance(limits, str) and limits == "no negative"):
             inp_param.add(
                 param_str + "_" + comp + str(t),
                 v,
@@ -703,6 +714,8 @@ def un_vary_part_params(inp_param, param_str, comp, order=None):
     :param order: order of the coefficients. parts missing are set to vary=False
     :return: updated lmfit Parameter class
     """
+    if not isinstance(order, list):
+        order = [order]
     if comp:
         new_str = param_str + "_" + comp
     else:
@@ -712,7 +725,7 @@ def un_vary_part_params(inp_param, param_str, comp, order=None):
     ]
     new_order = int((len(str_keys) - 1) / 2)
     if isinstance(order, list):
-        for i in range(new_order):
+        for i in range(new_order+1):
             if not np.isin(i, order):
                 inp_param = un_vary_single_param(inp_param, param_str, comp, 2 * i)
                 if i > 0:
@@ -748,6 +761,7 @@ def peaks_model(
     azimuth,  # forced to exist as independent values by lmfit
     data_class=None,  # needs to contain conversion factor
     orders=None,  # orders dictionary to get minimum position of the range.
+    no_negatives = True,
     start_end=[0, 360],
     **params,
 ):
@@ -764,8 +778,25 @@ def peaks_model(
     # N.B. params now doesn't persist as a parameter class, merely a dictionary, so e.g. call key/value pairs as
     # normal not with '.value'
 
+    # N.B. notes on no_negatives
+    # although the series values are limited it is possible for the series to go outside of the limits
+    # because of how the coefficients are combined. Therefore posisble to have undesired values or behaviour
+    #
+    # Overall: the background parameters can be negative - especially any slope so force False and allow negatives
+    # height for XRD should not be negative ever, force to be at least 0 (no_negatives=True)
+    # the other peak parameters should never be negative but if they are then it is a problem. But
+    # leave the code to error out if this happens. 
+    #
+    # here default no_negatives=True, default no_negatives to False for background (see above).
+    # other series should defaul to True for consistent behaviour with this function when called from elsewhere
+    
+    # FIXME: the no negatives should be made consistent with the limits applied to the series/parameter
+    # but for now just forcing this will do. The change requires passing the applicable limits into this method and 
+    # applying. 
+    
     # expand the background
-    intensity = sf.background_expansion((azimuth, two_theta), orders, params)
+    intensity = sf.background_expansion((azimuth, two_theta), orders, params,
+                                        no_negatives=False)
 
     peak_keys = [
         key for key, val in params.items() if "peak" in key and "tp" not in key
@@ -791,25 +822,29 @@ def peaks_model(
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
         d_all = sf.coefficient_expand(
-            azimuth, parms, coeff_type=coeff_type, start_end=start_end
+            azimuth, parms, coeff_type=coeff_type, start_end=start_end,
+            no_negatives = no_negatives,
         )
         comp = "h"
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
         h_all = sf.coefficient_expand(
-            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end
+            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end,
+            no_negatives = no_negatives,
         )
         comp = "w"
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
         w_all = sf.coefficient_expand(
-            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end
+            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end,
+            no_negatives = no_negatives,
         )
         comp = "p"
         parms = gather_params_from_dict(params, param_str, comp)
         coeff_type = sf.get_series_type(params, param_str, comp)
         p_all = sf.coefficient_expand(
-            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end
+            azimuth * symm, parms, coeff_type=coeff_type, start_end=start_end,
+            no_negatives = no_negatives,
         )
 
         # conversion

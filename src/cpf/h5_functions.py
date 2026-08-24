@@ -710,7 +710,7 @@ def image_key_validate_new(fit_settings=None, h5_iterate=None, end_if_errors=Fal
         num_iter = len(h5_iterate)
         if fit_settings:
             number_indices = len(
-                [a.start() for a in list(re.finditer("\*", fit_settings.h5_datakey))]
+                [a.start() for a in list(re.finditer(r"\*", fit_settings.h5_datakey))]
             )
             if not (num_iter == number_indices or num_iter == number_indices - 1):
                 errors.append(
@@ -853,9 +853,9 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
     """
 
     # set some defaults for regualr expreassions
-    regexp_alphanum = "([-+]?[0-9a-zA-Z-+_]*\.[0-9a-zA-Z-+_]+|[-+]?[0-9a-zA-Z-+_]+)"
-    regexp_alphanum = "([-+]?[0-9a-zA-Z-+_\.]+)"
-    regexp_num = "([-+]?[0-9]*\.[0-9]+|[-+]?[0-9]+)"
+    regexp_alphanum = r"([-+]?[0-9a-zA-Z-+_]*\.[0-9a-zA-Z-+_]+|[-+]?[0-9a-zA-Z-+_]+)"
+    regexp_alphanum = r"([-+]?[0-9a-zA-Z-+_\.]+)"
+    regexp_num = r"([-+]?[0-9]*\.[0-9]+|[-+]?[0-9]+)"
     regexp_end = "$"
 
     # validate the inputs
@@ -874,8 +874,8 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
         df = datafile
 
     # get number of searches (i.e. number *) in datakey
-    loops = [a.start() for a in list(re.finditer("\*", h5key_data))]
-    dividers = [a.start() for a in list(re.finditer("/", h5key_data))]
+    loops = [a.start() for a in list(re.finditer(r"\*", h5key_data))]
+    dividers = [a.start() for a in list(re.finditer(r"/", h5key_data))]
     if len(loops) > 1:
         raise NotImplementedError()
 
@@ -1266,7 +1266,9 @@ def get_images(
     datafile = h5py.File(image_list[0], "r")
     datakey = image_list[1]
     data_position_in_key = image_list[2]
-    if datafile[datakey].size == 1:
+    if isinstance(datafile[datakey][()], bytes):
+        data = datafile[datakey][()].decode()
+    elif datafile[datakey].size == 1:
         data = np.array(datafile[datakey].squeeze()[()])
     elif len(np.array(datafile[datakey]).squeeze().shape) == 2:
         # the data is two dimensional. 

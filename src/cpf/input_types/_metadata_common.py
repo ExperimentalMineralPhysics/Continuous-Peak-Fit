@@ -297,6 +297,8 @@ class _metadata_common:
                             metadata_out[k] = float(self.metadata[k])
                         except:
                             metadata_out[k] = self.metadata[k]
+                elif settings_class and "metadata_settings" in settings_class.__dict__ and j in settings_class.metadata_settings:
+                    metadata_out[j] = settings_class.metadata_settings[j]
                 else:
                     err_str = f"Metadata type '{j}' not recognised. Permitted values for this dataset are: {headers.append(time_opts)}."
                     raise ValueError(err_str)

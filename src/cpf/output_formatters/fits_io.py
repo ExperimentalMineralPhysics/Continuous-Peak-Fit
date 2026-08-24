@@ -81,14 +81,14 @@ def WriteFits(
     if filename_to_write is None:
         # FIXME: I dont think that mode is needed in this function. The default for additional_text is None, 
         # if this is the case every time then the if/else and the input of mode to this function is not needed.
-        if mode == "search":
-            additional_text = settings_class.file_label
-        else:
-            additional_text = None
+        # if mode == "search":
+        #     additional_text = settings_class.file_label
+        # else:
+        #     additional_text = None
         filename_to_write = make_outfile_name(
             settings_class.subfit_filename,
             directory=settings_class.output_directory,
-            additional_text=additional_text,
+            additional_text=settings_class.file_label,#additional_text,
             extension=".json",
             overwrite=True,
         )
@@ -196,7 +196,7 @@ def ReadFits_to_list(settings, replace=True, **kwargs):
                     else:
                         azimuths = None
                     for i in range(len(fits[-1])):
-                        strt_nd = fits[z][i]["range"][0]
+                        strt_nd = [settings_class.data_class.azm_start, settings_class.data_class.azm_end]
                         settings_class.set_subpattern(z, i)
                         for j in range(len(fits[-1][i]["peak"])):
                             comb_series = get_combined_series(
@@ -428,8 +428,10 @@ def ReadFits_to_dataframe(
 
     # make list of headers for panda data frame
     headers = []
-    headers.append("num")
     headers.append("DataFile")
+    headers.append("image_position")
+    headers.append("range_position")
+    headers.append("pos_in_range")
     headers.append("phase")
     headers.append("peak")
     # add metadata to list
@@ -477,7 +479,7 @@ def ReadFits_to_dataframe(
         properties.append("note")
         # more values neeed by cpf.Output_Formatters.WriteOrderSearchFigure.
         # which always adds notes to the json fit files.
-        properties.append("pos_in_range")
+        # properties.append("pos_in_range")
     headers += properties
 
     # make lists of the parameters to iterate over
@@ -501,7 +503,13 @@ def ReadFits_to_dataframe(
         data_to_write = fits[lists[z, 0]][lists[z, 1]]
 
         if len(data_to_write["peak"]) > lists[z, 2]:
-            RowLst["num"] = lists[z, 0]
+            
+            RowLst["image_position"] = lists[z, 0]
+            RowLst["range_position"] = lists[z, 1]
+            RowLst["pos_in_range"] = lists[z, 2]
+            
+            # RowLst["num"] = lists[z, 0]
+            
             if isinstance(settings_class.subfit_filename, list):
                 # filenames have to be unique but will be a list of h5 type files
                 RowLst["DataFile"] = os.path.split(settings_class.subfit_filename[0])[1]
@@ -588,8 +596,8 @@ def ReadFits_to_dataframe(
                     if "note" in fits[lists[z, 0]][lists[z, 1]]:
                         RowLst[ind] = fits[lists[z, 0]][lists[z, 1]]["note"]
 
-                elif ind == "pos_in_range":
-                    RowLst[ind] = lists[z, 2]
+                # elif ind == "pos_in_range":
+                #     RowLst[ind] = lists[z, 2]
 
                 elif ind in DerivedValues:
                     # in crystallographic_values dictionary
@@ -675,5 +683,5 @@ def read_metadata(settings_class):
     )
 
     new_data.import_image(settings=settings_class)
-    metadata = new_data.get_metadata(metadata_values=settings_class.metadata)
+    metadata = new_data.get_metadata(settings_class=settings_class, metadata_values=settings_class.metadata)
     return metadata

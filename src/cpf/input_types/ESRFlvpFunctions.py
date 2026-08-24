@@ -136,7 +136,7 @@ methods that should be the same as Dioptas
 Methods that are replicated with the Dioptas functions are:
     - duplicate
     - conversion(self, tth_in, azm=None, reverse=False)
-    - bins(self, orders_class, cascade=False)
+    - bins(self, settings_class, cascade=False)
     - equalObs(self, x, nbin)                         --- [should be _equalObs]
     - test_azims(self, steps = 360)                   --- is this used? can it be removed?
     - set_limits(self, range_bounds=[-np.inf, np.inf], azm_bounds=[-np.inf, np.inf])
@@ -265,6 +265,7 @@ class ESRFlvpDetector:
 
         self.calibration = None
         self.conversion_constant = None
+        self._detector_distance = 1
         self.detector = None
 
         if settings_class:
@@ -316,10 +317,6 @@ class ESRFlvpDetector:
             new.ObservationsUnits = self.ObservationsUnits
             new.azm_blocks = self.azm_blocks
 
-        # set new range.
-        new.tth_start = range_bounds[0]
-        new.tth_end = range_bounds[1]
-
         # restrict the data. 
         local_mask = np.where(
             (self.tth >= range_bounds[0])
@@ -357,7 +354,11 @@ class ESRFlvpDetector:
                 new.y = new.y.compressed()
             if "z" in dir(new) and new.z is not None:
                 new.z = new.z.compressed()
-                
+         
+        # set new range.
+        new.tth_start = np.min([range_bounds[0], self.tth.max()])
+        new.tth_end = np.max([range_bounds[1], self.tth.min()])
+        
         return new
 
     def get_calibration(self, file_name=None, settings=None, debug=False):
@@ -403,6 +404,8 @@ class ESRFlvpDetector:
             self.calibration["detector_config"]["orientation"] = orientation
 
         self.conversion_constant = self.calibration["wavelength"] * 1e10  # in angstroms
+        self._detector_distance = self.calibration['param'][0] # in m
+
 
     def _get_pos(self, frame, unit="radians"):
         """
@@ -1392,6 +1395,7 @@ class ESRFlvpDetector:
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     check_bounds = _AngleDispersive_common.check_bounds
     _reduce_array = _AngleDispersive_common._reduce_array
+    convert_tth_azm_to_x_y = _AngleDispersive_common.convert_tth_azm_to_x_y
     get_metadata = _metadata_common.get_metadata
     _get_file_created_modified = _metadata_common._get_file_created_modified
 

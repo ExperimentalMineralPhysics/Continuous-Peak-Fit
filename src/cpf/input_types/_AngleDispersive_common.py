@@ -104,40 +104,49 @@ class _AngleDispersive_common:
             dspc_out = list(dspc_out)
         return np.squeeze(np.array(dspc_out))
 
-    def bins(self, orders_class, cascade=False):
+    def bins(self, settings_class, cascade=False):
         """
         Determine bins to use in initial fitting.
         Assign each data to a chunk corresponding to its azimuth value
         Returns array with indices for each bin and array of bin centroids
-        :param orders_class:
+        :param settings_class:
         :return chunks:
         :return bin_mean_azi:
         """
 
         # determine how to divide the data into bins and how many.
         if cascade:
-            bt = orders_class.cascade_bin_type
+            bt = settings_class.cascade_bin_type
             if bt == None:
                 # force a default
                 bt = 0
                 b_num = 50
             elif bt == 1:
-                b_num = orders_class.cascade_number_bins
+                b_num = settings_class.cascade_number_bins
             else:
-                b_num = orders_class.cascade_per_bin
+                b_num = settings_class.cascade_per_bin
         else:
-            bt = orders_class.fit_bin_type
+            bt = settings_class.fit_bin_type
             if bt == None:
                 # force a default
-                bt = 1
-                b_num = 90
+                bt = 0
+                b_num = np.max([25, self.intensity.size/90])
             elif bt == 1:
-                b_num = orders_class.fit_number_bins
+                b_num = settings_class.fit_number_bins
             else:
-                b_num = orders_class.fit_per_bin
+                b_num = np.max([25, settings_class.fit_per_bin])
+                print("b_num", b_num)
 
         # make the bins
-        if bt == 0:
+        if b_num > np.unique(ma.compressed(self.azm)).size:
+		#if ((bt==0  and b_num >= np.unique(ma.compressed(self.azm)).size/b_num)
+        #    or (bt==1 and b_num >= np.unique(ma.compressed(self.azm)).size)
+        #    ):
+            # doesn't matter what the bin type is not enough unique values...
+            bounds = np.unique(ma.compressed(self.azm))
+            min_gap = np.min(bounds[1:] - bounds[:-1])
+            bin_boundaries = np.append(bounds-min_gap/2, bounds[-1]+min_gap/2)
+        elif bt == 0:
             # split the data into bins with an approximately constant number of data.
             # uses b_num to determine bin size
             num_bins = int(np.round(ma.compressed(self.azm).shape[0] / b_num))
@@ -165,7 +174,7 @@ class _AngleDispersive_common:
         if 0:
             # create histogram with equal-frequency bins
             n, bins, patches = plt.hist(
-                self.azm[self.azm.mask == False], bin_boundaries, edgecolor="black"
+                ma.array(self.azm).compressed(), bin_boundaries, edgecolor="black"
             )
             plt.show()
             logger.debug(" ".join(map(str, [("bins and occupancy", bins, n)])))
@@ -173,23 +182,9 @@ class _AngleDispersive_common:
         # display bin boundaries and frequency per bin
         logger.debug(" ".join(map(str, [("bin boundaries:", bin_boundaries)])))
         if bt == 1:
-            logger.debug(
-                " ".join(
-                    map(
-                        str,
-                        [("expected number of chunks", b_num)],
-                    )
-                )
-            )
+            logger.debug(f"expected number of chunks: {b_num}")
         else:
-            logger.debug(
-                " ".join(
-                    map(
-                        str,
-                        [("expected number of data per chunkbin", b_num)],
-                    )
-                )
-            )
+            logger.debug(f"expected number of data per chunkbin: {b_num}")
 
         # fit the data to the bins
         chunks = []
@@ -292,7 +287,7 @@ class _AngleDispersive_common:
             A numpy data type to be applied to the data arrays.
 
         """
-        precision = re.findall("\d+", rawData.dtype.name)[0]
+        precision = int(re.findall(r"\d+", rawData.dtype.name)[0])
         # force minimum precision
         if minimumPrecision != False:
             if precision < minimumPrecision:
@@ -301,7 +296,7 @@ class _AngleDispersive_common:
             pass
 
         try:
-            DataType = np.dtype(numType + precision)
+            DataType = np.dtype(numType + str(precision))
         except:
             err_str = f"The datatype, {DataType}, is not a recognised data type"
             logger.critical(err_str)
@@ -474,8 +469,10 @@ class _AngleDispersive_common:
 
 
         if (reduce_by is False 
+            or reduce_by == 0
             or reduce_by == 1
             or (reduce_by is None and self.reduce_by is None)
+            or (reduce_by is None and self.reduce_by == 0)
             or (reduce_by is None and self.reduce_by == 1)
         ):
             # reduce_by = False is used by fill_data to make sure this function is passed
@@ -559,29 +556,60 @@ class _AngleDispersive_common:
             azi_bounds = azi_bounds[::-1]
             
         return range_bounds, azi_bounds
-            
     
+    
+    def convert_tth_azm_to_x_y(self, tth, azm):
+        """
+        Convert twh theta and azimuth values to physical x,y values.
+
+        As implemented here, this uses the distance from the calibration but ignores the detector rotations.
+
+        Parameters
+        ----------
+        tth : np.array() | list
+            pixel two theta positions to be converted.
+        azm : np.array() | list
+            pizel azmiuths to be converted.
+
+        Returns
+        -------
+        x_physical : np.array
+            approximated x coordinate for pixels.
+        y_physical : np.array
+            approximated y coordinate for pixels..
+        """
+        
+        distance = self._detector_distance
+        rad = distance * np.tan(np.deg2rad(ma.array(tth).compressed()))
+        x_physical = rad * np.cos(np.deg2rad(ma.array(azm).compressed()))
+        y_physical = rad * np.sin(np.deg2rad(ma.array(azm).compressed()))
+        
+        return x_physical, y_physical
+
 
 def equalObs(x, nbin):
     """
     get equally populated bins for data set.
-    copied from: https://www.statology.org/equal-frequency-binning-python/ on 26th May 2022.
+    efited after: https://www.statology.org/equal-frequency-binning-python/ (26th May 2022).
 
     Parameters
     ----------
-    x : TYPE
+    x : np.array
         data to disperse.
-    nbin : TYPE
+    nbin : int
         number of bins.
 
     Returns
     -------
-    TYPE
-        DESCRIPTION.
+    bounds : np.array
+        Edges of the bins for near equally filled bins.
 
     """
     nlen = len(x)
     x = np.sort(x)
-    return np.interp(np.linspace(0, nlen, nbin + 1), np.arange(nlen), np.sort(x))
+    bounds = np.interp(np.linspace(0, nlen, nbin + 1), np.arange(nlen), np.sort(x))
+    difs = np.append(bounds[1:] - bounds[:-1],np.inf)
+    bounds[difs==0] = bounds[difs==0] - difs[difs!=0].min()/2
+    return bounds
 
 

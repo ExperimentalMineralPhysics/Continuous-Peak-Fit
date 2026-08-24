@@ -131,10 +131,6 @@ class MedDetector:
             new = deepcopy(self)
             new.detector = None
             new.calibration = None
-
-        # set tth range.
-        new.tth_start = range_bounds[0]
-        new.tth_end = range_bounds[1]
         
         # restrict the data. 
         local_mask = np.where(
@@ -184,6 +180,10 @@ class MedDetector:
         #         new.y = new.y.compressed()
         #     if "z" in dir(new) and new.z is not None:
         #         new.z = new.z.compressed()
+
+        # set new range.
+        new.tth_start = np.min([range_bounds[0], self.tth.max()])
+        new.tth_end = np.max([range_bounds[1], self.tth.min()])
 
         return new
 
@@ -804,7 +804,7 @@ class MedDetector:
 
         return np.squeeze(np.array(dspc_out))
 
-    def bins(self, orders_class, **kwargs):
+    def bins(self, settings_class, **kwargs):
         """
         Determine bins to use in initial fitting.
         Assign each data to a chunk corresponding to its azimuth value

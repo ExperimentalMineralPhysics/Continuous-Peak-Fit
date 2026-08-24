@@ -96,13 +96,13 @@ def metadata_read_func(settings=None, image_obj=None, filename=None, **kwargs):
         out = {}
         out["Exposure_time"] = hd["Exposure_time"]
         out["Exposure_period"] = hd["Exposure_period"]
-        # out['namename'] = image_obj.filename
+        out['namename'] = image_obj.filename
         out['daft'] = "Needless"
     except:
         out = {}
         out["Exposure_time"] = None
         out["Exposure_period"] = None
-        # out['namename'] = None
+        out['namename'] = None
         out['daft'] = "Needless"
         
     return out

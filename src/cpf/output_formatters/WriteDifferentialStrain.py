@@ -104,7 +104,7 @@ def WriteOutput(
         settings=settings_class,
         includeSeriesValues=True,
         includeStats=fitStats,
-        IncludeIntegrated=True,
+        includeIntegrated=True,
         SampleGeometry=SampleGeometry,
         SampleDeformation=SampleDeformation,
     )
@@ -115,7 +115,7 @@ def WriteOutput(
 
     # limit dataframe to what we want to write.
     # order columns to be correct also
-    headers_use =  ["num",
+    headers_use =  ["image_position",
                    "DataFile",
                    'phase', 
                    'peak',   
@@ -133,16 +133,21 @@ def WriteOutput(
                    'orientation',  
                    'orientation_err', 
                    'd_max',     
-                   'd_min',      
+                   'd_max_err',     
+                   'd_min',         
+                   'd_min_err',      
                    'height mean',   
                    'height mean err',
                    'width mean',   
                    'width mean err',
                    'profile mean',  
-                   'profile mean err',
-                   'area mean',    
-                   'area mean err',
+                   'profile mean err'
                    ]
+    additional = list(set(pf.peak_components(include_combined=True)[1]) - set(pf.peak_components(include_combined=False)[1]))
+    for add in additional:
+        headers_use += [add + " mean",
+                        add + " mean err",
+                       ]
     headers_rename = {'d-space4':"d2cos",
                 'd-space4_err':"d2cos_err" ,
                 'd-space3':"d2sin",
@@ -176,6 +181,8 @@ def WriteOutput(
     # rename the columns
     df.rename(columns=headers_rename, inplace=True)
 
+    df.rename(columns={"image_position":"num"}, inplace=True)
+    
     # make filename for output
     base = settings_class.datafile_basename
     if base is None:

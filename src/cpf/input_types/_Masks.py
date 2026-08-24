@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 """
 This file contains the code to make and apply masks to the diffraction data.
 
@@ -47,12 +44,6 @@ class _masks:
     These are imported into the detector functions as methods.
     """
 
-    # def __init__(self, detector_class=None):
-    #     """
-    #     :param detector_class:
-    #     """
-    #     self = detector_class
-
     def get_mask(self, mask, im_ints=None, debug=False):
         """
         Creates the mask for the diffracion data and returns a boolian image.
@@ -88,9 +79,7 @@ class _masks:
         if "image" in mask:
             # Dioptas mask is compressed Tiff image.
             # Save and load functions within Dioptas are: load_mask and save_mask in dioptas/model/MaskModel.py
-            mask_from_image = np.array(Image.open(mask["image"]))
-            # im_ints = ma.array(im_ints, mask=im_mask)
-            # im_ints = ma.masked_less(im_ints, 0)
+            mask_from_image = np.array(Image.open(mask["image"]), dtype="bool")
             if mask_from_image.shape == im_ints.shape:
                 im_mask = np.asarray(im_mask) | np.asarray(mask_from_image)
             elif mask_from_image.shape == im_ints.shape[1:2]:
@@ -124,7 +113,7 @@ class _masks:
                 im_mask[mask["detector"][x] - 1] = True
 
         if "energy" in mask:
-            raise ValueError("'Energy' is not implemented.")
+            raise NotImplementedError("'Energy' is not implemented.")
 
         if ("two theta" in mask) or ("twotheta" in mask):
             if "two theta" in mask:
@@ -151,19 +140,13 @@ class _masks:
             for lims in mask[lbl_str]:
                 im_mask = (
                     im_mask
-                    | ma.masked_inside(self.tth, lims[0], lims[1]).mask
+                    | ma.masked_inside(self.azm, lims[0], lims[1]).mask
                 )
 
         # FIX ME: Should also add circles and other polygons as per GSAS-II masks
 
-        # mask invalid values
-        mask2 = ma.masked_invalid(im_ints).mask
-        # mask everything less than 0.
-        # mask3 = ma.masked_less(im_ints, 0).mask
-
-        # combine masks
-        im_mask = np.asarray(im_mask) | np.asarray(mask2) #| np.asarray(mask3)
-        # im_ints = ma.array(im_ints, mask=im_mask)
+        # mask invalid values and combine masks
+        im_mask = np.asarray(im_mask) | np.asarray(ma.masked_invalid(im_ints).mask) 
 
         """
         if debug:
@@ -191,43 +174,9 @@ class _masks:
 
             plt.close()
         """
-        """
-        Energy dispersive mask debug
-        #     # FIX ME: DMF update to use class plot function!
-        #     if debug:
-        #         # Plot mask.
-        #         # This is left in here for debugging.
-        #         fig = plt.figure()
-        #         ax = fig.add_subplot(1, 2, 1)
-        #         plt.subplot(121)
-        #         plt.scatter(
-        #             im_two_theta,
-        #             im_azimuth,
-        #             s=4,
-        #             c=im_ints,
-        #             edgecolors="none",
-        #             cmap=plt.cm.jet,
-        #         )
-        #         ax.set_ylim([0, 360])
-        #         ax = fig.add_subplot(1, 2, 2)
-        #         plt.subplot(122)
-        #         plt.scatter(
-        #             ma.array(im_two_theta, mask=im_mask),
-        #             ma.array(im_azimuth, mask=im_mask),
-        #             s=4,
-        #             c=im_ints,
-        #             edgecolors="none",
-        #             cmap=plt.cm.jet,
-        #         )
-        #         ax.set_ylim([0, 360])
-        #         plt.colorbar()
-        #         plt.show()
-        #         plt.close()
-        """
-
         self.original_mask = im_mask
-
         return im_mask
+
 
     def set_mask(
         self,

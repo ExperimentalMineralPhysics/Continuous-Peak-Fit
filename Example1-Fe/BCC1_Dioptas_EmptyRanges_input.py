@@ -51,6 +51,7 @@ fit_orders = [
             "width": 0,
             "symmetry": 2,
         }],
+        "imax":-2, # mask all the data so nothing left
     },
     {
         "range": [20.7, 20.95],
@@ -62,6 +63,7 @@ fit_orders = [
             "width": 0,
             "symmetry": 2,
         }],
+        "imin":50000, # mask all the data so nothing left
     },
     {
         "range": [26.4, 27.0],

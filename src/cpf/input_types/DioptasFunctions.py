@@ -105,6 +105,7 @@ class DioptasDetector:
 
         self.calibration = None
         self.conversion_constant = None
+        self._detector_distance = 1
         self.detector = None
 
         if settings_class:
@@ -204,14 +205,10 @@ class DioptasDetector:
                 else:
                     raise ValueError("Should not be possible to get here")
 
-        # set new range.
-        new.tth_start = range_bounds[0]
-        new.tth_end = range_bounds[1]
-
         # restrict the data.
         local_mask = np.where(
-            (self.tth >= new.tth_start)
-            & (self.tth <= new.tth_end)
+            (self.tth >= range_bounds[0])
+            & (self.tth <= range_bounds[1])
             & (self.azm >= azi_bounds[0])
             & (self.azm <= azi_bounds[1])
         )
@@ -245,6 +242,10 @@ class DioptasDetector:
             if "z" in dir(new) and new.z is not None:
                 new.z = new.z.compressed()
 
+        # set new range.
+        new.tth_start = np.min([range_bounds[0], self.tth.max()])
+        new.tth_end = np.max([range_bounds[1], self.tth.min()])
+        
         return new
 
     def get_calibration(self, file_name=None, settings=None):
@@ -377,6 +378,8 @@ class DioptasDetector:
             pf.detector.set_config(config)
         self.calibration = pf
         self.conversion_constant = pf.wavelength * 1e10  # in angstroms
+        self._detector_distance = self.calibration.dist
+        
 
     def get_detector(
         self, settings=None, calibration_file=None, diffraction_data=None, debug=False
@@ -529,7 +532,15 @@ class DioptasDetector:
                 # self.intensity has been set before. Inherit the dtype.
                 dtype = self.intensity.dtype
             else:
-                dtype = self.GetDataType(im[0], minimumPrecision=False)
+                # FIXME: the data minimumPrecision is set to 32 to prevent
+                # numpy.str returning inf when sum is greater than maximum
+                # allowed by 16 bit precision. see:
+                # https://github.com/numpy/numpy/issues/22448
+                # not setting this can cause inf in XRD_FitPattern when comparing the 
+                # height of the peaks to the standard deviation of the data 
+                # currently line 525. 
+                dtype = self.GetDataType(im[0], minimumPrecision=32)
+                
         im = ma.array(im, dtype=dtype)
 
         # Dioptas flips the images to match the orientations in Fit2D
@@ -661,6 +672,9 @@ class DioptasDetector:
         # shape might not be correct (or recognised). Hence the check here and
         # inclusion of the shape in the array getting.
 
+        if not self.detector.detector.max_shape:
+            self.detector.detector.shape = self.intensity.shape
+            self.detector.detector.max_shape = self.intensity.shape
         if tuple(self.intensity.shape) != tuple(self.detector.detector.max_shape):
             # cast both shapes to tuples to prevent list != tuple error.
             raise ValueError(
@@ -884,6 +898,7 @@ class DioptasDetector:
     duplicate_without_detector = _AngleDispersive_common.duplicate_without_detector
     check_bounds = _AngleDispersive_common.check_bounds
     _reduce_array = _AngleDispersive_common._reduce_array
+    convert_tth_azm_to_x_y = _AngleDispersive_common.convert_tth_azm_to_x_y
     get_metadata = _metadata_common.get_metadata
     _get_file_created_modified = _metadata_common._get_file_created_modified
 

@@ -788,7 +788,7 @@ def peak_string(
     elif isinstance(peak, list) and all(isinstance(x, int) for x in peak):
         peaks = peak
     # If an int was provided
-    elif isinstance(peak, int) or np.issubdtype(peak, np.integer):
+    elif isinstance(peak, str) or isinstance(peak, int) or np.issubdtype(peak, np.integer):
         peaks = [peak]
     # Raise a TypeError otherwise
     else:
@@ -1081,7 +1081,7 @@ def make_outfile_name(
         filename = filename + "__" + additional_text
     if orders and "note" in orders:  # add additional text from note in orders.
         filename = (
-            filename + "__" + "".join(i for i in orders["note"] if i not in "\/:;*?<>|")
+            filename + "__" + "".join(i for i in orders["note"] if i not in r"\/:;*?<>|")
         )
     filename = filename.strip("_")
     if directory:

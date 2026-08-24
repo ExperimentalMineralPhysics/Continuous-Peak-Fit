@@ -40,6 +40,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 import os
+import sys
 import string
 import numpy as np
 # from scipy.optimize import minimize
@@ -789,7 +790,7 @@ class jcpds(object):
         weights = np.array([])
         for i in self.get_reflections():
             try:
-                weights = np.append(weights, 1/i.dobs.std_dev**2)
+                weights = np.append(weights, 1/np.array(i.dobs.std_dev).clip(sys.float_info.epsilon)**2)
             except:
                 weights = np.append(weights, np.nan)
             try:

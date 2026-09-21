@@ -16,7 +16,8 @@ from typing import Any, Literal, TypeVar, overload
 
 import numpy as np
 import pandas as pd
-pd.set_option('future.no_silent_downcasting', True)
+
+pd.set_option("future.no_silent_downcasting", True)
 
 import cpf.peak_functions as pf
 from cpf.util.logging import get_logger
@@ -788,7 +789,11 @@ def peak_string(
     elif isinstance(peak, list) and all(isinstance(x, int) for x in peak):
         peaks = peak
     # If an int was provided
-    elif isinstance(peak, str) or isinstance(peak, int) or np.issubdtype(peak, np.integer):
+    elif (
+        isinstance(peak, str)
+        or isinstance(peak, int)
+        or np.issubdtype(peak, np.integer)
+    ):
         peaks = [peak]
     # Raise a TypeError otherwise
     else:
@@ -1081,7 +1086,9 @@ def make_outfile_name(
         filename = filename + "__" + additional_text
     if orders and "note" in orders:  # add additional text from note in orders.
         filename = (
-            filename + "__" + "".join(i for i in orders["note"] if i not in r"\/:;*?<>|")
+            filename
+            + "__"
+            + "".join(i for i in orders["note"] if i not in r"\/:;*?<>|")
         )
     filename = filename.strip("_")
     if directory:
@@ -1157,25 +1164,3 @@ def licit_filename(fname, replacement="==", exclude_dir=True):
     fname = number_to_string(fname)
 
     return fname
-
-
-def figure_suptitle_space(figure, topmargin=1):
-    """increase figure size to make topmargin (in inches) space for
-    titles, without changing the axes sizes.
-    after: https://stackoverflow.com/questions/55767312/how-to-position-suptitle#55768955
-
-            Acutally now does this by compresssing the axes away from the top of the figure.
-    """
-
-    axes = figure.axes
-    pos = []
-    for i in range(len(axes)):
-        pos.append(axes[i].get_position().bounds)
-    w, h = figure.get_size_inches()
-    figh = h - topmargin  # - (1-s.y1)*h
-    for i in range(len(axes)):
-        al = pos[i][0]
-        ab = pos[i][1] / h * figh
-        aw = pos[i][2]
-        ah = pos[i][3] / h * figh
-        axes[i].set_position((al, ab, aw, ah))

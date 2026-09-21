@@ -15,13 +15,12 @@ from cpf.BrightSpots import SpotProcess
 from cpf.output_formatters.fits_io import ReadFits_to_dataframe, ReadFits_to_list
 from cpf.settings import get_settings
 from cpf.util.io import (
-    figure_suptitle_space,
     make_outfile_name,
     peak_string,
     title_file_names,
 )
 from cpf.util.logging import get_logger
-from cpf.util.output_formatters import mplfig_to_npimage
+from cpf.util.output_formatters import figure_suptitle_space, mplfig_to_npimage
 from cpf.XRD_FitSubpattern import plot_FitAndModel
 
 logger = get_logger("cpf.output_formatters.WriteOrderSearchMovie")
@@ -122,7 +121,7 @@ def WriteOutput(
     if file_label is not None:
         settings_class.file_label = file_label
 
-    #this is search data so there is a postscript in the json file label.
+    # this is search data so there is a postscript in the json file label.
     # determine the label
     if "file_label" not in dir(settings_class) or settings_class.file_label is None:
         fls = glob.glob(f"./{settings_class.output_directory}/*search*.json")
@@ -133,29 +132,34 @@ def WriteOutput(
             for i in range(len(fls)):
                 tm.append(os.path.getmtime(fls[i]))
             latest = np.argsort(tm)[-1]
-            settings_class.file_label = os.path.splitext(os.path.basename(fls[latest]))[0].split("__")[1]
-            
+            settings_class.file_label = os.path.splitext(os.path.basename(fls[latest]))[
+                0
+            ].split("__")[1]
+
             # make sure that we have the right file number for this set.
             possible = []
             for i, subval in enumerate(settings_class.image_list):
                 if isinstance(subval, list):
-                    #subval = subval[0]
+                    # subval = subval[0]
                     settings_class.set_subpattern(i, 0)
                     subval = make_outfile_name(
                         settings_class.subfit_filename,
                         directory=None,
                         overwrite=True,
                     )
-                if os.path.splitext(os.path.basename(fls[latest]))[0].split("__")[0] in subval:
+                if (
+                    os.path.splitext(os.path.basename(fls[latest]))[0].split("__")[0]
+                    in subval
+                ):
                     possible.append(i)
             if len(possible) != 1:
                 raise ValueError("There is no identified search file to plot.")
             else:
                 searchdata = possible[0]
-    
-            #restrict to just the required image
+
+            # restrict to just the required image
             settings_class.set_data_files(keep=searchdata)
-    
+
     # make the data class.
     data_to_fill = settings_class.image_list[0]
     data_class = settings_class.data_class
@@ -186,7 +190,7 @@ def WriteOutput(
     peaks = df["peak"].unique()
     searches = df["series_type"].unique()
     search_value = df["search_value"].unique()
-    
+
     # #open data file for plotting information
     # # read fit file
     # json_file = make_outfile_name(
@@ -198,8 +202,8 @@ def WriteOutput(
     # )
     # with open(json_file) as json_data:
     data_fit, metadata = ReadFits_to_list(settings_class)
-       
-    #make movies
+
+    # make movies
     for i in range(len(peaks)):
         # loop over the number of unique peaks
 
@@ -280,7 +284,7 @@ def WriteOutput(
                 settings_class,
                 sub_data,
                 # param_lmfit=None,
-                params_dict = data_fit[0][position],
+                params_dict=data_fit[0][position],
                 figure=fig,
                 plot_ColourRange={
                     "max": Intensity_range[0],

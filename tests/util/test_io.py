@@ -1165,7 +1165,3 @@ def test_number_to_string():
 
 def test_licit_filename():
     pass
-
-
-def test_figure_suptitle_space():
-    pass

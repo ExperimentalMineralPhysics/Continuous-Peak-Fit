@@ -1111,26 +1111,6 @@ def make_outfile_name(
     return filename
 
 
-def lmfit_fix_int_data_type(fname):
-    """
-    fixes problem with lmfit save/load model.
-    lmfit load model cannot read int32 data with nulls in it.
-    if replace 'int32' with 'float32' it will read.
-    """
-
-    obj_read = open(fname, "r")
-    txt_content = obj_read.read()
-    obj_read.close()
-
-    txt_content = txt_content.replace("uint", "float")
-    txt_content = txt_content.replace("int", "float")
-    logger.effusive(" ".join(map(str, [("    Rewriting", fname)])))
-
-    obj_read = open(fname, "w")
-    obj_read.write(txt_content)
-    obj_read.close()
-
-
 def number_to_string(number, replace=".", withthis="pt"):
     """
     Turns a number into a string and then replaces the decimal place with a "pt".

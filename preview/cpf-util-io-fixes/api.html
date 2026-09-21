@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>APIs &#8212; Continuous-Peak-Fit 0.0 alpha documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/agogo.css?v=08520df9" />
+    <script src="_static/documentation_options.js?v=cddd5768"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Release Notes" href="whatsnew.html" /> 
+  </head><body>
+    <div class="header-wrapper" role="banner">
+      <div class="header">
+        <div class="headertitle"><a
+          href="index.html">Continuous-Peak-Fit 0.0 alpha documentation</a></div>
+        <div class="rel" role="navigation" aria-label="Related">
+          <a href="whatsnew.html" title="Release Notes"
+             accesskey="P">previous</a> |
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="apis">
+<h1>APIs<a class="headerlink" href="#apis" title="Link to this heading">¶</a></h1>
+<section id="module-cpf.__init__">
+<span id="cpf-package"></span><h2><code class="xref py py-mod docutils literal notranslate"><span class="pre">cpf</span></code> Package<a class="headerlink" href="#module-cpf.__init__" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="cpf.__init__.generate_inputs">
+<span class="sig-prename descclassname"><span class="pre">cpf.__init__.</span></span><span class="sig-name descname"><span class="pre">generate_inputs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cpf.__init__.generate_inputs" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="cpf-xrd-fitpattern-module">
+<h2><a class="reference internal" href="#module-cpf.XRD_FitPattern" title="cpf.XRD_FitPattern"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cpf.XRD_FitPattern</span></code></a> Module<a class="headerlink" href="#cpf-xrd-fitpattern-module" title="Link to this heading">¶</a></h2>
+<p id="module-cpf.XRD_FitPattern">This is the main function for fitting the diffraction (or dispersed) peak data.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="cpf.XRD_FitPattern.execute">
+<span class="sig-prename descclassname"><span class="pre">cpf.XRD_FitPattern.</span></span><span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Settings</span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subpattern</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'all'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resume</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'fit'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">report</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'DEBUG'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'EFFUSIVE'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'MOREINFO'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'INFO'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'WARNING'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ERROR'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'INFO'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cpf.XRD_FitPattern.execute" title="Link to this definition">¶</a></dt>
+<dd><p>Runs the diffraction peak fitting functions.</p>
+<p>The method acts as an intermediary for other methods of XRD_FitPattern.</p>
+<p>All parameters the affect the fitting are determined from the settings class (formed by settings and cpf.XRD_FitPattern.initiate())
+The arguments input directly into here only affect how the code is run here.
+For example, if the code is run in parallel or not. Other kwargs are passed though but do not affect the running of the code.</p>
+<section id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>settings<span class="classifier">Optional[str | Path | dict | Settings()]</span></dt><dd><p>Pointer to information needed for settings class. Can be of the form:        
+string – filename of python formatted file 
+Path – path for python formatted file  
+dict – dictionary of settings
+Settings() – cpf Settings class</p>
+</dd>
+<dt>subpattern<span class="classifier">int, optional</span></dt><dd><p>Which subpattern in the series to plot. 
+The default is “all”.</p>
+</dd>
+<dt>parallel<span class="classifier">bool, optional</span></dt><dd><p>Turns parallel processing on (if True) or off (if False). The default is True.</p>
+</dd>
+<dt>resume<span class="classifier">bool, optional</span></dt><dd><p>Resume processing the fits from last completed (if True) or 
+from the begining (if False). The default is False.</p>
+</dd>
+<dt>mode<span class="classifier">str</span></dt><dd><p>How to process the provided data, changes path through the method.
+Options are:
+- view – plots data. mode set by XRD_FitPattern.view()
+- set-range – plots data for ranges. mode set by XRD_FitPattern.set_range()
+- set_guess – used for setting inital position guesses for peaks. mode set by XRD_FitPattern.initial_peak_position()
+- search – used for searching over orders and series types. mode set by XRD_FitPattern.order_search()
+- fit – fits the data.             
+The default is “fit”.</p>
+</dd>
+<dt>report<span class="classifier">Literal[ “DEBUG”, “EFFUSIVE”, “MOREINFO”, “INFO”, “WARNING”, “ERROR”    ], optional</span></dt><dd><p>Logger level for how much information to write to the log files.
+The default is “INFO”.</p>
+</dd>
+<dt><a href="#id1"><span class="problematic" id="id2">**</span></a>kwargs<span class="classifier">key, value pairs</span></dt><dd><p>key, value arguments arguments. Passed though to called methods. Not used here.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cpf.XRD_FitPattern.write_output">
+<span class="sig-prename descclassname"><span class="pre">cpf.XRD_FitPattern.</span></span><span class="sig-name descname"><span class="pre">write_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">settings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">report</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'DEBUG'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'EFFUSIVE'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'MOREINFO'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'INFO'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'WARNING'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ERROR'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'INFO'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cpf.XRD_FitPattern.write_output" title="Link to this definition">¶</a></dt>
+<dd><p>Write output types for either list on out_type or the list in the settings.</p>
+<section id="id3">
+<h3>Parameters<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>settings<span class="classifier">Optional[str | Path | dict | Settings()]</span></dt><dd><p>Pointer to information needed for settings class. Can be of the form:        
+string – filename of python formatted file 
+Path – path for python formatted file  
+dict – dictionary of settings
+Settings() – cpf Settings class</p>
+</dd>
+<dt>out_type<span class="classifier">[str, list], optional</span></dt><dd><p>String or list of outputs to be processed. If absent then outputs from settings are used. 
+The default is None (and outputs from settings are used).</p>
+</dd>
+<dt>report<span class="classifier">Literal[        “DEBUG”, “EFFUSIVE”, “MOREINFO”, “INFO”, “WARNING”, “ERROR”    ], optional</span></dt><dd><p>Logger level for how much information to write to the log files.
+The default is “INFO”.</p>
+</dd>
+<dt><a href="#id4"><span class="problematic" id="id5">**</span></a>kwargs<span class="classifier">key, value pairs</span></dt><dd><p>key, value arguments arguments. Passed though the method to cpf.XRD_Fitpattern.initiate() and 
+called output methods. See documention of these for kwarg use.</p>
+</dd>
+</dl>
+</section>
+<section id="returns">
+<h3>Returns<a class="headerlink" href="#returns" title="Link to this heading">¶</a></h3>
+<p>None.</p>
+</section>
+</dd></dl>
+
+</section>
+<section id="cpf-xrd-fitsubpattern-module">
+<h2><code class="xref py py-mod docutils literal notranslate"><span class="pre">cpf.XRD_FitSubPattern</span></code> Module<a class="headerlink" href="#cpf-xrd-fitsubpattern-module" title="Link to this heading">¶</a></h2>
+</section>
+<section id="cpf-input-types-module">
+<h2><a class="reference internal" href="#module-cpf.input_types" title="cpf.input_types"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cpf.input_types</span></code></a> Module<a class="headerlink" href="#cpf-input-types-module" title="Link to this heading">¶</a></h2>
+<span class="target" id="module-cpf.input_types"></span></section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          
+          <h3>Table of Contents</h3>
+          <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="x-ray%20diffraction.html">X-ray diffraction fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="algorithm.html">Algorithm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="running%20cpf.html"><em>Continuous peak fit</em>, via the command line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file%20short.html">Input file structure (short)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file.html">Input file structure (long)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input%20file%20h5%20syntax.html">Sytax for iterating over hdf5 files.</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subpattern%20structure.html">Subpatterns and peaks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bounds.html">Bounds</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output_file_structure.html">Output files:</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example%20function%20tests.html">XRD_FitPattern’s examples and the features they test.</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whatsnew.html">Release Notes</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-cpf.__init__"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cpf</span></code> Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cpf-xrd-fitpattern-module"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cpf.XRD_FitPattern</span></code> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cpf-xrd-fitsubpattern-module"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cpf.XRD_FitSubPattern</span></code> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cpf-input-types-module"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cpf.input_types</span></code> Module</a></li>
+</ul>
+</li>
+</ul>
+
+          <search role="search">
+            <h3 style="margin-top: 1.5em;">Search</h3>
+            <form class="search" action="search.html" method="get">
+                <input type="text" name="q" />
+                <input type="submit" value="Go" />
+            </form>
+          </search>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+          <div role="navigation" aria-label="Related">
+            <a href="whatsnew.html" title="Release Notes"
+              >previous</a> |
+            <a href="py-modindex.html" title="Python Module Index"
+              >modules</a> |
+            <a href="genindex.html" title="General Index"
+              >index</a>
+          </div>
+          <div role="note" aria-label="source link">
+              <br/>
+              <a href="_sources/api.rst.txt"
+                rel="nofollow">Show Source</a>
+          </div>
+        </div>
+
+        <div class="right">
+          
+    <div class="footer" role="contentinfo">
+    &#169; Copyright Simon Hunt &amp; Danielle Fenech, 2020.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+  </body>
+</html>

@@ -14,13 +14,12 @@ from cpf.data_preprocess import remove_cosmics as cosmicsimage_preprocess
 from cpf.output_formatters.fits_io import ReadFits_to_list
 from cpf.settings import get_settings
 from cpf.util.io import (
-    figure_suptitle_space,
     make_outfile_name,
     peak_string,
     title_file_names,
 )
 from cpf.util.logging import get_logger
-from cpf.util.output_formatters import mplfig_to_npimage
+from cpf.util.output_formatters import figure_suptitle_space, mplfig_to_npimage
 from cpf.XRD_FitSubpattern import plot_FitAndModel
 
 logger = get_logger("cpf.output_formatters.WriteFitMovie")
@@ -67,8 +66,8 @@ def WriteOutput(settings, debug=False, **kwargs):
 
     # make sure settings is a class
     settings_class = get_settings(settings)
-    if 'fit_options' in settings_class.__dict__:
-        as_masked = settings_class.fit_options.get('as_masked', False)
+    if "fit_options" in settings_class.__dict__:
+        as_masked = settings_class.fit_options.get("as_masked", False)
     else:
         as_masked = False
 
@@ -201,7 +200,9 @@ def WriteOutput(settings, debug=False, **kwargs):
             # logger.info(" ".join(map(str, [(t, int(t*fps), y[int(t*fps)])])))
 
             # Get diffraction pattern to process.
-            data_class.import_image(settings_class.image_list[y[int(t * fps)]], settings=settings_class)
+            data_class.import_image(
+                settings_class.image_list[y[int(t * fps)]], settings=settings_class
+            )
 
             if settings_class.datafile_preprocess is not None:
                 # needed because image preprocessing adds to the mask and is different for each image.
@@ -214,7 +215,9 @@ def WriteOutput(settings, debug=False, **kwargs):
 
             # restrict data to the right part.
             settings_class.set_subpattern(y[int(t * fps)], z)
-            sub_data = data_class.duplicate(as_masked=as_masked, range_bounds=dispersion_range[z][y[int(t * fps)]])
+            sub_data = data_class.duplicate(
+                as_masked=as_masked, range_bounds=dispersion_range[z][y[int(t * fps)]]
+            )
 
             # Mask the subpattern by intensity if called for
             if (

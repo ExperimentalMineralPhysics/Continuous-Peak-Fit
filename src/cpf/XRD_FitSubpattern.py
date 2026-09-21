@@ -211,7 +211,7 @@ def check_num_azimuths(peeks, azimu, orders):
             #     total_coeff += sf.get_number_coeff(orders, param, peak=y)
             #     max_coeff = np.max(
             #         [max_coeff, sf.get_number_coeff(orders, param, peak=y)]
-            #     )                
+            #     )
     param = "background"
     for y in range(np.max([len(orders["background"])])):
         # coeff_type = sf.coefficient_type_as_number(
@@ -219,7 +219,9 @@ def check_num_azimuths(peeks, azimu, orders):
         # )
         # if parameters are not independent
         total_coeff += sf.get_number_coeff(orders, param, peak=y, azimuths=azimu)
-        max_coeff = np.max([max_coeff, sf.get_number_coeff(orders, "background", azimuths=azimu)])
+        max_coeff = np.max(
+            [max_coeff, sf.get_number_coeff(orders, "background", azimuths=azimu)]
+        )
         # if coeff_type != sf.coefficient_types(full=True)["independent"]["num"]:
         #     # if parameters are not independent
         #     total_coeff += sf.get_number_coeff(orders, param, peak=y)
@@ -237,13 +239,12 @@ def check_num_azimuths(peeks, azimu, orders):
     if total_coeff > len(np.unique(azimu)):
         err_str = (
             "The number of coefficients, %i, is greater than the number of unique azimuths, %i. "
-            "It is not possible to fit."
-            % (total_coeff, len(np.unique(azimu)))
+            "It is not possible to fit." % (total_coeff, len(np.unique(azimu)))
         )
         logger.error(err_str)
         safe_to_fit = False
         # raise ValueError(err_str)
-    
+
     return safe_to_fit
 
 
@@ -252,12 +253,12 @@ def fit_sub_pattern(
     settings_class,
     previous_params=None,
     mode="fit",
-    save_fit = False,
-    **kwargs
+    save_fit=False,
+    **kwargs,
 ):
     """
-    Fits the selected data to the model specified in the settings. 
-    
+    Fits the selected data to the model specified in the settings.
+
     Parameters
     ----------
     data_as_class : cpf data_class type.
@@ -270,7 +271,7 @@ def fit_sub_pattern(
         How to process the provided data, changes path through the method.
         Options are:
         - cascade
-        - fit -- fits the data.             
+        - fit -- fits the data.
         The default is "fit".
     **kwargs : key, value pairs
         key, value arguments arguments. Passed though to called methods. Not used here.
@@ -287,7 +288,7 @@ def fit_sub_pattern(
 
     """
 
-    # parse values that affect the fitting from settings (if they are set). 
+    # parse values that affect the fitting from settings (if they are set).
     if "fit_options" not in settings_class.__dict__:
         settings_class.fit_options = {}
     refine = settings_class.fit_options.get("refine", True)
@@ -295,14 +296,20 @@ def fit_sub_pattern(
     fit_method = settings_class.fit_options.get("fit_method", None)
     histogram_type = settings_class.fit_options.get("histogram_type", None)
     histogram_bins = settings_class.fit_options.get("histogram_bins", None)
-    min_data_intensity = settings_class.__dict__.get("fit_min_data_intensity", 1) # ***
-    min_data_intensity = settings_class.fit_options.get("min_data_intensity", min_data_intensity)
-    min_peak_intensity = settings_class.__dict__.get("fit_min_peak_intensity", "std") # ***
-    min_peak_intensity = settings_class.fit_options.get("min_peak_intensity", min_peak_intensity)
+    min_data_intensity = settings_class.__dict__.get("fit_min_data_intensity", 1)  # ***
+    min_data_intensity = settings_class.fit_options.get(
+        "min_data_intensity", min_data_intensity
+    )
+    min_peak_intensity = settings_class.__dict__.get(
+        "fit_min_peak_intensity", "std"
+    )  # ***
+    min_peak_intensity = settings_class.fit_options.get(
+        "min_peak_intensity", min_peak_intensity
+    )
     large_errors = settings_class.fit_options.get("large_errors", 300)
     # save_fit = settings_class.fit_options.get("save_fit", False)
-    # FIXME: rows with *** are historical and can be removed when settings are updated/standardised. 
-    
+    # FIXME: rows with *** are historical and can be removed when settings are updated/standardised.
+
     # set a limit to the maximum number of function evaluations.
     # make variable in case need more iterations for other data
     default_max_f_eval = settings_class.fit_options.get("default_max_f_eval", 400)
@@ -392,37 +399,37 @@ def fit_sub_pattern(
             peeks, previous_params, settings_class.subfit_orders
         )
 
-    #initiate parameter set for fitting
+    # initiate parameter set for fitting
     master_params = lmm.initiate_all_params_for_fit(
         settings_class,
         data_as_class,
         values=previous_params,
         # debug=debug,
     )
-    
+
     if data_as_class.intensity.size == 0:
-        # then we have no data in the range. 
-        # issue warning and skip fitting. 
-        
-        #initiate parameter set for fitting
+        # then we have no data in the range.
+        # issue warning and skip fitting.
+
+        # initiate parameter set for fitting
         master_params = lmm.initiate_all_params_for_fit(
             settings_class,
             data_as_class,
             values=previous_params,
             # debug=debug,
         )
-    
+
         # set step to -5001 so that it is still negative at the end
-        step=[-5001]  # get to the end and void the fit
+        step = [-5001]  # get to the end and void the fit
         # void so send empty parameter set to out.
         prms = master_params.valuesdict()
         for i in prms.keys():
             if "_s" in i:
                 pass
             else:
-                 prms[i] = 0
+                prms[i] = 0
         master_params.set(**prms)
-    
+
     elif np.max(data_as_class.intensity) <= min_data_intensity:
         # check if the data intensity is above threshold.
         # then there is likely no determinable peak in the data
@@ -437,27 +444,27 @@ def fit_sub_pattern(
             if "_s" in i:
                 pass
             else:
-                 prms[i] = 0
+                prms[i] = 0
         master_params.set(**prms)
-                     
+
     elif not check_num_azimuths(peeks, data_as_class.azm, settings_class.subfit_orders):
         # check the number of unique azimuths is greater than the number of coefficients.
         # logger messages added in function -- not needed here
         # set step to -31 so that it is still negative at the end
-        step.append(-31)  
+        step.append(-31)
         # get to the end and void the fit
         prms = master_params.valuesdict()
         for i in prms.keys():
             if "_s" in i:
                 pass
             else:
-                 prms[i] = 0
+                prms[i] = 0
         master_params.set(**prms)
-        
+
     if step[-1] < 0:
         # voided but still need some numbers for the outputs
         chunks_start = time.time()
-        chunks_end = time.time()   
+        chunks_end = time.time()
 
     # Start fitting loops
     while step[-1] >= 0 and step[-1] <= 100:
@@ -575,7 +582,7 @@ def fit_sub_pattern(
                         if "_s" in i:
                             pass
                         else:
-                             prms[i] = 0
+                            prms[i] = 0
                     fout.set(**prms)
 
             elif step[-1] >= 0 and previous_params:
@@ -1102,8 +1109,12 @@ def fit_sub_pattern(
         new_params.update(
             {
                 "DataProperties": {
-                    "max": np.max(data_as_class.intensity) if data_as_class.intensity.size > 0 else np.nan,
-                    "min": np.min(data_as_class.intensity) if data_as_class.intensity.size > 0 else np.nan,
+                    "max": np.max(data_as_class.intensity)
+                    if data_as_class.intensity.size > 0
+                    else np.nan,
+                    "min": np.min(data_as_class.intensity)
+                    if data_as_class.intensity.size > 0
+                    else np.nan,
                 }
             }
         )
@@ -1113,11 +1124,21 @@ def fit_sub_pattern(
             {
                 "data_ranges": {
                     "data": {
-                        "max": np.max(data_as_class.intensity) if data_as_class.intensity.size > 0 else np.nan,
-                        "min": np.min(data_as_class.intensity) if data_as_class.intensity.size > 0 else np.nan,
-                        "pt1percentile": np.nanpercentile(data_as_class.intensity, 0.1) if data_as_class.intensity.size > 0 else np.nan,
-                        "1percentile": np.nanpercentile(data_as_class.intensity, 1) if data_as_class.intensity.size > 0 else np.nan,
-                        "99percentile": np.nanpercentile(data_as_class.intensity, 99) if data_as_class.intensity.size > 0 else np.nan,
+                        "max": np.max(data_as_class.intensity)
+                        if data_as_class.intensity.size > 0
+                        else np.nan,
+                        "min": np.min(data_as_class.intensity)
+                        if data_as_class.intensity.size > 0
+                        else np.nan,
+                        "pt1percentile": np.nanpercentile(data_as_class.intensity, 0.1)
+                        if data_as_class.intensity.size > 0
+                        else np.nan,
+                        "1percentile": np.nanpercentile(data_as_class.intensity, 1)
+                        if data_as_class.intensity.size > 0
+                        else np.nan,
+                        "99percentile": np.nanpercentile(data_as_class.intensity, 99)
+                        if data_as_class.intensity.size > 0
+                        else np.nan,
                         "99pt9percentile": np.nanpercentile(
                             data_as_class.intensity, 99.9
                         ),
@@ -1176,7 +1197,6 @@ def fit_sub_pattern(
         if "note" in settings_class.subfit_orders:
             title_str = title_str + " " + settings_class.subfit_orders["note"]
 
-        # io.figure_suptitle_space(fig, topmargin=2)
         plt.suptitle(title_str)
         plt.tight_layout()
 
@@ -1295,7 +1315,7 @@ def plot_FitAndModel(
         else:
             pass
             # all the required data are present in the required format.
-            
+
         if not np.any(np.isfinite(list(param_lmfit.valuesdict().values())) == False):
             # if any values are not finite. Can be the case if background has a gradient (which does not have limits) AND the fit fails.
             gmodel = Model(

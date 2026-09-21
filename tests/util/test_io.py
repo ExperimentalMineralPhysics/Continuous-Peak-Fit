@@ -1155,17 +1155,9 @@ def test_make_outfile_name():
     pass
 
 
-def test_lmfit_fix_int_data_type():
-    pass
-
-
 def test_number_to_string():
     pass
 
 
 def test_licit_filename():
-    pass
-
-
-def test_figure_suptitle_space():
     pass

@@ -10,7 +10,6 @@ __all__ = [
     "fitsubpattern_chunks",
     "generate_inputs",
     "h5_functions",
-    "ImageMetaData",
     "input_types",
     "io",
     "lmfit_model",

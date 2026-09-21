@@ -1111,13 +1111,14 @@ def make_outfile_name(
     return filename
 
 
-def number_to_string(number, replace=".", withthis="pt"):
+def number_to_string(
+    number: int | float | str, old: str = ".", new: str = "pt", count: int = -1
+):
     """
     Turns a number into a string and then replaces the decimal place with a "pt".
+    The number could also be a string to begin with.
     """
-    number = str(number)
-    number = re.sub(r"\.+", "pt", number)
-    return number
+    return str(number).replace(old, new, count)
 
 
 def licit_filename(fname, replacement="==", exclude_dir=True):

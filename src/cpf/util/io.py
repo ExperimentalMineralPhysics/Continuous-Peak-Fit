@@ -659,14 +659,14 @@ def replace_value(
     # copied from https://python-forum.io/thread-24856.html
     # on 26th June 2021
 
-    if isinstance(obj, (dict, list)):
+    if isinstance(obj, (dict, list, np.ndarray)):
         for key, value in obj.items() if isinstance(obj, dict) else enumerate(obj):
             obj[key] = replace_value(deepcopy(value), old, new, path + f"['{key}']")
     elif isinstance(obj, pd.DataFrame):
         # replace contents of panda data frame
         old = np.nan if old is None else old
         obj = obj.replace(old, new).infer_objects(copy=False)
-    elif obj == old and old is not None:
+    elif obj == old:# and old is not None:
         obj = new
         logger.moreinfo(" ".join(map(str, [(f"Value {old} found at {path}")])))
     return obj

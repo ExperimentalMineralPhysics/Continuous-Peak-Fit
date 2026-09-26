@@ -666,7 +666,7 @@ def replace_value(
         # replace contents of panda data frame
         old = np.nan if old is None else old
         obj = obj.replace(old, new).infer_objects(copy=False)
-    elif obj == old:  # and old is not None:
+    elif obj == old and old is not None:
         obj = new
         logger.moreinfo(" ".join(map(str, [(f"Value {old} found at {path}")])))
     return obj

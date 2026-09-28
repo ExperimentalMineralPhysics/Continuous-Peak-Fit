@@ -115,7 +115,7 @@ class _masks:
         if "energy" in mask:
             raise NotImplementedError("'Energy' is not implemented.")
 
-        if ("two theta" in mask) or ("twotheta" in mask):
+        if np.any([("two theta" in mask), ("twotheta" in mask)]) and self.tth is not None:
             if "two theta" in mask:
                 lbl_str = "two theta"
             else:
@@ -129,7 +129,7 @@ class _masks:
                     | ma.masked_inside(self.tth, lims[0], lims[1]).mask
                 )
 
-        if ("azm" in mask) or ("azimuth" in mask):
+        if np.any([("azimuth" in mask), ("azm" in mask)]) and self.azm is not None:
             if "azm" in mask:
                 lbl_str = "azm"
             else:

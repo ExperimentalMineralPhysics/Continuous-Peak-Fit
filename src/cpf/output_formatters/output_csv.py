@@ -161,6 +161,8 @@ def write_csv(out_file, df, column_headers, file_header=None, col_width=15, dp=5
     df = df.rename(columns=col_rename)
     
     # make sure different columns are saved as desired.
+    # is_numeric_dtype(df[i]) and is_object_dtype(df[i]) are needed for breaking change from pandas2->3 
+    # https://pandas.pydata.org/pandas-docs/stable/user_guide/migration-3-strings.html#string-migration-guide
     for i in df.columns:
         if (("date" in i.lower() or 
             "time" in i.lower() or 
@@ -178,8 +180,12 @@ def write_csv(out_file, df, column_headers, file_header=None, col_width=15, dp=5
             # make sure residual columns are saved as a single string with no line breaks.
             df[i] = df[i].apply(lambda x: np.array2string(x, separator=";", max_line_width=np.inf, formatter={"float_kind": lambda x: float_format(x, np.min([12, col_width]), dp) }, sign=" "))
         
-        # is_numeric_dtype(df[i]) and is_object_dtype(df[i]) are needed for breaking change from pandas2->3 
-        # https://pandas.pydata.org/pandas-docs/stable/user_guide/migration-3-strings.html#string-migration-guide
+        elif is_object_dtype(df[i]):
+            # test if is object but should be a float -- and then make to float.
+            try:
+                df[i] = df[i].astype(float)
+            except:
+                pass
 
     # rename the columns so that the headers are the same width as the columns
     class NewClass(object):

@@ -71,7 +71,7 @@ If is a python file containing a number of dictionaries and lists.</p>
 <h2>Initiate<a class="headerlink" href="#initiate" title="Link to this heading">¶</a></h2>
 <p>Initiating the input checks that the input file is correctly formatted and if something is missing returns an error message. Run:</p>
 <blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">initiate</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">initiate</span><span class="p">(</span><span class="s1">'input_file'</span><span class="p">)</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -82,7 +82,7 @@ If is a python file containing a number of dictionaries and lists.</p>
 <p>The two-theta vs. azimuth data plotted in the <a class="reference external" href="https://dioptas.readthedocs.io/en/stable/integration.html">Dioptas integration</a> window is resampled onto an orthonormal two-theta–azimuth grid and consequently somewhat smoothed. <cite>Continuous peak fit</cite> uses the raw data from the detector, therefore is it worth checking that the data range is acceptable and the data does not contain too many dark or bright comsic spots that would distort the fitting.</p>
 <p>To check the data ranges, run:</p>
 <blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">setrange</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">setrange</span><span class="p">(</span><span class="s1">'input_file'</span><span class="p">)</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -92,7 +92,7 @@ If is a python file containing a number of dictionaries and lists.</p>
 <p>The extent of the selection is adjusted by changing the max and min <code class="docutils literal notranslate"><span class="pre">range</span></code> values in the input file (LINK). It is sometimes necessary to limit the maximum intenstiy in each peak selection, which is done via the <code class="docutils literal notranslate"><span class="pre">Imax</span></code> peak definition (LINK).</p>
 <p>Cheching the range for a single peak is done by:</p>
 <blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">setrange</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">,</span> <span class="n">peak_selection</span> <span class="o">=</span> <span class="o">.....</span><span class="p">)</span>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">setrange</span><span class="p">(</span><span class="s1">'input_file'</span><span class="p">,</span> <span class="n">peak_selection</span> <span class="o">=</span> <span class="o">.....</span><span class="p">)</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -104,7 +104,7 @@ If is a python file containing a number of dictionaries and lists.</p>
 <p>The strong peaks coninuous peak fit is able to guess the position of a single strong peak (LINK). But for multiple, weak or spotty peaks some inital guidance is needed.</p>
 <p>Initial guesses can be derived from Dioptas manually by using the two theta and azimuth position of the curser on the <a class="reference external" href="https://dioptas.readthedocs.io/en/stable/integration.html">Dioptas integration</a>. Alternatively, the peak guesses can be selected using the mouse +/- keyboard by running:</p>
 <blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">initialpeakposition</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">peak_selection</span> <span class="o">=</span> <span class="n">n</span><span class="p">])</span>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">initialpeakposition</span><span class="p">(</span><span class="s1">'input_file'</span><span class="p">,</span> <span class="p">[</span><span class="n">peak_selection</span> <span class="o">=</span> <span class="n">n</span><span class="p">])</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -130,7 +130,7 @@ If is a python file containing a number of dictionaries and lists.</p>
 <p>The optimal number of coefficients (the order) for each parameter is not necessarily obvious. For smooth but structured diffraction data a good guess for the order of the peak height is the number of peaks in the diffraction ring. But this is not necessarily optimal, and there is often a ply off between quality of fit and execution time.</p>
 <p>The parameter that is most strongly affected by the order is the peak height because for X-ray data the other coefficients have orders generally &lt;= 2. To run a sweep over the possible height orders run:</p>
 <blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">ordersearch</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">ordersearch</span><span class="p">(</span><span class="s1">'input_file'</span><span class="p">)</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -171,14 +171,14 @@ If is a python file containing a number of dictionaries and lists.</p>
 <h2>Execution<a class="headerlink" href="#execution" title="Link to this heading">¶</a></h2>
 <p>Running the fitting is done by calling:</p>
 <blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">'input_file'</span><span class="p">)</span>
 </pre></div>
 </div>
 </div></blockquote>
 <p>This fits all the files in turn, propagating the fit from one file to the next (LINK). All possible swithes are listed here: LINK.
 The most likely ones (and their defaulr settings) are:</p>
 <blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">,</span>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">'input_file'</span><span class="p">,</span>
                                <span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                                <span class="n">propagate</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                                <span class="n">parallel</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -199,7 +199,7 @@ For the first file in the sequence a figure of the fit for each region is also s
 <h2>Creating output files.<a class="headerlink" href="#creating-output-files" title="Link to this heading">¶</a></h2>
 <p>The execute call will generate the output files listed in  <code class="docutils literal notranslate"><span class="pre">input_file</span></code>. But the outputs can be generated directly, from the json files, by calling:</p>
 <blockquote>
-<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">write_output</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">)</span>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpf</span><span class="o">.</span><span class="n">XRD_Fitpattern</span><span class="o">.</span><span class="n">write_output</span><span class="p">(</span><span class="s1">'input_file'</span><span class="p">)</span>
 </pre></div>
 </div>
 </div></blockquote>

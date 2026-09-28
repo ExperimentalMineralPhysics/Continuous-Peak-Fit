@@ -129,7 +129,7 @@ def ReadFits_to_list(settings, replace=True, **kwargs):
     """
     
     # get kwargs that might be present 
-    add_integrated = kwargs.get("add_integrated", False)
+    includeIntegrated = kwargs.get("includeIntegrated", False)
     
     if isinstance(settings, str) and "PreviousFit" in settings:
         # read previous fit
@@ -186,7 +186,7 @@ def ReadFits_to_list(settings, replace=True, **kwargs):
                     # then we need to read the metadata from the files
                     metadata[-1] = read_metadata(settings_class)
 
-                if add_integrated:
+                if includeIntegrated:
                     # create an integrated series and add to the fits
                     if not settings_class.data_class.continuous_azm:
                         azimuths = settings_class.data_class.azm
@@ -292,7 +292,7 @@ def ReadFits_to_dataframe(
             "SampleDeformation": SampleDeformation,
         }
         kwargs.update(set_params)
-    kwargs.update({"add_integrated": includeIntegrated})
+    kwargs.update({"includeIntegrated": includeIntegrated})
     
     if includeIntensityRanges is not False: 
 

@@ -32,7 +32,7 @@ def Requirements():
         "coefs_vals_write": "all",  # -- pick which set of coefficients to write
         "ordering_of_output": False, # Just leave as read -- otherwise list of dataframe headers to order by
         "fitStats": True,
-        "IncludeIntrgrated": True
+        "includeIntegrated": True
     }
 
     return RequiredParams, OptionalParams
@@ -74,8 +74,8 @@ def WriteOutput(
     fitStats          = settings_class.output_settings.get(
         "fitStats", Requirements()[1]["fitStats"]
     )
-    IncludeIntrgrated = settings_class.output_settings.get(
-        "IncludeIntrgrated", Requirements()[1]["IncludeIntrgrated"]
+    includeIntegrated = settings_class.output_settings.get(
+        "includeIntegrated", Requirements()[1]["includeIntegrated"]
     )
     # override with kwargs
     dp = kwargs.get("dp", dp)
@@ -83,10 +83,10 @@ def WriteOutput(
     coefs_vals_write = kwargs.get("coefs_vals_write", coefs_vals_write)
     ordering_of_output = kwargs.get("ordering_of_output", ordering_of_output)
     fitStats          = kwargs.get("fitStats", fitStats)
-    IncludeIntrgrated = kwargs.get("IncludeIntrgrated", IncludeIntrgrated)
+    includeIntegrated = kwargs.get("includeIntegrated", includeIntegrated)
 
     # read the data.
-    df = ReadFits_to_dataframe(settings=settings_class, fitStats=fitStats, IncludeIntrgrated=IncludeIntrgrated)
+    df = ReadFits_to_dataframe(settings=settings_class, fitStats=fitStats, includeIntegrated=includeIntegrated)
     headers = list(df.columns.values)
     # cut data frame
     if coefs_vals_write != "all":

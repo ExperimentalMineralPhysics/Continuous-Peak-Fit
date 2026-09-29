@@ -8,7 +8,8 @@ import json
 import os
 import re
 from itertools import product
-
+import uncertainties
+        
 # import glob
 import numpy as np
 import pandas as pd
@@ -343,13 +344,16 @@ def ReadFits_to_dataframe(
                         azms = 0.01  # default spacing
 
                     height_properties = series_properties(
-                        fits[z], subpattern=i, peak=j, param="height", azm_spacing=azms
+                        fits[z], subpattern=i, peak=j, param="height", azm_spacing=azms,
+                        start_end = [settings_class.data_class.azm_start, settings_class.data_class.azm_end]
                     )
                     width_properties = series_properties(
-                        fits[z], subpattern=i, peak=j, param="width", azm_spacing=azms
+                        fits[z], subpattern=i, peak=j, param="width", azm_spacing=azms,
+                        start_end = [settings_class.data_class.azm_start, settings_class.data_class.azm_end]
                     )
                     profile_properties = series_properties(
-                        fits[z], subpattern=i, peak=j, param="profile", azm_spacing=azms
+                        fits[z], subpattern=i, peak=j, param="profile", azm_spacing=azms,
+                        start_end = [settings_class.data_class.azm_start, settings_class.data_class.azm_end]
                     )
 
                     fits[z][i]["peak"][j]["crystallographic_values"] = (
@@ -640,10 +644,8 @@ def ReadFits_to_dataframe(
                         RowLst[ind] = data_to_write["FitProperties"][ind]
 
             RowsList.append(RowLst)
-
     # make data frame using headers - so columns are in sensible order.
-    df = pd.DataFrame(RowsList, columns=headers)
-
+    df = pd.DataFrame(RowsList, columns=headers).convert_dtypes()
     return df
 
 
@@ -685,3 +687,67 @@ def read_metadata(settings_class):
     new_data.import_image(settings=settings_class)
     metadata = new_data.get_metadata(settings_class=settings_class, metadata_values=settings_class.metadata)
     return metadata
+
+
+def get_series_from_df(dataFrame_or_list, series="height", entries="all", with_errors=True):
+    """
+    Returns series (single or multiple) as list of lists from dataFrame or List.
+    The DataFrame should be output of fits_io.ReadFits_to_dataframe
+    The list should be output of fits_io.ReadFits_to_list
+    
+    Parameters
+    ----------
+    dataFrame_or_list : list or DataFrame
+        data array/list to be parsed.
+        The DataFrame should be output of fits_io.ReadFits_to_dataframe
+        The list should be output of fits_io.ReadFits_to_list
+    series : str
+        Name of the series to extract. The default is "height"
+    entries : str or list
+        Which entires/rows to return. the default is "all".    
+    with_errors : bool
+        Include the errors in the returned series. Default is True
+        
+    Returns
+    -------
+    series_as_lists : list of numpy arrays
+        List of series from data
+    series_type
+        Type of series. 
+    
+    """
+    
+    if entries == "all":
+        entries = list(range(0,len(dataFrame_or_list)))
+    elif isinstance(entries, int):
+        entries = [entries]
+    
+    if isinstance(dataFrame_or_list, type(pd.DataFrame())):
+        
+        match_expr     = re.compile(f"{series}[0-9]+$")
+        match_err_expr = re.compile(f"{series}[0-9]+_err$")
+        series_entries     = list(filter(match_expr.match, list(dataFrame_or_list)))
+        series_err_entries = list(filter(match_err_expr.match, list(dataFrame_or_list)))
+        
+        series_as_lists = []
+        for i in entries:
+            tmp_series = np.array(dataFrame_or_list[series_entries].iloc[i].values)
+            # remove filled entires that are <NA> or other fillers
+            tmp_series_good_values = np.isfinite(tmp_series)
+            tmp_series = tmp_series[tmp_series_good_values]
+            
+            if with_errors:
+                tmp_series_errs = dataFrame_or_list[series_err_entries].iloc[i].values
+                tmp_series_errs = tmp_series_errs[tmp_series_good_values]
+                tmp_series = uncertainties.unumpy.uarray(tmp_series, tmp_series_errs)
+                
+            series_as_lists.append(tmp_series)
+    
+    elif isinstance(dataFrame_or_list, list):
+    
+        raise NotImplementedError("gatting series from a list is not implemented (daft as it sounds)")
+        
+    else:
+        raise TypeError("'dataFrame_or_list' is not a DataFrame or a list")
+    
+    return series_as_lists

@@ -22,20 +22,19 @@ __all__ = [
 ]
 
 import re
-import sys
 import numpy as np
 import numpy.ma as ma
-from scipy.interpolate import CubicSpline, make_interp_spline
+from scipy.interpolate import make_interp_spline, PPoly
 
 import uncertainties.unumpy as unp
-from uncertainties import UFloat
-
+from uncertainties import UFloat, ufloat
+ 
 import matplotlib.pyplot as plt
 from lmfit import Parameters
     
 import cpf.peak_functions as pf
 import cpf.series_constraints as sc
-from cpf.lmfit_model import coefficient_fit, initiate_all_params_for_fit, initiate_params, gather_param_errs_to_list
+from cpf.lmfit_model import coefficient_fit, initiate_params, gather_param_errs_to_list
 from cpf.util.io import replace_value
 from cpf.util.logging import get_logger
 
@@ -608,6 +607,75 @@ def coefficient_expand(
     return out
 
 
+def construct_spline(
+        coeffs,
+        azimuth = None,
+        start_end=[0, 360],
+        bc_type="periodic",
+        kind=None,
+        **params):
+    """
+    Constructs a scipy B-spline from the paratmers given. 
+    
+    Parameters
+    ----------
+    azimuths : np.array
+        array of unique azimuths.
+    inp_param : float, list, optional
+        list of values at spline tie points or number of spline tie points. The default is None.
+    comp_str : str, optional
+        str to determine which coefficients to use from params. The default is None.
+    start_end : list, optional
+        Minimum and maximum azimuth. The default is [0, 360].
+    bc_type : str, optional
+        Bounding conditions type: Options are "indepeddnt", "periodic", and "natural".
+        The default is "periodic".
+    kind : str, optional
+        Type of spline or independent series. The default is "cubic".
+    **params : dict
+        lmfit dict of coefficients as parameters.
+    
+    Returns
+    -------
+    spl : scipy B-spline
+        spline defined by the inputs.
+    
+    """
+    
+    if kind == "independent":
+        if ma.isMaskedArray(azimuth):
+            points = ma.unique(azimuth).compressed()
+        else:
+            points = np.unique(azimuth)
+    elif bc_type == "periodic":
+        points = np.linspace(start_end[0], start_end[1], np.size(coeffs) + 1)
+        coeffs = np.append(coeffs, coeffs[0])
+    elif isinstance(bc_type, (list, tuple, np.ndarray)):
+        points = bc_type
+    else:
+        points = np.linspace(start_end[0], start_end[1], np.size(coeffs))
+        
+    if kind == "cubic":
+        k = 3
+    elif kind == "quadratic":
+        k = 2
+    elif kind == "linear" or kind == "independent":
+        k = 1
+        bc_type = None  # catch error feeding into make_interp_spline
+    else:
+        raise ValueError("Unknown spline type.")   
+
+    if k >= len(points):
+        # catch if the spline is underconstrained
+        k = len(points) - 1
+        if k < 0:
+            k=0
+            
+    spl = make_interp_spline(points, unp.nominal_values(coeffs), k=k, bc_type=bc_type )   
+    
+    return spl, points
+
+
 def spline_expand(
     azimuth,
     inp_param=None,
@@ -615,7 +683,7 @@ def spline_expand(
     start_end=[0, 360],
     bc_type="periodic",
     kind=None,
-    no_negatives=True,
+    no_negatives=False,
     **params,
 ):
     """
@@ -663,31 +731,6 @@ def spline_expand(
         for j in range(len(str_keys)):
             inp_param.append(params[comp_str + str(j)])
 
-    if kind == "independent":
-        if ma.isMaskedArray(azimuth):
-            points = ma.unique(azimuth).compressed()
-        else:
-            points = np.unique(azimuth)
-    elif bc_type == "periodic":
-        points = np.linspace(start_end[0], start_end[1], np.size(inp_param) + 1)
-        inp_param = np.append(inp_param, inp_param[0])
-    elif isinstance(bc_type, (list, tuple, np.ndarray)):
-        points = bc_type
-    else:
-        points = np.linspace(start_end[0], start_end[1], np.size(inp_param))
-
-    if kind == "cubic":
-        k = 3
-    elif kind == "quadratic":
-        k = 2
-    elif kind == "linear" or kind == "independent":
-        k = 1
-        bc_type = None  # catch error feeding into make_interp_spline
-    else:
-        raise ValueError("Unknown spline type.")
-
-    # fout = np.ones(azimuth.shape)
-
     if (
         azimuth.size == 1
     ):  # this line is required to catch error when out is single number.
@@ -700,18 +743,13 @@ def spline_expand(
         fout = np.ones(azimuth.shape) * inp_param[0]
     # essentially d_0, h_0 or w_0
     if not isinstance(inp_param, np.float64) and np.size(inp_param) > 1:
-        # if k == 3:
-        #     spl = CubicSpline(
-        #         points, inp_param, bc_type=bc_type, extrapolate="periodic"
-        #     )
-        # else:
-        if k >= len(points):
-            # catch if the spline is underconstrained
-            k = len(points) - 1
-            if k < 0:
-                k=0
-        spl = make_interp_spline(points, unp.nominal_values(inp_param), k=k, bc_type=bc_type )
-
+        spl, _ = construct_spline(
+                coeffs=inp_param,
+                azimuth = azimuth,
+                start_end=start_end,
+                bc_type=bc_type,
+                kind=kind,
+                **params)
         fout = spl(azimuth)
 
     if no_negatives and np.any(fout<0):
@@ -725,7 +763,7 @@ def spline_expand(
             inp = unp.std_devs(inp_param)
         else:
             # run to end-1 because have to cut value added by spline_expand.
-            inp = unp.std_devs(inp_param)[:-1]
+            inp = unp.std_devs(inp_param)#[:-1]
         if no_negatives:
             # should prevent negative errors of itself
             kind = "linear"
@@ -740,9 +778,10 @@ def spline_expand(
             **params,
         )
         # prevent negative errors
-        errs[errs<0]=np.min(np.array([fout[errs<0], np.abs(errs[errs<0])]), axis=0)
+        if np.any(errs<0):
+            errs[errs<0]=np.min(np.array([fout[errs<0], np.abs(errs[errs<0])]), axis=0)
         
-        fout = unp.uarray(fout, errs)
+        fout = unp.uarray(unp.nominal_values(fout), errs)
         
     return np.squeeze(fout)
 
@@ -964,11 +1003,14 @@ def get_combined_series(
     Combines series into new series. The default is for area of the peak, but custom integrations 
     can be specififed in kwargs.
     
-    The integreated series is a spline type series and has an order greater than any of the originating series.
+    The integreated series is a spline type series and has an order that is at least equal to the 
+    sum of the originating series' orders.
     
-    Thie integration is done numerically by calling peak_functions.integrated (or defined function) and fitting 
-    a new series to both the values and their errors.  
-    It is done numerically because not certain that every series type can be integrated algebreically.
+    Thie combining of the series is done numerically by calling peak_functions.integrated (or defined function)
+    at the spline knot points of the combined series. This works in testing for both the values and their errors.
+    
+    An old algorthim that fits the new series to an expanded set of values is still in the code but disabled by default.
+    If needed it can be acces by adding "fit_series_new" = True to the kwargs.
 
     Parameters
     ----------
@@ -987,9 +1029,13 @@ def get_combined_series(
     combination_function : method
         Method of peak_functions that performs the combination/integration of the data.
         Default is "getattr(pf, combined_series_name)"    
-    num_azimuths : int
-        Number of azimuths to calculate peak at if azimuth is not set. 
-        Default is 360
+    order_scale : int
+        Value to multiply the order of the combined series by. Testing shows that 
+        the errors sometimes need a factor of two to be able to replicate the shape of the errors 
+        proucted by combining the series.
+        Default is 2. 
+    fit_series_new" : bool
+        Switch to access an old algorthim. Default is False
 
     Returns
     -------
@@ -1000,11 +1046,8 @@ def get_combined_series(
     
     # get kwargs that are needed
     combined_series_name = kwargs.get("combined_series_name", "area")
-    num_azimuths = kwargs.get("num_azimuths", 360)
-    
-    if azimuth is None:
-        azimuth = np.linspace(start_end[0], start_end[1], num_azimuths)
-    
+    order_scale = kwargs.get("order_scale", 2)
+        
     # type of new series.
     # use maximum of series types as numbers
     i_types = [coefficient_type_as_number(param_dict["width_type"]),
@@ -1015,8 +1058,9 @@ def get_combined_series(
     if i_type == 0:
         i_type = 3
         logger.moreinfo("Change combined series type from 'fourier' to 'cubic spline' because fouriers do not propagate series errors correctly.")
+    i_bc = coefficient_types(full=True)[coefficient_type_as_string(i_type)]['boundary_conditions']
     
-    # get order of new series
+    # get order and knot points of new series
     if i_type == coefficient_types()["independent"]:
         # then independent and new series needs same order as old because order 
         # is the number of independent values.
@@ -1028,129 +1072,240 @@ def get_combined_series(
         
         # make sure only have unique azimuths
         azimuth = np.unique(azimuth)
+    elif (any(x == coefficient_types()["spline_linear"] for x in i_types) or
+        any(x == coefficient_types()["linear_open"] for x in i_types)):
+        # if any of the series are line splines then we need to make sure the knots in the combined series 
+        #valign with those in the base series. --> use lowest common multiple as test of this.
+        i_order = get_order_from_coeff(
+                        np.lcm.reduce([(2*len(param_dict["width"])+1 if (coefficient_type_as_number(param_dict["width_type"])==0 ) else len(param_dict["width"])),
+                                      (2*len(param_dict["height"])+1 if (coefficient_type_as_number(param_dict["height_type"])==0 ) else len(param_dict["height"])),
+                                      (2*len(param_dict["profile"])+1 if (coefficient_type_as_number(param_dict["profile_type"])==0 ) else len(param_dict["profile"]))
+                                      ])
+                    )  #  * order_scale
     else:
         # for Fourier series, order of combined series is sum of orders -- 
         # i.e. sin(x) * sin(x) has order sin^2(x).
+        # but this only applies if order is greater than 0.
 
         # because series type is forced to be spline, we have to double any series that is a fourier.
         i_order = (get_order_from_coeff(len(param_dict["width"]), coefficient_type_as_number(param_dict["width_type"])) 
-                           * (1 if coefficient_type_as_number(param_dict["width_type"])==1 else 2) + 
+                           * (2 if (coefficient_type_as_number(param_dict["width_type"])==0 and len(param_dict["width"]) > 1) else 1) + 
                    get_order_from_coeff(len(param_dict["height"]), coefficient_type_as_number(param_dict["height_type"]))
-                           * (1 if coefficient_type_as_number(param_dict["height_type"])==1 else 2) +
+                           * (2 if (coefficient_type_as_number(param_dict["height_type"])==0 and len(param_dict["height"]) > 1) else 1) + 
                    get_order_from_coeff(len(param_dict["profile"]), coefficient_type_as_number(param_dict["profile_type"]))
-                           * (1 if coefficient_type_as_number(param_dict["profile_type"])==1 else 2)
-                        )
+                           * (2 if (coefficient_type_as_number(param_dict["profile_type"])==0 and len(param_dict["profile"]) > 1) else 1)
+                        ) * order_scale
     
+    
+    # FIX ME : propagate symmetry properly!!!
     if "symmetry" in param_dict:
         symmetry = param_dict["symmetry"]
     else:
         symmetry = 1
-    
-    combined = combine_series(param_dict, azimuth=azimuth, start_end=start_end, **kwargs)
+    symmetry = 1
+    # force symmetry to be 1 because all we care about here is getting the new series to align with the old ones. The 
+    # axzimuths that this happens at are mutable. 
+        
 
-    # fit combined series with new series; use series fitting code used in 
-    # data fitting. 
-    master_params = Parameters()  
-    param_str = "peak_0"
-    component = pf.compress_component_string(combined_series_name)
-    if i_type == coefficient_types()["independent"]:
-        # independent so have values from combined series. 
-        # parse into fit-like dictionary.
-        combined_series = {}
-        combined_series[combined_series_name] = list(unp.nominal_values(combined))
-        combined_series[combined_series_name+"_err"] = list(unp.std_devs(combined))
-        combined_series[combined_series_name+"_type"] = coefficient_type_as_string(i_type)
-    elif np.all(unp.nominal_values(combined)==0):
-        # all the values are zeros
-        combined_series = {}
-        combined_series[combined_series_name] = [0] * get_number_coeff({"peak": [{"area": i_order}]},"area")
-        combined_series[combined_series_name+"_err"] = [0] * get_number_coeff({"peak": [{"area": i_order}]},"area")
-        combined_series[combined_series_name+"_type"] = coefficient_type_as_string(i_type)
+    if kwargs.get("fit_series_new", False):
+        # fit combined series with new series; use series fitting code used in 
+        # data fitting. 
+                
+        num_azimuths = kwargs.get("num_azimuths", 360)
+        if i_order*2+1 > num_azimuths:
+            num_azimuths = int(np.ceil( (i_order*2+1) /num_azimuths))*num_azimuths
+        azimuth = np.linspace(start_end[0], start_end[1], num_azimuths)
+        
+        
+        combined = combine_series(param_dict, azimuth=azimuth, start_end=start_end, **kwargs)
+    
+        master_params = Parameters()  
+        param_str = "peak_0"
+        component = pf.compress_component_string(combined_series_name)
+        if i_type == coefficient_types()["independent"]:
+            # independent so have values from combined series. 
+            # parse into fit-like dictionary.
+            combined_series = {}
+            combined_series[combined_series_name] = list(unp.nominal_values(combined))
+            combined_series[combined_series_name+"_err"] = list(unp.std_devs(combined))
+            combined_series[combined_series_name+"_type"] = coefficient_type_as_string(i_type)
+        elif np.all(unp.nominal_values(combined)==0):
+            # all the values are zeros
+            combined_series = {}
+            combined_series[combined_series_name] = [0] * get_number_coeff({"peak": [{"area": i_order}]},"area")
+            combined_series[combined_series_name+"_err"] = [0] * get_number_coeff({"peak": [{"area": i_order}]},"area")
+            combined_series[combined_series_name+"_type"] = coefficient_type_as_string(i_type)
+        
+        else:
+            master_params = initiate_params(
+                master_params,
+                param_str,
+                component,
+                coeff_type=i_type,
+                trig_orders=i_order,
+                limits=None,
+                value=None,
+                types=True,
+            )
+            fout = coefficient_fit(
+                azimuth=azimuth,
+                ydata=unp.nominal_values(combined),
+                inp_param=master_params,
+                param_str=param_str + "_" + component,
+                symmetry=symmetry,
+                errs=unp.std_devs(combined),
+                fit_method="leastsq",
+                start_end = start_end
+                )
+            
+            if logger.is_below_level(level="DEBUG"):
+                fout.plot(show_init=True)
+                fout.params.pretty_print()
+            """
+            get errors on progagated series.
+            --------------------------------
+            Fitting the combined values with a series reproduces the centroid values. 
+            But the errors are too small so fit the errors with a series to get the expected coefficient errors.
+            """
+            master_params = Parameters()  
+            master_params = initiate_params(
+                master_params,
+                param_str,
+                component,
+                coeff_type=i_type,
+                trig_orders=i_order,
+                limits=[0, np.max(unp.std_devs(combined))],
+                value=None,
+                types=True,
+            )
+            ferrs_out = coefficient_fit(
+                azimuth=azimuth,
+                ydata=unp.std_devs(combined),
+                inp_param=master_params,
+                param_str=param_str + "_" + component,
+                symmetry=symmetry,
+                errs=None,#unp.std_devs(combined)*0 + 1E-6, # np.array(data_val_errors),
+                fit_method="leastsq",
+                start_end = start_end
+            )
+            combined_series = {}
+            combined_series[combined_series_name] = gather_param_errs_to_list(
+                                                    fout.params, "peak_0", comp=component
+                                                )[0]
+            combined_series[combined_series_name+"_err"] = gather_param_errs_to_list(
+                                                    ferrs_out.params, "peak_0", comp=component
+                                                )[0]
+            combined_series[combined_series_name+"_type"] = coefficient_type_as_string(i_type)
+            if logger.is_below_level(level="DEBUG"):
+                """
+                test the new series can reproduce the errors in the original data.
+                """
+                
+                if i_bc == "periodic":
+                    azimuth2 = np.linspace(start_end[0], start_end[1], len(combined_series[combined_series_name])+1)
+                    azimuth2 = azimuth2[:-1]
+                else:
+                    azimuth2 = np.linspace(start_end[0], start_end[1], len(combined_series[combined_series_name]))
+                
+                i = unp.uarray(combined_series[combined_series_name], combined_series[combined_series_name+"_err"])
+                reconstructed_series = coefficient_expand(azimuth*symmetry, 
+                                          param=i,
+                                          coeff_type=i_type,
+                                          comp_str=component,
+                                          start_end=start_end)
+                plt.figure()
+                plt.plot(azimuth, unp.nominal_values(combined), '.',azimuth, unp.nominal_values(reconstructed_series), '-')
+                plt.plot(azimuth2, unp.nominal_values(i),'o')
+                plt.title(f"series: {combined_series_name}")
+                
+                plt.figure()
+                plt.plot(azimuth, unp.std_devs(combined), '.',azimuth, unp.std_devs(reconstructed_series), '-')
+                plt.plot(azimuth2, unp.std_devs(i),'o')
+                plt.title(f"errors in {combined_series_name}")
+                # stop
     
     else:
-        master_params = initiate_params(
-            master_params,
-            param_str,
-            component,
-            coeff_type=i_type,
-            trig_orders=i_order,
-            limits=None,
-            value=None,
-            types=True,
-        )
-        fout = coefficient_fit(
-            azimuth=azimuth,
-            ydata=unp.nominal_values(combined),
-            inp_param=master_params,
-            param_str=param_str + "_" + component,
-            symmetry=symmetry,
-            errs=unp.std_devs(combined),
-            fit_method="leastsq",
-            start_end = start_end
-            )
         
-        if logger.is_below_level(level="DEBUG"):
-            fout.plot(show_init=True)
-            fout.params.pretty_print()
-        """
-        get erroros on progagated series.
-        --------------------------------
-        Fitting the combined values with a series reproduces the centroid values. 
-        But the errors are too small so fit the errors with a series to get the expected coefficient errors.
-        """
-        master_params = Parameters()  
-        master_params = initiate_params(
-            master_params,
-            param_str,
-            component,
-            coeff_type=i_type,
-            trig_orders=i_order,
-            limits=[0, np.max(unp.std_devs(combined))],
-            value=None,
-            types=True,
-        )
-        ferrs_out = coefficient_fit(
-            azimuth=azimuth,
-            ydata=unp.std_devs(combined),
-            inp_param=master_params,
-            param_str=param_str + "_" + component,
-            symmetry=symmetry,
-            errs=None,#unp.std_devs(combined)*0 + 1E-6, # np.array(data_val_errors),
-            fit_method="leastsq",
-            start_end = start_end
-        )
-        if logger.is_below_level(level="DEBUG"):
-            ferrs_out.plot(show_init=False)
-            ferrs_out.params.pretty_print()
-            plt.plot(azimuth, unp.std_devs(combined), '.',azimuth, ferrs_out.eval(), '-')
+        if azimuth is None:
+            # we need to calculate the positions of the azimuths given the order. 
+            #the azimuth is none logic is only so that we can calculate the combined series at any and all azimuths if desired.
+            if i_bc == "periodic":
+                azimuth = np.linspace(start_end[0], start_end[1], (2*i_order+1) + 1)
+                azimuth = azimuth[:-1]
+            else:
+                azimuth = np.linspace(start_end[0], start_end[1], (2*i_order+1))
+                
+        combined = combine_series(param_dict, azimuth=azimuth, start_end=start_end, **kwargs)
         # get combined series from the fits above; make fit-like dictionary for it.
         combined_series = {}
-        combined_series[combined_series_name] = gather_param_errs_to_list(
-                                                fout.params, "peak_0", comp=component
-                                            )[0]
-        combined_series[combined_series_name+"_err"] = gather_param_errs_to_list(
-                                                ferrs_out.params, "peak_0", comp=component
-                                            )[0]
+        combined_series[combined_series_name] = unp.nominal_values(combined)
+        combined_series[combined_series_name+"_err"] = unp.std_devs(combined)
         combined_series[combined_series_name+"_type"] = coefficient_type_as_string(i_type)
-        if logger.is_below_level(level="DEBUG"):
+    
+        if logger.is_below_level(level="DEBUG") and kwargs.get("prevent_interative_looping", False) is False:
             """
-            test the new series can reproduce the errors in the original data.
+            test the new series can reproduce the values and errors in the original data.
             """
+            # calculate all the combined series at all azimuths
+            num_azimuths = kwargs.get("num_azimuths", 720)
+            kwargs["prevent_interative_looping"] = True
+            azims_all = np.linspace(start_end[0], start_end[1], num_azimuths)
+            combined_all_azimuths = get_combined_series(param_dict,
+                    azimuth = azims_all,
+                    start_end=start_end,
+                    **kwargs)
+            # put values and errors together so can get errors from series. 
             i = unp.uarray(combined_series[combined_series_name], combined_series[combined_series_name+"_err"])
-            reconstructed_series = coefficient_expand(azimuth, 
+            reconstructed_series = coefficient_expand(azims_all, 
                                       param=i,
                                       coeff_type=i_type,
-                                      comp_str=component,
+                                      comp_str=combined_series_name,
                                       start_end=start_end)
-            plt.figure()
-            plt.plot(azimuth, unp.nominal_values(combined), '.',azimuth, unp.nominal_values(reconstructed_series), '-')
-            plt.title(f"series: {combined_series_name}")
             
             plt.figure()
-            plt.plot(azimuth, unp.std_devs(combined), '.',azimuth, unp.std_devs(reconstructed_series), '-')
-            plt.title(f"errors in {combined_series_name}")
+            plt.plot(azims_all, combined_all_azimuths[combined_series_name], 'r.', label="combined and expanded values")
+            plt.plot(azimuth, unp.nominal_values(combined), 'ob', label="Series tie points")
+            plt.plot( azims_all, unp.nominal_values(reconstructed_series), '-', label="reconstructed and expanded series")
+            plt.legend()
+            plt.title(f"series: {combined_series_name}; order={i_order}; i_type={coefficient_type_as_string(i_type)}")
             
+            plt.figure()
+            plt.plot(azims_all, combined_all_azimuths[combined_series_name+"_err"], 'r.', label="combined and expanded errors")
+            plt.plot(azimuth, unp.std_devs(combined), 'ob', label="Series tie points errors")
+            plt.plot(azims_all, unp.std_devs(reconstructed_series), '-', label="reconstructed and expanded errors")
+            plt.legend()
+            plt.title(f"errors in {combined_series_name}; order={i_order}; i_type={coefficient_type_as_string(i_type)}")
+            # stop
+    
+
+    if 0 and logger.is_below_level(level="DEBUG"):
+        """
+        This loop does everything again but records the time taken.
+        Only to be used for testing purposes. 
+        """
+        import time
+        s1 = time.time()
+        kwargs["prevent_interative_looping"] = True
+        combined_series = get_combined_series(param_dict,
+                            azimuth = None,
+                            start_end=[0, 360],
+                            **kwargs)
+        if logger.is_below_level(level="DEBUG"):
+            e1 = time.time()
+            s2 = time.time()
+            kwargs.update({"fit_series_new": True})
+            combined_series_old = get_combined_series(param_dict,
+                                azimuth = None,
+                                start_end=[0, 360],
+                                **kwargs)
+            e2 = time.time()
+            print(f"new serires method: {e1-s1}s")
+            print(f"old serires method: {e2-s2}s")
+            print(f"speed up: {((e2-s2)-(e1-s1))/(e2-s2)*100}%")
+            print(f"times faster: {(e2-s2)/(e1-s1)}")
+    
     return combined_series
+
 
 
 def series_properties(
@@ -1159,8 +1314,8 @@ def series_properties(
     subpattern=0,
     peak=0,
     param = "height",
-    azm_spacing = 0.01,
-    debug=False,
+    azm_spacing = 0.01, #merge these parameters into 1
+    start_end = [0, 360], #merge these parameters into 1
     **kwargs,
 ):
     """
@@ -1214,59 +1369,388 @@ def series_properties(
     # catch 'null' terms in fits
     coefficients = replace_value(coefficients, old=None, new=np.nan)
 
-    properties = {}
-
-    # height mean
-    if coefficients[subpattern]["peak"][peak][param + "_type"] == "fourier":
-        properties["series mean"] = coefficients[subpattern]["peak"][peak][param][0]
-        properties["series mean err"] = coefficients[subpattern]["peak"][peak][
-            param + "_err"
-        ][0]
+    if "symmetry" in coefficients[subpattern]["peak"][peak]:
+        sym = coefficients[subpattern]["peak"][peak]["symmetry"]
     else:
-        # the 'mean' of the spline series is actually a weighted sum, divided by the 
-        # number of entries. 
-        # this is because a true mean and more specifically the standaded deviation of the spline values 
-        # will reflect any LPO in the diffraction peak.
-        tot = np.sum(coefficients[subpattern]["peak"][peak][param])
-        errsum = np.sqrt(
-            np.sum(
-                np.array(coefficients[subpattern]["peak"][peak][param + "_err"]) ** 2
-            )
-        )
-        num = len(coefficients[subpattern]["peak"][peak][param])
-        properties["series mean"] = tot / num
-        properties["series mean err"] = errsum / num
-    if properties["series mean"] is None:  # catch  'null' as an error
-        properties["series mean"] = np.nan
-    if properties["series mean err"] is None:  # catch  'null' as an error
-        properties["series mean err"] = np.nan
-
+        sym = 1
+        
     # calulate maximum and minimum and their positions.
-    if len(ma.unique(azm_spacing).compressed()) != 1:
-        # then need to use uniquie azimuths that were fed in
-        orientations = ma.unique(azm_spacing).compressed()
+    # import time
+    # start_diff = time.time()
+    if coefficients[subpattern]["peak"][peak][param + "_type"] == "fourier":
+        # get 
+        properties_tmp = fourier_properties(unp.uarray(coefficients[subpattern]["peak"][peak][param], coefficients[subpattern]["peak"][peak][param+"_err"]),
+                                        symmetry=sym, 
+                                        start_end=start_end
+                                        )
     else:
-        n = 360 / azm_spacing + 1
-        orientations = np.linspace(0, 360, int(n))
-
-    vals = coefficient_expand(
-        orientations,
-        param=unp.uarray(coefficients[subpattern]["peak"][peak][param], coefficients[subpattern]["peak"][peak][param+"_err"]),
-        coeff_type=coefficients[subpattern]["peak"][peak][param + "_type"],
-        comp_str=param,
-    )
-    maximum = np.argmax(vals)
-    minimum = np.argmin(vals)
-    properties["series max"] = unp.nominal_values(vals[maximum])
-    properties["series max err"] = unp.std_devs(vals[maximum])
-    properties["series min"] = unp.nominal_values(vals[minimum])
-    properties["series min err"] = unp.std_devs(vals[minimum])
-    properties["series orientation max"] = orientations[maximum]
-    properties["series orientation min"] = orientations[minimum]
-
+        # stop
+        # calulate maximum and minimum and their positions.
+        if len(ma.unique(azm_spacing).compressed()) != 1:
+            # then need to use uniquie azimuths that were fed in
+            orientations = ma.unique(azm_spacing).compressed()
+        else:
+            n = (start_end[0]- start_end[0]) / azm_spacing + 1
+            orientations = np.linspace(start_end[0], start_end[1], int(n))
+        # differential spline and get roots. 
+        properties_tmp = spline_properties(unp.uarray(coefficients[subpattern]["peak"][peak][param], coefficients[subpattern]["peak"][peak][param+"_err"]),
+                                       azimuth = orientations,
+                                       symmetry=sym, 
+                                       start_end=start_end,
+                                       spline_type = coefficients[subpattern]["peak"][peak][param + "_type"],
+                                       # bc_type="periodic", #*************need settings
+                                       # kind=None,  #******************need settings
+                                       )
+      
+    properties = {}
+    properties["series mean"] = unp.nominal_values(properties_tmp["series mean"])
+    properties["series mean err"] = unp.std_devs(properties_tmp["series mean"])
+    properties["series max"] = unp.nominal_values(properties_tmp["series max"])
+    properties["series max err"] = unp.std_devs(properties_tmp["series max"])
+    properties["series min"] = unp.nominal_values(properties_tmp["series min"])
+    properties["series min err"] = unp.std_devs(properties_tmp["series min"])
+    properties["series max orientation"] = unp.nominal_values(properties_tmp["series max orientation"])
+    properties["series max orientation err"] = unp.std_devs(properties_tmp["series max orientation"])
+    properties["series min orientation"] = unp.nominal_values(properties_tmp["series min orientation"])
+    properties["series min orientation err"] = unp.std_devs(properties_tmp["series min orientation"])
     if param is not None:
         entries = list(properties)
         for i in range(len(entries)):
             properties[re.sub("series", param, entries[i])] = properties.pop(entries[i])
-
     return properties
+
+
+
+def fourier_properties(coeffs, symmetry=1, start_end=[0,360]):
+    """
+    Calculate the mean, global maximum and global minimum of a fourier series.
+
+    A spline is constructed from the supplied tie-point coefficients using
+    ``construct_spline()``. The spline derivative is then formed analytically
+    and converted to a piecewise polynomial representation. Stationary points
+    are obtained from the exact roots of the derivative and are combined with
+    the spline endpoints (and knots for linear splines) to determine the
+    global extrema.
+
+    If the input coefficients are ``uncertainties.ufloat`` objects, the
+    uncertainties are propagated through the spline basis functions to obtain
+    uncertainties on the mean, maximum and minimum values. Uncertainties on
+    the extremum orientations are estimated using first-order implicit
+    differentiation of the stationary-point condition dS/dx = 0.
+
+    Parameters
+    ----------
+    coeffs : array-like
+        Spline tie-point coefficients. Elements may be floats or ufloats.
+    azimuth : array-like or None, optional
+        Azimuth coordinates corresponding to the tie points (only used for independent series type).
+    symmetry : int, optional
+        symmetry of azimuthal values
+    start_end : list-like, optional
+        Lower and upper bounds of the spline domain.
+    spline_type : str, optional
+        name of spline type 
+
+    Returns
+    -------
+    dict
+        Dictionary containing mean, max, min and orientations.
+    """
+    """
+    edited after copilot output
+    """    
+    
+    def fourier_prime_nominal(azm, coeffs):
+        """
+        Nominal derivative f'(azm).
+        Used for checking roots.
+        """
+        N = get_order_from_coeff(len(coeffs))
+        coeffs2 = coeffs*0
+        for n in range(1, N + 1):
+            # reverse order of the values in the series so that sin/cos are switched in the fourier expansion
+            coeffs2[2*n] = coeffs[2*n - 1] * n
+            coeffs2[2*n-1] = coeffs[2*n] * n * -1
+        y = fourier_expand(np.rad2deg(azm), inp_param=coeffs2, comp_str=None, no_negatives=False)
+        return y
+    
+    def fourier_second_nominal(azm, coeffs):
+        """
+        Nominal second derivative f''(azm).
+        Used for classification and uncertainty propagation.
+        """
+        N = get_order_from_coeff(len(coeffs))
+        coeffs2 = coeffs*0
+        for n in range(1, N + 1):
+            # order of sin and cos reversed twice by double differential. So the order is back in the initial order
+            coeffs2[2*n - 1] = coeffs[2*n - 1] * n**2 * -1
+            coeffs2[2*n] = coeffs[2*n] * n**2 * -1
+        y = fourier_expand(np.rad2deg(azm), inp_param=coeffs2, comp_str=None, no_negatives=False)
+        return y
+    
+    def derivative_polynomial_roots(coeffs, unit_tol=1e-7, residual_tol=1e-7):
+        """
+        Solve f'(azm)=0 algebraically by writing it as a polynomial in z = exp(i azm).
+    
+        Returns nominal azm roots in [0, 2*pi).
+        """
+        N = get_order_from_coeff(len(coeffs))
+        if N == 0:
+            return np.array([])
+        # Polynomial P(z) = z^N f'(azm), where z = exp(i azm)
+        # Powers run from 0 to 2N
+        poly = np.zeros(2*N + 1, dtype=complex)
+        for n in range(1, N + 1):
+            a_n = unp.nominal_values(coeffs[2*n - 1])
+            b_n = unp.nominal_values(coeffs[2*n])
+            # f'(azm) contains:
+            # n/2 * (a_n + i b_n) z^n
+            # n/2 * (a_n - i b_n) z^(-n)
+            c_pos = 0.5 * n * (a_n + 1j*b_n)
+            c_neg = 0.5 * n * (a_n - 1j*b_n)
+            power_pos = N + n
+            power_neg = N - n
+            # np.roots wants descending powers
+            poly[2*N - power_pos] += c_pos
+            poly[2*N - power_neg] += c_neg
+        poly = np.trim_zeros(poly, trim="f")
+        if len(poly) <= 1:
+            return np.array([])
+        z_roots = np.roots(poly)
+        # Keep only roots close to the unit circle
+        z_roots = z_roots[np.abs(np.abs(z_roots) - 1.0) < unit_tol]
+        azm = np.mod(np.angle(z_roots), 2*np.pi)
+        # Check derivative residual
+        azm = np.array([x for x in azm if abs(fourier_prime_nominal(x, coeffs)) < residual_tol])
+        # Remove duplicates
+        azm = np.unique(np.round(azm, 12))
+        return azm
+    
+    
+    def uncertain_root_azm(azm0, coeffs):
+        """
+        First-order uncertainty propagation for the stationary point location.
+    
+        If g(azm, coeffs) = f'(azm) = 0, then
+            dazm/dc = - (dg/dc) / (dg/dazm)
+        where dg/dazm = f''(azm).
+        """
+        N = get_order_from_coeff(len(coeffs))
+        f2 = fourier_second_nominal(azm0, coeffs)
+        if abs(f2) < 1e-14:
+            # Degenerate stationary point, uncertainty in azm is ill-defined
+            return unp.ufloat(azm0, np.nan)
+        azm_u = azm0
+        for n in range(1, N + 1):
+            a_n = coeffs[2*n - 1]
+            b_n = coeffs[2*n]
+            a0 = unp.nominal_values(a_n)
+            b0 = unp.nominal_values(b_n)
+            # g = f' = sum n a_n cos(n azm) - n b_n sin(n azm)
+            dg_da = n * np.cos(n * azm0)
+            dg_db = -n * np.sin(n * azm0)
+            dazm_da = -dg_da / f2
+            dazm_db = -dg_db / f2
+            azm_u += dazm_da * (a_n - a0)
+            azm_u += dazm_db * (b_n - b0)
+        return azm_u
+    
+    mean = coeffs[0]
+    azm_roots = derivative_polynomial_roots(coeffs)
+    if len(azm_roots) == 0:
+        return {
+            "series mean": mean,
+            "series max": None,
+            "series max orientation": np.nan,
+            "series min": None,
+            "series min orientation": np.nan,
+        }
+    stationary = []
+    for azm0 in azm_roots:
+        azm_u = uncertain_root_azm(azm0, coeffs) # in radians
+        # val_u = fourier_value(azm_u, coeffs)
+        
+        val_u = fourier_expand(np.rad2deg(unp.nominal_values(azm_u)), inp_param=coeffs, comp_str=None, no_negatives=False)
+        # stop
+        f2 = fourier_second_nominal(azm0, coeffs)
+        if f2 < 0:
+            kind = "local maximum"
+        elif f2 > 0:
+            kind = "local minimum"
+        else:
+            kind = "flat / degenerate"
+        stationary.append({
+            "azm": unp.degrees(azm_u),
+            "value": val_u,
+            "second_derivative": f2,
+            "kind": kind
+        })
+    # Global max/min by nominal value
+    values_nom = np.array([unp.nominal_values(p["value"]) for p in stationary])
+    i_max = np.argmax(values_nom)
+    i_min = np.argmin(values_nom)
+    result = {
+        "series mean": mean,
+        "series max": stationary[i_max]["value"],
+        "series max orientation": stationary[i_max]["azm"]/symmetry,
+        "series min": stationary[i_min]["value"],
+        "series min orientation": stationary[i_min]["azm"]/symmetry,
+    }
+    if 0:    
+        print("Mean:")
+        print(result["series mean"])
+        print("\nMaximum:")
+        print("azm =", result["series max orientation"])
+        print("f   =", result["series max"])
+        print("\nMinimum:")
+        print("azm =", result["series min orientation"])
+        print("f   =", result["series min"])
+        if 0:
+            print("\nAll stationary points:")
+            for p in result["stationary_points"]:
+                print(p["kind"])
+                print("  azm =", p["azm"])
+                print("  f   =", p["value"])
+    return result
+    
+
+
+
+def spline_properties(coeffs,
+                      azimuth=None,
+                      symmetry=1,
+                      start_end=[0, 360],
+                      spline_type='spline_cubic'):
+    """
+    Calculate the mean, global maximum and global minimum of a spline series.
+
+    A spline is constructed from the supplied tie-point coefficients using
+    ``construct_spline()``. The spline derivative is then formed analytically
+    and converted to a piecewise polynomial representation. Stationary points
+    are obtained from the exact roots of the derivative and are combined with
+    the spline endpoints (and knots for linear splines) to determine the
+    global extrema.
+
+    If the input coefficients are ``uncertainties.ufloat`` objects, the
+    uncertainties are propagated through the spline basis functions to obtain
+    uncertainties on the mean, maximum and minimum values. Uncertainties on
+    the extremum orientations are estimated using first-order implicit
+    differentiation of the stationary-point condition dS/dx = 0.
+
+    Parameters
+    ----------
+    coeffs : array-like
+        Spline tie-point coefficients. Elements may be floats or ufloats.
+    azimuth : array-like or None, optional
+        Azimuth coordinates corresponding to the tie points (only used for independent series type).
+    symmetry : int, optional
+        symmetry of azimuthal values
+    start_end : list-like, optional
+        Lower and upper bounds of the spline domain.
+    spline_type : str, optional
+        name of spline type 
+
+    Returns
+    -------
+    dict
+        Dictionary containing mean, max, min and orientations.
+    """
+    """
+    edited after copilot output
+    """
+
+    # get spline type
+    series_name = coefficient_type_as_string(spline_type)
+    all_series = coefficient_types(full=True)
+
+    coeffs = np.asarray(coeffs, dtype=object)
+
+    # Nominal spline
+    coeffs_nom = np.array([unp.nominal_values(c) for c in coeffs],dtype=float)
+    spl, tie_points = construct_spline(
+        coeffs=coeffs_nom,
+        azimuth=azimuth,
+        start_end=start_end,
+        bc_type=all_series[series_name]["boundary_conditions"],
+        kind=all_series[series_name]["spline_type"],
+    )
+    xmin = spl.t[spl.k]
+    xmax = spl.t[-spl.k - 1]
+
+    # Candidate extrema locations
+    if spl.k == 1:
+        # Piecewise-linear spline:
+        # extrema occur at knots, not derivative roots
+        x_candidates = np.unique(spl.t[spl.k:-spl.k])
+    else:
+        try:
+            dspl = spl.derivative()
+            pp = PPoly.from_spline(dspl)
+            roots = pp.roots(extrapolate=False)
+            roots = roots[ (roots >= xmin) & (roots <= xmax) ]
+        except Exception:
+            roots = np.array([])
+        x_candidates = np.concatenate(([xmin], roots, [xmax]))
+        x_candidates = np.unique(np.round(x_candidates, 12))
+
+    # Nominal values
+    y_nom = spl(x_candidates)
+    imax = np.argmax(y_nom)
+    imin = np.argmin(y_nom)
+    xmax_nom = x_candidates[imax]
+    xmin_nom = x_candidates[imin]
+
+    # Build basis splines
+    n = len(coeffs)
+    eye = np.eye(n)
+    basis = []
+    for i in range(n):
+        b, _ = construct_spline(
+            coeffs=eye[i],
+            azimuth=azimuth,
+            start_end=start_end,
+            bc_type=all_series[series_name]["boundary_conditions"],
+            kind=all_series[series_name]["spline_type"],
+        )
+        basis.append(b)
+
+    # Evaluate spline with uncertainty propagation
+    def eval_ufloat(x):
+        out = 0
+        for c, b in zip(coeffs, basis):
+            out += c * b(x)
+        return out
+
+    # Exact mean
+    L = xmax - xmin
+    mean = 0
+    for c, b in zip(coeffs, basis):
+        mean += c * ( b.integrate(xmin, xmax) / L )
+    # Max/min values
+    series_max = eval_ufloat(xmax_nom)
+    series_min = eval_ufloat(xmin_nom)
+    # Extremum orientation uncertainty
+    def orientation_error(x0):
+        # Linear splines have discontinuous derivatives
+        if spl.k == 1:
+            return ufloat(x0, 0.0)
+        try:
+            f2 = spl.derivative(2)(x0)
+            if abs(f2) < 1e-12:
+                return ufloat(x0, np.nan)
+            xu = ufloat(x0, 0.0)
+            for c, b in zip(coeffs, basis):
+                dg_dc = b.derivative()(x0)
+                xu += -(dg_dc / f2) * (c - unp.nominal_values(c))
+            return xu
+        except Exception:
+            return ufloat(x0, np.nan)
+    max_orientation = orientation_error(xmax_nom)
+    min_orientation = orientation_error(xmin_nom)
+    return {
+        "series mean": mean,
+        "series max": series_max,
+        "series max orientation": max_orientation,
+        "series min": series_min,
+        "series min orientation": min_orientation,
+    }

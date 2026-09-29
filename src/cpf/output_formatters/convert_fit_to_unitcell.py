@@ -3,7 +3,7 @@ __all__ = ["fits_to_unitcell"]
 import glob
 import json
 import re
-
+import copy
 import numpy as np
 import pandas as pd
 
@@ -225,17 +225,21 @@ def fits_to_unitcell(settings, *args, **kwargs):
             # empty list cause by not finding temperature
             templbl = ""
         # get temperature
-        if templbl in metadata:
+        if "temperature" in kwargs:
+            temp = kwargs["temperature"]
+        elif templbl in metadata:
             temp = metadata[templbl]
         else:
             temp = 0
 
+        kwargs_here = copy.deepcopy(kwargs)
+        kwargs_here.pop("phase", None)
+        kwargs_here.pop("jcpds", None)
+        kwargs_here.pop("temperature", None)
+        
         # calculate unit cell properties and return them
         for i in range(len(phase)):
-            kwargs_here = kwargs
-
-            kwargs_here.pop("phase", None)
-            kwargs_here.pop("jcpds", None)
+            
             unitcells = fourier_to_unitcellvolume(
                 fits,
                 # SampleGeometry=SampleGeometry,

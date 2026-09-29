@@ -389,7 +389,16 @@ class ESRFlvpDetector:
             parms_file = settings.calibration_parameters
         else:
             parms_file = file_name
-
+        
+        if parms_file.suffix != ".json":
+            # for the sipnning detector the calibrations come as json files. 
+            # if the calibraion is a poni then it is a single orientation of the detctor so fail gracefully
+            err_str = [f"The calibration is a '*{parms_file.suffix}' file. The expected calibration file type for the ESRFlvp detector is a '*.json'."]
+            if parms_file.suffix == ".poni":
+                      err_str += ["A poni file suggests a single orientation of the detector -- if so use the 'Dioptas' calibration type."]
+            raise TypeError(err_str)
+            
+        
         with open(parms_file, "r") as f:
             self.calibration = json.load(f)
 
@@ -456,7 +465,7 @@ class ESRFlvpDetector:
         # load the list of files
         # print("file_string", file_string)
         # print(file_string)
-        if isinstance(file_string, list) or ("h5_datakey" in self.__dict__.keys() and self.h5_datakey is not None and not "*" in file_string):
+        if isinstance(file_string, list) or ("h5_datakey" in self.__dict__.keys() and self.h5_datakey is not None and not "*" in Path(file_string).name):
             # os.path.splitext(os.path.basename(file_string[0]))[1] == ".h5":
             #define where data locations are in the initaition of the class.
             

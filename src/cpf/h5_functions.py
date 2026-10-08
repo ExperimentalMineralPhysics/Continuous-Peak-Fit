@@ -516,7 +516,7 @@ def get_image_key_strings(
 # %%
 
 
-def DefaultProcessDictionary(types=False):
+def DefaultProcessDictionary(types=False, alternatives=False):
     """
     Definition of default process dictionary for iterating over hdf5 files.
 
@@ -546,7 +546,7 @@ def DefaultProcessDictionary(types=False):
         Default dictionary for h5 key descriptions.
 
     """
-    if types == False:
+    if types == False and alternatives == False:
         return {
             "do": "iterate",
             "from": 0,
@@ -555,6 +555,16 @@ def DefaultProcessDictionary(types=False):
             "dim": 0,
             "using": "position",
             "label": ["pos"],
+        }
+    elif alternatives == True:
+        return {
+            "do": None,
+            "from": "list",
+            "to": "list",
+            "step": None,
+            "dim": None,
+            "using": None,
+            "label": None,
         }
     else:
         return {
@@ -693,7 +703,7 @@ def image_key_validate_new(fit_settings=None, h5_iterate=None, end_if_errors=Fal
 
     # get expected data types
     expected_entries = DefaultProcessDictionary(types=True)
-    expected_keys = list(DefaultProcessDictionary().keys())
+    expected_keys_and_alternatives = DefaultProcessDictionary(alternatives=True)
 
     errors = []
     warnings = []
@@ -743,15 +753,15 @@ def image_key_validate_new(fit_settings=None, h5_iterate=None, end_if_errors=Fal
                             pass
 
             # check for missing keys
-            for j in range(len(expected_keys)):
-                if expected_keys[j] not in dict_keys:
+            for ky in expected_keys_and_alternatives.keys():
+                if (ky not in dict_keys  
+                    and expected_keys_and_alternatives[ky] not in dict_keys
+                    ):
                     warnings.append(
-                        f"h5_iterate[{i}]: does not contain '{expected_keys[j]}'; a default value has been added"
+                        f"h5_iterate[{i}]: does not contain '{ky}'; a default value of {DefaultProcessDictionary()[ky]} has been added"
                     )
-                    h5_iterate[i][expected_keys[j]] = DefaultProcessDictionary()[
-                        expected_keys[j]
-                    ]
-
+                    h5_iterate[i][ky] = DefaultProcessDictionary()[ky]
+                
             # check for extra keys
             extra = [x for x in dict_keys if x not in expected_entries]
             if len(extra) != 0:

@@ -497,8 +497,8 @@ class ESRFlvpDetector:
                     # keep = np.int_(np.linspace(0,len(file_string[2]),int(np.floor((len(file_string[2]))/reduce_by)), endpoint=False))
                     keep = np.int32(np.arange(0, len(positions)/reduce_by)* reduce_by)
                     # files_list = [file_string[2][i] for i in keep]
-                    files_list = file_string[2][keep]
-                    positions = positions[keep]
+                    files_list = np.asarray(file_string[2])[keep]
+                    positions = np.asarray(positions)[keep]
                     
                 elif self.reduce_by is not None and self.reduce_by != 1:
                     if self.reduce_by < 1:
@@ -506,8 +506,8 @@ class ESRFlvpDetector:
                     # keep = np.int_(np.linspace(0,len(file_string[2]),int(np.floor((len(file_string[2]))/self.reduce_by)), endpoint=False))
                     keep = np.int32(np.arange(0, len(positions)/self.reduce_by)* self.reduce_by)
                     # files_list = [file_string[2][i] for i in keep]
-                    files_list = file_string[2][keep]
-                    positions = positions[keep]
+                    files_list = np.asarray(file_string[2])[keep]
+                    positions = np.asarray(positions)[keep]
                 else:
                     # print("ran through here")
                     pass            

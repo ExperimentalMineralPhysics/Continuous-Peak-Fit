@@ -893,7 +893,6 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
     # this is necessary incase we are looping over all valid entries without
     # directly knowing the key names
     keylist = []
-
     if loops:
         for i in range(len(loops)):
             # FIXME this loop should be an iterative loop. so that it can iterate
@@ -1019,35 +1018,41 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
 
         else:
             raise ValueError("unrecognased type")
-
-    # # get labels.
-    labels = []
-
-    # iterate over the keylist and expand with labels.
+   
+    # iterate over the keylist and get required labels.
     out = []
-    for i in range(len(keylist)):
+    for kl in range(len(keylist)):
         # the key list should contain everything that is not the bottom level
         # of the h5 keys. this loop only works on the bottom levels with the data
 
-        labels.append("")
-        # for j in range(len(h5_iterate)):
-
         # look at the last of the iteration keys.
         # deepcopy so can check for "to": -1 every time round.
-        # itera = deepcopy(h5_iterate[j])
         itera = deepcopy(h5_iterate[-1])
 
         # make sure the key exists
-        if not keylist[i] in df.keys():
-            err_str = "The key, '%s' does not exist in '%s'" % (keylist[i], df)
+        if not keylist[kl] in df.keys():
+            err_str = "The key, '%s' does not exist in '%s'" % (keylist[kl], df)
             logger.warning(" ".join(map(str, [(err_str)])))
-        elif len(np.array(df[keylist[i]]).squeeze().shape) == 2:
+        elif np.array(df[keylist[kl]].shape).squeeze().size == 2:
             # the data is two dimensional. 
             # then not line of data and likely an image
             # Need all of it. 
-            out.append([keylist[i], 0, ""])
+            out.append([keylist[kl], 0, ""]) 
+        elif np.array(df[keylist[kl]].shape).squeeze().size == 1:
+            # the data is 1 dimensional. 
+            # then line of data and likely metadata or properties of some sort
+            # Need however much of it is called for my itera
+            number_data = np.array(df[keylist[kl]].shape).squeeze()
+            if "list" in itera:
+                index_values = itera["list"]
+            else:
+                if itera["to"] == -1:
+                    itera["to"] = number_data - 1
+                index_values, _ = get_file_indices(param_dict=itera)
+            out.append([keylist[kl], index_values, ""])
         else:
-            number_data = np.array(df[keylist[i]]).squeeze().shape[itera["dim"]]
+            # number_data = np.array(df[keylist[i]]).squeeze().shape[itera["dim"]]
+            number_data = np.array(df[keylist[kl]].shape).squeeze()[itera["dim"]]
             if itera["do"] == "sum" or itera["do"] == "average":
                 # add all the frames in the data set
                 if "list" in itera:
@@ -1057,9 +1062,9 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                         itera["to"] = number_data - 1
                     index_values, _ = get_file_indices(param_dict=itera)
                 # get the labels -- only need labels from layers above because summing the data.
-                lbls = licit_filename(labels[i], replacement="+", exclude_dir=False)
-                # lbls = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
-                out.append([keylist[i], index_values, lbls])
+                lbls = get_labels(df, itera["label"],  number_data, kl, vals[kl], sep1=sep1, sep2=sep2, key=keylist[kl])
+                lbls = licit_filename(lbls, replacement="+", exclude_dir=False)
+                out.append([keylist[kl], index_values, lbls])
 
             elif itera["do"] == "combine":
                 # return all the frames.
@@ -1071,10 +1076,9 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                         itera["to"] = number_data - 1
                     index_values, _ = get_file_indices(param_dict=itera)
                 # get the labels -- only need labels from layers above because returning data array.
-                lbls = licit_filename(labels[i], replacement="+", exclude_dir=False)
-                # lbls = get_labels(df, itera["label"],  number_data, j, vals[i], sep1=sep1, sep2=sep2, key=labels[i])
-                out.append([keylist[i], index_values, lbls])
-
+                lbls = get_labels(df, itera["label"],  number_data, kl, vals[kl], sep1=sep1, sep2=sep2, key=keylist[kl])
+                lbls = licit_filename(lbls, replacement="+", exclude_dir=False)
+                out.append([keylist[kl], index_values, lbls])
             elif itera["do"] == "iterate":
                 # iterate over the size of the array in the h5 group.
                 if "list" in itera:
@@ -1085,24 +1089,22 @@ def get_image_keys_new(datafile, h5key_data, h5_iterate, sep1="_", sep2="="):
                     over = np.arange(itera["from"], itera["to"] + 1, itera["step"])
                 for j in over:
                     index_values = j
-                    lbls = licit_filename(labels[i], replacement="+", exclude_dir=False)
+                    lbls = licit_filename(labels[kl], replacement="+", exclude_dir=False)
                     additional_label = get_labels(
                         df,
                         itera["label"],
                         number_data,
                         j,
-                        vals[i],
+                        vals[kl],
                         sep1=sep1,
                         sep2=sep2,
-                        key=labels[i],
+                        key=keylist[kl],
                     )
                     if lbls == "":
                         lbls += f"{additional_label}"
                     elif additional_label != "":
                         lbls += f"{sep1}{additional_label}"
-
-                    # if itera["using"] == "value" and :
-                    out.append([keylist[i], index_values, lbls])
+                    out.append([keylist[kl], index_values, lbls])
             else:
                 err_str = f"The h5 process '{itera['do']}' is not recognised."
                 raise ValueError(err_str)
@@ -1133,11 +1135,11 @@ def get_labels(
     datafile : h5file pointer
         H5 file for which the labels are being made.
     label_list : list
-        List containing keys of required labels.
+        List containing keys of required labels for the entry.
     seq : List,
-        DESCRIPTION. The default is None.
+        Position in the sequence of entries for this datafile.
     vals : List
-        DESCRIPTION. The default is None.
+        numerical value of wildcard in key being iterated over.
     sep1 : string, optional
         seperator to go between different labels. The default is "_".
     sep2 : string, optional
@@ -1159,13 +1161,13 @@ def get_labels(
         lb = label_list[j]
         if lb.lower() == "pos":
             # looking for position in the sequence
-            label += str(seq)
+            label += f"pos{sep2}{str(seq)}"
         elif lb.lower() == "value":
             # looking for position in the data file
             if isinstance(vals, list):
-                label += str(vals[0])
+                label += f"keyval{sep2}{str(vals[0])}"
             else:
-                label += str(vals)
+                label += f"keyval{sep2}{str(vals)}"
         elif "key" in lb.lower():
             # add key value to the label
             label += str(key)

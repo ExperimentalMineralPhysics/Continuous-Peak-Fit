@@ -1539,7 +1539,7 @@ def fourier_properties(coeffs, symmetry=1, start_end=[0,360]):
         f2 = fourier_second_nominal(azm0, coeffs)
         if abs(f2) < 1e-14:
             # Degenerate stationary point, uncertainty in azm is ill-defined
-            return unp.ufloat(azm0, np.nan)
+            return ufloat(azm0, np.nan)
         azm_u = azm0
         for n in range(1, N + 1):
             a_n = coeffs[2*n - 1]

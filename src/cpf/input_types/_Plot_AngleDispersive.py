@@ -479,19 +479,13 @@ class _Plot_AngleDispersive:
         locs, labels = plt.xticks()
         # plt.setp(labels, rotation=90)
 
-        # plot residuals
-        if "rmin" in limits:
-            limits_resid = limits|{"rmin": limits["rmin"], "rmax": limits["rmax"]}
-            if "cb_extend" in limits:
-                limits_resid["cb_extend"] = limits["cb_extend"]
-        else:
-            limits_resid = [0, 100]
+        # plot residuals            
         fig_plot = self.plot_calibrated(
             fig_plot=fig_plot,
             axis_plot=ax[2],
             data=self.intensity - model,
             y_label=None,
-            limits=limits_resid,
+            limits=limits,
             colourmap="residuals-blanaced",
             # location=location,
             plot_type=plot_type,
@@ -890,8 +884,12 @@ class _Plot_AngleDispersive:
             IMin = 0
             cb_extend = "neither"
         elif isinstance(limits, dict):
-            IMax = limits["max"]
-            IMin = limits["min"]
+            if colourmap == "residuals-blanaced":
+                IMax = limits["rmax"]
+                IMin = limits["rmin"]
+            else:
+                IMax = limits["max"]
+                IMin = limits["min"]
             if "cb_extend" in limits:
                 cb_extend = limits["cb_extend"]
             else:

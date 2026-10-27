@@ -158,8 +158,8 @@ class _AngleDispersive_common:
             # uses b_num to determine bin size
             lims = np.array(
                 [
-                    ma.min(self.azm),
-                    ma.max(self.azm + 0.01),
+                    ma.min(self.azm) - 0.01,
+                    ma.max(self.azm) + 0.01,
                 ]
             )
             lims[0] = np.floor(lims[0] / self.azm_blocks) * self.azm_blocks

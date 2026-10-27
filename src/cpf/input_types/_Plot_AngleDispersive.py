@@ -349,6 +349,8 @@ class _Plot_AngleDispersive:
                 limits = {
                     "max": plot_ColourRange[0],
                     "min": plot_ColourRange[1],
+                    "rmax": plot_ColourRange[0],
+                    "rmin": plot_ColourRange[1],
                 }
             else:
                 limits = plot_ColourRange
@@ -356,6 +358,8 @@ class _Plot_AngleDispersive:
             limits = {
                 "max": np.nanmax([self.intensity.max(), model.max()]),
                 "min": np.nanmin([self.intensity.min(), model.min()]),
+                "rmax": np.nanmax([self.intensity-model]),
+                "rmin": np.nanmin([self.intensity-model]),
             }
 
         tight = False
@@ -477,7 +481,7 @@ class _Plot_AngleDispersive:
 
         # plot residuals
         if "rmin" in limits:
-            limits_resid = {"min": limits["rmin"], "max": limits["rmax"]}
+            limits_resid = limits|{"rmin": limits["rmin"], "rmax": limits["rmax"]}
             if "cb_extend" in limits:
                 limits_resid["cb_extend"] = limits["cb_extend"]
         else:
@@ -739,6 +743,67 @@ class _Plot_AngleDispersive:
         :return:
         """
 
+
+
+
+        if np.unique(self.azm).size == 1:
+            import cpf.input_types.MedFunctions as MED
+
+
+            def _plot_spacing(gap=200, Imax=None):
+                """
+                Sets the spacing for the detectors in the plots.
+            
+                Parameters
+                ----------
+                gap : number, optional
+                    Desired spacing for the azimuths. The default is 200.
+            
+                Returns
+                -------
+                number
+                    Spacing to use for the plotting of azimuths.
+            
+                """
+                if Imax:
+                    return Imax / gap
+                else:
+                    return np.max(self.intensity) / gap
+
+            def _dispersion_ticks(disp_ticks=None, unique=10, disp_lims=None):
+                """
+                Returns the labels for the dispersion axis/colour bars.
+        
+                :param disp_ticks:
+                :param unique:
+                :param disp_lims: not used maintained for compatibility with angle dispersive
+                :return new_tick_positions:
+                """
+                if len(np.unique(self.azm)) <= unique:
+                    disp_ticks = np.unique(np.unique(self.azm))
+        
+                return disp_ticks
+            self._plot_spacing = _plot_spacing
+            self._dispersion_ticks = _dispersion_ticks
+            
+            # limits=[0, 70]
+            
+            MED.MedDetector.plot_calibrated(self,
+                fig_plot=fig_plot,
+                axis_plot=axis_plot,
+                show=show,
+                x_axis=x_axis,
+                y_axis=y_axis,
+                spacing=None,
+                data=data,
+                limits=limits,
+                colourmap="jet",
+                colourbar=True,
+                debug=False,
+                cbar_axes=False
+            )
+            return fig_plot
+            
         y_ticks = None
         x_ticks = None
 

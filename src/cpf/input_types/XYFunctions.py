@@ -407,6 +407,13 @@ class XYDetector:
         ):
             # load csvs or txt file as an image.
             im = csv_to_image(image_name)
+        elif (
+            os.path.splitext(image_name)[1] == ".xye"
+            or os.path.splitext(image_name)[1] == ".txt"
+            or os.path.splitext(image_name)[1] == ".xy"
+        ):
+            # load csvs or txt file as an image.
+            im = np.atleast_2d(np.loadtxt(image_name)[:,2])
         else:
             try:
                 im = fabio.open(image_name)
@@ -428,7 +435,7 @@ class XYDetector:
 
         im = ma.array(im, dtype=dtype)
 
-        if self.calibration["x_dim"] != 0:
+        if "x_dim" in self.calibration and self.calibration["x_dim"] != 0:
             im = im.T
 
         # reduce the size of the data (if called for)
@@ -796,11 +803,11 @@ class OrthogonalDetector:
         self.calibration = {}
 
         self.calibration["x_dim"] = 0
-        self.calibration["x"] = [0, 1]
+        self.calibration["x"] = None
         self.calibration["x_start"] = np.nan
         self.calibration["x_end"] = np.nan
         self.calibration["x_scale"] = "linear"
-        self.calibration["y"] = [0, 1]
+        self.calibration["y"] = None
         self.calibration["y_start"] = np.nan
         self.calibration["y_end"] = np.nan
         self.calibration["y_scale"] = "linear"
@@ -880,11 +887,37 @@ class OrthogonalDetector:
         # fill in the calibration if it exists.
         if calibration:
             for key, value in calibration.items():
-                if key in list(self.calibration.keys()):
+                if key == "file":
+                    data = np.loadtxt(calibration["file"])
+                    # if "tth column" in calibration:
+                    tth = np.atleast_2d(data[:, 0]).T
+                    self.calibration["x_start"] = tth[0][0]
+                    self.calibration["x_end"] = tth[-1][0]
+                    # else:
+                    #     self.calibration["x_start"]=0
+                    #     self.calibration["x_end"]=0
+                    # if 0:#"azm column" in calibration:
+                    #     tth = np.atleast_2d(data[:, calibration["azm column"]])
+                    #     self.calibration["y_start"] = tth[0][0]
+                    #     self.calibration["y_end"] = tth[0][-1]
+                    # else:
+                    self.calibration["y_start"]=0
+                    self.calibration["y_end"]=0
+                    self.calibration["x_dim"]=0
+                    self.calibration["max_shape"] = tth.shape#[::-1]
+                    
+                    self.calibration["x_label"] = r"2\theta"
+                    self.calibration["x_unit"] = "deg"
+                    self.calibration["y_label"] = r"azm"
+                    self.calibration["y_unit"] = "deg"
+
+                # elif "tth column" in calibration or  "azm column" in calibration:
+                #     pass
+                elif key in list(self.calibration.keys()):
                     self.calibration[key] = value
                 else:
                     error_str = (
-                        "Key '" + key + "' in not recognised as a calibration parameter"
+                        "Key '" + key + "' is not recognised as a calibration parameter"
                     )
                     raise ValueError(error_str)
 
@@ -905,31 +938,56 @@ class OrthogonalDetector:
             self.max_shape = np.flip(self.max_shape)
 
         # either "x" or x_start and x_end are allowed. Fill in the other values.
-        if self.calibration["x"] == None:
+        if self.calibration["x"] == None and self.calibration["x_start"] != np.inf:
             self.calibration["x"] = (
                 self.calibration["x_start"],
                 (self.calibration["x_end"] - self.calibration["x_start"])
                 / (self.max_shape[self.calibration["x_dim"]] - 1),
             )
-        if self.calibration["x_start"] == np.nan:
+        elif self.calibration["x_start"] == np.nan and self.calibration["x"]:
             self.calibration["x_start"] = self.calibration["x"][0]
             self.calibration["x_end"] = self.calibration["x"][0] + self.calibration[
                 "x"
             ][1] * (self.max_shape[self.calibration["x_dim"]] - 1)
+        else:
+            raise ValueError("There is no recognised calibration for 'x'")
+        
         # ditto for y.
         if self.calibration["x_dim"] == 0:
             y_dim = 1
         else:
             y_dim = 0
+        if self.calibration["y"] == None and self.calibration["y_start"] != np.inf:
+            if self.calibration["y_end"] - self.calibration["y_start"] == 0:
+                # then is 1D data set. 
+                self.calibration["y"] = (self.calibration["y_start"], 0)
+            else:
+                self.calibration["y"] = (
+                    self.calibration["y_start"],
+                    (self.calibration["y_end"] - self.calibration["y_start"])
+                    / (self.max_shape[y_dim] - 1),
+                )
+        elif self.calibration["y_start"] == np.nan and self.calibration["y"]:
+            self.calibration["y_start"] = self.calibration["y"][0]
+            self.calibration["y_end"] = self.calibration["y"][0] + self.calibration[
+                "y"
+            ][1] * (self.max_shape[self.calibration["y_dim"]] - 1)
+        else:
+            raise ValueError("There is no recognised calibration for 'y'")
+        
+        # if self.calibration["x_dim"] == 0:
+        #     y_dim = 1
+        # else:
+        #     y_dim = 0
 
-        if "y" in calibration:
-            self.calibration["y"] = calibration["y"]
-        elif "y_start" in calibration:
-            self.calibration["y"][0] = self.calibration["y_start"]
-            self.calibration["y"][1] = (
-                (self.calibration["y_end"] - self.calibration["y_start"])
-                / (self.max_shape[y_dim] - 1),
-            )
+        # if "y" in calibration:
+        #     self.calibration["y"] = calibration["y"]
+        # elif "y_start" in calibration:
+        #     self.calibration["y"][0] = self.calibration["y_start"]
+        #     self.calibration["y"][1] = (
+        #         (self.calibration["y_end"] - self.calibration["y_start"])
+        #         / (self.max_shape[y_dim] - 1),
+        #     )
 
         # print(self.calibration["y_label"].lower(), "azimuth", self.calibration["y_label"].lower() == "azimuth")
         if self.calibration["y_label"].lower() == "azimuth":

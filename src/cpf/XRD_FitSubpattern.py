@@ -234,14 +234,14 @@ def check_num_azimuths(peeks, azimu, orders):
         logger.error(err_str)
         safe_to_fit = False
         # raise ValueError(err_str)
-    if total_coeff > len(np.unique(azimu)):
-        err_str = (
-            "The number of coefficients, %i, is greater than the number of unique azimuths, %i. "
-            "It is not possible to fit."
-            % (total_coeff, len(np.unique(azimu)))
-        )
-        logger.error(err_str)
-        safe_to_fit = False
+    # if total_coeff > len(np.unique(azimu)):
+    #     err_str = (
+    #         "The number of coefficients, %i, is greater than the number of unique azimuths, %i. "
+    #         "It is not possible to fit."
+    #         % (total_coeff, len(np.unique(azimu)))
+    #     )
+    #     logger.error(err_str)
+    #     safe_to_fit = False
         # raise ValueError(err_str)
     
     return safe_to_fit

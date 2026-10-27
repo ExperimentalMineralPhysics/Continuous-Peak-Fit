@@ -425,6 +425,10 @@ def ReadFits_to_dataframe(
                         max_coef[ind] = np.max([max_coef[ind], 0])
                     elif isinstance(fits[0][x]["peak"][y][ind], int):
                         max_coef[ind] = np.max([max_coef[ind], 1])
+                    elif isinstance(fits[0][x]["peak"][y][ind], np.ndarray):
+                        max_coef[ind] = np.max(
+                            [max_coef[ind], fits[0][x]["peak"][y][ind].size]
+                        )
                     else:
                         max_coef[ind] = np.max(
                             [max_coef[ind], len(fits[0][x]["peak"][y][ind])]
@@ -541,6 +545,9 @@ def ReadFits_to_dataframe(
                     RowLst[ind + "_type"] = data_to_write["peak"][lists[z, 2]][
                         ind + "_type"
                     ]
+                    if isinstance(data_to_write["peak"][lists[z, 2]][ind], np.ndarray):
+                        data_to_write["peak"][lists[z, 2]][ind] = [data_to_write["peak"][lists[z, 2]][ind]]
+                        data_to_write["peak"][lists[z, 2]][ind_err] = [data_to_write["peak"][lists[z, 2]][ind_err]]
                     for v in range(len(data_to_write["peak"][lists[z, 2]][ind])):
                         if (
                             data_to_write["peak"][lists[z, 2]][ind][v] is None

@@ -737,12 +737,22 @@ class _Plot_AngleDispersive:
         :return:
         """
 
-
-
-
         if np.unique(self.azm).size == 1:
+            """
+            if the data only has 1 dimension then the plot is more like those for the MEDfunctions. 
+            So import and call MED functions for the plotting.
+            
+            _plot_spacing() and _dispersion_ticks() are required methods that also have to be imported for 
+            MED.MedDetector.plot_calibrated() to work. 
+            
+            Because they reqire access to self they are copied here from MedDetector.
+            for example:
+                self._plot_spacing = MED.MedDetector._plot_spacing
+            does not work
+            
+            FIXME: separate plotting functions from MedDetector and import from separated file.
+            """
             import cpf.input_types.MedFunctions as MED
-
 
             def _plot_spacing(gap=200, Imax=None):
                 """
@@ -779,8 +789,6 @@ class _Plot_AngleDispersive:
                 return disp_ticks
             self._plot_spacing = _plot_spacing
             self._dispersion_ticks = _dispersion_ticks
-            
-            # limits=[0, 70]
             
             MED.MedDetector.plot_calibrated(self,
                 fig_plot=fig_plot,

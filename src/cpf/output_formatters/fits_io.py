@@ -546,8 +546,8 @@ def ReadFits_to_dataframe(
                         ind + "_type"
                     ]
                     if isinstance(data_to_write["peak"][lists[z, 2]][ind], np.ndarray):
-                        data_to_write["peak"][lists[z, 2]][ind] = [data_to_write["peak"][lists[z, 2]][ind]]
-                        data_to_write["peak"][lists[z, 2]][ind_err] = [data_to_write["peak"][lists[z, 2]][ind_err]]
+                        data_to_write["peak"][lists[z, 2]][ind] = list(np.atleast_1d(data_to_write["peak"][lists[z, 2]][ind]))
+                        data_to_write["peak"][lists[z, 2]][ind_err] = list(np.atleast_1d(data_to_write["peak"][lists[z, 2]][ind_err]))
                     for v in range(len(data_to_write["peak"][lists[z, 2]][ind])):
                         if (
                             data_to_write["peak"][lists[z, 2]][ind][v] is None

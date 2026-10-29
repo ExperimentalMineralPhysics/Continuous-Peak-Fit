@@ -7,19 +7,57 @@ import re
 import numpy as np
 import pandas as pd
 
-from cpf.output_formatters.crystallographic_operations import plane_indices_4_to_3
+from uncertainties import ufloat
+import uncertainties.umath as umath
 
+from cpf.output_formatters.crystallographic_operations import plane_indices_4_to_3
+from cpf.series_functions import coefficient_expand, series_properties
 # from uncertainties import ufloat
 from cpf.output_formatters.jcpds import jcpds
 from cpf.util.io import make_outfile_name, peak_hkl, replace_value
 from cpf.util.logging import get_logger
 
+logger = get_logger("cpf.output_formatters.convert_fit_to_crystallographic")
+
+
+def _sample_geometries(as_list=True):
+    """
+    Data structure of recognised sample geometries
+    
+    Parameters
+    ----------
+    all : bool, default is True
+        if true returns dictionary of recognised geometries where the values are their intermal labelling
+        if False returns list of recognised geometies.         
+    
+    Returns
+    -------
+    geometries : dict, list
+    
+    """
+    geometries =  {"2d": "2d",
+           "vertical": "vertical", 
+           "horizontal": "horizontal", 
+           "n-s": "vertical", 
+           "e-w": "horizontal", 
+           "nw-se": "135", 
+           "ne-sw": "45", 
+           "shear": "2d", 
+           "compression": "compression",  
+           "extension": "extension", 
+           "3d": "compression",
+           "axial": "2d"}
+    
+    if as_list:
+        return list(geometries.keys())
+    else:
+        return geometries
+
 
 def fourier_to_crystallographic(
     coefficients,
     SampleGeometry: str = "3d",
-    SampleDeformation: str = "compression",
-    # positive_strain: str = "compression",
+    SampleStrain: str = "CompressionPositive",
     correlation_coeffs=None,
     subpattern=0,
     peak=0,
@@ -27,12 +65,13 @@ def fourier_to_crystallographic(
     **kwargs,
 ):
     """
-    Convert fourier coefficients into the centroid and differential values expected for crystallogrpahic strains/stresses.
+    Convert fourier coefficients into the centroid and differential values expected for crystallogrpahic strains given sample geometry.
 
-    Currently this script uses the first order approximation that d0 = z-th order Foutier coefficient, differential strain is
-    the length of the second order coefficients as a vector, and the angle is the arctan of the angle from these two coefficients.
-    This is true if the center of the Debye-Scherer ring is at 0,0. If X0 or y0 are not zero a small ststematice error creeps into the
-    coefficients. However, accoutning for these higher order terms and converting x0 and y0 into real units is non-trivial.
+    Currently this script uses the first order approximation that d0 = zeroth order Foutier coefficient, differential strain is
+    determined from the second order coefficients and the angle is the arctan of the angle from these two coefficients.
+    
+    This is true if the center of the Debye-Scherer ring is at 0,0. If X0 or y0 are not zero a small systematic error creeps into the
+    coefficients. However, accouting for these higher order terms and converting x0 and y0 into real units is non-trivial.
 
     Parameters
     ----------
@@ -40,9 +79,8 @@ def fourier_to_crystallographic(
         Coeffecient dictionary used in cpf.
     SampleGeometry : str, optional
         Geometry of the sample - 2D or 3D stress/stress field. The default is "3d".
-    SampleDeformation : str, optional
-        "compression" or "extension" - type of deformation for the experiment. Determines orientation value.
-        The default is "compression".
+    SampleStrain : str, optional
+        Definition of strain for formation of Q. The default is "CompressionPositived".
     correlation_coeffs : dict, optional
         correlation coefficient dictionary as created by lmfit. The default is None.
     subpattern : list, int, optional
@@ -62,27 +100,32 @@ def fourier_to_crystallographic(
     differential_coefficients : dict
         Dictionary of the calculated properties and their errors. The propertues calculated from the
         Fourier d-spacing coefficients are:
-            "d_mean" -- mean d-spacing of diffraction ring, assuming 2d or 3d 'SampleGeometry'
-            "differential" -- differential
-            "Q" -- differential strain
-            "orientation" -- orientation of the strain field, under 'SampleDeformation'
+            "d_mean" -- mean d-spacing of diffraction ring, given the 'SampleGeometry'
+            "differential" -- total differential elastic strain (d_max - d_min)
+            "Q" -- lattice strain parameter
+            "orientation" -- orientation of the strain field
             "d_max" -- maximum d-sapcing of fitted diffraction peak
             "d_min" -- minimum d-sapcing of fitted diffraction peak
             "x0" -- cartesian coordinate for centre of diffraction peak
             "y0" -- cartesian coordinate for centre of diffraction peak
+        the error on each value has *err appended to the name
 
-
-    SampleGeometry options:
-        - either 2d or 3d
-    SampleDeformation options:
-        - either 'compresion' or 'extension'.
-
-        'compression' assumes that shortening strains are positive (correctly in my view)
-        and that the differential strain is more compressive strain than in the other two directions.
-
-        'extension' assumes that an extensive strain is positive (well, someone has to) and
-        that the differentail strain is more extensive than the strains in the other two directions.
-
+    SampleGeometry options (indepedent of strain-definition):
+        - "2d"
+        - "compression" == assumes 3rd (unmeasured) cartesian axis is same as maximum d-spacings (i.e. minimum is unique)
+        - "extension" == assumes 3rd (unmeasured) cartesian axis is same as minimum d-spacings (i.e. maximum is unique)
+        - "vertical"  == assumes 90def is vertical. Returns angle within +/-45 of 90 and associated Q for this angle (+/- as defined by SampleStrain)
+        - "horizontal"  == assumes 0def is horizontal. Returns angle within +/-45 of 90 and associated Q for this angle (+/- as defined by SampleStrain)
+        - "3d" == same as "vertical"
+        - "shear" == same as "2d"
+        - "axial" == same as "2d"
+        - "n-s", "e-w", "nw-se", "ne-sw" -- Returns angle within +/-45 of cardinal direction and associated Q for this angle (+/- as defined by SampleStrain). assumes 90 vertical = N / 0 horizontal = E. 
+        go get list of Sample Geometries and their maping call:
+            cpf.output_formatters.convert_fit_to_crystallographic._sample_geometries(as_list=False)
+            
+    SampleStrain:
+        - either "CompressionPositive" or "ExtensionPositive"
+        This does not affect the geometry calculations but does affect the value of Q returned.
 
     """
     # FIX ME: strictly speaking all the errors here need to include the covarience matrix.
@@ -93,29 +136,53 @@ def fourier_to_crystallographic(
 
     # %% validate the inputs.
     SampleGeometry = SampleGeometry.lower()
-    SampleDeformation = SampleDeformation.lower()
-    if not (SampleGeometry == "3d" or SampleGeometry == "2d"):
-        err_str = "SampleGeometry is not recognised. It must be '2d' or '3d'."
+    SampleStrain = SampleStrain.lower()
+    
+    #geometry
+    geometries = _sample_geometries(as_list=False)# override to use old values. Dangerous. needs removing.
+    # FIXME: remove below in future release
+    if "SampleDeformation" in list(kwargs):
+        logger.warning("'SampleDeformation' is old nomenclature and will be removed in future release")
+        if "SampleDeformation" == "compression":
+            SampleStrain = "CompressionPositive"
+        elif "SampleDeformation" == "extension":
+            SampleStrain = "CompressionNegative"
+    # FIXME: end ==================
+    if SampleGeometry not in list(geometries.keys()):
+        err_str = f"SampleGeometry '{SampleGeometry}' is not recognised. It must be one of: {list(geometries.keys())}."
         raise ValueError(err_str)
-    # if SampleDeformation=="extension":
-    #     err_str = "SampleDeformation 'extension' is not implemented."
-    #     raise ValueError(err_str)
-    if not (SampleDeformation == "compression" or SampleDeformation == "extension"):
-        err_str = "SampleDeformation is not recognised. It must be 'compression' or 'extension'."
+    # collapse to internal names. 
+    SampleGeometry = geometries[SampleGeometry].lower()
+    
+    """ set prefectors for positive or negative compression.
+    if compression positive:
+        \epsilon = (d_p - d_m)/d_p
+        d_m = d_p [1 - Q(1-3cos^2\psi)]
+    if compression negative / positive expansion:
+        \epsilon = (d_m - d_p)/d_p
+        d_m = d_p [1 + Q(1-3cos^2\psi)]
+        
+    cast with a prefactor:
+        d_m = d_p [1 + A* Q(1-3cos^2\psi)]
+    where
+        A = -1 for CompressionPositive
+        A = 1  for ExtensionPositive
+    """
+    if SampleStrain.lower() == "CompressionPositive".lower():
+        strain_factor = -1
+    elif SampleStrain.lower() == "ExtensionPositive".lower():
+        strain_factor = 1
+    else:
+        err_str = "SampleStrain is not recognised. It must be 'CompressionPositive' or 'ExtensionPositive'."
         raise ValueError(err_str)
-    # FIX ME: another possitbility exists, where the orientation of the stress/strain is known and
-    # the experiment oscillates between compression and extenion. This should perhaps be added to the
-    # possibilities.
-
+    
+    # sort coefficents 
     if isinstance(coefficients, dict):
         coefficients = [coefficients]
-
     if not isinstance(coefficients, list):
         raise ValueError("The coefficients need to be a list of dictionaries.")
-
     # catch 'null' terms in fits
     coefficients = replace_value(coefficients, old=None, new=np.nan)
-
     # catch d-spacing that is too short for 3D geometry to work.
     if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3:
         SampleGeometry == "2d"
@@ -242,98 +309,231 @@ def fourier_to_crystallographic(
         coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2 + out_dderr**2
     ) ** (1 / 2)
 
-    # %%% d0  (centroid)
+        
+    # %%% get centroids (d0), Q etc. based on geometry. 
+    
+    #all geometries not specified as 2d are assuemd to be 3d. The determine is then just 
+    # working out what is the inmeased axis. 
+    match SampleGeometry:
+        case "2d":
+            # d0 is the mean of the d-spacings. In this case it is the middle of the line.
+            out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0]
+            out_d0err = coefficients[subpattern]["peak"][peak]["d-space_err"][0]
+
+        case "compression":
+            # assumes third cartesian axis is larger than mean of diffraction ring
+            # 1/3 of the way from the middle to the maximum d-spacing
+            out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] + -strain_factor * out_dd / 3
+            out_d0err = (
+                coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2
+                + (out_dderr / 3) ** 2
+            ) ** (1 / 2)
+        
+        case "extension":
+            # assumes third cartesian axis is smaller than mean of diffraction ring
+            # 1/3 of the way from the middle to the minimum d-spacing
+            out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] - -strain_factor * out_dd / 3
+            out_d0err = (
+                coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2
+                + (out_dderr / 3) ** 2
+            ) ** (1 / 2)
+        
+            out_dd = -out_dd
+        
+        case "vertical":
+            # assumes third cartesian axis same as horizontal axis
+            
+            # organise to have the correct signs (+/-)
+            out_dd *= (np.round(out_ang/90) % 2 - 0.5)*2
+            out_ang = ((np.round(out_ang/90) % 2 -1)*-90 + out_ang)%180
+            
+            out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] + out_dd / 3
+            out_d0err = (
+                coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2
+                + (out_dderr / 3) ** 2
+            ) ** (1 / 2)
+                
+        case "horizontal":
+            # assumes third cartesian axis same as vertical axis
+            
+            #need to know which way the strains are 
+            d_0 = coefficient_expand(
+                np.array([0]),
+                param=coefficients[subpattern]["peak"][peak]["d-space"],
+                coeff_type="fourier",
+                comp_str="d",
+            )
+            d_90 = coefficient_expand(
+                np.array([90]),
+                param=coefficients[subpattern]["peak"][peak]["d-space"],
+                coeff_type="fourier",
+                comp_str="d",
+            )
+            if d_0 > d_90:
+                scl = 1
+            else:
+                scl = -1
+                
+            out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] - scl*out_dd / 3
+            out_d0err = (
+                coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2
+                + (out_dderr / 3) ** 2
+            ) ** (1 / 2)
+
+        case "45":
+            # assumes third cartesian axis same as 135+/-45 axis
+            
+            #need to know which way the strains are 
+            d_0 = coefficient_expand(
+                np.array([45]),
+                param=coefficients[subpattern]["peak"][peak]["d-space"],
+                coeff_type="fourier",
+                comp_str="d",
+            )
+            d_90 = coefficient_expand(
+                np.array([135]),
+                param=coefficients[subpattern]["peak"][peak]["d-space"],
+                coeff_type="fourier",
+                comp_str="d",
+            )
+            if d_0 > d_90:
+                scl = 1
+            else:
+                scl = -1
+                
+            out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] - scl*out_dd / 3
+            out_d0err = (
+                coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2
+                + (out_dderr / 3) ** 2
+            ) ** (1 / 2)
+            
+        case "135":
+            # assumes third cartesian axis same as 45+/-45 axis
+            
+            #need to know which way the strains are 
+            d_0 = coefficient_expand(
+                np.array([45]),
+                param=coefficients[subpattern]["peak"][peak]["d-space"],
+                coeff_type="fourier",
+                comp_str="d",
+            )
+            d_90 = coefficient_expand(
+                np.array([135]),
+                param=coefficients[subpattern]["peak"][peak]["d-space"],
+                coeff_type="fourier",
+                comp_str="d",
+            )
+            if d_0 > d_90:
+                scl = 1
+            else:
+                scl = -1
+                
+            out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] + scl*out_dd / 3
+            out_d0err = (
+                coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2
+                + (out_dderr / 3) ** 2
+            ) ** (1 / 2)
+
+        case _:
+            # issue an error
+            err_str = f"SampleGeometry is not recognised. It must be one of: {list(geometries.keys())}."
+            raise ValueError(err_str)
+
+    
+    # %% Q
     if SampleGeometry == "2d":
-        # d0 is the mean of the d-spacings. In this case it is the middle of the line.
-        out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0]
-        out_d0err = coefficients[subpattern]["peak"][peak]["d-space_err"][0]
-
-        # organise for compression or extension experiment
-        if SampleDeformation == "compression":
-            pass
-        elif SampleDeformation == "extension":
-            pass  # out_ang += 90
-
-    elif SampleGeometry == "3d" and SampleDeformation == "compression":
-        # 1/3 of the way from the middle to the maximum d-spacing (miniminm strain)
-        out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] + out_dd / 3
-        out_d0err = (
-            coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2
-            + (out_dderr / 3) ** 2
-        ) ** (1 / 2)
-
-    elif SampleGeometry == "3d" and SampleDeformation == "extension":
-        # 1/3 of the way from the middle to the maximum d-spacing
-        out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] - out_dd / 3
-        out_d0err = (
-            coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2
-            + (out_dderr / 3) ** 2
-        ) ** (1 / 2)
-
-        # move the angle round to account for fact it is extension
-        # out_ang += np.pi/2
-
+        scale = 2 / 2
     else:
-        # issue an error
-        err_str = "The geometry type is not recognised. Check input file."
-        raise ValueError(err_str)
-
-    # %% Q from Singh et al (1998).
-    # This is a third of the differential strain.
-    # It is defined here directly for potentail convenience.
-    # out_Q = out_dd / out_d0
-    if SampleGeometry == "2d":
-        scale = 1
-    elif SampleGeometry == "3d":
         scale = 3 / 2
-
-    # if SampleDeformation=="extension":
-    #     scale *= -1
+        
     if out_d0 != 0:
         out_Q = out_dd / out_d0 / scale
         out_Qerr = out_dderr / scale
     else:
+        # then there is nothing to divide by and will get error
         out_Q = np.nan
         out_Qerr = np.nan
+        
+    
+    # %% Organise values and angles depending on geometry specified. 
+    match SampleGeometry:
+        case "2d":
+            pass
+            
+        case "compression":
+            # orientation aligned with smallest d-spacing 
+            pass
+        
+        case "extension":
+            # orientation aligned with largest d-spacing 
+            pass
+        
+        case "vertical":
+            # orientation aligned 90 +/-45
+            # change Q to match
+            
+            # correct Q for the strain definition. 
+            if strain_factor != -1: # compression negative/extension positive
+                out_Q = -out_Q
+            else:
+                pass
+            # if coefficients[subpattern]["peak"][peak]["d-space"][4]<0:
+            # out_ang -= (np.round(out_ang/90) ) *90 - 90 # this one drops into range
+            # out_Q *=  (np.round(out_ang/90) % 2 - 0.5)*2
+        
+        case "horizontal":
+            # orientation aligned 0 +/-45
+            # change Q to match
+            if coefficients[subpattern]["peak"][peak]["d-space"][4]>0:
+                out_Q = -out_Q
+            out_ang -= (np.round(out_ang/90) ) *90  # this one drops into range
+            out_Q *=  -(np.round(out_ang/90) % 2 - 0.5)*2
 
-    # reoridentate extensions back to the right way.
-    if SampleDeformation == "extension":
-        if out_ang >= 0:
-            out_ang -= 90
-        else:
-            out_ang += 90
+            # correct Q for the strain definition. 
+            if strain_factor != -1: # compression negative/extension positive
+                out_Q = -out_Q
+            else:
+                pass
 
-    # keep anblies within given range. Prevent wrapping of angles. Change direction of Q and
-    # differential if the angles are in second half of the range.
-    if True:
-        ang_range = [45, -135]
-        # if ang_range[0] - ang_range[1] != 180:
-        #     raise ValueError("The acceptable range for 'ang_range' is 180 degrees.")
-        if out_ang > ang_range[0]:
-            out_ang -= 180
-        elif out_ang <= ang_range[1]:
-            out_ang += 180
-        if out_ang < np.mean(ang_range):
-            out_dd = -out_dd
-            out_Q = -out_Q
 
-    # keep in constant refernce frame -- i.e. strain relative to vertical not absolute.
-    if False:
-        if out_ang <= -45:
-            # out_ang += 90
-            out_dd = -out_dd
-            out_Q = -out_Q
+        case "45":
+            # orientation aligned 45 +/-45
+            # change Q to match
+            if coefficients[subpattern]["peak"][peak]["d-space"][3]>0:
+                out_Q = -out_Q
+            out_ang -= (np.round((out_ang-45)/90) ) *90  # this one drops into range
+            out_Q *=  (np.round((out_ang+45)/90) % 2 - 0.5)*2
 
-        if out_ang >= 45:
-            out_ang -= 180
+            # correct Q for the strain definition. 
+            if strain_factor != -1: # compression negative/extension positive
+                out_Q = -out_Q
+            else:
+                pass
+        case "135":
+            # orientation aligned 135 +/-45
+            # change Q to match
+            if coefficients[subpattern]["peak"][peak]["d-space"][3]<0:
+                out_Q = -out_Q
+            out_ang -= (np.round((out_ang-45)/90) ) *90 + 90 # this one drops into range
+            out_Q *=  (np.round((out_ang+135)/90) % 2 - 0.5)*2
+            
+            
+            # correct Q for the strain definition. 
+            if strain_factor != -1: # compression negative/extension positive
+                out_Q = -out_Q
+            else:
+                pass
+        
+        case _:
+            # issue an error
+            err_str = f"SampleGeometry is not recognised. It must be one of: {list(geometries.keys())}."
+            raise ValueError(err_str)
 
-    """
-    if positive_strain == "extension" or positive_strain == "wrong":
-        # reverse the strain magnitudes
-        out_dd = -out_dd
-        out_Q = -out_Q
-    # else compression and 'correct'
-    """
+
+    # out_dd needs to be differential not deviatoric or something else.
+    out_dd *= 2
+    out_dderr *= 2
+
 
     # %%% x0 and y0
     # values is in d-spacing and needs converting to mm via calibration.
@@ -467,18 +667,13 @@ def fourier_to_unitcellvolume(
     # %% validate the inputs.
     SampleGeometry = SampleGeometry.lower()
     SampleDeformation = SampleDeformation.lower()
-    if not (SampleGeometry == "3d" or SampleGeometry == "2d"):
-        err_str = "SampleGeometry is not recognised. It must be '2d' or '3d'."
+    if not SampleGeometry in _sample_geometries(as_list=True):# == "3d" or SampleGeometry == "2d"):
+        err_str = f"SampleGeometry '{SampleGeometry}' is not recognised. It must be one of: {_sample_geometries(as_list=True)}."
         raise ValueError(err_str)
-    # if SampleDeformation=="extension":
-    #     err_str = "SampleDeformation 'extension' is not implemented."
-    #     raise ValueError(err_str)
+
     if not (SampleDeformation == "compression" or SampleDeformation == "extension"):
         err_str = "SampleDeformation is not recognised. It must be 'compression' or 'extension'."
         raise ValueError(err_str)
-    # FIX ME: another possitbility exists, where the orientation of the stress/strain is known and
-    # the experiment oscillates between compression and extenion. This should perhaps be added to the
-    # possibilities.
 
     if isinstance(coefficients, dict):
         coefficients = [coefficients]

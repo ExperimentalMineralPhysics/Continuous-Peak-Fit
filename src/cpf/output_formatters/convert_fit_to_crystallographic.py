@@ -169,9 +169,9 @@ def fourier_to_crystallographic(
         A = 1  for ExtensionPositive
     """
     if SampleStrain.lower() == "CompressionPositive".lower():
-        strain_factor = -1
-    elif SampleStrain.lower() == "ExtensionPositive".lower():
         strain_factor = 1
+    elif SampleStrain.lower() == "ExtensionPositive".lower():
+        strain_factor = -1
     else:
         err_str = "SampleStrain is not recognised. It must be 'CompressionPositive' or 'ExtensionPositive'."
         raise ValueError(err_str)

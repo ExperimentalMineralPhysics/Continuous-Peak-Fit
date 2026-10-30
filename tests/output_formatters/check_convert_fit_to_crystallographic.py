@@ -151,9 +151,9 @@ def Differential_strain(d0, Q, orientation, azimuths, dimensionality=3, compress
     if azimuths is None:
         azimuths = np.linspace(0, 360, num=361)
     if compression=="CompressionPositive":
-        out = d0 * (1 + (1 - dimensionality*(np.cos(np.deg2rad(azimuths-orientation))**2))* Q)
+        out = d0 * (1 - (1 - dimensionality*(np.cos(np.deg2rad(azimuths-orientation))**2))* Q)
     else:
-        out = d0 * (1 -  (1 - dimensionality*(np.cos(np.deg2rad(azimuths-orientation))**2))* Q)
+        out = d0 * (1 +  (1 - dimensionality*(np.cos(np.deg2rad(azimuths-orientation))**2))* Q)
     return out
 
 

@@ -281,16 +281,14 @@ def ReadFits_to_dataframe(
     if includeSeriesValues is not False or includeUnitCells is not False:
         # Parse needed parameters
         SampleGeometry = settings_class.output_settings.get("SampleGeometry", "3d")
-        # SampleStrain = settings_class.output_settings.get(
-        #     "SampleStrain", "vertical"
-        # )
+        SampleStrain = settings_class.output_settings.get("SampleStrain", "CompressionPositive")
         # override with kwargs
         SampleGeometry = kwargs.get("SampleGeometry", SampleGeometry)
-        # SampleStrain = kwargs.get("SampleStrain", SampleStrain)
+        SampleStrain = kwargs.get("SampleStrain", SampleStrain)
         # force all the kwargs that might be needed
         set_params = {
             "SampleGeometry": SampleGeometry,
-            # "SampleStrain": SampleStrain,
+            "SampleStrain": SampleStrain,
         }
         kwargs.update(set_params)
     kwargs.update({"includeIntegrated": includeIntegrated})
@@ -324,7 +322,7 @@ def ReadFits_to_dataframe(
                     crystallographic_values = fourier_to_crystallographic(
                         fits[z],
                         SampleGeometry=SampleGeometry,
-                        # SampleStrain=SampleStrain,
+                        SampleStrain=SampleStrain,
                         subpattern=i,
                         peak=j,
                     )

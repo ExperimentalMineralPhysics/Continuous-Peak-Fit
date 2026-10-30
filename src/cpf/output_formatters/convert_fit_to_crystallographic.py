@@ -156,10 +156,10 @@ def fourier_to_crystallographic(
     
     """ set prefectors for positive or negative compression.
     if compression positive:
-        \epsilon = (d_p - d_m)/d_p
+        epsilon = (d_p - d_m)/d_p
         d_m = d_p [1 - Q(1-3cos^2\psi)]
     if compression negative / positive expansion:
-        \epsilon = (d_m - d_p)/d_p
+        epsilon = (d_m - d_p)/d_p
         d_m = d_p [1 + Q(1-3cos^2\psi)]
         
     cast with a prefactor:
@@ -188,170 +188,62 @@ def fourier_to_crystallographic(
         SampleGeometry == "2d"
 
     # %% differential coefficients, errors and covarience
-    # %%% angle
-    # a = sin??
-    # b = cos??
-    # out_ang  = atan(b/a) / 2
-    # d (atan(c))/dc = 1/(c^2+1). c = b/a. dc = c.((da/a)^2 + (db/b)^2)^(1/2)
-    # out_angerr = dc.
-    # FIX ME need to check this.
     if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3:
-        out_ang = 0
-        out_angerr = 0
-    elif (
-        len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 4
-        and coefficients[subpattern]["peak"][peak]["d-space"][4] != 0
-        and coefficients[subpattern]["peak"][peak]["d-space"][3] != 0
-    ):
-        out_ang = (
-            np.arctan(
-                coefficients[subpattern]["peak"][peak]["d-space"][3]
-                / coefficients[subpattern]["peak"][peak]["d-space"][4]
-            )
-            / 2
-        )
-        out_angerr = (
-            1
-            / (
-                (
-                    coefficients[subpattern]["peak"][peak]["d-space"][3]
-                    / coefficients[subpattern]["peak"][peak]["d-space"][4]
-                )
-                ** 2
-                + 1
-            )
-            * (
-                np.abs(out_ang)
-                * (
-                    (
-                        coefficients[subpattern]["peak"][peak]["d-space_err"][3]
-                        / coefficients[subpattern]["peak"][peak]["d-space"][3]
-                    )
-                    ** 2
-                    + (
-                        coefficients[subpattern]["peak"][peak]["d-space_err"][4]
-                        / coefficients[subpattern]["peak"][peak]["d-space"][4]
-                    )
-                    ** 2
-                )
-                ** (1 / 2)
-            )
-            / 2
-        )
-    elif (
-        len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5
-        and coefficients[subpattern]["peak"][peak]["d-space"][3] != 0
-    ):
-        out_ang = np.pi / 2
-        out_angerr = 0
-    else:
-        out_ang = np.nan
-        out_angerr = np.nan
-        # FIXME: this is a bodged fix for now. It needs to be calcualted assuming the error is not also zero.
-    # correction to make angle correct (otherwise potentially out by pi/2)
-    if (
-        len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 4
-        and coefficients[subpattern]["peak"][peak]["d-space"][4] > 0
-    ):
-        if coefficients[subpattern]["peak"][peak]["d-space"][3] <= 0:
-            out_ang += np.pi / 2
-        else:
-            out_ang -= np.pi / 2
-    # convert into degrees.
-    out_ang = np.rad2deg(out_ang)
-    out_angerr = np.rad2deg(out_angerr)
-
-    # deal with sin/cos wrapping
-    if (
-        len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 4
-        and coefficients[subpattern]["peak"][peak]["d-space"][3] > 0
-    ):
-        out_ang += 180
-
-    # %%% differential strain
-    # differentail (3d) = (a2^2+b2^2)^(1/2)
-    if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3:
-        out_dd = 0
-        out_dderr = 0
-    elif len(coefficients[subpattern]["peak"][peak]["d-space"]) >= 5:
-        out_dd = np.sqrt(
-            coefficients[subpattern]["peak"][peak]["d-space"][3] ** 2
-            + coefficients[subpattern]["peak"][peak]["d-space"][4] ** 2
-        )
-        # out_dderr= [(2.a.da.)^2 + (2.b.db)^2]^(1/2)]^(1/2)
-        out_dderr = (
-            (
-                2
-                * coefficients[subpattern]["peak"][peak]["d-space"][3]
-                * coefficients[subpattern]["peak"][peak]["d-space_err"][3]
-            )
-            ** 2
-            + (
-                2
-                * coefficients[subpattern]["peak"][peak]["d-space"][4]
-                * coefficients[subpattern]["peak"][peak]["d-space_err"][4]
-            )
-            ** 2
-        ) ** (1 / 4)
-    else:
-        out_dd = 0
-        out_dderr = np.nan
-
-    # %%% d_max and d_min.
-    # differential max
-    out_dmax = coefficients[subpattern]["peak"][peak]["d-space"][0] + out_dd
-    out_dmaxerr = (
-        coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2 + out_dderr**2
-    ) ** (1 / 2)
-    # differential min
-    out_dmin = coefficients[subpattern]["peak"][peak]["d-space"][0] - out_dd
-    out_dminerr = (
-        coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2 + out_dderr**2
-    ) ** (1 / 2)
-
+        c0 = ufloat(coefficients[subpattern]["peak"][peak]["d-space"][0], coefficients[subpattern]["peak"][peak]["d-space_err"][0])
+        c3 = 0
+        c4 = 0
         
-    # %%% get centroids (d0), Q etc. based on geometry. 
+        ang = ufloat(np.nan, np.nan)
+        dd = ufloat(0,0)
+        dmax = c0
+        dmin = c0
+        
+    else:
+        c0 = ufloat(coefficients[subpattern]["peak"][peak]["d-space"][0], coefficients[subpattern]["peak"][peak]["d-space_err"][0])
+        c3 = ufloat(coefficients[subpattern]["peak"][peak]["d-space"][3], coefficients[subpattern]["peak"][peak]["d-space_err"][3])
+        c4 = ufloat(coefficients[subpattern]["peak"][peak]["d-space"][4], coefficients[subpattern]["peak"][peak]["d-space_err"][4])
     
+        # a = sin??
+        # b = cos??
+        # out_ang  = atan(b/a) / 2
+        # differentail d = (a^2+b^2)^(1/2)
+        dd = umath.sqrt(c3**2+c4**2)
+        ang = umath.atan(c3/c4)/2
+        if c4.nominal_value > 0:
+            if c3.nominal_value <= 0:
+                ang += np.pi / 2
+            else:
+                ang -= np.pi / 2
+        ang = ang/np.pi*180
+        dmax = c0 + dd
+        dmin = c0 - dd
+
     #all geometries not specified as 2d are assuemd to be 3d. The determine is then just 
     # working out what is the inmeased axis. 
     match SampleGeometry:
         case "2d":
             # d0 is the mean of the d-spacings. In this case it is the middle of the line.
-            out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0]
-            out_d0err = coefficients[subpattern]["peak"][peak]["d-space_err"][0]
+            d00 = c0
+            # out_d0err = coefficients[subpattern]["peak"][peak]["d-space_err"][0]
 
         case "compression":
             # assumes third cartesian axis is larger than mean of diffraction ring
             # 1/3 of the way from the middle to the maximum d-spacing
-            out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] + -strain_factor * out_dd / 3
-            out_d0err = (
-                coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2
-                + (out_dderr / 3) ** 2
-            ) ** (1 / 2)
+            d00 = c0 + -strain_factor * dd / 3
         
         case "extension":
             # assumes third cartesian axis is smaller than mean of diffraction ring
             # 1/3 of the way from the middle to the minimum d-spacing
-            out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] - -strain_factor * out_dd / 3
-            out_d0err = (
-                coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2
-                + (out_dderr / 3) ** 2
-            ) ** (1 / 2)
-        
-            out_dd = -out_dd
+            d00 = c0 - -strain_factor * dd / 3
+            dd = -dd
         
         case "vertical":
             # assumes third cartesian axis same as horizontal axis
             
             # organise to have the correct signs (+/-)
-            out_dd *= (np.round(out_ang/90) % 2 - 0.5)*2
-            out_ang = ((np.round(out_ang/90) % 2 -1)*-90 + out_ang)%180
-            
-            out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] + out_dd / 3
-            out_d0err = (
-                coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2
-                + (out_dderr / 3) ** 2
-            ) ** (1 / 2)
+            dd *= (np.round(ang.nominal_value/90) % 2 - 0.5)*2
+            ang = ((np.round(ang.nominal_value/90) % 2 -1)*-90 + ang)%180
+            d00 = c0 + dd / 3
                 
         case "horizontal":
             # assumes third cartesian axis same as vertical axis
@@ -373,12 +265,7 @@ def fourier_to_crystallographic(
                 scl = 1
             else:
                 scl = -1
-                
-            out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] - scl*out_dd / 3
-            out_d0err = (
-                coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2
-                + (out_dderr / 3) ** 2
-            ) ** (1 / 2)
+            d00 = c0 - scl*dd / 3
 
         case "45":
             # assumes third cartesian axis same as 135+/-45 axis
@@ -400,12 +287,7 @@ def fourier_to_crystallographic(
                 scl = 1
             else:
                 scl = -1
-                
-            out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] - scl*out_dd / 3
-            out_d0err = (
-                coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2
-                + (out_dderr / 3) ** 2
-            ) ** (1 / 2)
+            d00 = c0 - scl*dd / 3
             
         case "135":
             # assumes third cartesian axis same as 45+/-45 axis
@@ -427,100 +309,94 @@ def fourier_to_crystallographic(
                 scl = 1
             else:
                 scl = -1
-                
-            out_d0 = coefficients[subpattern]["peak"][peak]["d-space"][0] + scl*out_dd / 3
-            out_d0err = (
-                coefficients[subpattern]["peak"][peak]["d-space_err"][0] ** 2
-                + (out_dderr / 3) ** 2
-            ) ** (1 / 2)
+            d00 = c0 + scl*dd / 3
 
         case _:
             # issue an error
             err_str = f"SampleGeometry is not recognised. It must be one of: {list(geometries.keys())}."
             raise ValueError(err_str)
 
-    
+        
     # %% Q
     if SampleGeometry == "2d":
         scale = 2 / 2
     else:
         scale = 3 / 2
         
-    if out_d0 != 0:
-        out_Q = out_dd / out_d0 / scale
-        out_Qerr = out_dderr / scale
+    if d00 != 0:
+        Q = dd / d00 / scale
     else:
         # then there is nothing to divide by and will get error
-        out_Q = np.nan
-        out_Qerr = np.nan
+        Q = ufloat(np.nan, np.nan)
         
-    
     # %% Organise values and angles depending on geometry specified. 
     match SampleGeometry:
         case "2d":
-            pass
             
+            # correct angle
+            if strain_factor == 1:
+                ang = ang+90
+        
         case "compression":
             # orientation aligned with smallest d-spacing 
-            pass
+            
+            # correct angle
+            if strain_factor == 1:
+                ang = ang+90
         
         case "extension":
             # orientation aligned with largest d-spacing 
-            pass
-        
+                    
+            # correct angle
+            if strain_factor == -1:
+                ang = ang+90
+                
         case "vertical":
             # orientation aligned 90 +/-45
             # change Q to match
             
             # correct Q for the strain definition. 
             if strain_factor != -1: # compression negative/extension positive
-                out_Q = -out_Q
+                Q *= -1
             else:
                 pass
-            # if coefficients[subpattern]["peak"][peak]["d-space"][4]<0:
-            # out_ang -= (np.round(out_ang/90) ) *90 - 90 # this one drops into range
-            # out_Q *=  (np.round(out_ang/90) % 2 - 0.5)*2
         
         case "horizontal":
             # orientation aligned 0 +/-45
             # change Q to match
-            if coefficients[subpattern]["peak"][peak]["d-space"][4]>0:
-                out_Q = -out_Q
-            out_ang -= (np.round(out_ang/90) ) *90  # this one drops into range
-            out_Q *=  -(np.round(out_ang/90) % 2 - 0.5)*2
-
+            if c4>0:
+                Q *= -1
+            ang -= (np.round(ang.nominal_value/90) ) *90  # this one drops into range
+            Q *=  -(np.round(ang.nominal_value/90) % 2 - 0.5)*2
             # correct Q for the strain definition. 
             if strain_factor != -1: # compression negative/extension positive
-                out_Q = -out_Q
+                Q *= -1
             else:
                 pass
-
 
         case "45":
             # orientation aligned 45 +/-45
             # change Q to match
-            if coefficients[subpattern]["peak"][peak]["d-space"][3]>0:
-                out_Q = -out_Q
-            out_ang -= (np.round((out_ang-45)/90) ) *90  # this one drops into range
-            out_Q *=  (np.round((out_ang+45)/90) % 2 - 0.5)*2
-
+            if c3>0:
+                Q *= -1
+            ang -= (np.round((ang.nominal_value-45)/90) ) *90  # this one drops into range
+            Q *=  (np.round((ang.nominal_value+45)/90) % 2 - 0.5)*2
             # correct Q for the strain definition. 
             if strain_factor != -1: # compression negative/extension positive
-                out_Q = -out_Q
+                Q *= -1
             else:
                 pass
+            
         case "135":
             # orientation aligned 135 +/-45
             # change Q to match
-            if coefficients[subpattern]["peak"][peak]["d-space"][3]<0:
-                out_Q = -out_Q
-            out_ang -= (np.round((out_ang-45)/90) ) *90 + 90 # this one drops into range
-            out_Q *=  (np.round((out_ang+135)/90) % 2 - 0.5)*2
-            
-            
+            if c3<0:
+                Q *= -1
+            ang -= (np.round((ang.nominal_value-45)/90) ) *90 + 90 # this one drops into range
+            Q *=  (np.round((ang.nominal_value+135)/90) % 2 - 0.5)*2
             # correct Q for the strain definition. 
             if strain_factor != -1: # compression negative/extension positive
-                out_Q = -out_Q
+                Q *= -1
             else:
                 pass
         
@@ -529,12 +405,9 @@ def fourier_to_crystallographic(
             err_str = f"SampleGeometry is not recognised. It must be one of: {list(geometries.keys())}."
             raise ValueError(err_str)
 
-
     # out_dd needs to be differential not deviatoric or something else.
-    out_dd *= 2
-    out_dderr *= 2
-
-
+    dd *= 2
+    
     # %%% x0 and y0
     # values is in d-spacing and needs converting to mm via calibration.
     if not debug:
@@ -550,49 +423,35 @@ def fourier_to_crystallographic(
         out_y0err = coefficients[subpattern]["peak"][peak]["d-space_err"][1]
 
     # %% collate values for output
-
-    # catch 'null' as an error
-    if out_dderr is None:
-        out_dderr = np.nan
-    if out_dmaxerr is None:
-        out_dmaxerr = np.nan
-    if out_dminerr is None:
-        out_dminerr = np.nan
-    if out_d0err is None:
-        out_d0err = np.nan
-    if out_x0err is None:
-        out_x0err = np.nan
-    if out_y0err is None:
-        out_y0err = np.nan
-
     differential_coefficients = {}
 
     # FIX ME: this should be removed but remains becuase some outputs depend on it.
-    differential_coefficients["dp"] = out_d0
-    differential_coefficients["dp_err"] = out_d0err
+    differential_coefficients["dp"] = d00.nominal_value
+    differential_coefficients["dp_err"] = d00.std_dev
 
-    differential_coefficients["d_mean"] = out_d0
-    differential_coefficients["d_mean_err"] = out_d0err
+    differential_coefficients["d_mean"] = d00.nominal_value
+    differential_coefficients["d_mean_err"] = d00.std_dev
 
-    differential_coefficients["differential"] = out_dd
-    differential_coefficients["differential_err"] = out_dderr
-    differential_coefficients["Q"] = out_Q
-    differential_coefficients["Q_err"] = out_Qerr
+    differential_coefficients["differential"] = dd.nominal_value
+    differential_coefficients["differential_err"] = dd.std_dev
+    differential_coefficients["Q"] = Q.nominal_value
+    differential_coefficients["Q_err"] = Q.std_dev
 
-    differential_coefficients["orientation"] = out_ang
-    differential_coefficients["orientation_err"] = out_angerr
+    differential_coefficients["orientation"] = ang.nominal_value
+    differential_coefficients["orientation_err"] = ang.std_dev
 
-    differential_coefficients["d_max"] = out_dmax
-    differential_coefficients["d_max_err"] = out_dmaxerr
-    differential_coefficients["d_min"] = out_dmin
-    differential_coefficients["d_min_err"] = out_dminerr
+    differential_coefficients["d_max"] = dmax.nominal_value
+    differential_coefficients["d_max_err"] = dmax.std_dev
+    differential_coefficients["d_min"] = dmin.nominal_value
+    differential_coefficients["d_min_err"] = dmin.std_dev
 
     differential_coefficients["x0"] = out_x0
     differential_coefficients["x0_err"] = out_x0err
     differential_coefficients["y0"] = out_y0
     differential_coefficients["y0_err"] = out_y0err
-
+    
     return differential_coefficients
+        
 
 
 def fourier_to_unitcellvolume(

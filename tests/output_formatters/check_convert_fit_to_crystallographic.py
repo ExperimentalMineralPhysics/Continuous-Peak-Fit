@@ -458,7 +458,7 @@ for SampleGeometry in list(geometries.keys()):
                         "colours": "p3"},
                  "orientation": {"given": "orientations",
                          "calc": "orientation",
-                        "colours": "p3"},
+                        "colours": "p4"},
                 }
         
         print("If all plots are 1-1 input vs. output then correct. Orientations might be a bit funny because of cycling round")
@@ -466,13 +466,13 @@ for SampleGeometry in list(geometries.keys()):
         for pp in range(len(plots.keys())):
             p = list(plots.keys())[pp]
             ax[pp].set_title(p)
-            # ax.plot([0,np.max(input_as_dict[plots[p]["given"]]) ], [0,np.max(input_as_dict[plots[p]["given"]]) ], 'k:')
+            ax[pp].plot([np.min(input_as_dict[plots[p]["given"]]),np.max(input_as_dict[plots[p]["given"]]) ], [np.min(input_as_dict[plots[p]["given"]]),np.max(input_as_dict[plots[p]["given"]]) ], 'r:')
             if "colours" in list(plots[p].keys()):
                 if plots[p]["colours"] in list(input_as_dict):
                     clrs = input_as_dict[plots[p]["colours"]]    
                 else:
                     clrs = output_as_dict[plots[p]["colours"]]
-                plttd = ax[pp].scatter(input_as_dict[plots[p]["given"]], output_as_dict[plots[p]["calc"]], s=2, c = clrs)
+                plttd = ax[pp].scatter(input_as_dict[plots[p]["given"]], output_as_dict[plots[p]["calc"]], s=2, c = clrs, cmap="jet")
                 cbar = plt.colorbar(plttd, shrink=0.6, location='bottom')
                 cbar.set_label(plots[p]["colours"], rotation=270)
             else:

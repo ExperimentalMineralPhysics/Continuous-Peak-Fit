@@ -54,14 +54,14 @@ def fits_to_unitcell(settings, *args, **kwargs):
 
     # Parse required parameters
     SampleGeometry = settings_class.output_settings.get("SampleGeometry", "3d")
-    SampleDeformation = settings_class.output_settings.get(
-        "SampleDeformation", "compression"
+    SampleStrain = settings_class.output_settings.get(
+        "SampleStrain", "CompressionPositive"
     )
     phase = settings_class.output_settings.get("phase", True)
     jcpds_file = settings_class.output_settings.get("jcpds", None)
     # override with kwargs
     SampleGeometry = kwargs.get("SampleGeometry", SampleGeometry)
-    SampleDeformation = kwargs.get("SampleDeformation", SampleDeformation)
+    SampleStrain = kwargs.get("SampleStrain", SampleStrain)
     phase = kwargs.get("phase", phase)
     jcpds_file = kwargs.get("jcpds", jcpds_file)
 
@@ -110,7 +110,7 @@ def fits_to_unitcell(settings, *args, **kwargs):
                 crystallographic_values = fourier_to_crystallographic(
                     fits,
                     SampleGeometry=SampleGeometry,
-                    SampleDeformation=SampleDeformation,
+                    SampleStrain=SampleStrain,
                     subpattern=i,
                     peak=j,
                 )
@@ -243,7 +243,7 @@ def fits_to_unitcell(settings, *args, **kwargs):
             unitcells = fourier_to_unitcellvolume(
                 fits,
                 # SampleGeometry=SampleGeometry,
-                # SampleDeformation=SampleDeformation,
+                # SampleStrain=SampleStrain,
                 phase=phase[i],
                 jcpds_file=jcpds_file[i],
                 temperature=temp,

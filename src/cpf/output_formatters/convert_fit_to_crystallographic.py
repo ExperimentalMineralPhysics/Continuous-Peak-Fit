@@ -140,14 +140,6 @@ def fourier_to_crystallographic(
     
     #geometry
     geometries = _sample_geometries(as_list=False)# override to use old values. Dangerous. needs removing.
-    # FIXME: remove below in future release
-    if "SampleDeformation" in list(kwargs):
-        logger.warning("'SampleDeformation' is old nomenclature and will be removed in future release")
-        if "SampleDeformation" == "compression":
-            SampleStrain = "CompressionPositive"
-        elif "SampleDeformation" == "extension":
-            SampleStrain = "CompressionNegative"
-    # FIXME: end ==================
     if SampleGeometry not in list(geometries.keys()):
         err_str = f"SampleGeometry '{SampleGeometry}' is not recognised. It must be one of: {list(geometries.keys())}."
         raise ValueError(err_str)
@@ -168,12 +160,20 @@ def fourier_to_crystallographic(
         A = -1 for CompressionPositive
         A = 1  for ExtensionPositive
     """
+    # FIXME: remove below in future release
+    if "SampleDeformation" in list(kwargs):
+        logger.warning("'SampleDeformation' is old nomenclature and will be removed in future release")
+        if kwargs["SampleDeformation"] == "compression":
+            SampleStrain = "CompressionPositive"
+        elif kwargs["SampleDeformation"] == "extension":
+            SampleStrain = "CompressionNegative"
+    # FIXME: end ==================
     if SampleStrain.lower() == "CompressionPositive".lower():
         strain_factor = 1
     elif SampleStrain.lower() == "ExtensionPositive".lower():
         strain_factor = -1
     else:
-        err_str = "SampleStrain is not recognised. It must be 'CompressionPositive' or 'ExtensionPositive'."
+        err_str = f"The value of SampleStrain = '{SampleStrain}' is not recognised. It must be 'CompressionPositive' or 'ExtensionPositive'."
         raise ValueError(err_str)
     
     # sort coefficents 
@@ -459,7 +459,7 @@ def fourier_to_unitcellvolume(
     jcpds_file: None,
     phase: None,
     SampleGeometry: str = "3d",
-    SampleDeformation: str = "compression",
+    SampleStrain: str = "CompressionPositive",
     pressure=False,
     reflections_to_use="all",
     correlation_coeffs=None,
@@ -525,13 +525,13 @@ def fourier_to_unitcellvolume(
 
     # %% validate the inputs.
     SampleGeometry = SampleGeometry.lower()
-    SampleDeformation = SampleDeformation.lower()
+    SampleStrain = SampleStrain.lower()
     if not SampleGeometry in _sample_geometries(as_list=True):# == "3d" or SampleGeometry == "2d"):
         err_str = f"SampleGeometry '{SampleGeometry}' is not recognised. It must be one of: {_sample_geometries(as_list=True)}."
         raise ValueError(err_str)
 
-    if not (SampleDeformation == "compression" or SampleDeformation == "extension"):
-        err_str = "SampleDeformation is not recognised. It must be 'compression' or 'extension'."
+    if not (SampleStrain.lower() == "CompressionPositive".lower() or SampleStrain.lower() == "ExtensionPositive".lower()):
+        err_str = f"The value of SampleStrain = '{SampleStrain}' is not recognised. It must be 'CompressionPositive' or 'ExtensionPositive'."
         raise ValueError(err_str)
 
     if isinstance(coefficients, dict):
@@ -566,7 +566,7 @@ def fourier_to_unitcellvolume(
         crystallographic = fourier_to_crystallographic(
             flat_coef,
             SampleGeometry,
-            SampleDeformation,
+            SampleStrain,
             correlation_coeffs,
             subpattern=i,
             peak=0,  # in flattened structure always the first peak

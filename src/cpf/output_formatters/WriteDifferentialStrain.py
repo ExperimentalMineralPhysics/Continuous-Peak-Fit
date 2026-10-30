@@ -28,14 +28,14 @@ def Requirements():
     OptionalParams = {
         ##"Output_directory"  # if no direcrtory is specified write to current directory.
         "SampleGeometry": "3d",  # -- geometry of the sample for determining the cnetres from. 2D or 3D.
-        "SampleDeformation": "compression",  # changes calculation between 'compression' and 'extension'.
+        "SampleStrain": "CompressionPositive",  # changes calculation between 'compression' and 'extension'.
         "dp": 5,  # how many decimal points to write out
         "col_width": 15,  # default column width for csv file.
         "ordering_of_output": False,  # Just leave as read -- otherwise list of dataframe headers to order by
     }
     # OptionalParams = [
     #     "SampleGeometry"  # changes the strain tensor calucaltion from 2d to 3d. This determines how the cetroid and differnetial strain of the dpsaice are extracted from the fourier series.
-    #     "SampleDeformation"  # changes calculation between 'compression' and 'extension'.
+    #     "SampleStrain"  # changes calculation between 'compression' and 'extension'.
     #     "coefs_vals_write"  # -- pick which set of coefficients to write
     #     "ordering_of_output": None # Just leave as read -- otherwise list of dataframe headers to order by
     # ]
@@ -76,8 +76,8 @@ def WriteOutput(
     SampleGeometry = settings_class.output_settings.get(
         "SampleGeometry", Requirements()[1]["SampleGeometry"]
     )
-    SampleDeformation = settings_class.output_settings.get(
-        "SampleDeformation", Requirements()[1]["SampleDeformation"]
+    SampleStrain = settings_class.output_settings.get(
+        "SampleStrain", Requirements()[1]["SampleStrain"]
     )
     dp = settings_class.output_settings.get("dp", Requirements()[1]["dp"])
     col_width = settings_class.output_settings.get(
@@ -88,14 +88,14 @@ def WriteOutput(
     )
     # override with kwargs
     SampleGeometry = kwargs.get("SampleGeometry", SampleGeometry)
-    SampleDeformation = kwargs.get("SampleDeformation", SampleDeformation)
+    SampleStrain = kwargs.get("SampleStrain", SampleStrain)
     dp = kwargs.get("dp", dp)
     col_width = kwargs.get("col_width", col_width)
     ordering_of_output = kwargs.get("ordering_of_output", ordering_of_output)
     # force all the kwargs that might be needed
     set_params = {
         "SampleGeometry": SampleGeometry,
-        "SampleDeformation": SampleDeformation,
+        "SampleStrain": SampleStrain,
     }
     kwargs.update(set_params)
 
@@ -106,7 +106,7 @@ def WriteOutput(
         includeStats=fitStats,
         includeIntegrated=True,
         SampleGeometry=SampleGeometry,
-        SampleDeformation=SampleDeformation,
+        SampleStrain=SampleStrain,
     )
     headers = list(df.columns.values)
     # order the rows
@@ -206,7 +206,7 @@ def WriteOutput(
     ## outfile header
     calc_options = {}
     calc_options["Sample Geometry"] = SampleGeometry
-    calc_options["Sample Deformation"] = SampleDeformation
+    calc_options["Sample Strain"] = SampleStrain
     file_header = make_header(
         settings_class,
         derived="Differnetial strains",

@@ -24,7 +24,7 @@ def Requirements():
         "reflections_to_use": "all",  # -- pick which set of reflections to use for unit cell volume
         "phase": True,  # -- pick whick phase to fit unit cell for.
         "SampleGeometry": "3d",  # -- geometry of the sample for determining the cnetres from. 2D or 3D.
-        "SampleDeformation": "compression",  # changes calculation between 'compression' and 'extension'.
+        "SampleStrain": "CompressionPositive",  # changes calculation between 'compression' and 'extension'.
         "weighted": True,  # -- weighted fit or not. True/False
         "dp": 5,  # how many decimal points to write out
         "col_width": 15,  # default column width for csv file.
@@ -72,8 +72,8 @@ def WriteOutput(
     SampleGeometry = settings_class.output_settings.get(
         "SampleGeometry", Requirements()[1]["SampleGeometry"]
     )
-    SampleDeformation = settings_class.output_settings.get(
-        "SampleDeformation", Requirements()[1]["SampleDeformation"]
+    SampleStrain = settings_class.output_settings.get(
+        "SampleStrain", Requirements()[1]["SampleStrain"]
     )
     weighted = settings_class.output_settings.get(
         "weighted", Requirements()[1]["weighted"]
@@ -89,7 +89,7 @@ def WriteOutput(
     reflections_to_use = kwargs.get("reflections_to_use", reflections_to_use)
     phase = kwargs.get("phase", phase)
     SampleGeometry = kwargs.get("SampleGeometry", SampleGeometry)
-    SampleDeformation = kwargs.get("SampleDeformation", SampleDeformation)
+    SampleStrain = kwargs.get("SampleStrain", SampleStrain)
     weighted = kwargs.get("weighted", weighted)
     dp = kwargs.get("dp", dp)
     col_width = kwargs.get("col_width", col_width)
@@ -130,7 +130,7 @@ def WriteOutput(
     ## outfile header
     calc_options = {}
     calc_options["Sample Geometry"] = SampleGeometry
-    calc_options["Sample Deformation"] = SampleDeformation
+    calc_options["Sample Strain"] = SampleStrain
     # remove hkls from data frame -- write as a header instead
     cols = [col for col in df.columns if "hkl" in col]
     hkls = {}

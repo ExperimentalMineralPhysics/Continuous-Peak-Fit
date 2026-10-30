@@ -35,7 +35,6 @@ def Requirements():
         # "Output_TemperaturePower",
         # "Output_tc",
         # "SampleGeometry": "3d",  # changes the strain tensor calucaltion from 2d to 3d. This determines how the cetroid and differnetial strain of the dpsaice are extracted from the fourier series.
-        # "SampleDeformation": "compression",  # changes calculation between 'compression' and 'extension'.
     }
     return RequiredParams, OptionalParams
 

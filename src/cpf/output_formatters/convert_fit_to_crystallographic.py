@@ -134,7 +134,7 @@ def fourier_to_crystallographic(
     # the uncertainties package might be the package to use here.
     # https://uncertainties-python-package.readthedocs.io/en/latest/user_guide.html?highlight=covariance#covariance-matrix
 
-    # %% validate the inputs.
+    # validate the inputs.
     SampleGeometry = SampleGeometry.lower()
     SampleStrain = SampleStrain.lower()
     
@@ -187,26 +187,21 @@ def fourier_to_crystallographic(
     if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3:
         SampleGeometry == "2d"
 
-    # %% differential coefficients, errors and covarience
+    # differential coefficients, errors and covarience
     if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3:
         c0 = ufloat(coefficients[subpattern]["peak"][peak]["d-space"][0], coefficients[subpattern]["peak"][peak]["d-space_err"][0])
         c3 = 0
         c4 = 0
-        
-        ang = ufloat(np.nan, np.nan)
         dd = ufloat(0,0)
-        dmax = c0
-        dmin = c0
-        
+        ang = ufloat(np.nan, np.nan)
     else:
         c0 = ufloat(coefficients[subpattern]["peak"][peak]["d-space"][0], coefficients[subpattern]["peak"][peak]["d-space_err"][0])
         c3 = ufloat(coefficients[subpattern]["peak"][peak]["d-space"][3], coefficients[subpattern]["peak"][peak]["d-space_err"][3])
         c4 = ufloat(coefficients[subpattern]["peak"][peak]["d-space"][4], coefficients[subpattern]["peak"][peak]["d-space_err"][4])
-    
         # a = sin??
         # b = cos??
         # out_ang  = atan(b/a) / 2
-        # differentail d = (a^2+b^2)^(1/2)
+        # delta d = (a^2+b^2)^(1/2)
         dd = umath.sqrt(c3**2+c4**2)
         ang = umath.atan(c3/c4)/2
         if c4.nominal_value > 0:
@@ -214,17 +209,19 @@ def fourier_to_crystallographic(
                 ang += np.pi / 2
             else:
                 ang -= np.pi / 2
+        # convert to degrees
         ang = ang/np.pi*180
-        dmax = c0 + dd
-        dmin = c0 - dd
-
+    # differential is twice amplitude
+    differential = 2 * dd
+    dmax = c0 + dd
+    dmin = c0 - dd
+    
     #all geometries not specified as 2d are assuemd to be 3d. The determine is then just 
     # working out what is the inmeased axis. 
     match SampleGeometry:
         case "2d":
             # d0 is the mean of the d-spacings. In this case it is the middle of the line.
             d00 = c0
-            # out_d0err = coefficients[subpattern]["peak"][peak]["d-space_err"][0]
 
         case "compression":
             # assumes third cartesian axis is larger than mean of diffraction ring
@@ -316,45 +313,38 @@ def fourier_to_crystallographic(
             err_str = f"SampleGeometry is not recognised. It must be one of: {list(geometries.keys())}."
             raise ValueError(err_str)
 
-        
-    # %% Q
+    # Q
     if SampleGeometry == "2d":
-        scale = 2 / 2
+        scale = 2
     else:
-        scale = 3 / 2
-        
+        scale = 3
     if d00 != 0:
-        Q = dd / d00 / scale
+        Q = differential / d00 / scale
     else:
         # then there is nothing to divide by and will get error
         Q = ufloat(np.nan, np.nan)
         
-    # %% Organise values and angles depending on geometry specified. 
+    # organise values and angles depending on geometry specified. 
     match SampleGeometry:
         case "2d":
-            
             # correct angle
             if strain_factor == 1:
                 ang = ang+90
         
         case "compression":
             # orientation aligned with smallest d-spacing 
-            
             # correct angle
             if strain_factor == 1:
                 ang = ang+90
         
         case "extension":
             # orientation aligned with largest d-spacing 
-                    
             # correct angle
             if strain_factor == -1:
                 ang = ang+90
                 
         case "vertical":
             # orientation aligned 90 +/-45
-            # change Q to match
-            
             # correct Q for the strain definition. 
             if strain_factor != -1: # compression negative/extension positive
                 Q *= -1
@@ -404,11 +394,8 @@ def fourier_to_crystallographic(
             # issue an error
             err_str = f"SampleGeometry is not recognised. It must be one of: {list(geometries.keys())}."
             raise ValueError(err_str)
-
-    # out_dd needs to be differential not deviatoric or something else.
-    dd *= 2
     
-    # %%% x0 and y0
+    # x0 and y0
     # values is in d-spacing and needs converting to mm via calibration.
     if not debug:
         # FIX ME: this conversion needs a calibration and as far as I can work out is non-trivial.
@@ -422,18 +409,18 @@ def fourier_to_crystallographic(
         out_y0 = coefficients[subpattern]["peak"][peak]["d-space"][1]
         out_y0err = coefficients[subpattern]["peak"][peak]["d-space_err"][1]
 
-    # %% collate values for output
+    # collate values for output
     differential_coefficients = {}
 
-    # FIX ME: this should be removed but remains becuase some outputs depend on it.
+    # FIX ME: "dp" should be removed but remains becuase some outputs depend on it.
     differential_coefficients["dp"] = d00.nominal_value
     differential_coefficients["dp_err"] = d00.std_dev
 
     differential_coefficients["d_mean"] = d00.nominal_value
     differential_coefficients["d_mean_err"] = d00.std_dev
 
-    differential_coefficients["differential"] = dd.nominal_value
-    differential_coefficients["differential_err"] = dd.std_dev
+    differential_coefficients["differential"] = differential.nominal_value
+    differential_coefficients["differential_err"] = differential.std_dev
     differential_coefficients["Q"] = Q.nominal_value
     differential_coefficients["Q_err"] = Q.std_dev
 
@@ -452,7 +439,6 @@ def fourier_to_crystallographic(
     
     return differential_coefficients
         
-
 
 def fourier_to_unitcellvolume(
     coefficients,
@@ -523,7 +509,7 @@ def fourier_to_unitcellvolume(
 
     """
 
-    # %% validate the inputs.
+    # validate the inputs.
     SampleGeometry = SampleGeometry.lower()
     SampleStrain = SampleStrain.lower()
     if not SampleGeometry in _sample_geometries(as_list=True):# == "3d" or SampleGeometry == "2d"):
@@ -561,7 +547,7 @@ def fourier_to_unitcellvolume(
                     phases.append(flat_coef[i]["peak"][j]["phase"])
         phase = max(set(phases), key=phases.count)
 
-    # %% get d0 accounting for difrerential strain and sample geometry
+    # get d0 accounting for difrerential strain and sample geometry
     for i in reflections_to_use:
         crystallographic = fourier_to_crystallographic(
             flat_coef,

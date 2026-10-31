@@ -342,14 +342,19 @@ def fourier_to_crystallographic(
             # correct angle
             if strain_factor == -1:
                 ang = ang+90
+            if c4<0:
+                 Q *= -1
+            
+            # change Q to match
+            if c4>0:
+                Q *= -1
                 
         case "vertical":
             # orientation aligned 90 +/-45
             # correct Q for the strain definition. 
-            if strain_factor != -1: # compression negative/extension positive
-                Q *= -1
-            else:
-                pass
+            if (strain_factor != -1 and c4>0) or (strain_factor != 1 and c4<0): 
+                # compression negative/extension positive
+                 Q *= -1
         
         case "horizontal":
             # orientation aligned 0 +/-45

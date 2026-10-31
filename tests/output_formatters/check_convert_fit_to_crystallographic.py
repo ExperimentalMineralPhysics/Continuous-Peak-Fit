@@ -327,7 +327,7 @@ geometries = cftc._sample_geometries(as_list=False)
 strains = ["CompressionPositive", "ExtensionPositive"]
 num_samples = 100
 
-for SampleGeometry in list(geometries.keys()):
+for SampleGeometry in list(geometries.keys()):#    list(["extension"]):#
     
     for SampleStrain in strains:
                         
@@ -455,7 +455,7 @@ for SampleGeometry in list(geometries.keys()):
                         "colours": "p3"},
                 "Q/delta d": {"given": "deltads",
                          "calc": "Q",
-                        "colours": "p3"},
+                        "colours": "p4"},
                  "orientation": {"given": "orientations",
                          "calc": "orientation",
                         "colours": "p4"},

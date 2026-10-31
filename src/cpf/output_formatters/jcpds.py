@@ -61,6 +61,10 @@ class jcpds_reflection:
        h:      H index for this reflection
        k:      K index for this reflection
        l:      L index for this reflection
+       differentialobs: observed differential lattice spacing under stress (dmax - dmin) 
+       orientationobs: orientation of the minimum d-spacing (maximum stress) direction
+       Q: differentail strain parameter
+       stress: stress on hkl given a shear modulus
 
     """
 
@@ -68,18 +72,26 @@ class jcpds_reflection:
                  intensity=0., 
                  d=0., 
                  dobs=None, 
-                 delta_dobs = None,
-                 orientationobs = None ):
-        self.d0 = d
-        self.d = d
-        self.dobs = dobs
-        self.intensity = intensity
+                 delta_dobs = None, # unclear should be removed
+                 differentialobs = None,
+                 orientationobs = None,
+                 stress = None,
+                 Q = None):
+        self.d0 = d # d0
+        self.d = d # d at P and T (recalculated in jcpds class)
+        self.dobs = dobs # d observed (set)
+        self.intensity = intensity 
         self.h = h
         self.k = k
         self.l = l
-        self.delta_dobs = delta_dobs
-        self.orientationobs = orientationobs
-        self.stress = None
+        self.delta_dobs = delta_dobs # unclear should be removed
+        self.differentialobs = differentialobs 
+        self.orientationobs = orientationobs 
+        self.stress = stress 
+        self.Q = Q
+        
+        
+        
 
 class jcpds(object):
     def __init__(self):
@@ -612,8 +624,6 @@ class jcpds(object):
                 self.mod_pressure = pressure - \
                                     self.alpha_t * self.k0 * (temperature - 298.)
                 
-                
-                
                 def tempfunc(self, var):
                     return self.bm3_inverse(var)
                 
@@ -626,6 +636,9 @@ class jcpds(object):
                 
                 # res = minimize(self.bm3_inverse, 1.)
                 # self.v = self.v0 / float(res.x)
+                
+        # recompute d at these conditions 
+        self.compute_d(from_compute_volume=True)
 
 
     def compute_unitcell_volume(self):
@@ -1025,9 +1038,17 @@ class jcpds(object):
         g0pt = self.g0p0 + self.dg0pdt * (temperature - 298.)
         g = g0t + g0pt * (self.pressure)
 
-        # compute stresses from delta_dobs for each hkl.
+        # compute stresses from differentialobs for each hkl.
         for i in self.reflections:
-            i.stress = i.delta_dobs * g
+            if i.dobs:
+                d = i.dobs
+            else:
+                d = i.d
+            Q = (d - (d - i.differentialobs / 3 * 2)) /d / (1-3*1) # 1 instead of cos^2(0)
+            
+            i.stress = -3*Q*(2*g)
+            # i.stress = i.differentialobs * g ## old calculation
+            
         
         return self.get_reflection_stresses()
 
@@ -1143,7 +1164,7 @@ class jcpds(object):
 
 
 
-    def compute_d(self, lattice_parameters=None, pressure=None, temperature=None):
+    def compute_d(self, lattice_parameters=None, pressure=None, temperature=None, from_compute_volume=False):
         """
         Computes the D spacings of the material.
         It can compute D spacings at different pressures and temperatures.
@@ -1183,10 +1204,22 @@ class jcpds(object):
               print, r.d
         """
         
+        if pressure == None:
+            pressure = self.pressure
+        else:
+            self.pressure = pressure
+
+        if temperature == None:
+            temperature = self.temperature
+        else:
+            self.temperature = temperature
+        
         if lattice_parameters == None:
             
             if not (np.isnan(self.temperature) or np.isnan(self.pressure)):
-                self.compute_volume(pressure, temperature)
+                
+                if from_compute_volume!=True:
+                    self.compute_volume(pressure, temperature)
         
                 # Assume each cell dimension changes by the same fractional amount = cube
                 # root of volume change ratio
@@ -1268,17 +1301,17 @@ class jcpds(object):
             self.reflections[ind].d = d_spacings[ind]
 
     def add_reflection(self, h=0., k=0., l=0., intensity=0., d=0., dobs=None, dobs_err=None,
-                       delta_dobs=None,
-                       delta_dobs_err=None,
+                       differentialobs=None,
+                       differentialobs_err=None,
                        orientationobs=None,
                        orientationobs_err=None):
         if dobs_err is not None:
             dobs = ufloat(dobs, dobs_err)
-        if delta_dobs_err is not None:
-            delta_dobs = ufloat(delta_dobs, delta_dobs_err)
+        if differentialobs_err is not None:
+            differentialobs = ufloat(differentialobs, differentialobs_err)
         if orientationobs_err is not None:
             orientationobs = ufloat(orientationobs, orientationobs_err)
-        new_reflection = jcpds_reflection(h,k,l, intensity, d, dobs=dobs, delta_dobs=delta_dobs, orientationobs=orientationobs)
+        new_reflection = jcpds_reflection(h,k,l, intensity, d, dobs=dobs, differentialobs=differentialobs, orientationobs=orientationobs)
         self.reflections.append(new_reflection)
         self.modified = True
 

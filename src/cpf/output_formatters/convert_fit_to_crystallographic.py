@@ -584,8 +584,8 @@ def fourier_to_unitcellvolume(
                 l=hkl[2],
                 dobs=flat_coef[i]["peak"][j]["cryst_prop"]["dp"],
                 dobs_err=flat_coef[i]["peak"][j]["cryst_prop"]["dp_err"],
-                delta_dobs=flat_coef[i]["peak"][j]["cryst_prop"]["Q"],
-                delta_dobs_err=flat_coef[i]["peak"][j]["cryst_prop"]["Q_err"],
+                differentialobs=flat_coef[i]["peak"][j]["cryst_prop"]["differential"],
+                differentialobs_err=flat_coef[i]["peak"][j]["cryst_prop"]["differential_err"],
                 orientationobs=flat_coef[i]["peak"][j]["cryst_prop"]["orientation"],
                 orientationobs_err=flat_coef[i]["peak"][j]["cryst_prop"][
                     "orientation_err"

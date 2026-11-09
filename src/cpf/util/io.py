@@ -766,7 +766,7 @@ def peak_string(
         the Miller indices in the form of a string or an integer array, as well as
         the 'phase' key, which contains information about which material this peak
         belongs to.
-    peak: int | list[int] | str | Literal['all']
+    peak: int | list[int] | Literal['all']
         Indices of the peak descriptors to use to generate the peak string with.
         Takes an integer, a list of integers, or 'all'. The default is 'all'.
     fname: bool
@@ -785,16 +785,12 @@ def peak_string(
     # Construct list of indices to parse
     if peak == "all":
         peaks = list(range(len(orders["peak"])))
-    # If a list of ints is provided
-    elif isinstance(peak, list) and all(isinstance(x, int) for x in peak):
-        peaks = peak
-    # If an int was provided
-    elif (
-        isinstance(peak, str)
-        or isinstance(peak, int)
-        or np.issubdtype(peak, np.integer)
-    ):
-        peaks = [peak]
+    # If a list of ints or NumPy ints was provided
+    elif isinstance(peak, list) and all(isinstance(x, (int, np.integer)) for x in peak):
+        peaks = [int(p) for p in peak]  # Standardise all as Python int
+    # If an int or NumPy int was provided
+    elif isinstance(peak, (int, np.integer)):
+        peaks = [int(peak)]  # Standardise as Python int
     # Raise a TypeError otherwise
     else:
         raise TypeError(
@@ -1111,13 +1107,14 @@ def make_outfile_name(
     return filename
 
 
-def number_to_string(number, replace=".", withthis="pt"):
+def number_to_string(
+    number: int | float | str, old: str = ".", new: str = "pt", count: int = -1
+):
     """
     Turns a number into a string and then replaces the decimal place with a "pt".
+    The number could also be a string to begin with.
     """
-    number = str(number)
-    number = re.sub(r"\.+", "pt", number)
-    return number
+    return str(number).replace(old, new, count)
 
 
 def licit_filename(fname, replacement="==", exclude_dir=True):

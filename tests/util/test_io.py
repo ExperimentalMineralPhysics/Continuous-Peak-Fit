@@ -6,6 +6,7 @@ import pytest
 from cpf.util.io import (
     get_file_indices,
     has_value,
+    number_to_string,
     numpy_to_json,
     peak_hkl,
     peak_phase,
@@ -1155,8 +1156,23 @@ def test_make_outfile_name():
     pass
 
 
-def test_number_to_string():
-    pass
+@pytest.mark.parametrize(
+    "test_params",
+    (  # Input | Old | New | Expected output
+        ("1.5", ".", "pt", "1pt5"),
+        (1.5, ".", "pt", "1pt5"),
+        (1, ".", "pt", "1"),
+        (0.005, ".", "pt", "0pt005"),
+        (np.ones((1,), dtype=np.float64)[0], ".", "pt", "1pt0"),
+        (np.ones((1,), dtype=np.int64)[0], ".", "pt", "1"),
+    ),
+)
+def test_number_to_string(
+    test_params: tuple[str | int | float | np.integer | np.floating, str, str, str],
+):
+    # Unpack test params
+    value, old, new, expected_output = test_params
+    assert number_to_string(value, old, new) == expected_output
 
 
 def test_licit_filename():

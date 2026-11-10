@@ -8,6 +8,7 @@ import numpy.ma as ma
 from matplotlib import cm, colors, gridspec, tri, colormaps
 
 from cpf.histograms import histogram1d, histogram2d
+from cpf.util.io import peak_string
 from cpf.util.logging import get_logger
 
 logger = get_logger("cpf.input_types._Plot_AngleDispersive")
@@ -729,8 +730,8 @@ class _Plot_AngleDispersive:
         plot_type=False,
         point_scale=2,
         resample_shape=None,
-        location=None,
         orientation="vertical",
+        cbar_location=None,
         cbar_axes = None,
         peak_labels = False,
     ):
@@ -860,7 +861,7 @@ class _Plot_AngleDispersive:
         else:  # if y_axis is "default" or "azimuth"
             plot_y = self.azm
             plot_i = self.intensity
-            if y_label == None:
+            if y_label == None or y_label == False:
                 label_y = None# label_y = y_label
             else:
                 label_y = f"{self.Azimuthlabel} ({self.AzimuthUnits})"
@@ -941,26 +942,26 @@ class _Plot_AngleDispersive:
         elif IMax == IMin:
             IMax += 1
             IMin -= 1
-        if location == None:
+        if cbar_location == None:
             if y_lims is None:
-                location = "right"
+                cbar_location = "right"
             elif plot_y.squeeze().ndim == 1:
                 x_range = np.abs(x_lims[1] - x_lims[0])
                 y_range = np.abs(y_lims[1] - y_lims[0])
                 if x_range >= y_range:
-                    location = "bottom"
+                    cbar_location = "right"
                     fraction = 0.046
                 else:
-                    location = "right"
+                    cbar_location = "right"
                     fraction = 0.15
             elif plot_i.squeeze().shape[-1] > plot_i.squeeze().shape[-2]:
-                location = "bottom"
+                cbar_location = "right"
                 fraction = 0.046
             else:
-                location = "right"
+                cbar_location = "right"
                 fraction = 0.15
-        elif location == "default":
-            location == "right"
+        elif cbar_location == "default":
+            cbar_location == "right"
         else:
             pass
 
@@ -976,11 +977,6 @@ class _Plot_AngleDispersive:
             plot_y, plot_x = plot_x, plot_y
             x_lims, y_lims = y_lims, x_lims
             label_x, label_y = label_y, label_x
-
-            location = "right"
-        else:
-            location = "bottom"
-
         if plot_type == False or plot_type == "scatter":
             the_plot = axis_plot.scatter(
                 plot_x,
@@ -1051,7 +1047,7 @@ class _Plot_AngleDispersive:
 
         # fix colour bar. 
         # cbar_axes = False --> dont have colour bar
-        # cbar_axes = None --> cbar for these axes (default)
+        # cbar_axes = True/None --> cbar for these axes (default)
         # cbar_axes = Axis --> make cbar for this/these axes. Used to make 
         # single colour bar for data and model in self.plot_fitted.
         if cbar_axes is not False:
@@ -1060,13 +1056,16 @@ class _Plot_AngleDispersive:
             try:
                 shrink = 0.9 / len(cbar_axes)
             except:
-                shrink = 0.9
+                shrink = 0.6
+            if cbar_axes==True:
+                cbar_axes=None
             cb = fig_plot.colorbar(
                 mappable=the_plot,
                 ax=cbar_axes,
                 extend=cb_extend,
-                location=location,
+                location=cbar_location,
                 shrink=shrink,
+                label="Intensity (counts)"
             )  # , pad=0.1, aspect=8)
           
         if peak_labels:

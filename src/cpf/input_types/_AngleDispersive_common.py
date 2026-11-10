@@ -340,7 +340,7 @@ class _AngleDispersive_common:
         return self.duplicate(range_bounds=range_bounds, azi_bounds=azi_bounds, with_detector=False, as_masked=as_masked)
 
     
-    def _reduce_array(self, data, reduce_by=None, keep_FirstDim=False, polar=False):
+    def _reduce_array(self, data, reduce_by=None, keep_FirstDim=False, polar=False, keep_nagatives=False):
         """
         Reduces the size of the data array by factor of reduce_by.
         The default returned values are the arithmetric mean of 
@@ -490,7 +490,7 @@ class _AngleDispersive_common:
         reduction = tuple(reduction)
                 
         if ma.is_masked(data) == True:
-            msk = do_reduction(data.mask, reduction, mask=False)
+            msk = do_reduction(data.mask.astype(float), reduction, mask=False).astype(bool)
         else:
             msk=False
         

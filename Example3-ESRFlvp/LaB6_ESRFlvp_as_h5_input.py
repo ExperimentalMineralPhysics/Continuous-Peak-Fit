@@ -1,6 +1,7 @@
 # Example 3 -- LaB6_ESRFlvp_as_h5; load h5 data and combine multiple frames to single pattern
 # 
 # Takes top level h5 file and reads data, combining multiple frames into a single image.
+import numpy as np
 
 # properties of the data files.
 datafile_directory = "./data/"
@@ -25,6 +26,12 @@ h5_iterate = [
 # Calibration and masking.
 Calib_type     = "ESRFlvp"
 Calib_param    = "./lab6_53keV_3900mm.json"
+Calib_mask     = {"image": "./p900kw_0090_grown.mask",
+                  }
+# the grown-mask is ued because the edges of the chips have a different intensity to the 
+# rest of the data. This is probably universial.
+
+
 
 metadata = ["/*.1/instrument/azim/value", "/*.1/instrument/azim/value"]
 # Fitting properties for peaks.
@@ -37,7 +44,7 @@ Output_type        = ['FitMovie', 'CoefficientTable']
 # define ranges and peaks
 fit_orders = [
     {
-        "range": [3.2,3.25],
+        "range": [3.2,3.35],
         "background": [2, 0],
         "peak": [{
             "phase": "LaB6",
@@ -48,6 +55,20 @@ fit_orders = [
             "width": 0,
             "symmetry": 2
         }, ]
+    },
+    {
+        "range": [3.15,3.35],
+        "background": [2, 0],
+        "peak": [{
+            "phase": "LaB6+gaps+clipped",
+            "hkl": '100',
+            "d-space": 3,
+            "height": 1,
+            "profile": 0,
+            "width": 0,
+            "symmetry": 2
+        }, ],
+        "imax": 500
     },
     {
         "range": [4.53,4.6],

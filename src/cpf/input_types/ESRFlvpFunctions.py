@@ -907,7 +907,7 @@ class ESRFlvpDetector:
                         dtype = self.intensity.dtype
                     else:
                         tmp_image = ma.array(h5_functions.get_images([[image_name, [self.h5_datakey,0]]]))
-                        dtype = self.GetDataType(tmp_image[0], minimumPrecision=False)                
+                        dtype = self.GetDataType(tmp_image[0], minimumPrecision=False)
             else:
                 # inherit the data type from previosuly.
                 dtype = self.intensity.dtype

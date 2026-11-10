@@ -76,22 +76,6 @@ class _masks:
         # make empty mask
         im_mask = np.zeros(im_ints.shape, dtype="bool")
 
-        if "image" in mask:
-            # Dioptas mask is compressed Tiff image.
-            # Save and load functions within Dioptas are: load_mask and save_mask in dioptas/model/MaskModel.py
-            mask_from_image = np.array(Image.open(mask["image"]), dtype="bool")
-            if mask_from_image.shape == im_ints.shape:
-                im_mask = np.asarray(im_mask) | np.asarray(mask_from_image)
-            elif mask_from_image.shape == im_ints.shape[1:2]:
-                # the masked image is for a single detector frame and the diffraction data is composed of multiple frames
-                # (e.g. ESRFlvp detector).
-                # assumes the repitition of the detector frame is in the first dimension of the array
-                mask_from_image = np.expand_dims(mask_from_image, axis=0)
-                mask_from_image = np.repeat(
-                    mask_from_image, mask_from_image.shape[0], axis=0
-                )
-            im_mask = np.asarray(im_mask) | ma.asarray(mask_from_image)
-
         if "polygon" in mask:
             polygons = mask["polygon"]
             for i in polygons:
@@ -145,6 +129,27 @@ class _masks:
 
         # FIX ME: Should also add circles and other polygons as per GSAS-II masks
 
+        if "image" in mask:
+            # Dioptas mask is compressed Tiff image.
+            # Save and load functions within Dioptas are: load_mask and save_mask in dioptas/model/MaskModel.py
+            mask_from_image = np.array(Image.open(mask["image"]), dtype="bool")
+            if self.reduce_by:
+                mask_from_image = self._reduce_array(mask_from_image.astype(float), self.reduce_by).squeeze().astype(bool)
+            
+            if mask_from_image.shape == im_ints.shape:
+                im_mask = np.asarray(im_mask) | np.asarray(mask_from_image)
+            elif mask_from_image.shape == im_ints.shape[1:3]:
+                # the masked image is for a single detector frame and the diffraction data is composed of multiple frames
+                # (e.g. ESRFlvp detector).
+                # assumes the repitition of the detector frame is in the first dimension of the array
+                mask_from_image = np.expand_dims(mask_from_image, axis=0)
+                mask_from_image = np.repeat(
+                    mask_from_image, mask_from_image.shape[0], axis=0
+                )
+                im_mask = np.asarray(im_mask) | ma.asarray(mask_from_image)
+            else:
+                raise NotImplementedError("Image masks for data arrays with more than 3 dimensions.")
+            
         # mask invalid values and combine masks
         im_mask = np.asarray(im_mask) | np.asarray(ma.masked_invalid(im_ints).mask) 
 

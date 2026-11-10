@@ -188,7 +188,7 @@ def fourier_to_crystallographic(
         SampleGeometry == "2d"
 
     # differential coefficients, errors and covarience
-    if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3:
+    if len(coefficients[subpattern]["peak"][peak]["d-space"]) <= 3 or all(v==0 for v in coefficients[subpattern]["peak"][peak]["d-space"]):
         c0 = ufloat(coefficients[subpattern]["peak"][peak]["d-space"][0], coefficients[subpattern]["peak"][peak]["d-space_err"][0])
         c3 = 0
         c4 = 0

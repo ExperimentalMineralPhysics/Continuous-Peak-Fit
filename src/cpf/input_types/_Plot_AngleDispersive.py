@@ -732,6 +732,7 @@ class _Plot_AngleDispersive:
         location=None,
         orientation="vertical",
         cbar_axes = None,
+        peak_labels = False,
     ):
         """
         add data to axes.
@@ -814,7 +815,8 @@ class _Plot_AngleDispersive:
 
         if axis_plot == None and fig_plot == None:
             # make a figure
-            fig_plot, axis_plot = plt.subplots()
+            figure_size = [8,8]
+            fig_plot, axis_plot = plt.subplots()#figsize=figure_size)
 
         elif axis_plot == None:
             # figure exists
@@ -1066,8 +1068,99 @@ class _Plot_AngleDispersive:
                 location=location,
                 shrink=shrink,
             )  # , pad=0.1, aspect=8)
+          
+        if peak_labels:
+            axis_plot = label_peaks(fig_plot, axis_plot, peak_labels, orientation=orientation)
 
         return fig_plot
+
+
+def label_peaks(fig_plot, axis_plot, labels, orientation="vertical"):
+    """
+    Adds position labels for the peaks used in the fitting.
+    
+    The labels are be taken from the settings_class, the fit_orders themselves, 
+    a fitted set of parameters or a list of positions and strings.
+    
+    
+    Parameters
+    ----------
+    fig_plot : figure, optional
+        Figure to add plot to. The default is None.
+    axis_plot : axes, optional
+        Axes to add plot to. The default is None.
+    labels : list, optional
+        Settings().fit_order list.
+    orientation : str, optional
+        Orientation of the plot -- and so where to add the lavels.
+        Not implemented. The default is 'vertical'.
+
+    Returns
+    -------
+    axis_plot : axes
+        annotated set of axes.
+    """
+    
+    tth_lim = axis_plot.get_xlim()
+    azm_lim = axis_plot.get_ylim()
+    if orientation == "horizontal":
+        tth_lim, azm_lim = azm_lim, tth_lim
+    
+    tth_pos = []
+    label_string = []
+    for lbl in labels:
+        
+        from cpf.util import io
+    
+        for i, pks in enumerate(lbl["peak"]):
+            
+            # label_string.append(io.peak_string(lbl, peak=i))
+            label_string.append(f"({io.peak_hkl(lbl, peak=i)[0]})")
+            if "range" in lbl:
+                tth_pos.append( lbl["range"][0] + ((lbl["range"][1]-lbl["range"][0])/(len(lbl["peak"])+1)*(i+1)) )
+
+    # Minimum separation in data units
+    dx = 0.8
+
+    rows = []
+    for x, label in zip(tth_pos, label_string):
+
+        for row_num, last_x in enumerate(rows):
+            if x - last_x > dx:
+                rows[row_num] = x
+                break
+        else:
+            row_num = len(rows)
+            rows.append(x)
+
+        y = 1.02 + 0.08 * row_num
+
+        # line through the plot
+        # axis_plot.axvline(x, color='0.8', lw=1)
+
+        # symbol
+        axis_plot.plot(
+            x, y,
+            marker='v',
+            color='k',
+            transform=axis_plot.get_xaxis_transform(),
+            clip_on=False,
+        )
+
+        # label
+        axis_plot.text(
+            x, y + 0.02,
+            label,
+            ha='center',
+            va='bottom',
+            transform=axis_plot.get_xaxis_transform(),
+            clip_on=False,
+            fontsize='x-small',
+            # rotation=90
+        )
+            
+    return axis_plot
+
 
 def residuals_colour_scheme(maximum_value, minimum_value, **kwargs):
     # create custom colormap for residuals

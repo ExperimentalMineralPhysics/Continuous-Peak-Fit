@@ -40,16 +40,19 @@ class _Plot_AngleDispersive:
                 range(int(disp_lims[0]), int(disp_lims[1] + 1), int(self.azm_blocks))
             )
         elif self.azm_end is not None and self.azm_start is not None:
-            num_blocks = (self.azm_end - self.azm_start) / self.azm_blocks
-            if num_blocks < 3:
-                self.azm_blocks = np.around((self.azm_end - self.azm_start) / 3)
-            disp_lims = (
-                np.around(np.array([self.azm_start, self.azm_end]) / self.azm_blocks)
-                * self.azm_blocks
-            )
-            disp_ticks = list(
-                range(int(disp_lims[0]), int(disp_lims[1] + 1), int(self.azm_blocks))
-            )
+            if self.azm_end - self.azm_start != 0:
+                num_blocks = (self.azm_end - self.azm_start) / self.azm_blocks
+                if num_blocks < 3:
+                    self.azm_blocks = np.around((self.azm_end - self.azm_start) / 3)
+                disp_lims = (
+                    np.around(np.array([self.azm_start, self.azm_end]) / self.azm_blocks)
+                    * self.azm_blocks
+                )
+                disp_ticks = list(
+                    range(int(disp_lims[0]), int(disp_lims[1] + 1), int(self.azm_blocks))
+                )
+            else:
+                disp_ticks = [self.azm_start]
         elif len(np.unique(self.azm)) <= unique:
             # N.B. len(np.unique(self.azm)) is very slow if the data set is large.
             # as long as self.azm_start and self.azm_end are set we should never get here.
@@ -939,9 +942,9 @@ class _Plot_AngleDispersive:
         if location == None:
             if y_lims is None:
                 location = "right"
-            elif plot_y.ndim == 1:
-                x_range = x_lims[1] - x_lims[0]
-                y_range = y_lims[1] - y_lims[0]
+            elif plot_y.squeeze().ndim == 1:
+                x_range = np.abs(x_lims[1] - x_lims[0])
+                y_range = np.abs(y_lims[1] - y_lims[0])
                 if x_range >= y_range:
                     location = "bottom"
                     fraction = 0.046
